@@ -1,0 +1,56 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+model Product {
+  id              String   @id @default(uuid())
+  shopId          String
+  name            String
+  image           String?
+  category        String
+  brand           String
+  description     String
+  price           String   // Can store a simple numeric string like "29990000" or a range like "150.000đ - 200.000đ"
+  stock           Int
+  sales           Int      @default(0)
+  status          String   // "active" | "hidden"
+  sku             String?
+  variationsText  String?
+  hasVariations   Boolean  @default(false)
+  variationGroups String?  @db.Text // JSON string representation of VariationGroup[]
+  variationRows   String?  @db.Text // JSON string representation of VariationRow[]
+  weight          String?
+  length          String?
+  width           String?
+  height          String?
+  condition       String   @default("new") // "new" | "used"
+  isPreOrder      Boolean  @default(false)
+  preOrderDays    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  username  String
+  rating    Int      // Từ 1 đến 5 sao
+  comment   String
+  variant   String   // Phân loại sản phẩm (ví dụ: Màu Đỏ, Size L)
+  reply     String?  // Phản hồi của người bán (nếu có)
+  createdAt DateTime @default(now())
+}
+
+model ProductLike {
+  id        String   @id @default(uuid())
+  productId String
+  userId    String
+  createdAt DateTime @default(now())
+
+  @@unique([productId, userId])
+}

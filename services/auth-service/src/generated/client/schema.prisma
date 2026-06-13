@@ -1,0 +1,54 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String // "BUYER", "ADMIN", "SHOP_OWNER", "SHOP_STAFF", "PLATFORM_SUPPORT"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Mối quan hệ Nhân viên CSKH của shop (Nhiều nhân viên thuộc 1 Shop)
+  shopId String?
+  shop   Shop?   @relation("ShopStaff", fields: [shopId], references: [id], onDelete: SetNull)
+
+  // Mối quan hệ Chủ shop (1 chủ shop sở hữu tối đa 1 Shop)
+  ownedShop Shop? @relation("ShopOwner")
+
+  // Các shop người dùng này theo dõi
+  follows ShopFollow[]
+}
+
+model Shop {
+  id           String   @id @default(uuid())
+  name         String
+  ownerId      String   @unique
+  owner        User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  staff        User[]   @relation("ShopStaff")
+  responseRate Int      @default(100)
+  responseTime String   @default("trong vài giờ")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Người dùng theo dõi shop này
+  followers ShopFollow[]
+}
+
+model ShopFollow {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopId    String
+  shop      Shop     @relation(fields: [shopId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, shopId])
+}
