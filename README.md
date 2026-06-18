@@ -48,7 +48,7 @@ ZeroMall/
 | Database | PostgreSQL 15 (schema riêng cho từng service) |
 | Cache | Redis 7 |
 | Message Broker | Kafka *(chuẩn bị — chưa dùng)* |
-| Object Storage | MinIO *(chuẩn bị — chưa dùng)* |
+| Object Storage | Cloudinary (cloud) |
 | Search Engine | Elasticsearch *(chuẩn bị — chưa dùng)* |
 | Container | Docker + Docker Compose |
 
@@ -187,5 +187,5 @@ Các thư mục `order-service`, `payment-service`, `notification-service`, `ana
 2. Thêm service vào `docker-compose.yml`.
 3. Thêm script `dev:[service]` vào root `package.json`.
 
-### Bật Kafka / MinIO / Elasticsearch
-Các infrastructure này đã được cấu hình sẵn trong `docker-compose.yml`, chỉ cần **bỏ comment** là có thể dùng ngay.
+### Bật Kafka / Elasticsearch
+Các infrastructure này chỉ cần thêm vào `docker-compose.yml` và cài thư viện tương ứng khi cần dùng.

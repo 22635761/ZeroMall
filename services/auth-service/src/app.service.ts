@@ -48,20 +48,13 @@ export class AppService {
 
   async getHealth() {
     const isDocker = process.env.RUNNING_IN_DOCKER === 'true';
-    
-    // If NestJS runs on host, check localhost. If inside docker network, check service names.
+
     const pgHost = isDocker ? 'postgres' : '127.0.0.1';
     const redisHost = isDocker ? 'redis' : '127.0.0.1';
-    const kafkaHost = isDocker ? 'kafka' : '127.0.0.1';
-    const esHost = isDocker ? 'elasticsearch' : '127.0.0.1';
-    const minioHost = isDocker ? 'minio' : '127.0.0.1';
 
-    const [postgres, redis, kafka, elasticsearch, minio] = await Promise.all([
+    const [postgres, redis] = await Promise.all([
       this.checkPort(pgHost, 5432),
       this.checkPort(redisHost, 6379),
-      this.checkPort(kafkaHost, 9092),
-      this.checkPort(esHost, 9200),
-      this.checkPort(minioHost, 9000),
     ]);
 
     return {
@@ -70,9 +63,6 @@ export class AppService {
       services: {
         postgres: { status: postgres ? 'UP' : 'DOWN', host: pgHost, port: 5432 },
         redis: { status: redis ? 'UP' : 'DOWN', host: redisHost, port: 6379 },
-        kafka: { status: kafka ? 'UP' : 'DOWN', host: kafkaHost, port: 9092 },
-        elasticsearch: { status: elasticsearch ? 'UP' : 'DOWN', host: esHost, port: 9200 },
-        minio: { status: minio ? 'UP' : 'DOWN', host: minioHost, port: 9000 },
       },
     };
   }
