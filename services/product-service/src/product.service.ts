@@ -58,6 +58,20 @@ export class ProductService {
     });
   }
 
+  async purchase(items: { productId: string; quantity: number }[]) {
+    return this.prisma.$transaction(
+      items.map((item) =>
+        this.prisma.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: { decrement: item.quantity },
+            sales: { increment: item.quantity },
+          },
+        }),
+      ),
+    );
+  }
+
   async update(id: string, dto: UpdateProductDto) {
     await this.findOne(id); // Ensure product exists
     return this.prisma.product.update({

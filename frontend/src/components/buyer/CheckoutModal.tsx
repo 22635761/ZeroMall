@@ -56,12 +56,30 @@ export const CheckoutModal: React.FC<CheckoutModalProps> = ({
     setIsEditingAddress(false)
   }
 
-  const handlePlaceOrder = () => {
+  const handlePlaceOrder = async () => {
     setIsPlacingOrder(true)
-    setTimeout(() => {
-      setIsPlacingOrder(false)
+    try {
+      const purchaseItems = cart.map(item => ({
+        productId: item.product.id,
+        quantity: item.quantity
+      }))
+
+      const response = await fetch('http://localhost:3002/products/purchase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: purchaseItems })
+      })
+
+      if (!response.ok) {
+        throw new Error('Đặt hàng thất bại. Vui lòng thử lại.')
+      }
+
       setStep('success')
-    }, 1500)
+    } catch (err: any) {
+      alert(err.message || 'Lỗi hệ thống khi thanh toán')
+    } finally {
+      setIsPlacingOrder(false)
+    }
   }
 
   const handleFinish = () => {

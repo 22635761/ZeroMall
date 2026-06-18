@@ -31,6 +31,81 @@ function App() {
   // Products from Database for Buyer
   const [dbProducts, setDbProducts] = useState<Product[]>([])
 
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('http://localhost:3002/products')
+      if (!response.ok) throw new Error('Failed to fetch products')
+      const data = await response.json()
+      const formatted = data.map((p: any) => {
+        let numericPrice = 0
+        if (/^\d+(\.\d+)?$/.test(p.price)) {
+          numericPrice = parseFloat(p.price)
+        } else {
+          const match = p.price.match(/\d+(\.\d+)?/)
+          if (match) {
+            numericPrice = parseFloat(match[0])
+          }
+        }
+
+        const flashPriceVal = numericPrice || 100000
+        
+        // Deterministic discount percentage between 10% and 50%
+        const nameLen = p.name ? p.name.length : 0
+        const brandLen = p.brand ? p.brand.length : 0
+        const discountPercent = 10 + ((nameLen + brandLen) % 9) * 5
+        let originalPriceVal = Math.round(flashPriceVal / (1 - discountPercent / 100))
+        if (originalPriceVal > 1000000) {
+          originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
+        } else if (originalPriceVal > 100000) {
+          originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
+        } else {
+          originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
+        }
+        
+        const flashPriceStr = flashPriceVal.toLocaleString('vi-VN') + 'đ'
+        const originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+
+        let variants: string[] = []
+        if (p.hasVariations && p.variationGroups) {
+          try {
+            const groups = JSON.parse(p.variationGroups)
+            variants = groups.flatMap((g: any) => g.options || [])
+          } catch (e) {
+            console.error(e)
+          }
+        }
+
+        return {
+          id: p.id,
+          name: p.name,
+          originalPrice: originalPriceStr,
+          flashPrice: flashPriceStr,
+          image: p.image || 'https://placehold.co/400x400?text=No+Image',
+          sold: p.sales || 0,
+          total: (p.sales || 0) + (p.stock || 0),
+          rating: 5,
+          reviewsCount: 12,
+          description: p.description,
+          variants,
+          images: p.image ? [p.image] : [],
+          category: p.category,
+          brand: p.brand,
+          shopId: p.shopId
+        }
+      })
+      setDbProducts(formatted)
+
+      // Also refresh the selected product details if it is currently open
+      setSelectedProduct((currentSelected) => {
+        if (!currentSelected) return null
+        const updated = formatted.find((item: any) => item.id === currentSelected.id)
+        return updated || currentSelected
+      })
+    } catch (err) {
+      console.error('Error fetching db products:', err)
+    }
+  }
+
   // Load session from localStorage on mount and fetch products
   useEffect(() => {
     const savedUser = localStorage.getItem('zm_user')
@@ -42,63 +117,7 @@ function App() {
   }, [])
 
   useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const response = await fetch('http://localhost:3002/products')
-        if (!response.ok) throw new Error('Failed to fetch products')
-        const data = await response.json()
-        const formatted = data.map((p: any) => {
-          let numericPrice = 0
-          if (/^\d+(\.\d+)?$/.test(p.price)) {
-            numericPrice = parseFloat(p.price)
-          } else {
-            const match = p.price.match(/\d+(\.\d+)?/)
-            if (match) {
-              numericPrice = parseFloat(match[0])
-            }
-          }
-
-          const flashPriceVal = numericPrice || 100000
-          const originalPriceVal = Math.round(flashPriceVal * 1.2)
-          
-          const flashPriceStr = flashPriceVal.toLocaleString('vi-VN') + 'đ'
-          const originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
-
-          let variants: string[] = []
-          if (p.hasVariations && p.variationGroups) {
-            try {
-              const groups = JSON.parse(p.variationGroups)
-              variants = groups.flatMap((g: any) => g.options || [])
-            } catch (e) {
-              console.error(e)
-            }
-          }
-
-          return {
-            id: p.id,
-            name: p.name,
-            originalPrice: originalPriceStr,
-            flashPrice: flashPriceStr,
-            image: p.image || 'https://placehold.co/400x400?text=No+Image',
-            sold: p.sales || 0,
-            total: (p.sales || 0) + (p.stock || 0),
-            rating: 5,
-            reviewsCount: 12,
-            description: p.description,
-            variants,
-            images: p.image ? [p.image] : [],
-            category: p.category,
-            brand: p.brand,
-            shopId: p.shopId
-          }
-        })
-        setDbProducts(formatted)
-      } catch (err) {
-        console.error('Error fetching db products:', err)
-      }
-    }
-
-    if (currentPage === 'home') {
+    if (currentPage === 'home' || currentPage === 'product-detail') {
       loadProducts()
     }
   }, [currentPage])
@@ -172,6 +191,7 @@ function App() {
 
   const handleClearCart = () => {
     setCart([])
+    loadProducts()
   }
 
   if (currentPage === 'seller') {

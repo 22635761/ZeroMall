@@ -77,8 +77,11 @@ export const FlashSale: React.FC<FlashSaleProps> = ({ products, onSelectProduct 
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {flashSaleProducts.map((p) => {
-            const pct = Math.round((p.sold / p.total) * 100)
-            const discountPct = Math.round((1 - parseFloat(p.flashPrice.replace(/\./g, '')) / parseFloat(p.originalPrice.replace(/\./g, ''))) * 100)
+            const pct = p.total > 0 ? Math.round((p.sold / p.total) * 100) : 0
+            const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
+            const origVal = parsePrice(p.originalPrice)
+            const flashVal = parsePrice(p.flashPrice)
+            const discountPct = origVal > 0 ? Math.round((1 - flashVal / origVal) * 100) : 0
             return (
               <div
                 key={p.id}

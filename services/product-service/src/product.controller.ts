@@ -22,6 +22,11 @@ export class ProductController {
     return this.productService.create(dto);
   }
 
+  @Post('purchase')
+  async purchase(@Body('items') items: { productId: string; quantity: number }[]) {
+    return this.productService.purchase(items);
+  }
+
   @Put(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     return this.productService.update(id, dto);

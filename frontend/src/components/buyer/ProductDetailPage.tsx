@@ -196,8 +196,9 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Calculate discount percentage
   const getDiscountPct = () => {
     try {
-      const flash = parseFloat(product.flashPrice.replace(/[^\d]/g, ''))
-      const orig = parseFloat(product.originalPrice.replace(/[^\d]/g, ''))
+      const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
+      const flash = parsePrice(product.flashPrice)
+      const orig = parsePrice(product.originalPrice)
       if (orig > flash) {
         return Math.round((1 - flash / orig) * 100)
       }
@@ -208,7 +209,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
 
   const discountPct = getDiscountPct()
-  const isMall = parseFloat(product.flashPrice.replace(/[^\d]/g, '')) > 200000
+  const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
+  const isMall = parsePrice(product.flashPrice) > 200000
 
   const handleDecrease = () => {
     if (quantity > 1) setQuantity((prev) => prev - 1)
@@ -479,7 +481,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
                 <span className="font-bold underline text-slate-800">{reviews.length}</span> Đánh Giá
               </div>
               <div className="pl-4">
-                <span className="font-bold text-slate-800">{product.sold || 142}</span> Đã Bán
+                <span className="font-bold text-slate-800">{product.sold !== undefined ? product.sold : 0}</span> Đã Bán
               </div>
             </div>
 
