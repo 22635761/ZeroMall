@@ -156,38 +156,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       return product.images
     }
     
-    const categoryLower = (product.category || '').toLowerCase()
-    
-    // Fashion images mock
-    if (categoryLower.includes('thời trang') || categoryLower.includes('quần áo') || categoryLower.includes('giày')) {
-      return [
-        product.image,
-        'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=500&q=80',
-        'https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=500&q=80',
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&q=80',
-        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&q=80',
-      ]
-    }
-    
-    // House appliances mock
-    if (categoryLower.includes('gia dụng') || categoryLower.includes('thiết bị') || categoryLower.includes('điện tử')) {
-      return [
-        product.image,
-        'https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=500&q=80',
-        'https://images.unsplash.com/photo-1578643463396-0997cb5328c1?w=500&q=80',
-        'https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=500&q=80',
-        'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=500&q=80',
-      ]
-    }
-
-    // Default fallbacks
-    return [
-      product.image,
-      'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500&q=80',
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&q=80',
-      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=500&q=80',
-      'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=500&q=80',
-    ]
+    // We should only show the single product image to avoid displaying incorrect/unrelated mock products!
+    return [product.image].filter(Boolean)
   }
 
   const subImages = getSubImages()
@@ -407,19 +377,21 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           </div>
 
           {/* Thumbnails Row */}
-          <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
-            {subImages.map((img, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveImgIdx(idx)}
-                className={`w-[72px] h-[72px] shrink-0 border-2 rounded-lg overflow-hidden transition cursor-pointer ${
-                  idx === activeImgIdx ? 'border-[#ee4d2d]' : 'border-slate-200 hover:border-slate-400'
-                }`}
-              >
-                <img src={img} className="w-full h-full object-cover" alt="" />
-              </button>
-            ))}
-          </div>
+          {subImages.length > 1 && (
+            <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
+              {subImages.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImgIdx(idx)}
+                  className={`w-[72px] h-[72px] shrink-0 border-2 rounded-lg overflow-hidden transition cursor-pointer ${
+                    idx === activeImgIdx ? 'border-[#ee4d2d]' : 'border-slate-200 hover:border-slate-400'
+                  }`}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt="" />
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Social Share & Likes */}
           <div className="flex justify-between items-center pt-2 text-xs text-slate-500 border-t border-slate-100">
