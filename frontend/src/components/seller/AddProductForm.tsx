@@ -169,17 +169,17 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   }
   const youtubeId = getYouTubeId(videoLink)
 
-  // --- Image Upload Simulator ---
+  // --- Image Upload to Cloudinary ---
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return
     const filesArray = Array.from(e.target.files)
-    
+
     // Shopee allows max 9 images
     const remainingSlots = 9 - images.length
     const filesToUpload = filesArray.slice(0, remainingSlots)
 
     if (filesArray.length > remainingSlots) {
-      alert(`Bạn chỉ có thể thêm tối đa 9 hình ảnh. Đã bỏ qua ${filesArray.length - remainingSlots} ảnh dư.`);
+      alert(`Bạn chỉ có thể thêm tối đa 9 hình ảnh. Đã bỏ qua ${filesArray.length - remainingSlots} ảnh dư.`)
     }
 
     filesToUpload.forEach((file) => {
@@ -193,7 +193,6 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       }
 
       setImages((prev) => {
-        // Set first image as cover by default if no cover image exists
         const hasCover = prev.some((img) => img.isCover)
         if (!hasCover && prev.length === 0) {
           newImage.isCover = true
@@ -201,28 +200,51 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         return [...prev, newImage]
       })
 
-      // Simulate Upload Progress (Cloudinary Simulation)
-      let currentProgress = 0
-      const interval = setInterval(() => {
-        currentProgress += Math.floor(Math.random() * 20) + 10
-        if (currentProgress >= 100) {
-          currentProgress = 100
-          clearInterval(interval)
+      // Upload thật lên Cloudinary bằng XMLHttpRequest để theo dõi tiến độ
+      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('upload_preset', uploadPreset)
+      formData.append('folder', 'zeromall/products')
+
+      const xhr = new XMLHttpRequest()
+      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`)
+
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.round((event.loaded / event.total) * 100)
+          setImages((prev) =>
+            prev.map((img) => (img.id === id ? { ...img, progress: percent } : img))
+          )
+        }
+      }
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText)
           setImages((prev) =>
             prev.map((img) =>
-              img.id === id
-                ? { ...img, progress: 100, url: URL.createObjectURL(file) }
-                : img
+              img.id === id ? { ...img, progress: 100, url: data.secure_url } : img
             )
           )
         } else {
           setImages((prev) =>
             prev.map((img) =>
-              img.id === id ? { ...img, progress: currentProgress } : img
+              img.id === id ? { ...img, progress: 0, url: 'ERROR' } : img
             )
           )
+          alert('Upload ảnh thất bại. Vui lòng thử lại.')
         }
-      }, 150)
+      }
+
+      xhr.onerror = () => {
+        alert('Lỗi kết nối khi upload ảnh. Vui lòng kiểm tra internet.')
+        setImages((prev) => prev.filter((img) => img.id !== id))
+      }
+
+      xhr.send(formData)
     })
 
     // Reset input
@@ -250,61 +272,60 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     )
   }
 
-  // --- Video Upload Simulator ---
+  // --- Video Upload to Cloudinary ---
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files || e.target.files.length === 0) return
     const file = e.target.files[0]
 
-    // Validate size (< 15MB for quick demo, max 30MB as per Shopee requirements)
-    const maxSize = 15 * 1024 * 1024 // 15MB
+    // Validate size (max 100MB)
+    const maxSize = 100 * 1024 * 1024
     if (file.size > maxSize) {
-      setVideoFile({
-        file: null,
-        url: '',
-        progress: 0,
-        error: 'Tệp video vượt quá giới hạn 15MB! Vui lòng chọn tệp nhỏ hơn.'
-      })
+      setVideoFile({ file: null, url: '', progress: 0, error: 'Tệp video vượt quá giới hạn 100MB!' })
       return
     }
 
     if (!file.type.startsWith('video/')) {
-      setVideoFile({
-        file: null,
-        url: '',
-        progress: 0,
-        error: 'Chỉ chấp nhận định dạng tệp Video (MP4)!'
-      })
+      setVideoFile({ file: null, url: '', progress: 0, error: 'Chỉ chấp nhận định dạng tệp Video (MP4)!' })
       return
     }
 
-    // Initialize state
-    setVideoFile({
-      file,
-      url: '',
-      progress: 0,
-      error: null
-    })
+    // Khởi tạo trạng thái đang upload
+    setVideoFile({ file, url: '', progress: 0, error: null })
 
-    // Simulate upload progress
-    let currentProgress = 0
-    const interval = setInterval(() => {
-      currentProgress += Math.floor(Math.random() * 15) + 5
-      if (currentProgress >= 100) {
-        currentProgress = 100
-        clearInterval(interval)
-        setVideoFile({
-          file,
-          url: URL.createObjectURL(file),
-          progress: 100,
-          error: null
-        })
-      } else {
-        setVideoFile((prev) => ({
-          ...prev,
-          progress: currentProgress
-        }))
+    // Upload thật lên Cloudinary
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
+
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('upload_preset', uploadPreset)
+    formData.append('folder', 'zeromall/videos')
+    formData.append('resource_type', 'video')
+
+    const xhr = new XMLHttpRequest()
+    xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`)
+
+    xhr.upload.onprogress = (event) => {
+      if (event.lengthComputable) {
+        const percent = Math.round((event.loaded / event.total) * 100)
+        setVideoFile((prev) => ({ ...prev, progress: percent }))
       }
-    }, 180)
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        const data = JSON.parse(xhr.responseText)
+        setVideoFile({ file, url: data.secure_url, progress: 100, error: null })
+      } else {
+        setVideoFile({ file: null, url: '', progress: 0, error: 'Upload video thất bại. Vui lòng thử lại.' })
+      }
+    }
+
+    xhr.onerror = () => {
+      setVideoFile({ file: null, url: '', progress: 0, error: 'Lỗi kết nối khi upload video.' })
+    }
+
+    xhr.send(formData)
   }
 
   const removeVideo = () => {
