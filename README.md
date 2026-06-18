@@ -1,175 +1,191 @@
-# ZeroMall - Shopee Clone Microservices & Monorepo
+# ZeroMall — Shopee Clone (Microservices + Monorepo)
 
-ZeroMall là một hệ thống thương mại điện tử mô phỏng (Shopee Clone) được xây dựng theo kiến trúc Microservices tinh gọn, phục vụ cho mục đích phát triển và pair-programming. Dự án được phát triển theo mô hình Monorepo sử dụng **npm workspaces**, đóng gói hoàn chỉnh bằng **Docker Compose** và đồng bộ hóa cơ sở dữ liệu thật với **PostgreSQL**.
+ZeroMall là một hệ thống thương mại điện tử mô phỏng theo mô hình **Shopee**, được xây dựng theo kiến trúc Microservices, đóng gói hoàn chỉnh bằng **Docker Compose** và đồng bộ dữ liệu thật với **PostgreSQL**.
 
 ---
 
-## 📁 1. Cấu Trúc Dự Án (Project Structure)
+## 📁 1. Cấu Trúc Dự Án
 
 ```text
 ZeroMall/
-├── frontend/             # React SPA (Vite + TypeScript + TailwindCSS v4) -> Port 3000
+├── frontend/                   # React SPA (Vite + TypeScript + TailwindCSS v4)
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── common/   # AuthModal (Đăng ký/Đăng nhập)
-│   │   │   ├── buyer/    # Giao diện Người Mua (Home, ProductDetailPage, Header, Hero, Categories...)
-│   │   │   └── seller/   # Giao diện Kênh Người Bán (SellerPortal, AddProductForm, ProductListTable)
-│   │   ├── App.tsx
-│   │   └── main.tsx
+│   │   │   ├── common/         # AuthModal (Đăng ký / Đăng nhập)
+│   │   │   ├── buyer/          # Trang chủ, Chi tiết sản phẩm, Header, Hero...
+│   │   │   └── seller/         # Seller Portal, Thêm / Sửa / Xóa Sản Phẩm
+│   │   └── App.tsx
 │   ├── Dockerfile
-│   └── nginx.conf        # Cấu hình Nginx phục vụ React Router SPA
+│   └── nginx.conf              # Cấu hình Nginx phục vụ React Router SPA
 │
-├── services/             # Thư mục chứa các backend microservices (NestJS + Prisma v7)
-│   ├── auth-service/     # Quản lý User, Shop & Phân Quyền (RBAC) -> Port 3001
-│   │   ├── prisma/
-│   │   │   └── schema.prisma # Schema định nghĩa User, Shop, ShopFollow
+├── services/
+│   ├── auth-service/           # ✅ Xác thực & Phân quyền (NestJS + Prisma) — Port 3001
+│   │   ├── prisma/schema.prisma    # Bảng: User, Shop, ShopFollow
 │   │   └── src/
 │   │
-│   ├── product-service/  # Quản lý Sản Phẩm, Nhận Xét, Lượt Thích -> Port 3002
-│   │   ├── prisma/
-│   │   │   └── schema.prisma # Schema định nghĩa Product, Review, ProductLike
+│   ├── product-service/        # ✅ Quản lý sản phẩm (NestJS + Prisma) — Port 3002
+│   │   ├── prisma/schema.prisma    # Bảng: Product, Review, ProductLike
+│   │   ├── seed_postgres.js        # Script nạp dữ liệu mẫu
 │   │   └── src/
 │   │
-│   ├── order-service/    # Quản lý Đơn Hàng (Đang phát triển) -> Port 3003
-│   ├── payment-service/  # Quản lý Thanh Toán (Đang phát triển) -> Port 3004
-│   ├── notification-service/ # Gửi thông báo (Đang phát triển) -> Port 3005
-│   └── analytics-service/    # Phân tích thống kê (Đang phát triển) -> Port 3006
+│   ├── order-service/          # 🔜 Quản lý đơn hàng (chưa phát triển) — Port 3003
+│   ├── payment-service/        # 🔜 Thanh toán (chưa phát triển) — Port 3004
+│   ├── notification-service/   # 🔜 Thông báo (chưa phát triển) — Port 3005
+│   └── analytics-service/      # 🔜 Phân tích thống kê (chưa phát triển) — Port 3006
 │
-├── docker-compose.yml    # Điều phối toàn bộ Stack (Services + DB + Cache + Brokers)
-├── package.json          # Root package.json quản lý npm Workspaces
-└── services/product-service/seed_postgres.js # Script nạp/dọn dẹp dữ liệu mẫu database PostgreSQL
+├── docker-compose.yml          # Điều phối toàn bộ stack
+└── package.json                # Root npm Workspaces
 ```
 
 ---
 
-## 🛠️ 2. Công Nghệ Sử Dụng (Tech Stack)
+## 🛠️ 2. Công Nghệ Sử Dụng
 
-* **Frontend:** React + TypeScript + Vite + TailwindCSS v4 + Nginx (Docker)
-* **Backend Microservices:** Node.js + NestJS + TypeScript + Prisma ORM v7
-* **Database & Cache:** PostgreSQL (schema độc lập: `auth` và `product`), Redis
-* **Message Broker:** Kafka (KRaft mode)
-* **Search Engine:** Elasticsearch
-* **Object Storage:** MinIO (S3-compatible)
-
----
-
-## 🌟 3. Các Chức Năng Đã Thực Hiện (Implemented Features)
-
-### 3.1. Phân Hệ Đăng Nhập, Đăng Ký & Phân Quyền (RBAC)
-* **Xác thực:** Mã hóa mật khẩu với `bcrypt`, cấp phát `JWT Token`.
-* **Phân quyền người dùng:** Gồm 5 vai trò chính: `BUYER` (Người mua), `SHOP_OWNER` (Chủ shop), `SHOP_STAFF` (Nhân viên CSKH của shop), `ADMIN` (Quản trị sàn), `PLATFORM_SUPPORT` (Hỗ trợ kỹ thuật).
-* **Guards bảo mật:** `JwtAuthGuard` và `@Roles(...)` kết hợp `RolesGuard` bảo vệ các API nhạy cảm.
-* **Tự động hóa:** Tự động khởi tạo cấu hình `Shop` mặc định khi đăng ký tài khoản với vai trò `SHOP_OWNER`.
-
-### 3.2. Kênh Người Bán (Seller Portal) & Quản Lý Sản Phẩm (CRUD)
-* **Thêm mới sản phẩm:** Chia biểu mẫu làm 4 tab thông minh (Thông tin cơ bản, Bán hàng, Vận chuyển, Thông tin khác), có thanh checklist tiến trình thời gian thực.
-* **Tải lên Media động:** Giả lập upload hình ảnh (tối đa 9 ảnh, có progress bar tải lên), cho phép dán link YouTube/TikTok để xem trước video trực tiếp.
-* **Biến thể sản phẩm (Variant Matrix):** Nhập các nhóm phân loại (Màu sắc, Kích cỡ) tự động tạo lưới cấu hình giá và tồn kho hàng loạt.
-* **Bảng danh sách sản phẩm (CRUD):** Hỗ trợ lọc theo trạng thái tab (Hoạt động, Đã ẩn, Hết hàng), thanh tìm kiếm theo tên/SKU, bộ lọc danh mục và thao tác Sửa/Xóa/Ẩn/Hiện thời gian thực kết nối database PostgreSQL.
-
-### 3.3. Trang Chi Tiết Sản Phẩm (Product Detail Page)
-* **UI chuẩn Shopee:** Giao diện chi tiết, thanh Breadcrumbs, trình trượt chuyển ảnh lớn nhỏ mượt mà.
-* **Voucher & Giỏ hàng:** Tính năng thu thập mã giảm giá (Voucher) của Shop, bộ đếm số lượng mua hàng thực tế theo số lượng tồn kho.
-* **Thông tin Shop động:** Đọc và đếm dữ liệu trực tiếp từ Postgres: tổng số sản phẩm hiện có, tỉ lệ phản hồi (mặc định 100%), thời gian tham gia tính theo thời gian thực (đăng ký hôm nay hiển thị `"1 ngày"`).
-
-### 3.4. Hệ Thống Đánh Giá (Reviews) & Lượt Thích (Likes) & Theo Dõi Shop (Follows) Thật
-* **Đánh giá thật:** Các đánh giá bắt buộc phải do tài khoản người dùng đã đăng ký và đăng nhập trong hệ thống viết. Tên người đánh giá được tự động lấy từ phiên đăng nhập (Read-only) tránh giả mạo danh tính.
-* **Điểm sao động:** Trung bình sao của sản phẩm được tính toán động dựa vào công thức trung bình cộng của toàn bộ bản ghi `Review` trong cơ sở dữ liệu.
-* **Lượt thích sản phẩm:** Nhấn nút trái tim (♥) sẽ gửi API để lưu mối quan hệ `ProductLike` trong database. Lượt thích mặc định khi mới tạo là `0`.
-* **Theo dõi shop:** Nhấn nút **Theo Dõi** để chuyển đổi giữa Theo dõi/Đang theo dõi, tự động lưu mối quan hệ `ShopFollow` và cập nhật tức thì số lượng người theo dõi trên giao diện.
+| Thành phần | Công nghệ |
+| :--- | :--- |
+| Frontend | React + TypeScript + Vite + TailwindCSS v4 |
+| Backend (active) | NestJS + TypeScript + Prisma ORM v7 |
+| Database | PostgreSQL 15 (schema riêng cho từng service) |
+| Cache | Redis 7 |
+| Message Broker | Kafka *(chuẩn bị — chưa dùng)* |
+| Object Storage | MinIO *(chuẩn bị — chưa dùng)* |
+| Search Engine | Elasticsearch *(chuẩn bị — chưa dùng)* |
+| Container | Docker + Docker Compose |
 
 ---
 
-## 🚀 4. Hướng Dẫn Khởi Chạy Dự Án Chi Tiết
+## 🌟 3. Chức Năng Đã Hoàn Thành
 
-Có hai cách để chạy dự án: thông qua **Docker Compose (Khuyến nghị)** hoặc **Chạy thủ công từng service trên máy local**.
+### 3.1 Xác Thực & Phân Quyền (RBAC)
+- Đăng ký / Đăng nhập với mã hóa mật khẩu `bcrypt` + JWT Token.
+- 5 vai trò: `BUYER`, `SHOP_OWNER`, `SHOP_STAFF`, `ADMIN`, `PLATFORM_SUPPORT`.
+- Tự động tạo `Shop` khi đăng ký tài khoản `SHOP_OWNER`.
 
-### LƯU Ý QUAN TRỌNG: Thiết lập file `.hosts`
-Để Frontend có thể kết nối với các microservices, hãy đảm bảo hệ điều hành của bạn nhận diện các cổng kết nối cục bộ. Dự án đã cấu hình mặc định trỏ về `localhost` trên máy host.
+### 3.2 Kênh Người Bán (Seller Portal)
+- Thêm/Sửa/Xóa/Ẩn sản phẩm kết nối thẳng với PostgreSQL.
+- Biểu mẫu 4 tab: Thông tin, Bán hàng, Vận chuyển, Thông tin khác.
+- Hỗ trợ biến thể sản phẩm (Color × Size) tự động sinh bảng giá.
+
+### 3.3 Trang Chi Tiết Sản Phẩm
+- Giao diện chuẩn Shopee, trình trượt ảnh, chọn biến thể, lưu voucher.
+- Thông tin shop tính toán động: số ngày tham gia, tổng sản phẩm, tổng đánh giá.
+
+### 3.4 Đánh Giá, Thích & Theo Dõi (100% Database thật)
+- Chỉ tài khoản đã đăng nhập mới được viết đánh giá — tên gắn với tài khoản, không sửa được.
+- Điểm sao trung bình tính từ dữ liệu `Review` thật trong database.
+- Nút ♥ Thích sản phẩm lưu vào bảng `ProductLike`.
+- Nút Theo Dõi / Đang Theo Dõi lưu vào bảng `ShopFollow`, cập nhật số lượng tức thì.
 
 ---
 
-### 📦 CÁCH 1: Chạy bằng Docker Compose (Khuyến nghị)
-Bạn chỉ cần một câu lệnh duy nhất để chạy toàn bộ stack hệ thống (Frontend, Auth-Service, Product-Service, PostgreSQL, Redis, Kafka, MinIO, v.v.).
+## 🚀 4. Hướng Dẫn Chạy Dự Án
 
-#### **Bước 1: Khởi động Docker Compose**
-Tại thư mục root của dự án (`ZeroMall/`), chạy lệnh:
+### CÁCH 1: Docker Compose (Khuyến nghị)
+
+**Bước 1 — Khởi động toàn bộ stack:**
 ```bash
 docker compose up -d --build
 ```
-*Lệnh này sẽ tải các image cần thiết, build mã nguồn ứng dụng và khởi chạy dưới nền.*
 
-#### **Bước 2: Đồng bộ cấu trúc Database (Prisma db push)**
-Khi Postgres khởi động xong, bạn cần tạo các bảng cơ sở dữ liệu cho cả hai dịch vụ:
+**Bước 2 — Đồng bộ cấu trúc database (lần đầu hoặc sau khi thay đổi schema):**
 ```bash
-# Đồng bộ bảng của auth-service
 npx prisma db push --schema=services/auth-service/prisma/schema.prisma
-
-# Đồng bộ bảng của product-service
 npx prisma db push --schema=services/product-service/prisma/schema.prisma
 ```
 
-#### **Bước 3: Nạp dữ liệu mẫu (Seeding)**
-Chạy tập lệnh nạp dữ liệu mẫu bao gồm tài khoản Buyer/Seller, Shop, Sản phẩm, Nhận xét, Lượt thích và Lượt theo dõi:
+**Bước 3 — Nạp dữ liệu mẫu:**
 ```bash
 node services/product-service/seed_postgres.js
 ```
-*(Script này sẽ tự động xóa sạch dữ liệu rác cũ và nạp lại từ đầu để tránh trùng lặp dữ liệu)*
+> ⚠️ Script này **xóa sạch và tạo lại** toàn bộ dữ liệu mẫu để tránh trùng lặp.
 
-#### **Bước 4: Truy cập ứng dụng**
-* **React Frontend:** Truy cập `http://localhost:3000`
-* **Auth Service API:** `http://localhost:3001`
-* **Product Service API:** `http://localhost:3002`
-
----
-
-### 💻 CÁCH 2: Chạy thủ công trên máy local (Không dùng Docker)
-Nếu muốn sửa code nhanh và chạy trực tiếp trên máy cục bộ, hãy đảm bảo bạn vẫn đang chạy container database của Docker:
-1. Chạy chỉ database: `docker compose up -d postgres redis`
-2. Đồng bộ DB:
-   ```bash
-   npx prisma db push --schema=services/auth-service/prisma/schema.prisma
-   npx prisma db push --schema=services/product-service/prisma/schema.prisma
-   ```
-3. Mở **3 cửa sổ terminal** tại thư mục root của dự án và chạy:
-   * **Terminal 1 (Frontend):** `npm run dev:frontend` (Cổng 3000)
-   * **Terminal 2 (Auth Service):** `npm run dev:auth` (Cổng 3001)
-   * **Terminal 3 (Product Service):** `npm run dev:product` (Cổng 3002)
+**Bước 4 — Truy cập:**
+| Service | Địa chỉ |
+| :--- | :--- |
+| 🛍️ React Frontend | http://localhost:3000 |
+| 🔐 Auth API | http://localhost:3001 |
+| 📦 Product API | http://localhost:3002 |
+| 🗄️ pgAdmin | http://localhost:5050 |
 
 ---
 
-## 🔑 5. Tài Khoản Thử Nghiệm Có Sẵn (Seeded Accounts)
+### CÁCH 2: Chạy Local (Không Docker)
 
-Sau khi chạy script `seed_postgres.js`, bạn có thể dùng các tài khoản sau để đăng nhập trên giao diện:
+Chạy database trước:
+```bash
+docker compose up -d postgres redis
+```
 
-| Email | Mật khẩu | Vai trò | Chức năng thử nghiệm |
-| :--- | :--- | :--- | :--- |
-| **buyer.nh@zeromall.com** | `password123` | `BUYER` | Đăng nhập mua hàng, nhấn Thích (♥), Theo dõi Shop, Viết đánh giá thật. |
-| **buyer.t0@zeromall.com** | `password123` | `BUYER` | Tài khoản buyer phụ kiểm tra cộng dồn số lượng lượt thích/theo dõi. |
-| **seller1@zeromall.com** | `password123` | `SHOP_OWNER` | Quản lý Shop `"ZeroMall Fashion Hub"`. CRUD sản phẩm thời trang. |
-| **seller2@zeromall.com** | `password123` | `SHOP_OWNER` | Quản lý Shop `"ZeroMall Home & Kitchen"`. CRUD sản phẩm gia dụng. |
+Sau đó mở **3 terminal** tại thư mục root:
+```bash
+# Terminal 1
+npm run dev:frontend
+
+# Terminal 2
+npm run dev:auth
+
+# Terminal 3
+npm run dev:product
+```
+
+Hoặc chạy đồng thời cả 3:
+```bash
+npm run dev:all
+```
 
 ---
 
-## 📝 6. Hướng Dẫn Cho Người Phát Triển Tiếp Theo (For Next Contributors)
+## 🔑 5. Tài Khoản Thử Nghiệm
 
-Nếu bạn là người nhận dự án để phát triển tiếp, dưới đây là một số lưu ý quan trọng:
+> Mật khẩu chung: `password123`
 
-### 1. Thêm Trường/Bảng mới vào Database (Prisma)
-1. Cập nhật schema tại `prisma/schema.prisma` của service tương ứng.
-2. Chạy lệnh:
-   ```bash
-   npx prisma db push --schema=services/[tên-service]/prisma/schema.prisma
-   ```
-3. Chạy lệnh sinh Prisma Client cục bộ:
-   ```bash
-   npx prisma generate --schema=services/[tên-service]/prisma/schema.prisma
-   ```
-4. Nếu thay đổi DB chạy trên Docker, hãy chạy `docker compose up -d --build [service]` để Docker build lại image mới chứa Prisma Client vừa cập nhật.
+| Email | Vai trò | Ghi chú |
+| :--- | :--- | :--- |
+| `buyer.nh@zeromall.com` | BUYER | Mua hàng, thích, theo dõi, viết đánh giá |
+| `buyer.t0@zeromall.com` | BUYER | Tài khoản buyer phụ |
+| `buyer.ma@zeromall.com` | BUYER | Tài khoản buyer phụ |
+| `seller1@zeromall.com` | SHOP_OWNER | Shop "ZeroMall Fashion Hub" — thời trang |
+| `seller2@zeromall.com` | SHOP_OWNER | Shop "ZeroMall Home & Kitchen" — gia dụng |
 
-### 2. Sửa đổi Giao diện Frontend
-* Các API endpoint của backend được gọi trực tiếp bằng `fetch` lên cổng `http://localhost:3001` (Auth/Shop) và `http://localhost:3002` (Products/Reviews/Likes).
-* Toàn bộ UI tuân thủ chuẩn TailwindCSS v4. Khi sửa đổi code Frontend, Docker container `zeromall-frontend` sẽ cần build lại nếu bạn chạy ở chế độ Docker. Khuyến nghị chạy local `npm run dev:frontend` để phát triển giao diện nhanh hơn (HMR - Hot Module Replacement).
+---
 
-### 3. Vận hành các microservice khác
-* Các microservice khác như `order-service` hay `payment-service` đã được tạo khung thư mục sẵn. Bạn có thể sao chép cấu hình Prisma/NestJS từ `product-service` để phát triển tương tự.
+## 🗄️ 6. Kết Nối pgAdmin
+
+Truy cập `http://localhost:5050` với:
+- Email: `admin@zeromall.com`
+- Password: `admin`
+
+Sau đó thêm server mới:
+- Host: `postgres`
+- Port: `5432`
+- Database: `zeromall`
+- Username: `postgres`
+- Password: `postgres`
+
+Dữ liệu nằm trong các schema: `auth` và `product`.
+
+---
+
+## 📝 7. Hướng Dẫn Phát Triển Tiếp
+
+### Thêm bảng / trường mới vào Database
+```bash
+# 1. Sửa file schema.prisma của service tương ứng
+# 2. Đồng bộ vào database
+npx prisma db push --schema=services/[service]/prisma/schema.prisma
+
+# 3. Sinh lại Prisma Client
+npx prisma generate --schema=services/[service]/prisma/schema.prisma
+
+# 4. Build lại Docker image nếu đang chạy Docker
+docker compose up -d --build [service]
+```
+
+### Phát triển các service mới (order, payment...)
+Các thư mục `order-service`, `payment-service`, `notification-service`, `analytics-service` đã có sẵn cấu trúc NestJS cơ bản. Khi cần phát triển:
+1. Copy cấu hình Prisma + Dockerfile từ `product-service` vào service mới.
+2. Thêm service vào `docker-compose.yml`.
+3. Thêm script `dev:[service]` vào root `package.json`.
+
+### Bật Kafka / MinIO / Elasticsearch
+Các infrastructure này đã được cấu hình sẵn trong `docker-compose.yml`, chỉ cần **bỏ comment** là có thể dùng ngay.

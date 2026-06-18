@@ -1,5 +1,8 @@
 # Dependency directories
 node_modules/
+
+# Build output directories
+dist/
 jspm_packages/
 web_stage/
 
@@ -113,6 +116,11 @@ cypress/screenshots
 # OS metadata
 .DS_Store
 Thumbs.db
+
+# SQLite database files (legacy, not used in production)
+*.db
+*.sqlite
+*.sqlite3
 
 # Docker volumes data
 data/
