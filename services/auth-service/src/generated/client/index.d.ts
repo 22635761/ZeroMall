@@ -2318,6 +2318,11 @@ export namespace Prisma {
     ownerId: string | null
     responseRate: number | null
     responseTime: string | null
+    status: string | null
+    email: string | null
+    phoneNumber: string | null
+    pickupAddress: string | null
+    shippingSettings: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2328,6 +2333,11 @@ export namespace Prisma {
     ownerId: string | null
     responseRate: number | null
     responseTime: string | null
+    status: string | null
+    email: string | null
+    phoneNumber: string | null
+    pickupAddress: string | null
+    shippingSettings: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2338,6 +2348,11 @@ export namespace Prisma {
     ownerId: number
     responseRate: number
     responseTime: number
+    status: number
+    email: number
+    phoneNumber: number
+    pickupAddress: number
+    shippingSettings: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2358,6 +2373,11 @@ export namespace Prisma {
     ownerId?: true
     responseRate?: true
     responseTime?: true
+    status?: true
+    email?: true
+    phoneNumber?: true
+    pickupAddress?: true
+    shippingSettings?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2368,6 +2388,11 @@ export namespace Prisma {
     ownerId?: true
     responseRate?: true
     responseTime?: true
+    status?: true
+    email?: true
+    phoneNumber?: true
+    pickupAddress?: true
+    shippingSettings?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2378,6 +2403,11 @@ export namespace Prisma {
     ownerId?: true
     responseRate?: true
     responseTime?: true
+    status?: true
+    email?: true
+    phoneNumber?: true
+    pickupAddress?: true
+    shippingSettings?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2475,6 +2505,11 @@ export namespace Prisma {
     ownerId: string
     responseRate: number
     responseTime: string
+    status: string
+    email: string | null
+    phoneNumber: string | null
+    pickupAddress: string | null
+    shippingSettings: string | null
     createdAt: Date
     updatedAt: Date
     _count: ShopCountAggregateOutputType | null
@@ -2504,6 +2539,11 @@ export namespace Prisma {
     ownerId?: boolean
     responseRate?: boolean
     responseTime?: boolean
+    status?: boolean
+    email?: boolean
+    phoneNumber?: boolean
+    pickupAddress?: boolean
+    shippingSettings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2518,6 +2558,11 @@ export namespace Prisma {
     ownerId?: boolean
     responseRate?: boolean
     responseTime?: boolean
+    status?: boolean
+    email?: boolean
+    phoneNumber?: boolean
+    pickupAddress?: boolean
+    shippingSettings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2529,6 +2574,11 @@ export namespace Prisma {
     ownerId?: boolean
     responseRate?: boolean
     responseTime?: boolean
+    status?: boolean
+    email?: boolean
+    phoneNumber?: boolean
+    pickupAddress?: boolean
+    shippingSettings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
@@ -2540,11 +2590,16 @@ export namespace Prisma {
     ownerId?: boolean
     responseRate?: boolean
     responseTime?: boolean
+    status?: boolean
+    email?: boolean
+    phoneNumber?: boolean
+    pickupAddress?: boolean
+    shippingSettings?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ShopOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "ownerId" | "responseRate" | "responseTime" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
+  export type ShopOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "ownerId" | "responseRate" | "responseTime" | "status" | "email" | "phoneNumber" | "pickupAddress" | "shippingSettings" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
   export type ShopInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
     staff?: boolean | Shop$staffArgs<ExtArgs>
@@ -2571,6 +2626,11 @@ export namespace Prisma {
       ownerId: string
       responseRate: number
       responseTime: string
+      status: string
+      email: string | null
+      phoneNumber: string | null
+      pickupAddress: string | null
+      shippingSettings: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["shop"]>
@@ -3004,6 +3064,11 @@ export namespace Prisma {
     readonly ownerId: FieldRef<"Shop", 'String'>
     readonly responseRate: FieldRef<"Shop", 'Int'>
     readonly responseTime: FieldRef<"Shop", 'String'>
+    readonly status: FieldRef<"Shop", 'String'>
+    readonly email: FieldRef<"Shop", 'String'>
+    readonly phoneNumber: FieldRef<"Shop", 'String'>
+    readonly pickupAddress: FieldRef<"Shop", 'String'>
+    readonly shippingSettings: FieldRef<"Shop", 'String'>
     readonly createdAt: FieldRef<"Shop", 'DateTime'>
     readonly updatedAt: FieldRef<"Shop", 'DateTime'>
   }
@@ -4565,6 +4630,11 @@ export namespace Prisma {
     ownerId: 'ownerId',
     responseRate: 'responseRate',
     responseTime: 'responseTime',
+    status: 'status',
+    email: 'email',
+    phoneNumber: 'phoneNumber',
+    pickupAddress: 'pickupAddress',
+    shippingSettings: 'shippingSettings',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -4755,6 +4825,11 @@ export namespace Prisma {
     ownerId?: StringFilter<"Shop"> | string
     responseRate?: IntFilter<"Shop"> | number
     responseTime?: StringFilter<"Shop"> | string
+    status?: StringFilter<"Shop"> | string
+    email?: StringNullableFilter<"Shop"> | string | null
+    phoneNumber?: StringNullableFilter<"Shop"> | string | null
+    pickupAddress?: StringNullableFilter<"Shop"> | string | null
+    shippingSettings?: StringNullableFilter<"Shop"> | string | null
     createdAt?: DateTimeFilter<"Shop"> | Date | string
     updatedAt?: DateTimeFilter<"Shop"> | Date | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -4768,6 +4843,11 @@ export namespace Prisma {
     ownerId?: SortOrder
     responseRate?: SortOrder
     responseTime?: SortOrder
+    status?: SortOrder
+    email?: SortOrderInput | SortOrder
+    phoneNumber?: SortOrderInput | SortOrder
+    pickupAddress?: SortOrderInput | SortOrder
+    shippingSettings?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     owner?: UserOrderByWithRelationInput
@@ -4784,6 +4864,11 @@ export namespace Prisma {
     name?: StringFilter<"Shop"> | string
     responseRate?: IntFilter<"Shop"> | number
     responseTime?: StringFilter<"Shop"> | string
+    status?: StringFilter<"Shop"> | string
+    email?: StringNullableFilter<"Shop"> | string | null
+    phoneNumber?: StringNullableFilter<"Shop"> | string | null
+    pickupAddress?: StringNullableFilter<"Shop"> | string | null
+    shippingSettings?: StringNullableFilter<"Shop"> | string | null
     createdAt?: DateTimeFilter<"Shop"> | Date | string
     updatedAt?: DateTimeFilter<"Shop"> | Date | string
     owner?: XOR<UserScalarRelationFilter, UserWhereInput>
@@ -4797,6 +4882,11 @@ export namespace Prisma {
     ownerId?: SortOrder
     responseRate?: SortOrder
     responseTime?: SortOrder
+    status?: SortOrder
+    email?: SortOrderInput | SortOrder
+    phoneNumber?: SortOrderInput | SortOrder
+    pickupAddress?: SortOrderInput | SortOrder
+    shippingSettings?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: ShopCountOrderByAggregateInput
@@ -4815,6 +4905,11 @@ export namespace Prisma {
     ownerId?: StringWithAggregatesFilter<"Shop"> | string
     responseRate?: IntWithAggregatesFilter<"Shop"> | number
     responseTime?: StringWithAggregatesFilter<"Shop"> | string
+    status?: StringWithAggregatesFilter<"Shop"> | string
+    email?: StringNullableWithAggregatesFilter<"Shop"> | string | null
+    phoneNumber?: StringNullableWithAggregatesFilter<"Shop"> | string | null
+    pickupAddress?: StringNullableWithAggregatesFilter<"Shop"> | string | null
+    shippingSettings?: StringNullableWithAggregatesFilter<"Shop"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Shop"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Shop"> | Date | string
   }
@@ -4962,6 +5057,11 @@ export namespace Prisma {
     name: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutOwnedShopInput
@@ -4975,6 +5075,11 @@ export namespace Prisma {
     ownerId: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserUncheckedCreateNestedManyWithoutShopInput
@@ -4986,6 +5091,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutOwnedShopNestedInput
@@ -4999,6 +5109,11 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUncheckedUpdateManyWithoutShopNestedInput
@@ -5011,6 +5126,11 @@ export namespace Prisma {
     ownerId: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -5020,6 +5140,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -5030,6 +5155,11 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -5257,6 +5387,11 @@ export namespace Prisma {
     ownerId?: SortOrder
     responseRate?: SortOrder
     responseTime?: SortOrder
+    status?: SortOrder
+    email?: SortOrder
+    phoneNumber?: SortOrder
+    pickupAddress?: SortOrder
+    shippingSettings?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -5271,6 +5406,11 @@ export namespace Prisma {
     ownerId?: SortOrder
     responseRate?: SortOrder
     responseTime?: SortOrder
+    status?: SortOrder
+    email?: SortOrder
+    phoneNumber?: SortOrder
+    pickupAddress?: SortOrder
+    shippingSettings?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -5281,6 +5421,11 @@ export namespace Prisma {
     ownerId?: SortOrder
     responseRate?: SortOrder
     responseTime?: SortOrder
+    status?: SortOrder
+    email?: SortOrder
+    phoneNumber?: SortOrder
+    pickupAddress?: SortOrder
+    shippingSettings?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -5713,6 +5858,11 @@ export namespace Prisma {
     name: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutOwnedShopInput
@@ -5725,6 +5875,11 @@ export namespace Prisma {
     ownerId: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     followers?: ShopFollowUncheckedCreateNestedManyWithoutShopInput
@@ -5740,6 +5895,11 @@ export namespace Prisma {
     name: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserCreateNestedManyWithoutShopInput
@@ -5751,6 +5911,11 @@ export namespace Prisma {
     name: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserUncheckedCreateNestedManyWithoutShopInput
@@ -5800,6 +5965,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutOwnedShopNestedInput
@@ -5812,6 +5982,11 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     followers?: ShopFollowUncheckedUpdateManyWithoutShopNestedInput
@@ -5833,6 +6008,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUpdateManyWithoutShopNestedInput
@@ -5844,6 +6024,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUncheckedUpdateManyWithoutShopNestedInput
@@ -6076,6 +6261,11 @@ export namespace Prisma {
     name: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     owner: UserCreateNestedOneWithoutOwnedShopInput
@@ -6088,6 +6278,11 @@ export namespace Prisma {
     ownerId: string
     responseRate?: number
     responseTime?: string
+    status?: string
+    email?: string | null
+    phoneNumber?: string | null
+    pickupAddress?: string | null
+    shippingSettings?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     staff?: UserUncheckedCreateNestedManyWithoutShopInput
@@ -6149,6 +6344,11 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     owner?: UserUpdateOneRequiredWithoutOwnedShopNestedInput
@@ -6161,6 +6361,11 @@ export namespace Prisma {
     ownerId?: StringFieldUpdateOperationsInput | string
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    email?: NullableStringFieldUpdateOperationsInput | string | null
+    phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
+    pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    shippingSettings?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     staff?: UserUncheckedUpdateManyWithoutShopNestedInput

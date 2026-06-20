@@ -41,12 +41,17 @@ export class AuthService {
             ownerId: user.id,
           },
         });
+        const updatedUser = await tx.user.update({
+          where: { id: user.id },
+          data: { shopId: shop.id },
+        });
         return {
           user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
+            id: updatedUser.id,
+            email: updatedUser.email,
+            name: updatedUser.name,
+            role: updatedUser.role,
+            shopId: updatedUser.shopId,
           },
           shop,
         };
@@ -123,6 +128,11 @@ export class AuthService {
         name: true,
         responseRate: true,
         responseTime: true,
+        status: true,
+        email: true,
+        phoneNumber: true,
+        pickupAddress: true,
+        shippingSettings: true,
         createdAt: true,
       },
     });
@@ -180,5 +190,64 @@ export class AuthService {
     }
 
     return this.getShopFollowStatus(shopId, userId);
+  }
+
+  async updateShopOnboarding(id: string, dto: { email: string; phoneNumber: string; pickupAddress: string; shippingSettings: string }) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+    });
+    if (!shop) {
+      throw new NotFoundException(`Cửa hàng với ID ${id} không tồn tại`);
+    }
+
+    return this.prisma.shop.update({
+      where: { id },
+      data: {
+        email: dto.email,
+        phoneNumber: dto.phoneNumber,
+        pickupAddress: dto.pickupAddress,
+        shippingSettings: dto.shippingSettings,
+        status: 'PENDING_APPROVAL',
+      },
+    });
+  }
+
+  async approveShop(id: string, status: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+    });
+    if (!shop) {
+      throw new NotFoundException(`Cửa hàng với ID ${id} không tồn tại`);
+    }
+
+    if (status !== 'APPROVED' && status !== 'REJECTED') {
+      throw new Error('Trạng thái phê duyệt không hợp lệ');
+    }
+
+    const updatedShop = await this.prisma.shop.update({
+      where: { id },
+      data: { status },
+    });
+
+    if (status === 'APPROVED') {
+      await this.prisma.user.updateMany({
+        where: { id: shop.ownerId },
+        data: { shopId: shop.id },
+      });
+    }
+
+    return updatedShop;
+  }
+
+  async getShops(status?: string) {
+    if (status) {
+      return this.prisma.shop.findMany({
+        where: { status },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+    return this.prisma.shop.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }

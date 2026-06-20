@@ -61,7 +61,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
     try {
-      const response = await fetch(`http://localhost:3001/auth/${endpoint}`, {
+      const response = await fetch(`http://localhost:8000/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

@@ -2,10 +2,13 @@ export class CreateProductDto {
   shopId: string;
   name: string;
   image?: string;
+  images?: string;
+  video?: string;
   category: string;
   brand: string;
   description: string;
   price: string;
+  originalPrice?: string;
   stock: number;
   sales?: number;
   status: string;
@@ -26,10 +29,13 @@ export class CreateProductDto {
 export class UpdateProductDto {
   name?: string;
   image?: string;
+  images?: string;
+  video?: string;
   category?: string;
   brand?: string;
   description?: string;
   price?: string;
+  originalPrice?: string;
   stock?: number;
   sales?: number;
   status?: string;

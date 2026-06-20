@@ -1,0 +1,28 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+model Transaction {
+  id            String   @id @default(uuid())
+  orderId       String   @unique
+  buyerId       String
+  amount        Float
+  paymentMethod String   // "cod" | "zeropay" | "card" | "gpay" | "napas"
+  status        String   @default("PENDING") // "PENDING" | "SUCCESS" | "FAILED"
+  providerTxId  String?  // Mã giao dịch giả lập
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  buyerId   String   @unique
+  balance   Float    @default(5000000) // 5 triệu đồng mặc định để test
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

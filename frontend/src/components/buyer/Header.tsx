@@ -6,6 +6,7 @@ export interface CartItem {
     name: string
     flashPrice: string
     image: string
+    shopId?: string
   }
   quantity: number
   selectedVariant?: string
@@ -20,8 +21,10 @@ interface HeaderProps {
   onLogout: () => void
   onOpenLogin: () => void
   onOpenRegister: () => void
-  onOpenSellerPortal: () => void
+  onOpenAdminPortal?: () => void
   onBackToHome?: () => void
+  onOpenProfile: () => void
+  onOpenOrders: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -33,8 +36,10 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenLogin,
   onOpenRegister,
-  onOpenSellerPortal,
-  onBackToHome
+  onOpenAdminPortal,
+  onBackToHome,
+  onOpenProfile,
+  onOpenOrders
 }) => {
   const [searchValue, setSearchValue] = useState('')
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0)
@@ -53,13 +58,17 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between">
           {/* Left links */}
           <div className="flex items-center gap-4">
-            <button 
-              onClick={onOpenSellerPortal}
-              className="hover:text-emerald-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-slate-500 text-xs"
-            >
-              Kênh Người Bán
-            </button>
-            <span className="text-slate-200">|</span>
+            {user?.role === 'ADMIN' && onOpenAdminPortal && (
+              <>
+                <button 
+                  onClick={onOpenAdminPortal}
+                  className="hover:text-rose-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-rose-500 text-xs"
+                >
+                  🛡️ Kênh Admin
+                </button>
+                <span className="text-slate-200">|</span>
+              </>
+            )}
             <a href="#" className="hover:text-emerald-600 transition">Tải ứng dụng</a>
             <span className="text-slate-200">|</span>
             <div className="flex items-center gap-1.5">
@@ -83,16 +92,45 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-200">|</span>
             <div className="flex items-center gap-3 font-bold">
               {user ? (
-                <>
-                  <span className="text-slate-600 font-semibold cursor-default">Chào, {user.name}</span>
-                  <span className="text-slate-200">|</span>
-                  <button 
-                    onClick={onLogout} 
-                    className="hover:text-emerald-600 transition cursor-pointer bg-transparent border-none p-0 font-bold"
-                  >
-                    Đăng Xuất
-                  </button>
-                </>
+                <div className="relative group flex items-center gap-1 cursor-pointer py-1">
+                  <span className="text-slate-600 hover:text-emerald-600 transition font-semibold">
+                    Chào, {user.name} <span className="text-[10px] text-slate-400">▼</span>
+                  </span>
+                  
+                  {/* Dropdown menu wrapper (touches parent to avoid hover gap) */}
+                  <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-55 animate-in fade-in slide-in-from-top-1 duration-150">
+                    <div className="w-44 bg-white border border-slate-200/80 rounded-xl shadow-xl py-1.5 text-left font-semibold text-slate-700">
+                      <button
+                        onClick={onOpenProfile}
+                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-emerald-600 transition cursor-pointer text-xs flex items-center gap-2"
+                      >
+                        <span>👤</span> Thông tin cá nhân
+                      </button>
+                      <button
+                        onClick={onOpenOrders}
+                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-emerald-600 transition cursor-pointer text-xs flex items-center gap-2"
+                      >
+                        <span>📋</span> Đơn mua
+                      </button>
+
+                      {user.role === 'ADMIN' && onOpenAdminPortal ? (
+                        <button
+                          onClick={onOpenAdminPortal}
+                          className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-rose-600 transition cursor-pointer text-xs flex items-center gap-2 text-rose-600 font-bold"
+                        >
+                          <span>🛡️</span> Kênh Admin
+                        </button>
+                      ) : null}
+                      <hr className="border-slate-100 my-1" />
+                      <button
+                        onClick={onLogout}
+                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-red-500 transition cursor-pointer text-xs font-bold flex items-center gap-2"
+                      >
+                        <span>🚪</span> Đăng xuất
+                      </button>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <>
                   <button 
@@ -170,7 +208,7 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Cart Icon & Dropdown Hover */}
         <div className="relative group shrink-0 flex items-center justify-center p-2.5 cursor-pointer">
-          <div onClick={onOpenCart} className="relative text-slate-700 hover:text-emerald-600 transition">
+          <div id="cart-icon" onClick={onOpenCart} className="relative text-slate-700 hover:text-emerald-600 transition">
             <span className="text-xl">🛒</span>
             {cartCount > 0 && (
               <span className="absolute -top-2 -right-2 bg-emerald-600 text-white text-[9px] font-extrabold px-1.5 py-0.5 rounded-full border border-white shadow-xs">
@@ -179,64 +217,66 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Cart preview popover (shoots down on hover) */}
-          <div className="absolute top-full right-0 mt-1 w-96 bg-white rounded-lg border border-slate-200/80 shadow-xl text-slate-800 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150 overflow-hidden">
-            <div className="p-3 border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-              Sản phẩm mới thêm
-            </div>
-
-            {cart.length === 0 ? (
-              <div className="p-8 text-center flex flex-col items-center gap-3">
-                <span className="text-3xl">🛒</span>
-                <p className="text-slate-400 text-xs font-semibold">Chưa có sản phẩm nào</p>
+          {/* Cart preview popover (shoots down on hover, wrapped to avoid hover gap) */}
+          <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+            <div className="w-96 bg-white rounded-lg border border-slate-200/80 shadow-xl text-slate-800 overflow-hidden">
+              <div className="p-3 border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
+                Sản phẩm mới thêm
               </div>
-            ) : (
-              <>
-                <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
-                  {cart.map((item, index) => (
-                    <div key={index} className="p-3 flex items-center justify-between hover:bg-slate-50 transition">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        <img
-                          src={item.product.image}
-                          alt={item.product.name}
-                          className="w-10 h-10 object-cover border border-slate-100 rounded-md shrink-0"
-                        />
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs font-bold text-slate-800 truncate">{item.product.name}</p>
-                          {item.selectedVariant && (
-                            <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Phân loại: {item.selectedVariant}</p>
+
+              {cart.length === 0 ? (
+                <div className="p-8 text-center flex flex-col items-center gap-3">
+                  <span className="text-3xl">🛒</span>
+                  <p className="text-slate-400 text-xs font-semibold">Chưa có sản phẩm nào</p>
+                </div>
+              ) : (
+                <>
+                  <div className="max-h-64 overflow-y-auto divide-y divide-slate-100">
+                    {cart.map((item, index) => (
+                      <div key={index} className="p-3 flex items-center justify-between hover:bg-slate-50 transition">
+                        <div className="flex items-center gap-3 flex-1 min-w-0">
+                          <img
+                            src={item.product.image}
+                            alt={item.product.name}
+                            className="w-10 h-10 object-cover border border-slate-100 rounded-md shrink-0"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-slate-800 truncate">{item.product.name}</p>
+                            {item.selectedVariant && (
+                              <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Phân loại: {item.selectedVariant}</p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="ml-4 flex flex-col items-end shrink-0">
+                          <span className="text-xs font-bold text-emerald-600">{item.product.flashPrice}</span>
+                          <span className="text-[10px] text-slate-400 font-medium">x{item.quantity}</span>
+                          {onRemoveCartItem && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                onRemoveCartItem(item.product.id)
+                              }}
+                              className="text-[10px] text-red-500 hover:underline mt-1 font-semibold"
+                            >
+                              Xóa
+                            </button>
                           )}
                         </div>
                       </div>
-                      <div className="ml-4 flex flex-col items-end shrink-0">
-                        <span className="text-xs font-bold text-emerald-600">{item.product.flashPrice}</span>
-                        <span className="text-[10px] text-slate-400 font-medium">x{item.quantity}</span>
-                        {onRemoveCartItem && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              onRemoveCartItem(item.product.id)
-                            }}
-                            className="text-[10px] text-red-500 hover:underline mt-1 font-semibold"
-                          >
-                            Xóa
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-100">
-                  <span className="text-[10px] text-slate-500 font-semibold">{cartCount} sản phẩm trong giỏ</span>
-                  <button
-                    onClick={onOpenCart}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-md font-semibold text-xs shadow-sm transition cursor-pointer"
-                  >
-                    Xem Giỏ Hàng
-                  </button>
-                </div>
-              </>
-            )}
+                    ))}
+                  </div>
+                  <div className="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-100">
+                    <span className="text-[10px] text-slate-500 font-semibold">{cartCount} sản phẩm trong giỏ</span>
+                    <button
+                      onClick={onOpenCart}
+                      className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-md font-semibold text-xs shadow-sm transition cursor-pointer"
+                    >
+                      Xem Giỏ Hàng
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </div>

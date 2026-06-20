@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards, Request, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, UseGuards, Request, Param, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -8,6 +8,27 @@ import { Roles } from './decorators/roles.decorator';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Put('shops/:id/onboarding')
+  async updateOnboarding(
+    @Param('id') id: string,
+    @Body() dto: { email: string; phoneNumber: string; pickupAddress: string; shippingSettings: string }
+  ) {
+    return this.authService.updateShopOnboarding(id, dto);
+  }
+
+  @Put('shops/:id/approve')
+  async approveShop(
+    @Param('id') id: string,
+    @Body('status') status: string
+  ) {
+    return this.authService.approveShop(id, status);
+  }
+
+  @Get('shops')
+  async getShops(@Query('status') status?: string) {
+    return this.authService.getShops(status);
+  }
 
   @Post('register')
   async register(@Body() dto: RegisterDto) {

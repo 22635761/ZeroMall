@@ -3,7 +3,10 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors(); // Enable CORS for local development
-  await app.listen(process.env.PORT ?? 3004);
+  app.enableCors();
+  
+  const port = process.env.PORT ?? 3005;
+  await app.listen(port);
+  console.log(`Payment Service is running on port ${port}`);
 }
 bootstrap();

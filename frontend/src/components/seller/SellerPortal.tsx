@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { AddProductForm } from './AddProductForm'
 import { ProductListTable } from './ProductListTable'
+import { ShopOnboarding } from './ShopOnboarding'
+import { ShopVouchers } from './ShopVouchers'
 
 interface SellerPortalProps {
   user: any
@@ -37,13 +39,40 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
   // Products list and loading states
   const [productsList, setProductsList] = useState<any[]>([])
   const [productsLoading, setProductsLoading] = useState(false)
+  const [loadedShopName, setLoadedShopName] = useState<string | null>(null)
+
+  // Shop details and onboarding status
+  const [shopDetails, setShopDetails] = useState<any>(null)
+  const [shopLoading, setShopLoading] = useState(true)
+
+  const fetchShopDetails = async () => {
+    if (!user?.shopId) {
+      setShopDetails(null)
+      setShopLoading(false)
+      return
+    }
+    setShopLoading(true)
+    try {
+      const response = await fetch(`http://localhost:8000/auth/shops/${user.shopId}`)
+      if (!response.ok) throw new Error('Không thể tải thông tin cửa hàng')
+      const data = await response.json()
+      setShopDetails(data)
+      setLoadedShopName(data.name)
+    } catch (err: any) {
+      console.error('Error fetching shop details:', err)
+      setShopDetails(null)
+      setLoadedShopName(null)
+    } finally {
+      setShopLoading(false)
+    }
+  }
 
   // Fetch products from database
   const fetchProducts = async () => {
     if (!user?.shopId) return
     setProductsLoading(true)
     try {
-      const response = await fetch(`http://localhost:3002/products?shopId=${user.shopId}`)
+      const response = await fetch(`http://localhost:8000/products?shopId=${user.shopId}`)
       if (!response.ok) throw new Error('Không thể tải danh sách sản phẩm')
       const data = await response.json()
       
@@ -66,19 +95,29 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
           parsedPrice = parseFloat(p.price)
         }
 
+        let parsedOriginalPrice: number | string | null = p.originalPrice
+        if (p.originalPrice && /^\d+(\.\d+)?$/.test(p.originalPrice)) {
+          parsedOriginalPrice = parseFloat(p.originalPrice)
+        }
+
+        let parsedImages = []
+        try {
+          parsedImages = p.images ? JSON.parse(p.images) : []
+        } catch (e) {
+          console.error('Failed to parse images', e)
+        }
+
         return {
           ...p,
           price: parsedPrice,
+          originalPrice: parsedOriginalPrice,
+          images: parsedImages,
           variationGroups,
           variationRows
         }
       })
 
-      if (formattedProducts.length === 0) {
-        await seedDefaultProducts()
-      } else {
-        setProductsList(formattedProducts)
-      }
+      setProductsList(formattedProducts)
     } catch (err: any) {
       console.error('Error fetching products:', err)
     } finally {
@@ -86,109 +125,16 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     }
   }
 
-  // Seed default mock products into PostgreSQL if the shop has zero products
-  const seedDefaultProducts = async () => {
-    if (!user?.shopId) return
-    const defaultProducts = [
-      {
-        shopId: user.shopId,
-        name: 'Điện thoại Apple iPhone 15 Pro Max 256GB - Hàng Chính Hãng',
-        image: 'https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=300&q=80',
-        category: 'Điện Thoại & Phụ Kiện',
-        brand: 'Apple',
-        description: 'iPhone 15 Pro Max nổi bật với thiết kế khung Titanium cực nhẹ và bền bỉ, màn hình Dynamic Island, cổng kết nối USB-C tiện lợi và cụm camera zoom 5x đỉnh cao.',
-        price: '29990000',
-        stock: 50,
-        sales: 0,
-        status: 'active',
-        sku: 'IP15PM-256-GRY',
-        hasVariations: false,
-        variationGroups: JSON.stringify([]),
-        variationRows: JSON.stringify([]),
-        weight: '300',
-        condition: 'new',
-        isPreOrder: false,
-        preOrderDays: '7'
-      },
-      {
-        shopId: user.shopId,
-        name: 'Tai nghe Bluetooth chụp tai Sony WH-1000XM5 Chống Ồn Chủ Động',
-        image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&q=80',
-        category: 'Thiết Bị Điện Gia Dụng',
-        brand: 'Sony',
-        description: 'Sony WH-1000XM5 định nghĩa lại tiêu chuẩn chống ồn chủ động với bộ vi xử lý thông minh, thiết kế choàng đầu êm ái và chất âm đỉnh cao chi tiết.',
-        price: '6490000',
-        stock: 15,
-        sales: 0,
-        status: 'active',
-        sku: 'SNY-WH1000XM5',
-        hasVariations: false,
-        variationGroups: JSON.stringify([]),
-        variationRows: JSON.stringify([]),
-        weight: '400',
-        condition: 'new',
-        isPreOrder: false,
-        preOrderDays: '7'
-      },
-      {
-        shopId: user.shopId,
-        name: 'Bàn phím cơ không dây AKKO 3098B Multi-modes cực đẹp',
-        image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=300&q=80',
-        category: 'Máy Tính & Laptop',
-        brand: 'AKKO',
-        description: 'Bàn phím cơ AKKO 3098B hỗ trợ 3 chế độ kết nối, switch Akko chất lượng cao mang lại cảm giác gõ êm tai, hệ thống đèn nền RGB cực kỳ bắt mắt.',
-        price: '1850000',
-        stock: 0,
-        sales: 0,
-        status: 'active',
-        sku: 'AKO-3098B-BLU',
-        hasVariations: false,
-        variationGroups: JSON.stringify([]),
-        variationRows: JSON.stringify([]),
-        weight: '1200',
-        condition: 'new',
-        isPreOrder: false,
-        preOrderDays: '7'
-      }
-    ]
-
-    try {
-      for (const p of defaultProducts) {
-        await fetch('http://localhost:3002/products', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(p)
-        })
-      }
-      
-      const response = await fetch(`http://localhost:3002/products?shopId=${user.shopId}`)
-      if (response.ok) {
-        const data = await response.json()
-        const formatted = data.map((p: any) => {
-          let parsedPrice: number | string = p.price
-          if (/^\d+(\.\d+)?$/.test(p.price)) {
-            parsedPrice = parseFloat(p.price)
-          }
-          return {
-            ...p,
-            price: parsedPrice,
-            variationGroups: p.variationGroups ? JSON.parse(p.variationGroups) : [],
-            variationRows: p.variationRows ? JSON.parse(p.variationRows) : []
-          }
-        })
-        setProductsList(formatted)
-      }
-    } catch (err) {
-      console.error('Error seeding default products:', err)
-    }
-  }
-
-  // Load products when user's shopId changes
+  // Load products and shop info when user's shopId changes
   React.useEffect(() => {
     if (user?.shopId) {
       fetchProducts()
+      fetchShopDetails()
     } else {
       setProductsList([])
+      setShopDetails(null)
+      setShopLoading(false)
+      setLoadedShopName(null)
     }
   }, [user?.shopId])
 
@@ -201,18 +147,21 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     try {
       const isEdit = !!editingProduct
       const url = isEdit 
-        ? `http://localhost:3002/products/${editingProduct.id}`
-        : `http://localhost:3002/products`
+        ? `http://localhost:8000/products/${editingProduct.id}`
+        : `http://localhost:8000/products`
       const method = isEdit ? 'PUT' : 'POST'
       
       const payload = {
         shopId: user.shopId,
         name: productData.name,
         image: productData.image,
+        images: productData.images ? JSON.stringify(productData.images) : JSON.stringify([]),
+        video: productData.video || '',
         category: productData.category,
         brand: productData.brand,
         description: productData.description,
         price: String(productData.price),
+        originalPrice: productData.originalPrice ? String(productData.originalPrice) : null,
         stock: productData.stock,
         sales: productData.sales ?? 0,
         status: productData.status,
@@ -250,7 +199,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
 
   const handleProductDelete = async (productId: string) => {
     try {
-      const response = await fetch(`http://localhost:3002/products/${productId}`, {
+      const response = await fetch(`http://localhost:8000/products/${productId}`, {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Không thể xóa sản phẩm')
@@ -262,7 +211,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
 
   const handleProductToggleStatus = async (productId: string) => {
     try {
-      const response = await fetch(`http://localhost:3002/products/${productId}/toggle-status`, {
+      const response = await fetch(`http://localhost:8000/products/${productId}/toggle-status`, {
         method: 'PUT'
       })
       if (!response.ok) throw new Error('Không thể cập nhật trạng thái sản phẩm')
@@ -308,7 +257,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
         }
 
     try {
-      const response = await fetch(`http://localhost:3001/auth/${endpoint}`, {
+      const response = await fetch(`http://localhost:8000/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -479,6 +428,227 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     )
   }
 
+  // If loading shop details, show a premium loading spinner
+  if (shopLoading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+        <div className="flex flex-col items-center justify-center space-y-4 max-w-sm bg-white border border-slate-200/60 rounded-3xl p-10 shadow-lg animate-pulse">
+          <div className="w-12 h-12 border-4 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm font-black text-slate-700">Đang kiểm tra thông tin cửa hàng...</p>
+          <p className="text-xs text-slate-400 text-center">Vui lòng đợi giây lát, hệ thống đang tải dữ liệu đồng bộ.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const shopStatus = shopDetails?.status || 'DRAFT'
+
+  if (shopStatus === 'DRAFT') {
+    return (
+      <ShopOnboarding
+        user={user}
+        initialShopDetails={shopDetails}
+        onSuccess={(updatedShop) => {
+          setShopDetails(updatedShop)
+        }}
+        onBackToHome={onBackToHome}
+      />
+    )
+  }
+
+  if (shopStatus === 'PENDING_APPROVAL') {
+    let parsedAddress: any = null
+    let parsedShipping: any = { express: false, fast: false, saver: false, bulky: false }
+    if (shopDetails?.pickupAddress) {
+      try {
+        parsedAddress = typeof shopDetails.pickupAddress === 'string'
+          ? JSON.parse(shopDetails.pickupAddress)
+          : shopDetails.pickupAddress
+      } catch (e) {}
+    }
+    if (shopDetails?.shippingSettings) {
+      try {
+        parsedShipping = typeof shopDetails.shippingSettings === 'string'
+          ? JSON.parse(shopDetails.shippingSettings)
+          : shopDetails.shippingSettings
+      } catch (e) {}
+    }
+
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-800 font-sans text-left">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200/80 py-4 shadow-3xs sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={onBackToHome}>
+              <span className="text-2xl">🌱</span>
+              <span className="text-lg font-black tracking-tight text-slate-800">
+                Zero<span className="text-emerald-600">Mall</span> 
+                <span className="text-slate-400 font-normal text-sm ml-2">Kênh Người Bán</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={onLogout}
+                className="text-xs font-bold text-red-500 hover:text-red-650 transition cursor-pointer"
+              >
+                Đăng Xuất
+              </button>
+              <button 
+                onClick={onBackToHome}
+                className="text-xs font-semibold text-slate-500 hover:text-red-550 transition cursor-pointer bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+              >
+                🏠 Thoát ra ngoài
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 max-w-2xl w-full mx-auto p-4 py-12 flex flex-col justify-center animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl p-8 sm:p-10 text-center space-y-6">
+            <div className="w-20 h-20 bg-amber-50 border border-amber-100 rounded-full flex items-center justify-center text-4xl mx-auto animate-bounce">
+              ⏳
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-slate-800">Đăng Ký Đang Chờ Phê Duyệt</h2>
+              <p className="text-xs text-slate-400 leading-relaxed max-w-md mx-auto">
+                Cửa hàng <strong className="text-emerald-600 font-bold">{shopDetails?.name}</strong> của bạn đã gửi thông tin đăng ký thành công. Hệ thống đang tiến hành phê duyệt trong vòng 24h.
+              </p>
+            </div>
+
+            {/* Details Summary */}
+            <div className="border border-slate-100 rounded-2xl p-5 bg-slate-50/40 text-left text-xs font-semibold space-y-3.5 max-w-md mx-auto">
+              <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold border-b border-slate-100 pb-1.5">Tóm tắt thông tin đăng ký</p>
+              <div className="flex justify-between items-center py-0.5">
+                <span className="text-slate-400">Tên Cửa Hàng:</span>
+                <span className="text-slate-800">{shopDetails?.name}</span>
+              </div>
+              <div className="flex justify-between items-center py-0.5">
+                <span className="text-slate-400">Email:</span>
+                <span className="text-slate-800">{shopDetails?.email || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-center py-0.5">
+                <span className="text-slate-400">Số Điện Thoại:</span>
+                <span className="text-slate-800">{shopDetails?.phoneNumber || 'N/A'}</span>
+              </div>
+              {parsedAddress && (
+                <div className="flex justify-between items-start py-0.5 gap-4">
+                  <span className="text-slate-400 shrink-0">Địa Chỉ Lấy Hàng:</span>
+                  <span className="text-slate-800 text-right font-medium">
+                    {parsedAddress.detailAddress}, {parsedAddress.ward}, {parsedAddress.district}, {parsedAddress.province}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-start py-0.5 gap-4">
+                <span className="text-slate-400 shrink-0">Vận Chuyển Đã Chọn:</span>
+                <div className="flex flex-wrap gap-1 justify-end">
+                  {parsedShipping.express && <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-sm text-[9px]">Hỏa Tốc</span>}
+                  {parsedShipping.fast && <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-sm text-[9px]">Nhanh</span>}
+                  {parsedShipping.saver && <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-sm text-[9px]">Tiết Kiệm</span>}
+                  {parsedShipping.bulky && <span className="bg-emerald-50 text-emerald-600 border border-emerald-100 px-1.5 py-0.5 rounded-sm text-[9px]">Hàng Cồng Kềnh</span>}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row justify-center items-center gap-3 pt-4 border-t border-slate-100 max-w-md mx-auto">
+              <button
+                onClick={fetchShopDetails}
+                className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-500 text-white px-8 py-2.5 rounded-xl font-bold text-xs shadow-md transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                🔄 Kiểm tra trạng thái
+              </button>
+              <button
+                onClick={onBackToHome}
+                className="w-full sm:w-auto px-6 py-2.5 rounded-xl border border-slate-250 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+              >
+                Về Trang Mua Sắm
+              </button>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="py-6 bg-white border-t border-slate-200 text-center text-xs text-slate-400">
+          © 2026 ZeroMall. Hệ Thống Duyệt Shop Tự Động.
+        </footer>
+      </div>
+    )
+  }
+
+  if (shopStatus === 'REJECTED') {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col justify-between text-slate-800 font-sans text-left">
+        {/* Header */}
+        <header className="bg-white border-b border-slate-200/80 py-4 shadow-3xs sticky top-0 z-40">
+          <div className="max-w-7xl mx-auto px-4 flex justify-between items-center">
+            <div className="flex items-center gap-3 cursor-pointer" onClick={onBackToHome}>
+              <span className="text-2xl">🌱</span>
+              <span className="text-lg font-black tracking-tight text-slate-800">
+                Zero<span className="text-emerald-600">Mall</span> 
+                <span className="text-slate-400 font-normal text-sm ml-2">Kênh Người Bán</span>
+              </span>
+            </div>
+            <div className="flex items-center gap-4">
+              <button 
+                onClick={onLogout}
+                className="text-xs font-bold text-red-500 hover:text-red-650 transition cursor-pointer"
+              >
+                Đăng Xuất
+              </button>
+              <button 
+                onClick={onBackToHome}
+                className="text-xs font-semibold text-slate-500 hover:text-red-550 transition cursor-pointer bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg"
+              >
+                🏠 Thoát ra ngoài
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 max-w-md w-full mx-auto p-4 py-12 flex flex-col justify-center animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl border border-slate-200/60 shadow-xl p-8 sm:p-10 text-center space-y-6">
+            <div className="w-20 h-20 bg-red-50 border border-red-100 rounded-full flex items-center justify-center text-4xl mx-auto animate-pulse">
+              ❌
+            </div>
+            <div className="space-y-2">
+              <h2 className="text-xl font-black text-slate-800">Yêu Cầu Bị Từ Chối</h2>
+              <p className="text-xs text-slate-455 leading-relaxed">
+                Đăng ký mở cửa hàng <strong className="text-red-600 font-bold">{shopDetails?.name}</strong> của bạn đã bị từ chối do thông tin chưa chính xác hoặc thiếu minh chứng hợp lệ.
+              </p>
+            </div>
+
+            <div className="bg-red-50 border border-red-100 text-red-700 text-xs font-semibold p-4 rounded-xl text-left leading-relaxed">
+              ⚠️ Vui lòng cập nhật lại chính xác các thông tin như Số điện thoại liên hệ, Địa chỉ lấy hàng thực tế và kích hoạt các phương thức giao hàng đúng chuẩn để được phê duyệt nhanh nhất.
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col gap-2.5 pt-4 border-t border-slate-100">
+              <button
+                onClick={() => setShopDetails({ ...shopDetails, status: 'DRAFT' })}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-bold text-xs shadow-md transition cursor-pointer"
+              >
+                ✏️ Chỉnh sửa thông tin đăng ký
+              </button>
+              <button
+                onClick={onBackToHome}
+                className="w-full px-6 py-2.5 rounded-xl border border-slate-250 font-bold text-xs hover:bg-slate-100 transition cursor-pointer"
+              >
+                Về Trang Mua Sắm
+              </button>
+            </div>
+          </div>
+        </main>
+
+        {/* Footer */}
+        <footer className="py-6 bg-white border-t border-slate-200 text-center text-xs text-slate-400">
+          © 2026 ZeroMall. Kênh Người Bán.
+        </footer>
+      </div>
+    )
+  }
+
   // --- SELLER DASHBOARD VIEW ---
   // Menu items from the mockup image
   const menuConfig = [
@@ -575,7 +745,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
               🏪
             </div>
             <div className="text-xs">
-              <p className="font-extrabold text-slate-700 leading-tight">Shop của {user.name}</p>
+              <p className="font-extrabold text-slate-700 leading-tight">{loadedShopName || `Shop của ${user.name}`}</p>
               <p className="text-[10px] text-slate-400 capitalize font-semibold mt-0.5">{user.role === 'SHOP_OWNER' ? 'Chủ Shop' : 'Nhân Viên CSKH'}</p>
             </div>
           </div>
@@ -695,6 +865,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
                 }}
               />
             )
+          ) : activeMenu === 'marketing' && activeSubMenu === 'shop-vouchers' ? (
+            <ShopVouchers user={user} />
           ) : (
             <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm min-h-[450px]">
               {activeMenu === 'dashboard' && (

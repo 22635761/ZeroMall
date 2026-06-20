@@ -153,6 +153,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Áo khoác bomber phong cách đường phố năng động, chất liệu nỉ ngoại cao cấp dày dặn ấm áp, thích hợp đi chơi hay đi học.',
       price: '250000',
+      originalPrice: '350000',
       stock: 100,
       sales: 0,
       status: 'active',
@@ -173,6 +174,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Váy xòe phong cách tiểu thư cổ điển điệu đà, tay bồng thanh lịch, chất vải voan hàn cao cấp mềm mại hai lớp cực chuẩn phom dáng.',
       price: '320000',
+      originalPrice: '450000',
       stock: 45,
       sales: 0,
       status: 'active',
@@ -193,6 +195,7 @@ async function main() {
       brand: 'Adidas',
       description: 'Giày sneaker thể thao phong cách Hàn Quốc trẻ trung năng động, đế cao su chống trơn trượt êm chân, phù hợp đi học, đi làm, dạo phố.',
       price: '450000',
+      originalPrice: '600000',
       stock: 60,
       sales: 0,
       status: 'active',
@@ -213,6 +216,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Mũ lưỡi trai kaki basic unisex nam nữ đội đều đẹp, phom dáng cứng cáp ôm đầu thoải mái, điều chỉnh size dễ dàng.',
       price: '75000',
+      originalPrice: '120000',
       stock: 150,
       sales: 0,
       status: 'active',
@@ -233,6 +237,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Balo thời trang đựng vừa laptop 15.6 inch, chất vải oxford chống thấm nước tốt, nhiều ngăn tiện lợi đi học hay du lịch ngắn ngày.',
       price: '199000',
+      originalPrice: '280000',
       stock: 80,
       sales: 0,
       status: 'active',
@@ -257,6 +262,7 @@ async function main() {
       brand: 'Philips',
       description: 'Nồi chiên không dầu dung tích lớn 6.5L, điều khiển điện tử cảm ứng nhạy bén, công nghệ chiên xoáy nhiệt 360 độ hạn chế dầu mỡ bảo vệ sức khỏe.',
       price: '1850000',
+      originalPrice: '2500000',
       stock: 20,
       sales: 0,
       status: 'active',
@@ -277,6 +283,7 @@ async function main() {
       brand: 'Bear',
       description: 'Máy xay sinh tố đa năng sạc pin tiện lợi mang đi làm, đi du lịch. Lưỡi dao inox 304 sắc bén, chất liệu nhựa cao cấp an toàn cho bé.',
       price: '290000',
+      originalPrice: '390000',
       stock: 40,
       sales: 0,
       status: 'active',
@@ -297,6 +304,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Bộ bát đĩa sứ cao cấp gồm 12 chi tiết tráng men bóng cao cấp, phong cách Bắc Âu sang trọng, chịu nhiệt tốt dùng được trong lò vi sóng.',
       price: '580000',
+      originalPrice: '750000',
       stock: 15,
       sales: 0,
       status: 'active',
@@ -317,6 +325,7 @@ async function main() {
       brand: 'Lock&Lock',
       description: 'Bình giữ nhiệt dung tích lớn giữ nóng/lạnh lên đến 24 giờ, chất liệu thép không gỉ 316 y tế siêu an toàn, có quai xách tiện lợi.',
       price: '350000',
+      originalPrice: '490000',
       stock: 70,
       sales: 0,
       status: 'active',
@@ -337,6 +346,7 @@ async function main() {
       brand: 'No Brand',
       description: 'Kệ để gia vị, lò vi sóng bằng thép carbon sơn tĩnh điện chống gỉ sét, chịu lực lên đến 50kg, giúp căn bếp luôn ngăn nắp gọn gàng.',
       price: '420000',
+      originalPrice: '600000',
       stock: 30,
       sales: 0,
       status: 'active',
@@ -443,6 +453,57 @@ async function main() {
         console.log(`Seeded likes for product: ${prod.name}`);
       }
     }
+  }
+
+  console.log('Setting up database foreign keys and relationships...');
+  try {
+    // Review -> Product
+    await productPool.query(`
+      ALTER TABLE product."Review"
+      DROP CONSTRAINT IF EXISTS fk_review_product;
+      ALTER TABLE product."Review"
+      ADD CONSTRAINT fk_review_product
+      FOREIGN KEY ("productId")
+      REFERENCES product."Product"(id)
+      ON DELETE CASCADE;
+    `);
+
+    // ProductLike -> Product
+    await productPool.query(`
+      ALTER TABLE product."ProductLike"
+      DROP CONSTRAINT IF EXISTS fk_productlike_product;
+      ALTER TABLE product."ProductLike"
+      ADD CONSTRAINT fk_productlike_product
+      FOREIGN KEY ("productId")
+      REFERENCES product."Product"(id)
+      ON DELETE CASCADE;
+    `);
+
+    // Product -> Shop
+    await productPool.query(`
+      ALTER TABLE product."Product"
+      DROP CONSTRAINT IF EXISTS fk_product_shop;
+      ALTER TABLE product."Product"
+      ADD CONSTRAINT fk_product_shop
+      FOREIGN KEY ("shopId")
+      REFERENCES auth."Shop"(id)
+      ON DELETE CASCADE;
+    `);
+
+    // ProductLike -> User
+    await productPool.query(`
+      ALTER TABLE product."ProductLike"
+      DROP CONSTRAINT IF EXISTS fk_productlike_user;
+      ALTER TABLE product."ProductLike"
+      ADD CONSTRAINT fk_productlike_user
+      FOREIGN KEY ("userId")
+      REFERENCES auth."User"(id)
+      ON DELETE CASCADE;
+    `);
+
+    console.log('Foreign key constraints established successfully.');
+  } catch (fkErr) {
+    console.error('Failed to set up foreign key constraints:', fkErr);
   }
 
   console.log('Seeding completed successfully!');

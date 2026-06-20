@@ -45,11 +45,45 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [isSubmittingReview, setIsSubmittingReview] = useState(false)
   const [reviewSuccessMsg, setReviewSuccessMsg] = useState('')
 
+  // Flying items state for product add-to-cart animation
+  const [flyingItems, setFlyingItems] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number; image: string }[]>([])
+
+  const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    // 1. Trigger the actual onAddToCart prop logic
+    onAddToCart(product, quantity, selectedVariant)
+
+    // 2. Perform flying animation logic
+    const rect = e.currentTarget.getBoundingClientRect()
+    const cartIcon = document.getElementById('cart-icon')
+    if (cartIcon) {
+      const cartRect = cartIcon.getBoundingClientRect()
+      const startX = rect.left + rect.width / 2
+      const startY = rect.top + rect.height / 2
+      const endX = cartRect.left + cartRect.width / 2
+      const endY = cartRect.top + cartRect.height / 2
+      
+      const newFlyingItem = {
+        id: Date.now() + Math.random(),
+        startX,
+        startY,
+        endX,
+        endY,
+        image: product.image
+      }
+
+      setFlyingItems(prev => [...prev, newFlyingItem])
+
+      setTimeout(() => {
+        setFlyingItems(prev => prev.filter(item => item.id !== newFlyingItem.id))
+      }, 800)
+    }
+  }
+
   // Load reviews from API
   const fetchReviews = async () => {
     setIsLoadingReviews(true)
     try {
-      const response = await fetch(`http://localhost:3002/products/${product.id}/reviews`)
+      const response = await fetch(`http://localhost:8000/products/${product.id}/reviews`)
       if (!response.ok) throw new Error('Failed to fetch reviews')
       const data = await response.json()
       setReviews(data)
@@ -63,34 +97,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Load shop details and stats from APIs
   const fetchShopData = async () => {
     setIsLoadingShop(true)
+    
+    // 1. Fetch shop details from auth-service
     try {
-      // 1. Fetch shop details from auth-service
-      const shopRes = await fetch(`http://localhost:3001/auth/shops/${product.shopId}`)
+      const shopRes = await fetch(`http://localhost:8000/auth/shops/${product.shopId}`)
       if (shopRes.ok) {
         const shopData = await shopRes.json()
         setShopDetails(shopData)
       } else {
-        throw new Error('Failed to fetch shop details')
-      }
-
-      // 2. Fetch shop stats from product-service
-      const statsRes = await fetch(`http://localhost:3002/products/shops/${product.shopId}/stats`)
-      if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setShopStats(statsData)
-      } else {
-        throw new Error('Failed to fetch shop stats')
-      }
-
-      // 3. Fetch follow status
-      const followRes = await fetch(`http://localhost:3001/auth/shops/${product.shopId}/follow-status?userId=${user?.id || ''}`)
-      if (followRes.ok) {
-        const followData = await followRes.json()
-        setFollowersCount(followData.count)
-        setIsFollowing(followData.isFollowing)
+        throw new Error('Shop not found in DB')
       }
     } catch (e) {
-      console.error('Error fetching shop data:', e)
+      console.error('Error fetching shop details:', e)
       // Fallback default shop info
       setShopDetails({
         name: 'ZeroMall Official Store',
@@ -98,11 +116,38 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         responseTime: 'trong vài giờ',
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
       })
+    }
+
+    // 2. Fetch shop stats from product-service
+    try {
+      const statsRes = await fetch(`http://localhost:8000/products/shops/${product.shopId}/stats`)
+      if (statsRes.ok) {
+        const statsData = await statsRes.json()
+        setShopStats(statsData)
+      } else {
+        throw new Error('Failed to fetch shop stats')
+      }
+    } catch (e) {
+      console.error('Error fetching shop stats:', e)
       setShopStats({
-        totalProducts: 120,
-        totalReviews: 14500
+        totalProducts: 0,
+        totalReviews: 0
       })
-      setFollowersCount(25800)
+    }
+
+    // 3. Fetch follow status
+    try {
+      const followRes = await fetch(`http://localhost:8000/auth/shops/${product.shopId}/follow-status?userId=${user?.id || ''}`)
+      if (followRes.ok) {
+        const followData = await followRes.json()
+        setFollowersCount(followData.count)
+        setIsFollowing(followData.isFollowing)
+      } else {
+        throw new Error('Failed to fetch follow status')
+      }
+    } catch (e) {
+      console.error('Error fetching follow status:', e)
+      setFollowersCount(0)
       setIsFollowing(false)
     } finally {
       setIsLoadingShop(false)
@@ -112,7 +157,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Fetch product likes from API
   const fetchProductLikes = async () => {
     try {
-      const res = await fetch(`http://localhost:3002/products/${product.id}/likes?userId=${user?.id || ''}`)
+      const res = await fetch(`http://localhost:8000/products/${product.id}/likes?userId=${user?.id || ''}`)
       if (res.ok) {
         const data = await res.json()
         setLikeCount(data.count)
@@ -150,17 +195,28 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }, [product, user])
 
-  // Get matching sub-images category-wise for visual richness
+  const getYouTubeId = (url: string) => {
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/
+    const match = url.match(regExp)
+    return (match && match[2].length === 11) ? match[2] : null
+  }
+
   const getSubImages = () => {
-    if (product.images && product.images.length > 1) {
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
       return product.images
     }
-    
-    // We should only show the single product image to avoid displaying incorrect/unrelated mock products!
     return [product.image].filter(Boolean)
   }
 
   const subImages = getSubImages()
+  const mediaItems: { type: 'image' | 'video'; url: string }[] = []
+  if (product.video) {
+    mediaItems.push({ type: 'video', url: product.video })
+  }
+  subImages.forEach((img) => {
+    mediaItems.push({ type: 'image', url: img })
+  })
+
   const stockAvailable = product.total - product.sold
   
   // Calculate discount percentage
@@ -196,7 +252,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       return
     }
     try {
-      const res = await fetch(`http://localhost:3002/products/${product.id}/like`, {
+      const res = await fetch(`http://localhost:8000/products/${product.id}/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -217,7 +273,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       return
     }
     try {
-      const res = await fetch(`http://localhost:3001/auth/shops/${product.shopId}/follow`, {
+      const res = await fetch(`http://localhost:8000/auth/shops/${product.shopId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -253,7 +309,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
     setIsSubmittingReview(true)
     try {
-      const response = await fetch(`http://localhost:3002/products/${product.id}/reviews`, {
+      const response = await fetch(`http://localhost:8000/products/${product.id}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -367,27 +423,82 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         
         {/* Left Side: Images & Socials */}
         <div className="w-full lg:w-[42%] shrink-0 space-y-4">
-          {/* Main Large Image */}
-          <div className="w-full aspect-square bg-slate-50 border border-slate-100 rounded-xl overflow-hidden shadow-2xs relative">
-            <img
-              src={subImages[activeImgIdx]}
-              alt={product.name}
-              className="w-full h-full object-cover transition duration-300"
-            />
+          {/* Main Large Media Viewport */}
+          <div className="w-full aspect-square bg-slate-50 border border-slate-100 rounded-xl overflow-hidden shadow-2xs relative flex items-center justify-center">
+            {mediaItems[activeImgIdx]?.type === 'video' ? (
+              (() => {
+                const videoUrl = mediaItems[activeImgIdx].url
+                const ytId = getYouTubeId(videoUrl)
+                if (ytId) {
+                  return (
+                    <iframe
+                      title="Product Video"
+                      className="w-full h-full border-none"
+                      src={`https://www.youtube.com/embed/${ytId}?autoplay=1&mute=1`}
+                      allow="autoplay; encrypted-media"
+                      allowFullScreen
+                    />
+                  )
+                }
+                return (
+                  <video
+                    src={videoUrl}
+                    controls
+                    autoPlay
+                    muted
+                    playsInline
+                    className="w-full h-full object-contain"
+                  />
+                )
+              })()
+            ) : (
+              <img
+                src={mediaItems[activeImgIdx]?.url}
+                alt={product.name}
+                className="w-full h-full object-cover transition duration-300"
+              />
+            )}
           </div>
 
           {/* Thumbnails Row */}
-          {subImages.length > 1 && (
+          {mediaItems.length > 1 && (
             <div className="flex gap-2.5 overflow-x-auto pb-1 scrollbar-thin">
-              {subImages.map((img, idx) => (
+              {mediaItems.map((item, idx) => (
                 <button
                   key={idx}
                   onClick={() => setActiveImgIdx(idx)}
-                  className={`w-[72px] h-[72px] shrink-0 border-2 rounded-lg overflow-hidden transition cursor-pointer ${
+                  className={`w-[72px] h-[72px] shrink-0 border-2 rounded-lg overflow-hidden transition cursor-pointer relative bg-slate-50 flex items-center justify-center ${
                     idx === activeImgIdx ? 'border-[#ee4d2d]' : 'border-slate-200 hover:border-slate-400'
                   }`}
                 >
-                  <img src={img} className="w-full h-full object-cover" alt="" />
+                  {item.type === 'video' ? (
+                    <>
+                      {(() => {
+                        const ytId = getYouTubeId(item.url)
+                        if (ytId) {
+                          return (
+                            <img
+                              src={`https://img.youtube.com/vi/${ytId}/hqdefault.jpg`}
+                              className="w-full h-full object-cover opacity-80"
+                              alt="Video cover"
+                            />
+                          )
+                        }
+                        return (
+                          <div className="w-full h-full bg-slate-800 flex items-center justify-center text-slate-300">
+                            <span className="text-xl">🎥</span>
+                          </div>
+                        )
+                      })()}
+                      <div className="absolute inset-0 bg-slate-900/30 flex items-center justify-center transition hover:bg-slate-900/40">
+                        <span className="text-white text-lg bg-black/60 rounded-full w-8 h-8 flex items-center justify-center shadow-xs">
+                          ▶
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <img src={item.url} className="w-full h-full object-cover" alt="" />
+                  )}
                 </button>
               ))}
             </div>
@@ -565,7 +676,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           {/* Action Buttons */}
           <div className="flex gap-4 pt-4 border-t border-slate-100 flex-wrap">
             <button
-              onClick={() => onAddToCart(product, quantity, selectedVariant)}
+              onClick={handleAddToCartClick}
               className="flex-1 min-w-[200px] py-3.5 px-6 border border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9] hover:bg-[#fdede7] font-bold rounded-sm text-sm flex items-center justify-center gap-2.5 transition cursor-pointer shadow-3xs"
             >
               <span className="text-lg">🛒</span> Thêm Vào Giỏ Hàng
@@ -936,6 +1047,40 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
       </div>
 
+      {/* Dynamic Flying Items Animation */}
+      <style>{`
+        @keyframes flyToCart {
+          0% {
+            transform: translate(0, 0) scale(1) rotate(0deg);
+            opacity: 1;
+          }
+          40% {
+            opacity: 1;
+            transform: translate(calc(var(--dx) * 0.45), calc(var(--dy) * 0.4 - 120px)) scale(0.8) rotate(180deg);
+          }
+          100% {
+            transform: translate(var(--dx), var(--dy)) scale(0.15) rotate(360deg);
+            opacity: 0.1;
+          }
+        }
+      `}</style>
+      
+      {flyingItems.map(item => (
+        <div
+          key={item.id}
+          className="fixed w-10 h-10 rounded-full z-55 pointer-events-none border-2 border-emerald-500 bg-white overflow-hidden shadow-lg shadow-emerald-500/30"
+          style={{
+            left: item.startX - 20,
+            top: item.startY - 20,
+            backgroundImage: `url(${item.image})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            animation: 'flyToCart 0.8s cubic-bezier(0.1, 0.8, 0.3, 1) forwards',
+            '--dx': `${item.endX - item.startX}px`,
+            '--dy': `${item.endY - item.startY}px`,
+          } as React.CSSProperties}
+        />
+      ))}
     </div>
   )
 }

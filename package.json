@@ -11,7 +11,10 @@
     "dev:frontend": "npm run dev -w frontend",
     "dev:auth": "npm run start:dev -w services/auth-service",
     "dev:product": "npm run start:dev -w services/product-service",
-    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:auth\" \"npm run dev:product\""
+    "dev:discount": "npm run start:dev -w services/discount-service",
+    "dev:order": "npm run start:dev -w services/order-service",
+    "dev:payment": "npm run start:dev -w services/payment-service",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:auth\" \"npm run dev:product\" \"npm run dev:discount\" \"npm run dev:order\" \"npm run dev:payment\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

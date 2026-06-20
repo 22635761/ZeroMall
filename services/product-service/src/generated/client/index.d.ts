@@ -1075,10 +1075,13 @@ export namespace Prisma {
     shopId: string | null
     name: string | null
     image: string | null
+    images: string | null
+    video: string | null
     category: string | null
     brand: string | null
     description: string | null
     price: string | null
+    originalPrice: string | null
     stock: number | null
     sales: number | null
     status: string | null
@@ -1103,10 +1106,13 @@ export namespace Prisma {
     shopId: string | null
     name: string | null
     image: string | null
+    images: string | null
+    video: string | null
     category: string | null
     brand: string | null
     description: string | null
     price: string | null
+    originalPrice: string | null
     stock: number | null
     sales: number | null
     status: string | null
@@ -1131,10 +1137,13 @@ export namespace Prisma {
     shopId: number
     name: number
     image: number
+    images: number
+    video: number
     category: number
     brand: number
     description: number
     price: number
+    originalPrice: number
     stock: number
     sales: number
     status: number
@@ -1171,10 +1180,13 @@ export namespace Prisma {
     shopId?: true
     name?: true
     image?: true
+    images?: true
+    video?: true
     category?: true
     brand?: true
     description?: true
     price?: true
+    originalPrice?: true
     stock?: true
     sales?: true
     status?: true
@@ -1199,10 +1211,13 @@ export namespace Prisma {
     shopId?: true
     name?: true
     image?: true
+    images?: true
+    video?: true
     category?: true
     brand?: true
     description?: true
     price?: true
+    originalPrice?: true
     stock?: true
     sales?: true
     status?: true
@@ -1227,10 +1242,13 @@ export namespace Prisma {
     shopId?: true
     name?: true
     image?: true
+    images?: true
+    video?: true
     category?: true
     brand?: true
     description?: true
     price?: true
+    originalPrice?: true
     stock?: true
     sales?: true
     status?: true
@@ -1342,10 +1360,13 @@ export namespace Prisma {
     shopId: string
     name: string
     image: string | null
+    images: string | null
+    video: string | null
     category: string
     brand: string
     description: string
     price: string
+    originalPrice: string | null
     stock: number
     sales: number
     status: string
@@ -1389,10 +1410,13 @@ export namespace Prisma {
     shopId?: boolean
     name?: boolean
     image?: boolean
+    images?: boolean
+    video?: boolean
     category?: boolean
     brand?: boolean
     description?: boolean
     price?: boolean
+    originalPrice?: boolean
     stock?: boolean
     sales?: boolean
     status?: boolean
@@ -1417,10 +1441,13 @@ export namespace Prisma {
     shopId?: boolean
     name?: boolean
     image?: boolean
+    images?: boolean
+    video?: boolean
     category?: boolean
     brand?: boolean
     description?: boolean
     price?: boolean
+    originalPrice?: boolean
     stock?: boolean
     sales?: boolean
     status?: boolean
@@ -1445,10 +1472,13 @@ export namespace Prisma {
     shopId?: boolean
     name?: boolean
     image?: boolean
+    images?: boolean
+    video?: boolean
     category?: boolean
     brand?: boolean
     description?: boolean
     price?: boolean
+    originalPrice?: boolean
     stock?: boolean
     sales?: boolean
     status?: boolean
@@ -1473,10 +1503,13 @@ export namespace Prisma {
     shopId?: boolean
     name?: boolean
     image?: boolean
+    images?: boolean
+    video?: boolean
     category?: boolean
     brand?: boolean
     description?: boolean
     price?: boolean
+    originalPrice?: boolean
     stock?: boolean
     sales?: boolean
     status?: boolean
@@ -1496,7 +1529,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "name" | "image" | "category" | "brand" | "description" | "price" | "stock" | "sales" | "status" | "sku" | "variationsText" | "hasVariations" | "variationGroups" | "variationRows" | "weight" | "length" | "width" | "height" | "condition" | "isPreOrder" | "preOrderDays" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
+  export type ProductOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "name" | "image" | "images" | "video" | "category" | "brand" | "description" | "price" | "originalPrice" | "stock" | "sales" | "status" | "sku" | "variationsText" | "hasVariations" | "variationGroups" | "variationRows" | "weight" | "length" | "width" | "height" | "condition" | "isPreOrder" | "preOrderDays" | "createdAt" | "updatedAt", ExtArgs["result"]["product"]>
 
   export type $ProductPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Product"
@@ -1506,10 +1539,13 @@ export namespace Prisma {
       shopId: string
       name: string
       image: string | null
+      images: string | null
+      video: string | null
       category: string
       brand: string
       description: string
       price: string
+      originalPrice: string | null
       stock: number
       sales: number
       status: string
@@ -1954,10 +1990,13 @@ export namespace Prisma {
     readonly shopId: FieldRef<"Product", 'String'>
     readonly name: FieldRef<"Product", 'String'>
     readonly image: FieldRef<"Product", 'String'>
+    readonly images: FieldRef<"Product", 'String'>
+    readonly video: FieldRef<"Product", 'String'>
     readonly category: FieldRef<"Product", 'String'>
     readonly brand: FieldRef<"Product", 'String'>
     readonly description: FieldRef<"Product", 'String'>
     readonly price: FieldRef<"Product", 'String'>
+    readonly originalPrice: FieldRef<"Product", 'String'>
     readonly stock: FieldRef<"Product", 'Int'>
     readonly sales: FieldRef<"Product", 'Int'>
     readonly status: FieldRef<"Product", 'String'>
@@ -4425,10 +4464,13 @@ export namespace Prisma {
     shopId: 'shopId',
     name: 'name',
     image: 'image',
+    images: 'images',
+    video: 'video',
     category: 'category',
     brand: 'brand',
     description: 'description',
     price: 'price',
+    originalPrice: 'originalPrice',
     stock: 'stock',
     sales: 'sales',
     status: 'status',
@@ -4578,10 +4620,13 @@ export namespace Prisma {
     shopId?: StringFilter<"Product"> | string
     name?: StringFilter<"Product"> | string
     image?: StringNullableFilter<"Product"> | string | null
+    images?: StringNullableFilter<"Product"> | string | null
+    video?: StringNullableFilter<"Product"> | string | null
     category?: StringFilter<"Product"> | string
     brand?: StringFilter<"Product"> | string
     description?: StringFilter<"Product"> | string
     price?: StringFilter<"Product"> | string
+    originalPrice?: StringNullableFilter<"Product"> | string | null
     stock?: IntFilter<"Product"> | number
     sales?: IntFilter<"Product"> | number
     status?: StringFilter<"Product"> | string
@@ -4606,10 +4651,13 @@ export namespace Prisma {
     shopId?: SortOrder
     name?: SortOrder
     image?: SortOrderInput | SortOrder
+    images?: SortOrderInput | SortOrder
+    video?: SortOrderInput | SortOrder
     category?: SortOrder
     brand?: SortOrder
     description?: SortOrder
     price?: SortOrder
+    originalPrice?: SortOrderInput | SortOrder
     stock?: SortOrder
     sales?: SortOrder
     status?: SortOrder
@@ -4637,10 +4685,13 @@ export namespace Prisma {
     shopId?: StringFilter<"Product"> | string
     name?: StringFilter<"Product"> | string
     image?: StringNullableFilter<"Product"> | string | null
+    images?: StringNullableFilter<"Product"> | string | null
+    video?: StringNullableFilter<"Product"> | string | null
     category?: StringFilter<"Product"> | string
     brand?: StringFilter<"Product"> | string
     description?: StringFilter<"Product"> | string
     price?: StringFilter<"Product"> | string
+    originalPrice?: StringNullableFilter<"Product"> | string | null
     stock?: IntFilter<"Product"> | number
     sales?: IntFilter<"Product"> | number
     status?: StringFilter<"Product"> | string
@@ -4665,10 +4716,13 @@ export namespace Prisma {
     shopId?: SortOrder
     name?: SortOrder
     image?: SortOrderInput | SortOrder
+    images?: SortOrderInput | SortOrder
+    video?: SortOrderInput | SortOrder
     category?: SortOrder
     brand?: SortOrder
     description?: SortOrder
     price?: SortOrder
+    originalPrice?: SortOrderInput | SortOrder
     stock?: SortOrder
     sales?: SortOrder
     status?: SortOrder
@@ -4701,10 +4755,13 @@ export namespace Prisma {
     shopId?: StringWithAggregatesFilter<"Product"> | string
     name?: StringWithAggregatesFilter<"Product"> | string
     image?: StringNullableWithAggregatesFilter<"Product"> | string | null
+    images?: StringNullableWithAggregatesFilter<"Product"> | string | null
+    video?: StringNullableWithAggregatesFilter<"Product"> | string | null
     category?: StringWithAggregatesFilter<"Product"> | string
     brand?: StringWithAggregatesFilter<"Product"> | string
     description?: StringWithAggregatesFilter<"Product"> | string
     price?: StringWithAggregatesFilter<"Product"> | string
+    originalPrice?: StringNullableWithAggregatesFilter<"Product"> | string | null
     stock?: IntWithAggregatesFilter<"Product"> | number
     sales?: IntWithAggregatesFilter<"Product"> | number
     status?: StringWithAggregatesFilter<"Product"> | string
@@ -4846,10 +4903,13 @@ export namespace Prisma {
     shopId: string
     name: string
     image?: string | null
+    images?: string | null
+    video?: string | null
     category: string
     brand: string
     description: string
     price: string
+    originalPrice?: string | null
     stock: number
     sales?: number
     status: string
@@ -4874,10 +4934,13 @@ export namespace Prisma {
     shopId: string
     name: string
     image?: string | null
+    images?: string | null
+    video?: string | null
     category: string
     brand: string
     description: string
     price: string
+    originalPrice?: string | null
     stock: number
     sales?: number
     status: string
@@ -4902,10 +4965,13 @@ export namespace Prisma {
     shopId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     price?: StringFieldUpdateOperationsInput | string
+    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -4930,10 +4996,13 @@ export namespace Prisma {
     shopId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     price?: StringFieldUpdateOperationsInput | string
+    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -4958,10 +5027,13 @@ export namespace Prisma {
     shopId: string
     name: string
     image?: string | null
+    images?: string | null
+    video?: string | null
     category: string
     brand: string
     description: string
     price: string
+    originalPrice?: string | null
     stock: number
     sales?: number
     status: string
@@ -4986,10 +5058,13 @@ export namespace Prisma {
     shopId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     price?: StringFieldUpdateOperationsInput | string
+    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -5014,10 +5089,13 @@ export namespace Prisma {
     shopId?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
     price?: StringFieldUpdateOperationsInput | string
+    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
@@ -5230,10 +5308,13 @@ export namespace Prisma {
     shopId?: SortOrder
     name?: SortOrder
     image?: SortOrder
+    images?: SortOrder
+    video?: SortOrder
     category?: SortOrder
     brand?: SortOrder
     description?: SortOrder
     price?: SortOrder
+    originalPrice?: SortOrder
     stock?: SortOrder
     sales?: SortOrder
     status?: SortOrder
@@ -5263,10 +5344,13 @@ export namespace Prisma {
     shopId?: SortOrder
     name?: SortOrder
     image?: SortOrder
+    images?: SortOrder
+    video?: SortOrder
     category?: SortOrder
     brand?: SortOrder
     description?: SortOrder
     price?: SortOrder
+    originalPrice?: SortOrder
     stock?: SortOrder
     sales?: SortOrder
     status?: SortOrder
@@ -5291,10 +5375,13 @@ export namespace Prisma {
     shopId?: SortOrder
     name?: SortOrder
     image?: SortOrder
+    images?: SortOrder
+    video?: SortOrder
     category?: SortOrder
     brand?: SortOrder
     description?: SortOrder
     price?: SortOrder
+    originalPrice?: SortOrder
     stock?: SortOrder
     sales?: SortOrder
     status?: SortOrder

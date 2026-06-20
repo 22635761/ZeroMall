@@ -7,63 +7,154 @@ import { FlashSale } from './components/buyer/FlashSale'
 import type { Product } from './components/buyer/FlashSale'
 import { ProductList } from './components/buyer/ProductList'
 import { ProductDetailPage } from './components/buyer/ProductDetailPage'
-import { CheckoutModal } from './components/buyer/CheckoutModal'
+import { CartPage } from './components/buyer/CartPage'
 import { ServicePolicies } from './components/buyer/ServicePolicies'
 import { ChatWidget } from './components/buyer/ChatWidget'
 import { AuthModal } from './components/common/AuthModal'
 import { SellerPortal } from './components/seller/SellerPortal'
+import { AdminPortal } from './components/seller/AdminPortal'
+import { ProfileModal } from './components/common/ProfileModal'
+import { BuyerOrdersPage } from './components/buyer/BuyerOrdersPage'
 
 function App() {
   // Cart & Checkout state
-  const [cart, setCart] = useState<CartItem[]>([])
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
-  const [showCheckout, setShowCheckout] = useState(false)
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('zm_cart')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse saved cart', e)
+      }
+    }
+    return []
+  })
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
+    const savedProduct = localStorage.getItem('zm_selected_product')
+    if (savedProduct) {
+      try {
+        return JSON.parse(savedProduct)
+      } catch (e) {
+        console.error('Failed to parse saved selected product', e)
+      }
+    }
+    return null
+  })
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
 
   // Page state
-  const [currentPage, setCurrentPage] = useState<'home' | 'seller' | 'product-detail'>('home')
+  const [currentPage, setCurrentPage] = useState<'home' | 'seller' | 'product-detail' | 'admin' | 'cart' | 'orders'>(() => {
+    const savedPage = localStorage.getItem('zm_current_page')
+    if (savedPage) {
+      if (['home', 'seller', 'product-detail', 'admin', 'cart', 'orders'].includes(savedPage)) {
+        return savedPage as any
+      }
+    }
+    return 'home'
+  })
+
+  // Persist current page and selected product to localStorage
+  useEffect(() => {
+    localStorage.setItem('zm_current_page', currentPage)
+  }, [currentPage])
+
+  useEffect(() => {
+    if (selectedProduct) {
+      localStorage.setItem('zm_selected_product', JSON.stringify(selectedProduct))
+    } else {
+      localStorage.removeItem('zm_selected_product')
+    }
+  }, [selectedProduct])
+
+  // Toast effect
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type })
+  }
+
+  // Persist cart to localStorage
+  useEffect(() => {
+    localStorage.setItem('zm_cart', JSON.stringify(cart))
+  }, [cart])
 
   // Auth states
   const [user, setUser] = useState<any>(null)
   const [token, setToken] = useState<string | null>(null)
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
 
   // Products from Database for Buyer
   const [dbProducts, setDbProducts] = useState<Product[]>([])
 
   const loadProducts = async () => {
     try {
-      const response = await fetch('http://localhost:3002/products')
+      const response = await fetch('http://localhost:8000/products')
       if (!response.ok) throw new Error('Failed to fetch products')
       const data = await response.json()
       const formatted = data.map((p: any) => {
-        let numericPrice = 0
-        if (/^\d+(\.\d+)?$/.test(p.price)) {
-          numericPrice = parseFloat(p.price)
+        let flashPriceStr = ''
+        let flashPriceVal = 0
+        if (p.price && p.price.includes('đ')) {
+          flashPriceStr = p.price
+          const firstSegment = p.price.split('-')[0].replace(/[^0-9]/g, '')
+          flashPriceVal = parseFloat(firstSegment) || 100000
         } else {
-          const match = p.price.match(/\d+(\.\d+)?/)
-          if (match) {
-            numericPrice = parseFloat(match[0])
+          if (p.price && /^\d+(\.\d+)?$/.test(p.price)) {
+            flashPriceVal = parseFloat(p.price)
+          } else if (p.price) {
+            const match = p.price.match(/\d+(\.\d+)?/)
+            if (match) {
+              flashPriceVal = parseFloat(match[0])
+            }
+          }
+          if (!flashPriceVal) flashPriceVal = 100000
+          flashPriceStr = flashPriceVal.toLocaleString('vi-VN') + 'đ'
+        }
+
+        let originalPriceStr = ''
+        let originalPriceVal = 0
+        if (p.originalPrice) {
+          if (p.originalPrice.includes('đ')) {
+            originalPriceStr = p.originalPrice
+            const firstSegment = p.originalPrice.split('-')[0].replace(/[^0-9]/g, '')
+            originalPriceVal = parseFloat(firstSegment) || 0
+          } else {
+            if (/^\d+(\.\d+)?$/.test(p.originalPrice)) {
+              originalPriceVal = parseFloat(p.originalPrice)
+            } else {
+              const match = p.originalPrice.match(/\d+(\.\d+)?/)
+              if (match) {
+                originalPriceVal = parseFloat(match[0])
+              }
+            }
+            if (originalPriceVal) {
+              originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+            }
           }
         }
 
-        const flashPriceVal = numericPrice || 100000
-        
-        // Deterministic discount percentage between 10% and 50%
-        const nameLen = p.name ? p.name.length : 0
-        const brandLen = p.brand ? p.brand.length : 0
-        const discountPercent = 10 + ((nameLen + brandLen) % 9) * 5
-        let originalPriceVal = Math.round(flashPriceVal / (1 - discountPercent / 100))
-        if (originalPriceVal > 1000000) {
-          originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
-        } else if (originalPriceVal > 100000) {
-          originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
-        } else {
-          originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
+        if (!originalPriceVal || originalPriceVal <= flashPriceVal) {
+          // Deterministic discount percentage between 10% and 50%
+          const nameLen = p.name ? p.name.length : 0
+          const brandLen = p.brand ? p.brand.length : 0
+          const discountPercent = 10 + ((nameLen + brandLen) % 9) * 5
+          originalPriceVal = Math.round(flashPriceVal / (1 - discountPercent / 100))
+          if (originalPriceVal > 1000000) {
+            originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
+          } else if (originalPriceVal > 100000) {
+            originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
+          } else {
+            originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
+          }
+          originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
         }
-        
-        const flashPriceStr = flashPriceVal.toLocaleString('vi-VN') + 'đ'
-        const originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
 
         let variants: string[] = []
         if (p.hasVariations && p.variationGroups) {
@@ -73,6 +164,16 @@ function App() {
           } catch (e) {
             console.error(e)
           }
+        }
+
+        let parsedImages: string[] = []
+        try {
+          parsedImages = p.images ? JSON.parse(p.images) : []
+        } catch (e) {
+          console.error('Failed to parse images', e)
+        }
+        if (!parsedImages || parsedImages.length === 0) {
+          parsedImages = p.image ? [p.image] : []
         }
 
         return {
@@ -87,7 +188,8 @@ function App() {
           reviewsCount: 12,
           description: p.description,
           variants,
-          images: p.image ? [p.image] : [],
+          images: parsedImages,
+          video: p.video || '',
           category: p.category,
           brand: p.brand,
           shopId: p.shopId
@@ -111,8 +213,13 @@ function App() {
     const savedUser = localStorage.getItem('zm_user')
     const savedToken = localStorage.getItem('zm_token')
     if (savedUser && savedToken) {
-      setUser(JSON.parse(savedUser))
+      const parsed = JSON.parse(savedUser)
+      setUser(parsed)
       setToken(savedToken)
+      const savedPage = localStorage.getItem('zm_current_page')
+      if (parsed?.role === 'ADMIN' && !savedPage) {
+        setCurrentPage('admin')
+      }
     }
   }, [])
 
@@ -127,6 +234,9 @@ function App() {
     setToken(userToken)
     localStorage.setItem('zm_user', JSON.stringify(userData))
     localStorage.setItem('zm_token', userToken)
+    if (userData?.role === 'ADMIN') {
+      setCurrentPage('admin')
+    }
   }
 
   const handleLogout = () => {
@@ -134,6 +244,7 @@ function App() {
     setToken(null)
     localStorage.removeItem('zm_user')
     localStorage.removeItem('zm_token')
+    setCurrentPage('home')
   }
 
   const handleOpenLogin = () => {
@@ -165,34 +276,50 @@ function App() {
         return [...prev, { product, quantity, selectedVariant: variant }]
       }
     })
-    setSelectedProduct(null)
+    showToast(`Đã thêm ${quantity} sản phẩm vào giỏ hàng thành công!`)
   }
 
   const handleBuyNow = (product: Product, quantity: number, variant: string) => {
     // Add to cart first
-    handleAddToCart(product, quantity, variant)
-    // Open checkout directly
-    setShowCheckout(true)
+    setCart((prev) => {
+      const existingIdx = prev.findIndex(
+        (item) => item.product.id === product.id && item.selectedVariant === variant
+      )
+
+      if (existingIdx > -1) {
+        const updated = [...prev]
+        updated[existingIdx].quantity += quantity
+        return updated
+      } else {
+        return [...prev, { product, quantity, selectedVariant: variant }]
+      }
+    })
+    // Redirect to cart page and reset step to cart
+    localStorage.setItem('zm_checkout_step', 'cart')
+    setCurrentPage('cart')
   }
 
-  const handleUpdateCartQuantity = (productId: string, quantity: number) => {
+  const handleUpdateCartQuantity = (productId: string, variant: string, quantity: number) => {
     if (quantity <= 0) {
-      handleRemoveCartItem(productId)
+      handleRemoveCartItem(productId, variant)
       return
     }
     setCart((prev) =>
-      prev.map((item) => (item.product.id === productId ? { ...item, quantity } : item))
+      prev.map((item) =>
+        item.product.id === productId && item.selectedVariant === variant
+          ? { ...item, quantity }
+          : item
+      )
     )
   }
 
-  const handleRemoveCartItem = (productId: string) => {
-    setCart((prev) => prev.filter((item) => item.product.id !== productId))
+  const handleRemoveCartItem = (productId: string, variant?: string) => {
+    setCart((prev) =>
+      prev.filter((item) => !(item.product.id === productId && item.selectedVariant === variant))
+    )
   }
 
-  const handleClearCart = () => {
-    setCart([])
-    loadProducts()
-  }
+
 
   if (currentPage === 'seller') {
     return (
@@ -206,28 +333,62 @@ function App() {
     )
   }
 
+  if (currentPage === 'admin') {
+    return (
+      <AdminPortal
+        user={user}
+        onLogout={handleLogout}
+        onBackToHome={() => setCurrentPage('home')}
+      />
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-800 font-sans selection:bg-[#ee4d2d] selection:text-white">
       {/* Shopee-style Header */}
       <Header
         cart={cart}
         onSearch={handleSearch}
-        onOpenCart={() => setShowCheckout(true)}
+        onOpenCart={() => {
+          localStorage.setItem('zm_checkout_step', 'cart')
+          setCurrentPage('cart')
+        }}
         onRemoveCartItem={handleRemoveCartItem}
         user={user}
         onLogout={handleLogout}
         onOpenLogin={handleOpenLogin}
         onOpenRegister={handleOpenRegister}
-        onOpenSellerPortal={() => setCurrentPage('seller')}
+        onOpenAdminPortal={() => setCurrentPage('admin')}
         onBackToHome={() => {
           setCurrentPage('home')
           setSelectedProduct(null)
         }}
+        onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenOrders={() => setCurrentPage('orders')}
       />
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {currentPage === 'product-detail' && selectedProduct ? (
+        {currentPage === 'cart' ? (
+          <CartPage
+            cart={cart}
+            user={user}
+            onUpdateQuantity={handleUpdateCartQuantity}
+            onRemoveItem={handleRemoveCartItem}
+            onBackToHome={() => {
+              setCurrentPage('home')
+              setSelectedProduct(null)
+            }}
+          />
+        ) : currentPage === 'orders' ? (
+          <BuyerOrdersPage
+            user={user}
+            onBackToHome={() => {
+              setCurrentPage('home')
+              setSelectedProduct(null)
+            }}
+          />
+        ) : currentPage === 'product-detail' && selectedProduct ? (
           <ProductDetailPage
             product={selectedProduct}
             user={user}
@@ -271,14 +432,11 @@ function App() {
       {/* Floating Customer Support Chat */}
       <ChatWidget />
 
-      {/* Shopping Cart & Checkout flow dialog */}
-      <CheckoutModal
-        isOpen={showCheckout}
-        cart={cart}
-        onClose={() => setShowCheckout(false)}
-        onUpdateQuantity={handleUpdateCartQuantity}
-        onRemoveItem={handleRemoveCartItem}
-        onClearCart={handleClearCart}
+      {/* Profile Modal */}
+      <ProfileModal
+        isOpen={isProfileOpen}
+        onClose={() => setIsProfileOpen(false)}
+        user={user}
       />
 
       {/* Extended Shopee-style Footer */}
@@ -308,7 +466,6 @@ function App() {
                 <li><a href="#" className="hover:text-[#ee4d2d] transition">Tuyển Dụng</a></li>
                 <li><a href="#" className="hover:text-[#ee4d2d] transition">Điều Khoản ZeroMall</a></li>
                 <li><a href="#" className="hover:text-[#ee4d2d] transition">Chính Sách Bảo Mật</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Kênh Người Bán</a></li>
               </ul>
             </div>
 
@@ -366,6 +523,14 @@ function App() {
         onAuthSuccess={handleAuthSuccess}
         initialTab={authTab}
       />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-55 bg-slate-900/95 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-2.5 border border-slate-700/50 backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300">
+          <span className="text-emerald-400 text-sm font-bold">✔️</span>
+          <span className="text-xs font-bold tracking-wide">{toast.message}</span>
+        </div>
+      )}
     </div>
   )
 }

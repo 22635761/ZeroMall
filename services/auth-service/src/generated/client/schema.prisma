@@ -28,15 +28,20 @@ model User {
 }
 
 model Shop {
-  id           String   @id @default(uuid())
-  name         String
-  ownerId      String   @unique
-  owner        User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  staff        User[]   @relation("ShopStaff")
-  responseRate Int      @default(100)
-  responseTime String   @default("trong vài giờ")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String
+  ownerId          String   @unique
+  owner            User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  staff            User[]   @relation("ShopStaff")
+  responseRate     Int      @default(100)
+  responseTime     String   @default("trong vài giờ")
+  status           String   @default("DRAFT") // "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
+  email            String?
+  phoneNumber      String?
+  pickupAddress    String?  @db.Text
+  shippingSettings String?  @db.Text
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Người dùng theo dõi shop này
   followers ShopFollow[]

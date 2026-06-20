@@ -62,6 +62,49 @@ services:
         condition: service_healthy
     restart: always
 
+  discount-service:
+    build:
+      context: .
+      dockerfile: services/discount-service/Dockerfile
+    container_name: zeromall-discount-service
+    ports:
+      - '3003:3003'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=discount&options=-csearch_path=discount
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  order-service:
+    build:
+      context: .
+      dockerfile: services/order-service/Dockerfile
+    container_name: zeromall-order-service
+    ports:
+      - '3004:3004'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=order&options=-csearch_path=order
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
+  payment-service:
+    build:
+      context: .
+      dockerfile: services/payment-service/Dockerfile
+    container_name: zeromall-payment-service
+    ports:
+      - '3005:3005'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=payment&options=-csearch_path=payment
+      - ORDER_SERVICE_URL=http://order-service:3004
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
   frontend:
     build:
       context: .
@@ -72,6 +115,34 @@ services:
     depends_on:
       - auth-service
       - product-service
+      - discount-service
+      - order-service
+      - payment-service
+    restart: always
+
+  kong:
+    image: kong:3.4-ubuntu
+    container_name: zeromall-kong
+    environment:
+      - KONG_DATABASE=off
+      - KONG_DECLARATIVE_CONFIG=/etc/kong/kong.yml
+      - KONG_PROXY_ACCESS_LOG=/dev/stdout
+      - KONG_ADMIN_ACCESS_LOG=/dev/stdout
+      - KONG_PROXY_ERROR_LOG=/dev/stderr
+      - KONG_ADMIN_ERROR_LOG=/dev/stderr
+      - KONG_PROXY_LISTEN=0.0.0.0:8000, 0.0.0.0:8443 ssl
+      - KONG_ADMIN_LISTEN=0.0.0.0:8001, 0.0.0.0:8444 ssl
+    volumes:
+      - ./kong/kong.yml:/etc/kong/kong.yml:ro
+    ports:
+      - "8000:8000"
+      - "8001:8001"
+    depends_on:
+      - auth-service
+      - product-service
+      - discount-service
+      - order-service
+      - payment-service
     restart: always
 
   # ============================================================

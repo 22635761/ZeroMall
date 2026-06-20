@@ -137,6 +137,11 @@ exports.Prisma.ShopScalarFieldEnum = {
   ownerId: 'ownerId',
   responseRate: 'responseRate',
   responseTime: 'responseTime',
+  status: 'status',
+  email: 'email',
+  phoneNumber: 'phoneNumber',
+  pickupAddress: 'pickupAddress',
+  shippingSettings: 'shippingSettings',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

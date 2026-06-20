@@ -30,6 +30,7 @@ interface VariationRow {
   key: string
   name: string
   price: string
+  originalPrice: string
   stock: string
   sku: string
 }
@@ -57,9 +58,11 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   ])
   const [variationRows, setVariationRows] = useState<VariationRow[]>([])
   const [bulkPrice, setBulkPrice] = useState('')
+  const [bulkOriginalPrice, setBulkOriginalPrice] = useState('')
   const [bulkStock, setBulkStock] = useState('')
   // Simple pricing (if no variations)
   const [simplePrice, setSimplePrice] = useState('')
+  const [simpleOriginalPrice, setSimpleOriginalPrice] = useState('')
   const [simpleStock, setSimpleStock] = useState('')
 
   // Shipping
@@ -107,7 +110,15 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       setDescription(initialData.description || '')
       
       // Images
-      if (initialData.image) {
+      if (initialData.images && Array.isArray(initialData.images) && initialData.images.length > 0) {
+        setImages(initialData.images.map((imgUrl: string, idx: number) => ({
+          id: `init-${idx}-${Math.random().toString(36).substring(2, 5)}`,
+          file: null as any,
+          url: imgUrl,
+          progress: 100,
+          isCover: imgUrl === initialData.image || (idx === 0 && !initialData.images.includes(initialData.image))
+        })))
+      } else if (initialData.image) {
         setImages([
           {
             id: 'cover-init',
@@ -117,6 +128,30 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
             isCover: true
           }
         ])
+      } else {
+        setImages([])
+      }
+
+      // Video
+      if (initialData.video) {
+        const isExtLink = initialData.video.includes('youtube.com') || 
+                          initialData.video.includes('youtu.be') || 
+                          initialData.video.includes('tiktok.com');
+        if (isExtLink) {
+          setVideoMode('link')
+          setVideoLink(initialData.video)
+        } else {
+          setVideoMode('upload')
+          setVideoFile({
+            file: null,
+            url: initialData.video,
+            progress: 100,
+            error: null
+          })
+        }
+      } else {
+        setVideoFile({ file: null, url: '', progress: 0, error: null })
+        setVideoLink('')
       }
       
       // Variations
@@ -127,6 +162,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       } else {
         setHasVariations(false)
         setSimplePrice(String(initialData.price || ''))
+        setSimpleOriginalPrice(initialData.originalPrice ? String(initialData.originalPrice) : '')
         setSimpleStock(String(initialData.stock || ''))
       }
       
@@ -148,6 +184,15 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const getVariationPriceRange = (rows: VariationRow[]) => {
     const prices = rows.map(r => parseFloat(r.price)).filter(p => !isNaN(p))
     if (prices.length === 0) return '0đ'
+    const min = Math.min(...prices)
+    const max = Math.max(...prices)
+    if (min === max) return `${min.toLocaleString('vi-VN')}đ`
+    return `${min.toLocaleString('vi-VN')}đ - ${max.toLocaleString('vi-VN')}đ`
+  }
+
+  const getVariationOriginalPriceRange = (rows: VariationRow[]) => {
+    const prices = rows.map(r => parseFloat(r.originalPrice)).filter(p => !isNaN(p))
+    if (prices.length === 0) return ''
     const min = Math.min(...prices)
     const max = Math.max(...prices)
     if (min === max) return `${min.toLocaleString('vi-VN')}đ`
@@ -403,6 +448,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         key,
         name: key,
         price: existing?.price || '',
+        originalPrice: existing?.originalPrice || '',
         stock: existing?.stock || '',
         sku: existing?.sku || ''
       }
@@ -411,21 +457,23 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     setVariationRows(rows)
   }, [hasVariations, variationGroups])
 
-  // Bulk edit price and stock
+  // Bulk edit price, original price, and stock
   const applyBulkEdit = () => {
-    if (!bulkPrice && !bulkStock) return
+    if (!bulkPrice && !bulkOriginalPrice && !bulkStock) return
     setVariationRows((prev) =>
       prev.map((row) => ({
         ...row,
         price: bulkPrice ? bulkPrice : row.price,
+        originalPrice: bulkOriginalPrice ? bulkOriginalPrice : row.originalPrice,
         stock: bulkStock ? bulkStock : row.stock
       }))
     )
     setBulkPrice('')
+    setBulkOriginalPrice('')
     setBulkStock('')
   }
 
-  const updateVariationRow = (key: string, field: 'price' | 'stock' | 'sku', value: string) => {
+  const updateVariationRow = (key: string, field: 'price' | 'originalPrice' | 'stock' | 'sku', value: string) => {
     setVariationRows((prev) =>
       prev.map((row) => (row.key === key ? { ...row, [field]: value } : row))
     )
@@ -463,16 +511,23 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       if (!simplePrice || parseFloat(simplePrice) <= 0) {
         newErrors.price = 'Cần nhập giá bán hợp lệ (>0đ).'
       }
+      if (simpleOriginalPrice && parseFloat(simpleOriginalPrice) < parseFloat(simplePrice)) {
+        newErrors.price = 'Giá bán không được lớn hơn giá gốc.'
+      }
       if (!simpleStock || parseInt(simpleStock) < 0) {
         newErrors.stock = 'Cần nhập tồn kho hợp lệ (>=0).'
       }
     } else {
       const hasEmptyPrice = variationRows.some((r) => !r.price || parseFloat(r.price) <= 0)
       const hasEmptyStock = variationRows.some((r) => !r.stock || parseInt(r.stock) < 0)
+      const hasInvalidPriceRelation = variationRows.some(
+        (r) => r.originalPrice && parseFloat(r.originalPrice) < parseFloat(r.price)
+      )
       if (variationRows.length === 0) {
         newErrors.variations = 'Cần thêm tùy chọn phân loại.'
       } else {
-        if (hasEmptyPrice) newErrors.variations = 'Điền đầy đủ giá cho các phân loại.'
+        if (hasEmptyPrice) newErrors.variations = 'Điền đầy đủ giá bán cho các phân loại.'
+        if (hasInvalidPriceRelation) newErrors.variations = 'Giá bán không được lớn hơn giá gốc ở bất kỳ phân loại nào.'
         if (hasEmptyStock) newErrors.variations = 'Điền đầy đủ tồn kho cho các phân loại.'
       }
     }
@@ -511,12 +566,17 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       id: initialData?.id || Math.random().toString(36).substring(2, 9),
       name: productName,
       image: images.find(img => img.isCover)?.url || images[0]?.url || '',
+      images: images.filter(img => img.url && img.url !== 'ERROR').map(img => img.url),
+      video: videoMode === 'upload' ? videoFile.url : videoLink,
       category,
       brand,
       description,
       price: hasVariations
         ? getVariationPriceRange(variationRows)
         : parseFloat(simplePrice),
+      originalPrice: hasVariations
+        ? getVariationOriginalPriceRange(variationRows)
+        : (simpleOriginalPrice ? parseFloat(simpleOriginalPrice) : null),
       stock: hasVariations
         ? variationRows.reduce((acc, row) => acc + (parseInt(row.stock) || 0), 0)
         : parseInt(simpleStock),
@@ -1096,10 +1156,17 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
                         <div className="flex items-center gap-2">
                           <input
                             type="number"
-                            placeholder="Giá chung (VND)"
+                            placeholder="Giá gốc chung (VND)"
+                            value={bulkOriginalPrice}
+                            onChange={(e) => setBulkOriginalPrice(e.target.value)}
+                            className="w-36 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-500 bg-white"
+                          />
+                          <input
+                            type="number"
+                            placeholder="Giá bán chung (VND)"
                             value={bulkPrice}
                             onChange={(e) => setBulkPrice(e.target.value)}
-                            className="w-32 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-500 bg-white"
+                            className="w-36 border border-slate-200 rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-emerald-500 bg-white"
                           />
                           <input
                             type="number"
@@ -1128,8 +1195,9 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
                           <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 font-bold text-slate-500">
                             <tr>
                               <th className="text-left p-3">Tên Phân loại</th>
-                              <th className="text-left p-3 w-1/3">Giá bán (VND) *</th>
-                              <th className="text-left p-3 w-1/4">Kho hàng *</th>
+                              <th className="text-left p-3 w-1/4">Giá gốc (VND)</th>
+                              <th className="text-left p-3 w-1/4">Giá bán (VND) *</th>
+                              <th className="text-left p-3 w-1/6">Kho hàng *</th>
                               <th className="text-left p-3 w-1/4">SKU phân loại</th>
                             </tr>
                           </thead>
@@ -1137,6 +1205,17 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
                             {variationRows.map((row) => (
                               <tr key={row.key} className="hover:bg-slate-50/50 transition">
                                 <td className="p-3 font-bold text-slate-800">{row.name}</td>
+                                <td className="p-3">
+                                  <div className="flex items-center gap-1">
+                                    <input
+                                      type="number"
+                                      value={row.originalPrice}
+                                      onChange={(e) => updateVariationRow(row.key, 'originalPrice', e.target.value)}
+                                      className="w-full border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500"
+                                    />
+                                    <span className="text-[10px] text-slate-400 font-bold">đ</span>
+                                  </div>
+                                </td>
                                 <td className="p-3">
                                   <div className="flex items-center gap-1">
                                     <input
@@ -1178,7 +1257,21 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
                 </div>
               ) : (
                 // Simple Pricing Form (If no variations enabled)
-                <div className="grid grid-cols-2 gap-4 border border-slate-150 p-5 rounded-2xl bg-slate-50/30">
+                <div className="grid grid-cols-3 gap-4 border border-slate-150 p-5 rounded-2xl bg-slate-50/30">
+                  <div className="space-y-1">
+                    <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Giá gốc sản phẩm (VND)</label>
+                    <div className="flex items-center gap-1.5">
+                      <input
+                        type="number"
+                        placeholder="Giá gốc (ví dụ: 200000)"
+                        value={simpleOriginalPrice}
+                        onChange={(e) => setSimpleOriginalPrice(e.target.value)}
+                        className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white transition"
+                      />
+                      <span className="text-xs font-extrabold text-slate-400">đ</span>
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">* Giá bán sản phẩm (VND)</label>
                     <div className="flex items-center gap-1.5">
@@ -1202,7 +1295,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
                     <input
                       type="number"
                       required
-                      placeholder="Số lượng sản phẩm sẵn sàng..."
+                      placeholder="Số lượng..."
                       value={simpleStock}
                       onChange={(e) => setSimpleStock(e.target.value)}
                       className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white transition"

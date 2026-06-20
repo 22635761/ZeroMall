@@ -13,6 +13,7 @@ export interface Product {
   description?: string
   variants?: string[]
   images?: string[]
+  video?: string
   category?: string
   brand?: string
   shopId?: string

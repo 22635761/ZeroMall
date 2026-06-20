@@ -1,0 +1,27 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+model Voucher {
+  id          String   @id @default(uuid())
+  shopId      String
+  name        String
+  code        String
+  type        String // "percentage" | "fixed"
+  value       Float
+  minSpend    Float
+  maxDiscount Float?
+  usageLimit  Int
+  usedCount   Int      @default(0)
+  startDate   DateTime
+  endDate     DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([shopId, code])
+}
