@@ -208,20 +208,67 @@ function App() {
     }
   }
 
-  // Load session from localStorage on mount and fetch products
+  // Load session on mount with a 1-minute grace period for reopened tabs
   useEffect(() => {
+    const tabSessionId = sessionStorage.getItem('zm_tab_session_id')
     const savedUser = localStorage.getItem('zm_user')
     const savedToken = localStorage.getItem('zm_token')
+
     if (savedUser && savedToken) {
-      const parsed = JSON.parse(savedUser)
-      setUser(parsed)
-      setToken(savedToken)
-      const savedPage = localStorage.getItem('zm_current_page')
-      if (parsed?.role === 'ADMIN' && !savedPage) {
-        setCurrentPage('admin')
+      if (tabSessionId) {
+        // Tab was already active in this session (e.g. page reload), keep logged in
+        const parsed = JSON.parse(savedUser)
+        setUser(parsed)
+        setToken(savedToken)
+        const savedPage = localStorage.getItem('zm_current_page')
+        if (parsed?.role === 'ADMIN' && !savedPage) {
+          setCurrentPage('admin')
+        }
+      } else {
+        // New tab opened: check if last active time was within 1 minute (60 seconds)
+        const lastActive = localStorage.getItem('zm_last_active_time')
+        const timePassed = Date.now() - (lastActive ? parseInt(lastActive, 10) : 0)
+
+        if (timePassed <= 60000) {
+          // Grace period check passed, restore session and assign tab session ID
+          const parsed = JSON.parse(savedUser)
+          setUser(parsed)
+          setToken(savedToken)
+          sessionStorage.setItem('zm_tab_session_id', 'active_session')
+          localStorage.setItem('zm_last_active_time', Date.now().toString())
+          const savedPage = localStorage.getItem('zm_current_page')
+          if (parsed?.role === 'ADMIN' && !savedPage) {
+            setCurrentPage('admin')
+          }
+        } else {
+          // Exceeded grace period, clean up storage and logout
+          handleLogout()
+        }
       }
     }
   }, [])
+
+  // Keep session alive: Update last active timestamp every 10 seconds if user is logged in
+  useEffect(() => {
+    if (!user) return
+
+    localStorage.setItem('zm_last_active_time', Date.now().toString())
+
+    const interval = setInterval(() => {
+      localStorage.setItem('zm_last_active_time', Date.now().toString())
+    }, 10000)
+
+    const handleTabCloseOrReload = () => {
+      localStorage.setItem('zm_last_active_time', Date.now().toString())
+    }
+
+    window.addEventListener('beforeunload', handleTabCloseOrReload)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('beforeunload', handleTabCloseOrReload)
+    }
+  }, [user])
 
   useEffect(() => {
     if (currentPage === 'home' || currentPage === 'product-detail') {
@@ -234,6 +281,8 @@ function App() {
     setToken(userToken)
     localStorage.setItem('zm_user', JSON.stringify(userData))
     localStorage.setItem('zm_token', userToken)
+    localStorage.setItem('zm_last_active_time', Date.now().toString())
+    sessionStorage.setItem('zm_tab_session_id', 'active_session')
     if (userData?.role === 'ADMIN') {
       setCurrentPage('admin')
     }
@@ -244,6 +293,8 @@ function App() {
     setToken(null)
     localStorage.removeItem('zm_user')
     localStorage.removeItem('zm_token')
+    localStorage.removeItem('zm_last_active_time')
+    sessionStorage.removeItem('zm_tab_session_id')
     setCurrentPage('home')
   }
 
