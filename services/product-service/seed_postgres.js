@@ -33,7 +33,7 @@ async function main() {
   
   // Hash password
   const salt = await bcrypt.genSalt(10);
-  const passwordHash = await bcrypt.hash('password123', salt);
+  const passwordHash = await bcrypt.hash('123456', salt);
   
   const emails = ['seller1@zeromall.com', 'seller2@zeromall.com'];
   

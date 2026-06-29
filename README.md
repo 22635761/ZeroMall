@@ -173,7 +173,7 @@ npm run dev:all
 
 ## 🔑 5. Tài Khoản Thử Nghiệm
 
-Mật khẩu đăng nhập mặc định cho toàn bộ các tài khoản thử nghiệm: **`password123`**
+Mật khẩu đăng nhập mặc định cho toàn bộ các tài khoản thử nghiệm: **`123456`**
 
 | Email tài khoản | Vai trò (Role) | Ghi chú |
 | :--- | :--- | :--- |
