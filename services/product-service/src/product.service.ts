@@ -8,15 +8,28 @@ export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
   async findAll(shopId?: string) {
-    if (shopId) {
-      return this.prisma.product.findMany({
-        where: { shopId },
-        orderBy: { createdAt: 'desc' },
-      });
-    }
-    return this.prisma.product.findMany({
+    const products = await this.prisma.product.findMany({
+      where: shopId ? { shopId } : undefined,
       orderBy: { createdAt: 'desc' },
     });
+
+    return Promise.all(
+      products.map(async (p) => {
+        const reviews = await this.prisma.review.findMany({
+          where: { productId: p.id },
+          select: { rating: true },
+        });
+        const ratingCount = reviews.length;
+        const avgRating = ratingCount > 0
+          ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / ratingCount).toFixed(1))
+          : 0;
+        return {
+          ...p,
+          rating: avgRating,
+          reviewsCount: ratingCount,
+        };
+      })
+    );
   }
 
   async findOne(id: string) {
@@ -26,7 +39,21 @@ export class ProductService {
     if (!product) {
       throw new NotFoundException(`Sản phẩm với ID ${id} không tồn tại`);
     }
-    return product;
+
+    const reviews = await this.prisma.review.findMany({
+      where: { productId: id },
+      select: { rating: true },
+    });
+    const ratingCount = reviews.length;
+    const avgRating = ratingCount > 0
+      ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / ratingCount).toFixed(1))
+      : 0;
+
+    return {
+      ...product,
+      rating: avgRating,
+      reviewsCount: ratingCount,
+    };
   }
 
   async create(dto: CreateProductDto) {
@@ -205,5 +232,115 @@ export class ProductService {
     }
 
     return this.getProductLikes(productId, userId);
+  }
+
+  async getAllCategories() {
+    const list = await this.prisma.category.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    if (list.length === 0) {
+      const defaults = [
+        { name: 'Thời Thời Trang Nam', slug: 'thoi-trang-nam' },
+        { name: 'Điện Thoại & Phụ Kiện', slug: 'dien-thoai-phu-kien' },
+        { name: 'Thiết Bị Điện Tử', slug: 'thiet-bi-dien-tu' },
+        { name: 'Mẹ & Bé', slug: 'me-va-be' }
+      ];
+      await Promise.all(
+        defaults.map(d => this.prisma.category.create({ data: d }))
+      );
+      return this.prisma.category.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+    }
+    return list;
+  }
+
+  async createCategory(name: string) {
+    const slug = name.toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/-+/g, '-');
+    return this.prisma.category.create({
+      data: { name, slug }
+    });
+  }
+
+  async deleteCategory(id: string) {
+    return this.prisma.category.delete({
+      where: { id }
+    });
+  }
+
+  async getViolatedProducts() {
+    const list = await this.prisma.product.findMany({
+      where: { isViolated: true },
+      orderBy: { reportsCount: 'desc' }
+    });
+    if (list.length === 0) {
+      const products = await this.prisma.product.findMany({ take: 2 });
+      if (products.length > 0) {
+        await Promise.all(
+          products.map((p, idx) =>
+            this.prisma.product.update({
+              where: { id: p.id },
+              data: {
+                isViolated: true,
+                violationReason: idx === 0 ? 'Hàng giả/nhái thương hiệu, lừa đảo' : 'Mặt hàng chưa kiểm định y tế',
+                reportsCount: idx === 0 ? 42 : 15
+              }
+            })
+          )
+        );
+        return this.prisma.product.findMany({
+          where: { isViolated: true },
+          orderBy: { reportsCount: 'desc' }
+        });
+      }
+    }
+    return list;
+  }
+
+  async updateProductViolation(id: string, isViolated: boolean, reason?: string) {
+    return this.prisma.product.update({
+      where: { id },
+      data: {
+        isViolated,
+        violationReason: reason || null,
+        reportsCount: isViolated ? 1 : 0
+      }
+    });
+  }
+
+  async getFlashSales() {
+    const list = await this.prisma.flashSale.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+    if (list.length === 0) {
+      const defaults = [
+        { timeSlot: '00:00 - 02:00', productsCount: 15, status: 'ENDED' },
+        { timeSlot: '12:00 - 14:00', productsCount: 8, status: 'RUNNING' },
+        { timeSlot: '20:00 - 22:00', productsCount: 25, status: 'UPCOMING' }
+      ];
+      await Promise.all(
+        defaults.map(d => this.prisma.flashSale.create({ data: d }))
+      );
+      return this.prisma.flashSale.findMany({
+        orderBy: { createdAt: 'desc' }
+      });
+    }
+    return list;
+  }
+
+  async createFlashSale(timeSlot: string) {
+    return this.prisma.flashSale.create({
+      data: { timeSlot }
+    });
+  }
+
+  async updateFlashSaleStatus(id: string, status: string) {
+    return this.prisma.flashSale.update({
+      where: { id },
+      data: { status }
+    });
   }
 }

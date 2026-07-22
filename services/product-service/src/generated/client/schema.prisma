@@ -34,6 +34,9 @@ model Product {
   condition       String   @default("new") // "new" | "used"
   isPreOrder      Boolean  @default(false)
   preOrderDays    String?
+  isViolated      Boolean  @default(false)
+  violationReason String?
+  reportsCount    Int      @default(0)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -56,4 +59,19 @@ model ProductLike {
   createdAt DateTime @default(now())
 
   @@unique([productId, userId])
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  slug      String   @unique
+  createdAt DateTime @default(now())
+}
+
+model FlashSale {
+  id            String   @id @default(uuid())
+  timeSlot      String   @unique
+  productsCount Int      @default(0)
+  status        String   @default("UPCOMING") // "RUNNING" | "UPCOMING" | "ENDED"
+  createdAt     DateTime @default(now())
 }

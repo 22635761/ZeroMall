@@ -85,9 +85,12 @@ services:
       - '3004:3004'
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=order&options=-csearch_path=order
+      - KAFKA_BROKERS=kafka:29092
     depends_on:
       postgres:
         condition: service_healthy
+      kafka:
+        condition: service_started
     restart: always
 
   payment-service:
@@ -100,6 +103,12 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=payment&options=-csearch_path=payment
       - ORDER_SERVICE_URL=http://order-service:3004
+      - SEPAY_MERCHANT_ID=${SEPAY_MERCHANT_ID}
+      - SEPAY_SECRET_KEY=${SEPAY_SECRET_KEY}
+      - SEPAY_ENV=${SEPAY_ENV}
+      - SEPAY_BANK_ID=${SEPAY_BANK_ID}
+      - SEPAY_BANK_ACC=${SEPAY_BANK_ACC}
+      - SEPAY_BANK_NAME=${SEPAY_BANK_NAME}
     depends_on:
       postgres:
         condition: service_healthy
@@ -109,6 +118,13 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        - VITE_GOONG_API_KEY=${VITE_GOONG_API_KEY}
+        - VITE_CLOUDINARY_CLOUD_NAME=${VITE_CLOUDINARY_CLOUD_NAME}
+        - VITE_CLOUDINARY_API_KEY=${VITE_CLOUDINARY_API_KEY}
+        - VITE_CLOUDINARY_UPLOAD_PRESET=${VITE_CLOUDINARY_UPLOAD_PRESET}
+        - VITE_GHN_TOKEN=${VITE_GHN_TOKEN}
+        - VITE_GHN_SHOP_ID=${VITE_GHN_SHOP_ID}
     container_name: zeromall-frontend
     ports:
       - '3000:80'
@@ -160,6 +176,40 @@ services:
       - postgres
     restart: always
 
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: zeromall-kafka
+    ports:
+      - '9092:9092'
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT'
+      KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092'
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_PROCESS_ROLES: 'broker,controller'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: '1@kafka:29093'
+      KAFKA_LISTENERS: 'PLAINTEXT://0.0.0.0:29092,CONTROLLER://0.0.0.0:29093,PLAINTEXT_HOST://0.0.0.0:9092'
+      KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT'
+      KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER'
+      KAFKA_LOG_DIRS: '/tmp/kraft-combined-logs'
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qk'
+    restart: always
+
+  notification-service:
+    build:
+      context: .
+      dockerfile: services/notification-service/Dockerfile
+    container_name: zeromall-notification-service
+    ports:
+      - '3006:3006'
+    environment:
+      - KAFKA_BROKERS=kafka:29092
+    depends_on:
+      - kafka
+    restart: always
 
 volumes:
   postgres_data:

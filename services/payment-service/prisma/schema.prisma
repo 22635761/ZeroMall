@@ -20,9 +20,33 @@ model Transaction {
 }
 
 model Wallet {
-  id        String   @id @default(uuid())
-  buyerId   String   @unique
-  balance   Float    @default(5000000) // 5 triệu đồng mặc định để test
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  buyerId      String   @unique
+  balance      Float    @default(5000000) // 5 triệu đồng mặc định để test
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  transactions WalletTransaction[]
+}
+
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String   // "DEPOSIT" | "PAYMENT" | "REFUND" | "WITHDRAW" | "REVENUE"
+  description String
+  status      String   @default("SUCCESS") // "PENDING" | "SUCCESS" | "FAILED"
+  createdAt   DateTime @default(now())
+}
+
+model WithdrawRequest {
+  id          String   @id @default(uuid())
+  shopId      String
+  amount      Float
+  bankName    String
+  bankAccount String
+  accountName String
+  status      String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

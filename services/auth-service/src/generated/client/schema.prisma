@@ -13,8 +13,14 @@ model User {
   password  String
   name      String
   role      String // "BUYER", "ADMIN", "SHOP_OWNER", "SHOP_STAFF", "PLATFORM_SUPPORT"
+  status    String   @default("ACTIVE") // "ACTIVE" | "BLOCKED"
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  avatar      String?
+  gender      String?
+  birthday    String?
+  phoneNumber String?
 
   // Mối quan hệ Nhân viên CSKH của shop (Nhiều nhân viên thuộc 1 Shop)
   shopId String?
@@ -56,4 +62,11 @@ model ShopFollow {
   createdAt DateTime @default(now())
 
   @@unique([userId, shopId])
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  timestamp DateTime @default(now())
+  user      String
+  action    String
 }

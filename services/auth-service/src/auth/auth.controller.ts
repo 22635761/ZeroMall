@@ -79,4 +79,42 @@ export class AuthController {
   async toggleFollowShop(@Param('id') id: string, @Body('userId') userId: string) {
     return this.authService.toggleFollowShop(id, userId);
   }
+
+  @Put('users/:id')
+  async updateUserProfile(
+    @Param('id') id: string,
+    @Body() dto: { name?: string; email?: string; phoneNumber?: string; gender?: string; birthday?: string; avatar?: string }
+  ) {
+    return this.authService.updateUserProfile(id, dto);
+  }
+
+  @Get('users')
+  async getAllUsers() {
+    return this.authService.getAllUsers();
+  }
+
+  @Put('users/:id/status')
+  async updateUserStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.authService.updateUserStatus(id, status);
+  }
+
+  @Get('cs-staff')
+  async getCsStaff() {
+    return this.authService.getCsStaff();
+  }
+
+  @Post('cs-staff')
+  async createCsStaff(@Body() dto: any) {
+    return this.authService.createCsStaff(dto);
+  }
+
+  @Get('audit-logs')
+  async getAuditLogs() {
+    return this.authService.getAuditLogs();
+  }
+
+  @Post('audit-logs')
+  async createAuditLog(@Body() dto: { user: string; action: string }) {
+    return this.authService.createAuditLog(dto.user, dto.action);
+  }
 }

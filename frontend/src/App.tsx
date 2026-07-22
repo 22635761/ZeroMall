@@ -1,399 +1,100 @@
 import { useState, useEffect } from 'react'
+import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { Header } from './components/buyer/Header'
-import type { CartItem } from './components/buyer/Header'
+import type { CartItem } from './models/cart.model'
 import { Hero } from './components/buyer/Hero'
 import { Categories } from './components/buyer/Categories'
 import { FlashSale } from './components/buyer/FlashSale'
 import type { Product } from './components/buyer/FlashSale'
 import { ProductList } from './components/buyer/ProductList'
-import { ProductDetailPage } from './components/buyer/ProductDetailPage'
-import { CartPage } from './components/buyer/CartPage'
+import { ProductDetailPage } from './pages/buyer/ProductDetailPage'
+import { CartPage } from './pages/buyer/CartPage'
 import { ServicePolicies } from './components/buyer/ServicePolicies'
 import { ChatWidget } from './components/buyer/ChatWidget'
 import { AuthModal } from './components/common/AuthModal'
-import { SellerPortal } from './components/seller/SellerPortal'
+import { SellerPortal } from './pages/seller/SellerPortal'
 import { AdminPortal } from './components/seller/AdminPortal'
 import { ProfileModal } from './components/common/ProfileModal'
-import { BuyerOrdersPage } from './components/buyer/BuyerOrdersPage'
+import { BuyerOrdersPage } from './pages/buyer/BuyerOrdersPage'
+import { toSlug } from './utils/slug'
+import { UserLayout } from './pages/buyer/UserLayout'
+import { UserProfileTab } from './pages/buyer/UserProfileTab'
+import { UserPurchaseTab } from './pages/buyer/UserPurchaseTab'
+import { UserVoucherTab } from './pages/buyer/UserVoucherTab'
+import { UserWalletTab } from './pages/buyer/UserWalletTab'
 
-function App() {
-  // Cart & Checkout state
-  const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('zm_cart')
-    if (saved) {
-      try {
-        return JSON.parse(saved)
-      } catch (e) {
-        console.error('Failed to parse saved cart', e)
-      }
-    }
-    return []
-  })
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(() => {
-    const savedProduct = localStorage.getItem('zm_selected_product')
-    if (savedProduct) {
-      try {
-        return JSON.parse(savedProduct)
-      } catch (e) {
-        console.error('Failed to parse saved selected product', e)
-      }
-    }
-    return null
-  })
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
-
-  // Page state
-  const [currentPage, setCurrentPage] = useState<'home' | 'seller' | 'product-detail' | 'admin' | 'cart' | 'orders'>(() => {
-    const savedPage = localStorage.getItem('zm_current_page')
-    if (savedPage) {
-      if (['home', 'seller', 'product-detail', 'admin', 'cart', 'orders'].includes(savedPage)) {
-        return savedPage as any
-      }
-    }
-    return 'home'
-  })
-
-  // Persist current page and selected product to localStorage
-  useEffect(() => {
-    localStorage.setItem('zm_current_page', currentPage)
-  }, [currentPage])
-
-  useEffect(() => {
-    if (selectedProduct) {
-      localStorage.setItem('zm_selected_product', JSON.stringify(selectedProduct))
-    } else {
-      localStorage.removeItem('zm_selected_product')
-    }
-  }, [selectedProduct])
-
-  // Toast effect
-  useEffect(() => {
-    if (toast) {
-      const timer = setTimeout(() => setToast(null), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [toast])
-
-  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
-    setToast({ message, type })
-  }
-
-  // Persist cart to localStorage
-  useEffect(() => {
-    localStorage.setItem('zm_cart', JSON.stringify(cart))
-  }, [cart])
-
-  // Auth states
-  const [user, setUser] = useState<any>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-
-  // Products from Database for Buyer
-  const [dbProducts, setDbProducts] = useState<Product[]>([])
-
-  const loadProducts = async () => {
-    try {
-      const response = await fetch('http://localhost:8000/products')
-      if (!response.ok) throw new Error('Failed to fetch products')
-      const data = await response.json()
-      const formatted = data.map((p: any) => {
-        let flashPriceStr = ''
-        let flashPriceVal = 0
-        if (p.price && p.price.includes('đ')) {
-          flashPriceStr = p.price
-          const firstSegment = p.price.split('-')[0].replace(/[^0-9]/g, '')
-          flashPriceVal = parseFloat(firstSegment) || 100000
-        } else {
-          if (p.price && /^\d+(\.\d+)?$/.test(p.price)) {
-            flashPriceVal = parseFloat(p.price)
-          } else if (p.price) {
-            const match = p.price.match(/\d+(\.\d+)?/)
-            if (match) {
-              flashPriceVal = parseFloat(match[0])
-            }
-          }
-          if (!flashPriceVal) flashPriceVal = 100000
-          flashPriceStr = flashPriceVal.toLocaleString('vi-VN') + 'đ'
-        }
-
-        let originalPriceStr = ''
-        let originalPriceVal = 0
-        if (p.originalPrice) {
-          if (p.originalPrice.includes('đ')) {
-            originalPriceStr = p.originalPrice
-            const firstSegment = p.originalPrice.split('-')[0].replace(/[^0-9]/g, '')
-            originalPriceVal = parseFloat(firstSegment) || 0
-          } else {
-            if (/^\d+(\.\d+)?$/.test(p.originalPrice)) {
-              originalPriceVal = parseFloat(p.originalPrice)
-            } else {
-              const match = p.originalPrice.match(/\d+(\.\d+)?/)
-              if (match) {
-                originalPriceVal = parseFloat(match[0])
-              }
-            }
-            if (originalPriceVal) {
-              originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
-            }
-          }
-        }
-
-        if (!originalPriceVal || originalPriceVal <= flashPriceVal) {
-          // Deterministic discount percentage between 10% and 50%
-          const nameLen = p.name ? p.name.length : 0
-          const brandLen = p.brand ? p.brand.length : 0
-          const discountPercent = 10 + ((nameLen + brandLen) % 9) * 5
-          originalPriceVal = Math.round(flashPriceVal / (1 - discountPercent / 100))
-          if (originalPriceVal > 1000000) {
-            originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
-          } else if (originalPriceVal > 100000) {
-            originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
-          } else {
-            originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
-          }
-          originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
-        }
-
-        let variants: string[] = []
-        if (p.hasVariations && p.variationGroups) {
-          try {
-            const groups = JSON.parse(p.variationGroups)
-            variants = groups.flatMap((g: any) => g.options || [])
-          } catch (e) {
-            console.error(e)
-          }
-        }
-
-        let parsedImages: string[] = []
-        try {
-          parsedImages = p.images ? JSON.parse(p.images) : []
-        } catch (e) {
-          console.error('Failed to parse images', e)
-        }
-        if (!parsedImages || parsedImages.length === 0) {
-          parsedImages = p.image ? [p.image] : []
-        }
-
-        return {
-          id: p.id,
-          name: p.name,
-          originalPrice: originalPriceStr,
-          flashPrice: flashPriceStr,
-          image: p.image || 'https://placehold.co/400x400?text=No+Image',
-          sold: p.sales || 0,
-          total: (p.sales || 0) + (p.stock || 0),
-          rating: 5,
-          reviewsCount: 12,
-          description: p.description,
-          variants,
-          images: parsedImages,
-          video: p.video || '',
-          category: p.category,
-          brand: p.brand,
-          shopId: p.shopId
-        }
-      })
-      setDbProducts(formatted)
-
-      // Also refresh the selected product details if it is currently open
-      setSelectedProduct((currentSelected) => {
-        if (!currentSelected) return null
-        const updated = formatted.find((item: any) => item.id === currentSelected.id)
-        return updated || currentSelected
-      })
-    } catch (err) {
-      console.error('Error fetching db products:', err)
-    }
-  }
-
-  // Load session on mount with a 1-minute grace period for reopened tabs
-  useEffect(() => {
-    const tabSessionId = sessionStorage.getItem('zm_tab_session_id')
-    const savedUser = localStorage.getItem('zm_user')
-    const savedToken = localStorage.getItem('zm_token')
-
-    if (savedUser && savedToken) {
-      if (tabSessionId) {
-        // Tab was already active in this session (e.g. page reload), keep logged in
-        const parsed = JSON.parse(savedUser)
-        setUser(parsed)
-        setToken(savedToken)
-        const savedPage = localStorage.getItem('zm_current_page')
-        if (parsed?.role === 'ADMIN' && !savedPage) {
-          setCurrentPage('admin')
-        }
-      } else {
-        // New tab opened: check if last active time was within 1 minute (60 seconds)
-        const lastActive = localStorage.getItem('zm_last_active_time')
-        const timePassed = Date.now() - (lastActive ? parseInt(lastActive, 10) : 0)
-
-        if (timePassed <= 60000) {
-          // Grace period check passed, restore session and assign tab session ID
-          const parsed = JSON.parse(savedUser)
-          setUser(parsed)
-          setToken(savedToken)
-          sessionStorage.setItem('zm_tab_session_id', 'active_session')
-          localStorage.setItem('zm_last_active_time', Date.now().toString())
-          const savedPage = localStorage.getItem('zm_current_page')
-          if (parsed?.role === 'ADMIN' && !savedPage) {
-            setCurrentPage('admin')
-          }
-        } else {
-          // Exceeded grace period, clean up storage and logout
-          handleLogout()
-        }
-      }
-    }
-  }, [])
-
-  // Keep session alive: Update last active timestamp every 10 seconds if user is logged in
-  useEffect(() => {
-    if (!user) return
-
-    localStorage.setItem('zm_last_active_time', Date.now().toString())
-
-    const interval = setInterval(() => {
-      localStorage.setItem('zm_last_active_time', Date.now().toString())
-    }, 10000)
-
-    const handleTabCloseOrReload = () => {
-      localStorage.setItem('zm_last_active_time', Date.now().toString())
-    }
-
-    window.addEventListener('beforeunload', handleTabCloseOrReload)
-
-    return () => {
-      clearInterval(interval)
-      window.removeEventListener('beforeunload', handleTabCloseOrReload)
-    }
-  }, [user])
-
-  useEffect(() => {
-    if (currentPage === 'home' || currentPage === 'product-detail') {
-      loadProducts()
-    }
-  }, [currentPage])
-
-  const handleAuthSuccess = (userData: any, userToken: string) => {
-    setUser(userData)
-    setToken(userToken)
-    localStorage.setItem('zm_user', JSON.stringify(userData))
-    localStorage.setItem('zm_token', userToken)
-    localStorage.setItem('zm_last_active_time', Date.now().toString())
-    sessionStorage.setItem('zm_tab_session_id', 'active_session')
-    if (userData?.role === 'ADMIN') {
-      setCurrentPage('admin')
-    }
-  }
-
-  const handleLogout = () => {
-    setUser(null)
-    setToken(null)
-    localStorage.removeItem('zm_user')
-    localStorage.removeItem('zm_token')
-    localStorage.removeItem('zm_last_active_time')
-    sessionStorage.removeItem('zm_tab_session_id')
-    setCurrentPage('home')
-  }
-
-  const handleOpenLogin = () => {
-    setAuthTab('login')
-    setIsAuthOpen(true)
-  }
-
-  const handleOpenRegister = () => {
-    setAuthTab('register')
-    setIsAuthOpen(true)
-  }
-
-  const handleSearch = (query: string) => {
-    console.log('User searched for:', query)
-  }
-
-  // Cart operations
-  const handleAddToCart = (product: Product, quantity: number, variant: string) => {
-    setCart((prev) => {
-      const existingIdx = prev.findIndex(
-        (item) => item.product.id === product.id && item.selectedVariant === variant
-      )
-
-      if (existingIdx > -1) {
-        const updated = [...prev]
-        updated[existingIdx].quantity += quantity
-        return updated
-      } else {
-        return [...prev, { product, quantity, selectedVariant: variant }]
-      }
-    })
-    showToast(`Đã thêm ${quantity} sản phẩm vào giỏ hàng thành công!`)
-  }
-
-  const handleBuyNow = (product: Product, quantity: number, variant: string) => {
-    // Add to cart first
-    setCart((prev) => {
-      const existingIdx = prev.findIndex(
-        (item) => item.product.id === product.id && item.selectedVariant === variant
-      )
-
-      if (existingIdx > -1) {
-        const updated = [...prev]
-        updated[existingIdx].quantity += quantity
-        return updated
-      } else {
-        return [...prev, { product, quantity, selectedVariant: variant }]
-      }
-    })
-    // Redirect to cart page and reset step to cart
-    localStorage.setItem('zm_checkout_step', 'cart')
-    setCurrentPage('cart')
-  }
-
-  const handleUpdateCartQuantity = (productId: string, variant: string, quantity: number) => {
-    if (quantity <= 0) {
-      handleRemoveCartItem(productId, variant)
-      return
-    }
-    setCart((prev) =>
-      prev.map((item) =>
-        item.product.id === productId && item.selectedVariant === variant
-          ? { ...item, quantity }
-          : item
-      )
-    )
-  }
-
-  const handleRemoveCartItem = (productId: string, variant?: string) => {
-    setCart((prev) =>
-      prev.filter((item) => !(item.product.id === productId && item.selectedVariant === variant))
-    )
-  }
+// Wrappers and containers for React Router
 
 
 
-  if (currentPage === 'seller') {
-    return (
-      <SellerPortal
-        user={user}
-        token={token}
-        onAuthSuccess={handleAuthSuccess}
-        onLogout={handleLogout}
-        onBackToHome={() => setCurrentPage('home')}
-      />
-    )
-  }
+function SellerPortalWrapper({ user, token, handleAuthSuccess, handleLogout }: { user: any, token: any, handleAuthSuccess: any, handleLogout: any }) {
+  const navigate = useNavigate();
+  return (
+    <SellerPortal
+      user={user}
+      token={token}
+      onAuthSuccess={handleAuthSuccess}
+      onLogout={handleLogout}
+      onBackToHome={() => navigate('/')}
+    />
+  )
+}
 
-  if (currentPage === 'admin') {
-    return (
-      <AdminPortal
-        user={user}
-        onLogout={handleLogout}
-        onBackToHome={() => setCurrentPage('home')}
-      />
-    )
-  }
+function AdminPortalWrapper({ user, handleLogout }: { user: any, handleLogout: any }) {
+  const navigate = useNavigate();
+  return (
+    <AdminPortal
+      user={user}
+      onLogout={handleLogout}
+      onBackToHome={() => navigate('/')}
+    />
+  )
+}
 
+interface BuyerContainerProps {
+  cart: CartItem[]
+  user: any
+  dbProducts: Product[]
+  handleSearch: (query: string) => void
+  handleRemoveCartItem: (productId: string, variant?: string) => void
+  handleUpdateCartQuantity: (productId: string, variant: string, quantity: number) => void
+  handleLogout: () => void
+  handleOpenLogin: () => void
+  handleOpenRegister: () => void
+  handleAuthSuccess: (userData: any, userToken: string) => void
+  authTab: 'login' | 'register'
+  setAuthTab: React.Dispatch<React.SetStateAction<'login' | 'register'>>
+  isAuthOpen: boolean
+  setIsAuthOpen: (isOpen: boolean) => void
+  isProfileOpen: boolean
+  setIsProfileOpen: (isOpen: boolean) => void
+  toast: { message: string; type: 'success' | 'error' | 'info' } | null
+  handleAddToCart: (product: Product, quantity: number, variant: string) => void
+  handleBuyNow: (product: Product, quantity: number, variant: string) => void
+}
+
+const BuyerContainer: React.FC<BuyerContainerProps> = ({
+  cart,
+  user,
+  dbProducts,
+  handleSearch,
+  handleRemoveCartItem,
+  handleUpdateCartQuantity,
+  handleLogout,
+  handleOpenLogin,
+  handleOpenRegister,
+  handleAuthSuccess,
+  authTab,
+  setAuthTab,
+  isAuthOpen,
+  setIsAuthOpen,
+  isProfileOpen,
+  setIsProfileOpen,
+  toast,
+  handleAddToCart,
+  handleBuyNow
+}) => {
+  const navigate = useNavigate();
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-800 font-sans selection:bg-[#ee4d2d] selection:text-white">
       {/* Shopee-style Header */}
@@ -402,82 +103,86 @@ function App() {
         onSearch={handleSearch}
         onOpenCart={() => {
           localStorage.setItem('zm_checkout_step', 'cart')
-          setCurrentPage('cart')
+          navigate('/cart')
         }}
         onRemoveCartItem={handleRemoveCartItem}
         user={user}
         onLogout={handleLogout}
         onOpenLogin={handleOpenLogin}
         onOpenRegister={handleOpenRegister}
-        onOpenAdminPortal={() => setCurrentPage('admin')}
-        onBackToHome={() => {
-          setCurrentPage('home')
-          setSelectedProduct(null)
-        }}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenOrders={() => setCurrentPage('orders')}
+        onOpenSellerPortal={() => navigate('/seller')}
+        onOpenAdminPortal={() => navigate('/admin')}
+        onBackToHome={() => navigate('/')}
       />
 
       {/* Main Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
-        {currentPage === 'cart' ? (
-          <CartPage
-            cart={cart}
-            user={user}
-            onUpdateQuantity={handleUpdateCartQuantity}
-            onRemoveItem={handleRemoveCartItem}
-            onBackToHome={() => {
-              setCurrentPage('home')
-              setSelectedProduct(null)
-            }}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <>
+                {/* Banner Sliders & Promos */}
+                <Hero />
+
+                {/* Categories Grid */}
+                <Categories />
+
+                {/* Flash Sale Grid */}
+                <FlashSale products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+
+                {/* Daily Discover grid */}
+                <ProductList products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+
+                {/* Platform Services Assurances */}
+                <ServicePolicies />
+              </>
+            }
           />
-        ) : currentPage === 'orders' ? (
-          <BuyerOrdersPage
-            user={user}
-            onBackToHome={() => {
-              setCurrentPage('home')
-              setSelectedProduct(null)
-            }}
+          <Route
+            path="/cart"
+            element={
+              <CartPage
+                cart={cart}
+                user={user}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={handleRemoveCartItem}
+                onBackToHome={() => navigate('/')}
+              />
+            }
           />
-        ) : currentPage === 'product-detail' && selectedProduct ? (
-          <ProductDetailPage
-            product={selectedProduct}
-            user={user}
-            onBackToHome={() => {
-              setCurrentPage('home')
-              setSelectedProduct(null)
-            }}
-            onAddToCart={handleAddToCart}
-            onBuyNow={handleBuyNow}
-            onOpenLogin={() => {
-              setAuthTab('login')
-              setIsAuthOpen(true)
-            }}
+          <Route
+            path="/orders"
+            element={
+              <BuyerOrdersPage
+                user={user}
+                onBackToHome={() => navigate('/')}
+              />
+            }
           />
-        ) : (
-          <>
-            {/* Banner Sliders & Promos */}
-            <Hero />
-
-            {/* Categories Grid */}
-            <Categories />
-
-            {/* Flash Sale Grid */}
-            <FlashSale products={dbProducts} onSelectProduct={(p) => {
-              setSelectedProduct(p)
-              setCurrentPage('product-detail')
-            }} />
-
-            {/* Daily Discover grid */}
-            <ProductList products={dbProducts} onSelectProduct={(p) => {
-              setSelectedProduct(p)
-              setCurrentPage('product-detail')
-            }} />
-
-            {/* Platform Services Assurances */}
-            <ServicePolicies />
-          </>
-        )}
+          <Route
+            path="/product/:slugWithId"
+            element={
+              <ProductDetailPage
+                user={user}
+                onBackToHome={() => navigate('/')}
+                onAddToCart={handleAddToCart}
+                onBuyNow={handleBuyNow}
+                onOpenLogin={() => {
+                  setAuthTab('login')
+                  setIsAuthOpen(true)
+                }}
+              />
+            }
+          />
+          <Route path="/user" element={<UserLayout user={user} />}>
+            <Route index element={<Navigate to="account/profile" replace />} />
+            <Route path="account/profile" element={<UserProfileTab user={user} onAuthSuccess={handleAuthSuccess} />} />
+            <Route path="purchase" element={<UserPurchaseTab user={user} />} />
+            <Route path="voucher" element={<UserVoucherTab user={user} />} />
+            <Route path="wallet" element={<UserWalletTab user={user} />} />
+          </Route>
+        </Routes>
       </main>
 
       {/* Floating Customer Support Chat */}
@@ -583,6 +288,321 @@ function App() {
         </div>
       )}
     </div>
+  )
+}
+
+function App() {
+  // Cart & Checkout state
+  const [cart, setCart] = useState<CartItem[]>(() => {
+    const saved = localStorage.getItem('zm_cart')
+    if (saved) {
+      try {
+        return JSON.parse(saved)
+      } catch (e) {
+        console.error('Failed to parse saved cart', e)
+      }
+    }
+    return []
+  })
+  
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  // Toast effect
+  useEffect(() => {
+    if (toast) {
+      const timer = setTimeout(() => setToast(null), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [toast])
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    setToast({ message, type })
+  }
+
+  // Persist cart to localStorage
+  useEffect(() => {
+    localStorage.setItem('zm_cart', JSON.stringify(cart))
+  }, [cart])
+
+  // Auth states
+  const [user, setUser] = useState<any>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  // Products from Database for Buyer
+  const [dbProducts, setDbProducts] = useState<Product[]>([])
+
+  const loadProducts = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/products')
+      if (!response.ok) throw new Error('Failed to fetch products')
+
+      const raw = await response.json()
+      const formatted = raw.map((p: any) => {
+        let flashPriceStr = p.price.toLocaleString('vi-VN') + 'đ'
+        let originalPriceStr = ''
+        if (p.price) {
+          let originalPriceVal = p.price * 1.25
+          if (originalPriceVal > 1000000) {
+            originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
+          } else if (originalPriceVal > 100000) {
+            originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
+          } else {
+            originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
+          }
+          originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+        }
+
+        let variants: string[] = []
+        if (p.hasVariations && p.variationGroups) {
+          try {
+            const groups = JSON.parse(p.variationGroups)
+            variants = groups.flatMap((g: any) => g.options || [])
+          } catch (e) {
+            console.error(e)
+          }
+        }
+
+        let parsedImages: string[] = []
+        try {
+          parsedImages = p.images ? JSON.parse(p.images) : []
+        } catch (e) {
+          console.error('Failed to parse images', e)
+        }
+        if (!parsedImages || parsedImages.length === 0) {
+          parsedImages = p.image ? [p.image] : []
+        }
+
+        return {
+          id: p.id,
+          name: p.name,
+          originalPrice: originalPriceStr,
+          flashPrice: flashPriceStr,
+          image: p.image || 'https://placehold.co/400x400?text=No+Image',
+          sold: p.sales || 0,
+          total: (p.sales || 0) + (p.stock || 0),
+          rating: p.rating ?? 0,
+          reviewsCount: p.reviewsCount ?? 0,
+          description: p.description,
+          variants,
+          images: parsedImages,
+          video: p.video || '',
+          category: p.category,
+          brand: p.brand,
+          shopId: p.shopId
+        }
+      })
+      setDbProducts(formatted)
+
+    } catch (err) {
+      console.error('Error fetching db products:', err)
+    }
+  }
+
+  // Load session on mount with a 1-minute grace period for reopened tabs
+  useEffect(() => {
+    const tabSessionId = sessionStorage.getItem('zm_tab_session_id')
+    const savedUser = localStorage.getItem('zm_user')
+    const savedToken = localStorage.getItem('zm_token')
+
+    if (savedUser && savedToken) {
+      if (tabSessionId) {
+        const parsed = JSON.parse(savedUser)
+        setUser(parsed)
+        setToken(savedToken)
+        if ((parsed?.role === 'ADMIN' || parsed?.role === 'PLATFORM_SUPPORT') && window.location.pathname !== '/admin') {
+          window.location.href = '/admin'
+        }
+      } else {
+        const lastActive = localStorage.getItem('zm_last_active_time')
+        const timePassed = Date.now() - (lastActive ? parseInt(lastActive, 10) : 0)
+
+        if (timePassed <= 60000) {
+          const parsed = JSON.parse(savedUser)
+          setUser(parsed)
+          setToken(savedToken)
+          sessionStorage.setItem('zm_tab_session_id', 'active_session')
+          localStorage.setItem('zm_last_active_time', Date.now().toString())
+          if ((parsed?.role === 'ADMIN' || parsed?.role === 'PLATFORM_SUPPORT') && window.location.pathname !== '/admin') {
+            window.location.href = '/admin'
+          }
+        } else {
+          handleLogout()
+        }
+      }
+    }
+  }, [])
+
+  // Keep session alive: Update last active timestamp every 10 seconds if user is logged in
+  useEffect(() => {
+    if (!user) return
+
+    localStorage.setItem('zm_last_active_time', Date.now().toString())
+
+    const interval = setInterval(() => {
+      localStorage.setItem('zm_last_active_time', Date.now().toString())
+    }, 10000)
+
+    const handleTabCloseOrReload = () => {
+      localStorage.setItem('zm_last_active_time', Date.now().toString())
+    }
+
+    window.addEventListener('beforeunload', handleTabCloseOrReload)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('beforeunload', handleTabCloseOrReload)
+    }
+  }, [user])
+
+  useEffect(() => {
+    loadProducts()
+  }, [])
+
+  const handleAuthSuccess = (userData: any, userToken: string) => {
+    setUser(userData)
+    setToken(userToken)
+    localStorage.setItem('zm_user', JSON.stringify(userData))
+    localStorage.setItem('zm_token', userToken)
+    localStorage.setItem('zm_last_active_time', Date.now().toString())
+    sessionStorage.setItem('zm_tab_session_id', 'active_session')
+    if (userData?.role === 'ADMIN' || userData?.role === 'PLATFORM_SUPPORT') {
+      window.location.href = '/admin'
+    } else {
+      window.location.href = '/'
+    }
+  }
+
+  const handleLogout = () => {
+    setUser(null)
+    setToken(null)
+    localStorage.removeItem('zm_user')
+    localStorage.removeItem('zm_token')
+    localStorage.removeItem('zm_last_active_time')
+    sessionStorage.removeItem('zm_tab_session_id')
+    window.location.href = '/'
+  }
+
+  const handleOpenLogin = () => {
+    setAuthTab('login')
+    setIsAuthOpen(true)
+  }
+
+  const handleOpenRegister = () => {
+    setAuthTab('register')
+    setIsAuthOpen(true)
+  }
+
+  // Cart operations
+  const handleAddToCart = (product: Product, quantity: number, variant: string) => {
+    setCart((prev) => {
+      const existingIdx = prev.findIndex(
+        (item) => item.product.id === product.id && item.selectedVariant === variant
+      )
+
+      if (existingIdx > -1) {
+        const updated = [...prev]
+        updated[existingIdx].quantity += quantity
+        return updated
+      } else {
+        return [...prev, { product, quantity, selectedVariant: variant }]
+      }
+    })
+    showToast(`Đã thêm ${quantity} sản phẩm vào giỏ hàng thành công!`)
+  }
+
+  const handleBuyNow = (product: Product, quantity: number, variant: string) => {
+    // Add to cart first
+    setCart((prev) => {
+      const existingIdx = prev.findIndex(
+        (item) => item.product.id === product.id && item.selectedVariant === variant
+      )
+
+      if (existingIdx > -1) {
+        const updated = [...prev]
+        updated[existingIdx].quantity += quantity
+        return updated
+      } else {
+        return [...prev, { product, quantity, selectedVariant: variant }]
+      }
+    })
+    localStorage.setItem('zm_checkout_step', 'cart')
+    window.location.href = '/cart'
+  }
+
+  const handleUpdateCartQuantity = (productId: string, variant: string, quantity: number) => {
+    if (quantity <= 0) {
+      handleRemoveCartItem(productId, variant)
+      return
+    }
+    setCart((prev) =>
+      prev.map((item) =>
+        item.product.id === productId && item.selectedVariant === variant
+          ? { ...item, quantity }
+          : item
+      )
+    )
+  }
+
+  const handleRemoveCartItem = (productId: string, variant?: string) => {
+    setCart((prev) =>
+      prev.filter((item) => !(item.product.id === productId && item.selectedVariant === variant))
+    )
+  }
+
+  return (
+    <Router>
+      <Routes>
+        <Route
+          path="/seller"
+          element={
+            <SellerPortalWrapper
+              user={user}
+              token={token}
+              handleAuthSuccess={handleAuthSuccess}
+              handleLogout={handleLogout}
+            />
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <AdminPortalWrapper
+              user={user}
+              handleLogout={handleLogout}
+            />
+          }
+        />
+        <Route
+          path="/*"
+          element={
+            <BuyerContainer
+              cart={cart}
+              user={user}
+              dbProducts={dbProducts}
+              handleSearch={() => {}} // Tạm thời search xử lý rỗng hoặc truyền handleSearch
+              handleRemoveCartItem={handleRemoveCartItem}
+              handleUpdateCartQuantity={handleUpdateCartQuantity}
+              handleLogout={handleLogout}
+              handleOpenLogin={handleOpenLogin}
+              handleOpenRegister={handleOpenRegister}
+              handleAuthSuccess={handleAuthSuccess}
+              authTab={authTab}
+              setAuthTab={setAuthTab}
+              isAuthOpen={isAuthOpen}
+              setIsAuthOpen={setIsAuthOpen}
+              isProfileOpen={isProfileOpen}
+              setIsProfileOpen={setIsProfileOpen}
+              toast={toast}
+              handleAddToCart={handleAddToCart}
+              handleBuyNow={handleBuyNow}
+            />
+          }
+        />
+      </Routes>
+    </Router>
   )
 }
 

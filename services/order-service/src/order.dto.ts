@@ -17,9 +17,15 @@ export class CreateOrderDto {
   totalAmount: number;
   shippingFee: number;
   paymentMethod: string;
+  ghnDistrictId?: number;
+  ghnWardCode?: string;
   items: CreateOrderItemDto[];
 }
 
 export class UpdateOrderStatusDto {
   status: string;
+  ghnOrderCode?: string;
+  refundReason?: string;
+  refundDescription?: string;
+  refundEmail?: string;
 }

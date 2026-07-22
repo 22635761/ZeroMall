@@ -1,16 +1,6 @@
 import React, { useState } from 'react'
-
-export interface CartItem {
-  product: {
-    id: string
-    name: string
-    flashPrice: string
-    image: string
-    shopId?: string
-  }
-  quantity: number
-  selectedVariant?: string
-}
+import { useNavigate } from 'react-router-dom'
+import type { CartItem } from '../../models/cart.model'
 
 interface HeaderProps {
   cart: CartItem[]
@@ -21,10 +11,9 @@ interface HeaderProps {
   onLogout: () => void
   onOpenLogin: () => void
   onOpenRegister: () => void
+  onOpenSellerPortal: () => void
   onOpenAdminPortal?: () => void
   onBackToHome?: () => void
-  onOpenProfile: () => void
-  onOpenOrders: () => void
 }
 
 export const Header: React.FC<HeaderProps> = ({ 
@@ -36,11 +25,11 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
   onOpenLogin,
   onOpenRegister,
+  onOpenSellerPortal,
   onOpenAdminPortal,
-  onBackToHome,
-  onOpenProfile,
-  onOpenOrders
+  onBackToHome
 }) => {
+  const navigate = useNavigate()
   const [searchValue, setSearchValue] = useState('')
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0)
 
@@ -58,24 +47,23 @@ export const Header: React.FC<HeaderProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between">
           {/* Left links */}
           <div className="flex items-center gap-4">
-            {user?.role === 'ADMIN' && onOpenAdminPortal && (
+            {(user?.role === 'ADMIN' || user?.role === 'PLATFORM_SUPPORT') && onOpenAdminPortal && (
               <>
                 <button 
                   onClick={onOpenAdminPortal}
                   className="hover:text-rose-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-rose-500 text-xs"
                 >
-                  🛡️ Kênh Admin
+                  🎧 Kênh CSKH Sàn
                 </button>
                 <span className="text-slate-200">|</span>
               </>
             )}
-            <a href="#" className="hover:text-emerald-600 transition">Tải ứng dụng</a>
-            <span className="text-slate-200">|</span>
-            <div className="flex items-center gap-1.5">
-              <span>Kết nối</span>
-              <a href="#" className="hover:text-emerald-600 transition font-bold text-xs">f</a>
-              <a href="#" className="hover:text-emerald-600 transition font-bold text-xs">📳</a>
-            </div>
+            <button 
+              onClick={onOpenSellerPortal}
+              className="hover:text-emerald-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-slate-500 hover:text-emerald-600 text-xs flex items-center gap-1"
+            >
+              🏪 Kênh Người Bán
+            </button>
           </div>
 
           {/* Right links */}
@@ -92,41 +80,54 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-200">|</span>
             <div className="flex items-center gap-3 font-bold">
               {user ? (
-                <div className="relative group flex items-center gap-1 cursor-pointer py-1">
-                  <span className="text-slate-600 hover:text-emerald-600 transition font-semibold">
-                    Chào, {user.name} <span className="text-[10px] text-slate-400">▼</span>
+                <div className="relative group flex items-center gap-2 cursor-pointer py-1">
+                  <img 
+                    src={user.avatar || 'https://placehold.co/100x100?text=User'} 
+                    alt="avatar" 
+                    className="w-5 h-5 rounded-full object-cover border border-slate-200"
+                  />
+                  <span className="text-slate-600 hover:text-[#ee4d2d] transition font-semibold text-xs">
+                    {user.username || user.name || 'cuonggquoc'}
                   </span>
                   
-                  {/* Dropdown menu wrapper (touches parent to avoid hover gap) */}
+                  {/* Dropdown menu wrapper */}
                   <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-55 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <div className="w-44 bg-white border border-slate-200/80 rounded-xl shadow-xl py-1.5 text-left font-semibold text-slate-700">
+                    <div className="w-[140px] bg-white border border-slate-100 rounded-sm shadow-md py-1.5 text-left font-normal text-slate-700">
                       <button
-                        onClick={onOpenProfile}
-                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-emerald-600 transition cursor-pointer text-xs flex items-center gap-2"
+                        onClick={() => navigate('/user/account/profile')}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        <span>👤</span> Thông tin cá nhân
+                        Tài Khoản Của Tôi
                       </button>
                       <button
-                        onClick={onOpenOrders}
-                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-emerald-600 transition cursor-pointer text-xs flex items-center gap-2"
+                        onClick={() => navigate('/user/purchase')}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        <span>📋</span> Đơn mua
+                        Đơn Mua
                       </button>
-
-                      {user.role === 'ADMIN' && onOpenAdminPortal ? (
+                      <button
+                        onClick={() => navigate('/user/wallet')}
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
+                      >
+                        Ví ZeroMall
+                      </button>
+                      
+                      {(user.role === 'ADMIN' || user.role === 'PLATFORM_SUPPORT') && onOpenAdminPortal ? (
                         <button
                           onClick={onOpenAdminPortal}
-                          className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-rose-600 transition cursor-pointer text-xs flex items-center gap-2 text-rose-600 font-bold"
+                          className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs font-bold text-rose-600"
                         >
-                          <span>🛡️</span> Kênh Admin
+                          🎧 Kênh CSKH Sàn
                         </button>
                       ) : null}
+                      
                       <hr className="border-slate-100 my-1" />
+                      
                       <button
                         onClick={onLogout}
-                        className="w-full text-left px-4.5 py-2 hover:bg-slate-50 hover:text-red-500 transition cursor-pointer text-xs font-bold flex items-center gap-2"
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        <span>🚪</span> Đăng xuất
+                        Đăng Xuất
                       </button>
                     </div>
                   </div>

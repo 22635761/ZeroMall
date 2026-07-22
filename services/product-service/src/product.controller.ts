@@ -66,4 +66,48 @@ export class ProductController {
   async toggleLikeProduct(@Param('id') id: string, @Body('userId') userId: string) {
     return this.productService.toggleLikeProduct(id, userId);
   }
+
+  @Get('categories')
+  async getAllCategories() {
+    return this.productService.getAllCategories();
+  }
+
+  @Post('categories')
+  async createCategory(@Body('name') name: string) {
+    return this.productService.createCategory(name);
+  }
+
+  @Delete('categories/:id')
+  async deleteCategory(@Param('id') id: string) {
+    return this.productService.deleteCategory(id);
+  }
+
+  @Get('violations')
+  async getViolatedProducts() {
+    return this.productService.getViolatedProducts();
+  }
+
+  @Put('violations/:id')
+  async updateProductViolation(
+    @Param('id') id: string,
+    @Body('isViolated') isViolated: boolean,
+    @Body('reason') reason?: string
+  ) {
+    return this.productService.updateProductViolation(id, isViolated, reason);
+  }
+
+  @Get('flash-sales')
+  async getFlashSales() {
+    return this.productService.getFlashSales();
+  }
+
+  @Post('flash-sales')
+  async createFlashSale(@Body('timeSlot') timeSlot: string) {
+    return this.productService.createFlashSale(timeSlot);
+  }
+
+  @Put('flash-sales/:id/status')
+  async updateFlashSaleStatus(@Param('id') id: string, @Body('status') status: string) {
+    return this.productService.updateFlashSaleStatus(id, status);
+  }
 }

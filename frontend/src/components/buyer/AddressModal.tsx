@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import type { ShippingAddress } from './CartPage'
+import type { ShippingAddress } from '../../models/address.model'
 
 interface AddressModalProps {
   isOpen: boolean
@@ -68,6 +68,77 @@ export const AddressModal: React.FC<AddressModalProps> = ({
   useEffect(() => {
     setTempSelectedAddressId(activeAddressId)
   }, [activeAddressId, isOpen])
+
+  const mapToGHN = async (provName: string, distName: string, wardName: string) => {
+    try {
+      const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476';
+      
+      // 1. Fetch Provinces
+      const provRes = await fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/province', {
+        headers: { 'Token': ghnToken }
+      });
+      const provData = await provRes.json();
+      if (provData.code !== 200 || !provData.data) return null;
+      
+      const cleanName = (name: string) => removeVietnameseTones(name.toLowerCase())
+        .replace(/^(thanh pho|tinh|quan|huyen|thi xa|phuong|xa|thi tran)\s+/i, '')
+        .trim();
+
+      const matchedProv = provData.data.find((p: any) => 
+        cleanName(p.ProvinceName) === cleanName(provName) ||
+        p.NameExtension?.some((ext: string) => cleanName(ext) === cleanName(provName))
+      );
+      
+      if (!matchedProv) return null;
+      const provinceId = matchedProv.ProvinceID;
+
+      // 2. Fetch Districts
+      const distRes = await fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/district', {
+        method: 'POST',
+        headers: { 
+          'Token': ghnToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ province_id: provinceId })
+      });
+      const distData = await distRes.json();
+      if (distData.code !== 200 || !distData.data) return null;
+
+      const matchedDist = distData.data.find((d: any) => 
+        cleanName(d.DistrictName) === cleanName(distName) ||
+        d.NameExtension?.some((ext: string) => cleanName(ext) === cleanName(distName))
+      );
+
+      if (!matchedDist) return null;
+      const districtId = matchedDist.DistrictID;
+
+      // 3. Fetch Wards
+      const wardRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${districtId}`, {
+        method: 'POST',
+        headers: { 
+          'Token': ghnToken,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ district_id: districtId })
+      });
+      const wardData = await wardRes.json();
+      if (wardData.code !== 200 || !wardData.data) return null;
+
+      const matchedWard = wardData.data.find((w: any) => 
+        cleanName(w.WardName) === cleanName(wardName) ||
+        w.NameExtension?.some((ext: string) => cleanName(ext) === cleanName(wardName))
+      );
+
+      if (!matchedWard) return null;
+      return {
+        districtId: districtId,
+        wardCode: matchedWard.WardCode
+      };
+    } catch (e) {
+      console.error('Lỗi khi ánh xạ địa chỉ GHN:', e);
+      return null;
+    }
+  };
 
   const resetAddressForm = () => {
     setEditingAddressId(null)
@@ -149,14 +220,14 @@ export const AddressModal: React.FC<AddressModalProps> = ({
 
   // Load suggestions for Ward
   useEffect(() => {
-    if (!chosenProvince || !chosenDistrict || !wardQuery.trim() || !goongApiKey || goongApiKey === 'YOUR_GOONG_API_KEY_HERE') {
+    if (!chosenProvince || !wardQuery.trim() || !goongApiKey || goongApiKey === 'YOUR_GOONG_API_KEY_HERE') {
       setWardSuggestions([])
       return
     }
 
     const delayDebounceFn = setTimeout(() => {
       setLoadingWard(true)
-      const fullInput = `${chosenDistrict}, ${chosenProvince} ${wardQuery}`
+      const fullInput = `${chosenProvince} ${wardQuery}`
       fetch(`https://rsapi.goong.io/Place/AutoComplete?api_key=${goongApiKey}&input=${encodeURIComponent(fullInput)}&types=administrative`)
         .then((res) => res.json())
         .then((data) => {
@@ -176,7 +247,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     }, 400)
 
     return () => clearTimeout(delayDebounceFn)
-  }, [wardQuery, chosenDistrict, chosenProvince, goongApiKey])
+  }, [wardQuery, chosenProvince, goongApiKey])
 
   // Leaflet Map initialization and cleanup
   useEffect(() => {
@@ -461,12 +532,15 @@ export const AddressModal: React.FC<AddressModalProps> = ({
           const result = data.result
           const compound = result.compound || {}
           const wardName = compound.commune || result.name || ''
+          const distName = compound.district || ''
           
           setChosenWard(wardName)
           setWardQuery(wardName)
+          setChosenDistrict(distName)
+          setDistrictQuery(distName)
           setShowWardDropdown(false)
           
-          const fullRegion = `${wardName}, ${chosenDistrict}, ${chosenProvince}`
+          const fullRegion = `${wardName}, ${distName}, ${chosenProvince}`
           setFormRegion(fullRegion)
           
           if (result.geometry && result.geometry.location) {
@@ -488,7 +562,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       })
   }
 
-  const handleSaveFormAddress = () => {
+  const handleSaveFormAddress = async () => {
     if (!formName.trim()) {
       alert('Vui lòng nhập họ và tên')
       return
@@ -504,10 +578,6 @@ export const AddressModal: React.FC<AddressModalProps> = ({
       alert('Vui lòng chọn Tỉnh/Thành Phố')
       return
     }
-    if (!chosenDistrict) {
-      alert('Vui lòng chọn Quận/Huyện')
-      return
-    }
     if (!chosenWard) {
       alert('Vui lòng chọn Phường/Xã')
       return
@@ -515,6 +585,20 @@ export const AddressModal: React.FC<AddressModalProps> = ({
     if (!formDetails.trim()) {
       alert('Vui lòng nhập địa chỉ cụ thể')
       return
+    }
+
+    // Ánh xạ ngầm mã GHN
+    let ghnDistrictId: number | undefined = undefined
+    let ghnWardCode: string | undefined = undefined
+
+    try {
+      const ghnInfo = await mapToGHN(chosenProvince, chosenDistrict || '', chosenWard)
+      if (ghnInfo) {
+        ghnDistrictId = ghnInfo.districtId
+        ghnWardCode = ghnInfo.wardCode
+      }
+    } catch (e) {
+      console.error('Error mapping to GHN:', e)
     }
 
     const updatedAddresses = [...addresses]
@@ -530,7 +614,9 @@ export const AddressModal: React.FC<AddressModalProps> = ({
           details: formDetails.trim(),
           isDefault: formIsDefault,
           lat: mapCoords.lat,
-          lng: mapCoords.lng
+          lng: mapCoords.lng,
+          ghnDistrictId,
+          ghnWardCode
         }
       }
     } else {
@@ -542,7 +628,9 @@ export const AddressModal: React.FC<AddressModalProps> = ({
         details: formDetails.trim(),
         isDefault: formIsDefault,
         lat: mapCoords.lat,
-        lng: mapCoords.lng
+        lng: mapCoords.lng,
+        ghnDistrictId,
+        ghnWardCode
       }
       updatedAddresses.push(newAddr)
     }
@@ -778,7 +866,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
               </div>
 
               {/* Quận / Huyện */}
-              <div className="relative">
+              <div className="relative hidden">
                 <input
                   type="text"
                   placeholder={chosenProvince ? "Nhập tên Quận/Huyện để tìm..." : "Vui lòng chọn Tỉnh/Thành Phố trước"}
@@ -835,15 +923,15 @@ export const AddressModal: React.FC<AddressModalProps> = ({
               <div className="relative">
                 <input
                   type="text"
-                  placeholder={chosenDistrict ? "Nhập tên Phường/Xã để tìm..." : "Vui lòng chọn Quận/Huyện trước"}
+                  placeholder={chosenProvince ? "Nhập Phường/Xã để tìm kiếm..." : "Vui lòng chọn Tỉnh/Thành Phố trước"}
                   value={wardQuery}
-                  disabled={!chosenDistrict}
+                  disabled={!chosenProvince}
                   onChange={(e) => {
                     setWardQuery(e.target.value)
                     setShowWardDropdown(true)
                   }}
                   onFocus={() => {
-                    if (chosenDistrict) {
+                    if (chosenProvince) {
                       setShowWardDropdown(true)
                       setShowRegionDropdown(false)
                       setShowDistrictDropdown(false)
@@ -855,7 +943,7 @@ export const AddressModal: React.FC<AddressModalProps> = ({
                 {loadingWard && (
                   <div className="absolute right-3.5 top-[18px] w-4 h-4 border-2 border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
                 )}
-                {showWardDropdown && chosenDistrict && (
+                {showWardDropdown && chosenProvince && (
                   <div className="absolute left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
                     {!wardQuery.trim() ? (
                       <div className="px-4 py-3 text-xs text-slate-400 font-medium text-left">

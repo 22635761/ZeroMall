@@ -1,21 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import type { CartItem } from './Header'
-import { CartStepView } from './CartStepView'
-import { CheckoutStepView } from './CheckoutStepView'
-import { AddressModal } from './AddressModal'
-
-export interface ShippingAddress {
-  id: string
-  name: string
-  phone: string
-  region: string
-  details: string
-  isDefault: boolean
-  lat?: number
-  lng?: number
-}
-
-export const DEFAULT_ADDRESSES: ShippingAddress[] = []
+import type { CartItem } from '../../models/cart.model'
+import { CartStepView } from '../../components/buyer/CartStepView'
+import { CheckoutStepView } from '../../components/buyer/CheckoutStepView'
+import { AddressModal } from '../../components/buyer/AddressModal'
+import type { ShippingAddress } from '../../models/address.model'
+import { DEFAULT_ADDRESSES } from '../../models/address.model'
 
 export const VIETNAM_PROVINCES = [
   "Thành phố Hà Nội",
@@ -184,9 +173,18 @@ export const CartPage: React.FC<CartPageProps> = ({
   const addressPhone = activeAddress?.phone || ''
   const addressDetails = activeAddress ? `${activeAddress.details}, ${activeAddress.region}` : ''
 
+  // Generate unique key for cart item
+  const getItemKey = (item: CartItem) => {
+    return `${item.product.id}#${item.selectedVariant || ''}`
+  }
+
+  // Selected items calculation
+  const selectedCartItems = cart.filter(item => selectedKeys.includes(getItemKey(item)))
+
   // Vouchers and payment
   const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
-  const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'card' | 'gpay' | 'napas' | 'cod'>('cod')
+  const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay'>('cod')
+  const [dynamicShippingFee, setDynamicShippingFee] = useState<number>(0)
   
   // Shop Vouchers State
   const [allShopVouchers, setAllShopVouchers] = useState<any[]>([])
@@ -200,6 +198,61 @@ export const CartPage: React.FC<CartPageProps> = ({
   // Lời nhắn cho từng Shop: { [shopId: string]: string }
   const [shopMessages, setShopMessages] = useState<Record<string, string>>({})
 
+  // Sepay payment states
+  const [showSepayModal, setShowSepayModal] = useState(false)
+  const [sepayQrUrl, setSepayQrUrl] = useState('')
+  const [sepayMemo, setSepayMemo] = useState('')
+  const [sepayBankInfo, setSepayBankInfo] = useState<any>(null)
+  const [activeOrderId, setActiveOrderId] = useState<string>('')
+
+  // Polling check trạng thái chuyển khoản Sepay
+  useEffect(() => {
+    let intervalId: any
+    if (showSepayModal && activeOrderId) {
+      intervalId = setInterval(async () => {
+        try {
+          const res = await fetch(`http://localhost:8000/payments/status/${activeOrderId}`)
+          if (res.ok) {
+            const data = await res.json()
+            if (data.status === 'SUCCESS') {
+              clearInterval(intervalId)
+              setShowSepayModal(false)
+
+              // Cập nhật voucher đã dùng
+              try {
+                const appliedVoucherIds = Object.values(selectedShopVouchers).filter(Boolean)
+                if (appliedVoucherIds.length > 0) {
+                  await fetch('http://localhost:8000/discounts/use', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ voucherIds: appliedVoucherIds })
+                  })
+                }
+              } catch (e) {
+                console.error(e)
+              }
+              setSelectedShopVouchers({})
+
+              // Xóa các sản phẩm đã mua khỏi giỏ hàng
+              selectedCartItems.forEach(item => {
+                onRemoveItem(item.product.id, item.selectedVariant)
+              })
+
+              // Chuyển sang màn hình thành công
+              setStep('success')
+            }
+          }
+        } catch (e) {
+          console.error('Polling error:', e)
+        }
+      }, 3000)
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId)
+    }
+  }, [showSepayModal, activeOrderId, selectedShopVouchers, selectedCartItems])
+
   // Calculations helpers
   const parsePrice = (priceStr: string) => {
     return parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
@@ -207,11 +260,6 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   const formatPrice = (value: number) => {
     return value.toLocaleString('vi-VN') + 'đ'
-  }
-
-  // Generate unique key for cart item
-  const getItemKey = (item: CartItem) => {
-    return `${item.product.id}#${item.selectedVariant || ''}`
   }
 
   // Fetch shop information dynamically for unique shop IDs in the cart
@@ -327,14 +375,63 @@ export const CartPage: React.FC<CartPageProps> = ({
   }
 
   // Selected items calculation
-  const selectedCartItems = cart.filter(item => selectedKeys.includes(getItemKey(item)))
   const itemsTotal = selectedCartItems.reduce((acc, item) => {
     return acc + parsePrice(item.product.flashPrice) * item.quantity
   }, 0)
 
-  // Base shipping fee: 37.700đ per shop represented in selected items
+  // Base shipping fee: calculated via GHN Production API, fallback to 37.700đ per shop
   const uniqueSelectedShops = Array.from(new Set(selectedCartItems.map(item => item.product.shopId).filter(Boolean))) as string[]
-  const baseShippingFee = uniqueSelectedShops.length * 37700
+  const baseShippingFee = dynamicShippingFee || uniqueSelectedShops.length * 37700
+
+  // Gọi API GHN tính phí ship động
+  useEffect(() => {
+    const calculateGHNShipping = async () => {
+      if (!activeAddress || !activeAddress.ghnDistrictId || !activeAddress.ghnWardCode || selectedCartItems.length === 0) {
+        setDynamicShippingFee(uniqueSelectedShops.length * 37700)
+        return
+      }
+
+      try {
+        const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476'
+        const ghnShopId = parseInt(import.meta.env.VITE_GHN_SHOP_ID || '6350257', 10)
+        
+        let totalFee = 0
+        for (const _shopId of uniqueSelectedShops) {
+          const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Token': ghnToken,
+              'ShopId': String(ghnShopId)
+            },
+            body: JSON.stringify({
+              from_district_id: 3695, // Thủ Đức
+              to_district_id: activeAddress.ghnDistrictId,
+              to_ward_code: activeAddress.ghnWardCode,
+              height: 15,
+              length: 15,
+              width: 15,
+              weight: 500, // Cân nặng ước lượng 500g
+              service_type_id: 2
+            })
+          })
+
+          const data = await response.json()
+          if (data.code === 200 && data.data) {
+            totalFee += data.data.total
+          } else {
+            totalFee += 37700
+          }
+        }
+        setDynamicShippingFee(totalFee)
+      } catch (e) {
+        console.error('Lỗi tính phí ship GHN:', e)
+        setDynamicShippingFee(uniqueSelectedShops.length * 37700)
+      }
+    }
+
+    calculateGHNShipping()
+  }, [activeAddressId, addresses, selectedKeys, cart])
 
   // Shipping discount and vouchers
   const shippingDiscount = selectedVoucher === 'freeship' ? Math.min(baseShippingFee, 35000) : 0
@@ -405,6 +502,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         totalAmount: grandTotal,
         shippingFee: finalShippingFee,
         paymentMethod: paymentMethod,
+        ghnDistrictId: activeAddress?.ghnDistrictId || null,
+        ghnWardCode: activeAddress?.ghnWardCode || null,
         items: orderItems
       }
 
@@ -454,6 +553,28 @@ export const CartPage: React.FC<CartPageProps> = ({
         console.error('Error updating shop voucher usage on checkout:', e)
       }
       setSelectedShopVouchers({})
+
+      if (paymentMethod === 'sepay') {
+        try {
+          const configRes = await fetch('http://localhost:8000/payments/sepay-config')
+          if (configRes.ok) {
+            const config = await configRes.json()
+            const memo = `ZM${orderId.substring(0, 8).toUpperCase()}`
+            const qr = `https://img.vietqr.io/image/${config.bankId}-${config.bankAcc}-compact2.jpg?amount=${grandTotal}&addInfo=${memo}&accountName=${encodeURIComponent(config.bankName)}`
+            
+            setSepayMemo(memo)
+            setSepayQrUrl(qr)
+            setSepayBankInfo(config)
+            setActiveOrderId(orderId)
+            setShowSepayModal(true)
+          } else {
+            throw new Error('Không thể tải cấu hình chuyển khoản ngân hàng.')
+          }
+        } catch (e: any) {
+          throw new Error('Lỗi cấu hình cổng thanh toán VietQR: ' + e.message)
+        }
+        return
+      }
 
       setStep('success')
     } catch (err: any) {
@@ -574,16 +695,24 @@ export const CartPage: React.FC<CartPageProps> = ({
           <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center text-4xl border border-emerald-100 shadow-3xs animate-bounce">
             🎉
           </div>
-          <h3 className="font-black text-slate-805 text-xl tracking-tight">Đặt Hàng Thành Công!</h3>
+          <h3 className="font-black text-slate-800 text-xl tracking-tight">Thanh Toán & Đặt Hàng Thành Công!</h3>
           <p className="text-slate-500 text-xs max-w-sm leading-relaxed font-semibold">
-            Cảm ơn bạn đã mua sắm tại ZeroMall. Đơn hàng của bạn đã được tiếp nhận và chuyển giao sang hệ thống giao vận xanh của chúng tôi.
+            Cảm ơn bạn đã mua sắm tại ZeroMall. Đơn hàng đã được xác nhận và đang được xử lý.
           </p>
-          <button 
-            onClick={handleFinish}
-            className="mt-2 px-8 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md transition duration-200 cursor-pointer"
-          >
-            Tiếp Tục Mua Sắm
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={handleFinish}
+              className="mt-2 px-6 py-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl font-bold text-xs shadow-sm transition duration-200 cursor-pointer"
+            >
+              Tiếp Tục Mua Sắm
+            </button>
+            <button
+              onClick={() => { onBackToHome(); setTimeout(() => window.location.href='/user/purchases', 100) }}
+              className="mt-2 px-6 py-3 bg-[#ee4d2d] hover:bg-[#d03d20] text-white rounded-xl font-bold text-xs shadow-md transition duration-200 cursor-pointer"
+            >
+              Xem Đơn Mua
+            </button>
+          </div>
         </div>
       )}
 
@@ -599,6 +728,116 @@ export const CartPage: React.FC<CartPageProps> = ({
         VIETNAM_PROVINCES={VIETNAM_PROVINCES}
         removeVietnameseTones={removeVietnameseTones}
       />
+
+      {/* Sepay VietQR Payment Modal */}
+      {showSepayModal && sepayBankInfo && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-[#feeee9]/30 px-6 py-5 border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">📲</span>
+                <span className="font-extrabold text-slate-800 text-sm sm:text-base">Thanh Toán Chuyển Khoản</span>
+              </div>
+              <button
+                onClick={() => {
+                  if (window.confirm('Đóng? Đơn hàng vẫn ở trạng thái "Chờ thanh toán". Bạn có thể vào Đơn mua để thanh toán lại sau.')) {
+                    setShowSepayModal(false)
+                    // Giữ nguyên giỏ hàng, chuyển sang tab Đơn mua để thấy đơn PENDING
+                    onBackToHome()
+                    setTimeout(() => window.location.href = '/user/purchases', 100)
+                  }
+                }}
+                className="text-slate-400 hover:text-slate-600 transition text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 space-y-6 text-center">
+              {/* QR Image */}
+              <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl w-fit mx-auto shadow-sm">
+                <img 
+                  src={sepayQrUrl} 
+                  alt="VietQR Sepay" 
+                  className="w-56 h-56 mx-auto object-contain"
+                />
+              </div>
+
+              {/* Status micro-animation */}
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-600 animate-pulse">
+                <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                <span>Hệ thống đang chờ quét mã chuyển khoản...</span>
+              </div>
+
+              {/* Bank Details Table */}
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-semibold text-slate-700 text-left space-y-2.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Ngân hàng:</span>
+                  <span className="font-extrabold text-slate-800">{sepayBankInfo.bankId}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Số tài khoản:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-slate-800">{sepayBankInfo.bankAcc}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(sepayBankInfo.bankAcc)
+                        alert('Đã copy số tài khoản!')
+                      }}
+                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Chủ tài khoản:</span>
+                  <span className="font-extrabold text-slate-800 uppercase">{sepayBankInfo.bankName}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Số tiền:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-red-600">{formatPrice(grandTotal)}</span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(String(grandTotal))
+                        alert('Đã copy số tiền!')
+                      }}
+                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-medium">Nội dung CK:</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-500/25 px-2 py-0.5 rounded text-sm sm:text-base font-mono">
+                      {sepayMemo}
+                    </span>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(sepayMemo)
+                        alert('Đã copy nội dung chuyển khoản!')
+                      }}
+                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
+                    >
+                      Copy
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning Alert */}
+              <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-4 text-[10px] font-medium text-amber-700 text-left leading-relaxed">
+                ⚠️ <strong>Quan trọng:</strong> Vui lòng nhập chính xác <strong>Nội dung chuyển khoản ({sepayMemo})</strong> ở trên. Hệ thống sẽ tự động quét biến động số dư và xác nhận đơn hàng sau 10 giây.
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )

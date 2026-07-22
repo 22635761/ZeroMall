@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import type { CartItem } from './Header'
-import type { ShippingAddress } from './CartPage'
+import type { CartItem } from '../../models/cart.model'
+import type { ShippingAddress } from '../../models/address.model'
 
 interface CheckoutStepViewProps {
   addresses: ShippingAddress[]
@@ -20,8 +20,8 @@ interface CheckoutStepViewProps {
   setActiveShopVoucherModalId: (id: string | null) => void
   selectedVoucher: 'none' | 'freeship' | 'discount10' | 'discount50k'
   setSelectedVoucher: (v: 'none' | 'freeship' | 'discount10' | 'discount50k') => void
-  paymentMethod: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod'
-  setPaymentMethod: (m: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod') => void
+  paymentMethod: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay'
+  setPaymentMethod: (m: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay') => void
   itemsTotal: number
   insuranceTotal: number
   finalShippingFee: number
@@ -276,8 +276,9 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
             <h3 className="font-black text-slate-805 text-sm sm:text-base uppercase tracking-wider">Phương Thức Thanh Toán</h3>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3.5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
             {[
+              { id: 'sepay', label: 'VietQR Chuyển khoản', icon: '📲' },
               { id: 'zeropay', label: 'ZeroPay', icon: '⚡' },
               { id: 'card', label: 'Thẻ tín dụng', icon: '💳' },
               { id: 'gpay', label: 'Google Pay', icon: '🤖' },
@@ -294,7 +295,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                 }`}
               >
                 <span className="text-2xl">{method.icon}</span>
-                <span className="text-[11px] leading-tight">{method.label}</span>
+                <span className="text-[11px] leading-tight text-center">{method.label}</span>
                 {method.id === 'zeropay' && walletBalance !== null && (
                   <span className="text-[9px] text-emerald-600 font-extrabold mt-0.5">
                     ({formatPrice(walletBalance)})
@@ -505,7 +506,16 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
         const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
         const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice) * item.quantity, 0)
         
-        const shopVouchers = allShopVouchers.filter(v => v.shopId === shopId)
+        // Load saved voucher IDs from user wallet
+        let savedVoucherIds: string[] = []
+        try {
+          const stored = localStorage.getItem('zm_saved_vouchers')
+          if (stored) savedVoucherIds = JSON.parse(stored)
+        } catch (e) {
+          console.error(e)
+        }
+
+        const shopVouchers = allShopVouchers.filter(v => v.shopId === shopId && savedVoucherIds.includes(v.id))
         const selectedVoucherId = selectedShopVouchers[shopId]
         
         return (
@@ -525,8 +535,9 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               
               <div className="p-4.5 overflow-y-auto space-y-3 flex-1 bg-slate-50/15">
                 {shopVouchers.length === 0 ? (
-                  <div className="text-center py-10 text-slate-400 text-xs font-semibold">
-                    Cửa hàng chưa phát hành Voucher nào hoặc đã hết hạn.
+                  <div className="text-center py-10 text-slate-400 text-xs font-semibold leading-relaxed space-y-2">
+                    <p>Bạn chưa lưu Voucher nào của Shop này vào ví.</p>
+                    <p className="text-[10px] text-slate-400 font-normal">Vui lòng truy cập trang cá nhân của bạn, mở <span className="font-bold text-[#ee4d2d]">Kho Voucher</span> để xem và lưu mã giảm giá trước khi thanh toán!</p>
                   </div>
                 ) : (
                   shopVouchers.map((voucher: any) => {

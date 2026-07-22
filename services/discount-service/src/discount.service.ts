@@ -114,4 +114,16 @@ export class DiscountService {
       throw new BadRequestException('Lỗi khi ghi nhận sử dụng mã giảm giá.');
     }
   }
+
+  async getAllActiveVouchers() {
+    const now = new Date();
+    return this.prisma.voucher.findMany({
+      where: {
+        startDate: { lte: now },
+        endDate: { gte: now },
+        usedCount: { lt: this.prisma.voucher.fields.usageLimit },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
 }

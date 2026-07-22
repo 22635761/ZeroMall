@@ -18,6 +18,12 @@ model Order {
   shippingFee     Float
   paymentMethod   String      // "cod" | "zeropay" | "card" | "gpay" | "napas"
   status          String      @default("PENDING_PAYMENT") // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
+  ghnDistrictId   Int?
+  ghnWardCode     String?
+  ghnOrderCode    String?
+  refundReason    String?
+  refundDescription String?
+  refundEmail     String?
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
   items           OrderItem[]

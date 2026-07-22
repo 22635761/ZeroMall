@@ -37,6 +37,11 @@ export class DiscountController {
     return this.discountService.deleteVoucher(id);
   }
 
+  @Get('all-active')
+  async getAllActiveVouchers() {
+    return this.discountService.getAllActiveVouchers();
+  }
+
   @Post('use')
   async useVouchers(@Body() dto: UseVouchersDto) {
     return this.discountService.useVouchers(dto.voucherIds);

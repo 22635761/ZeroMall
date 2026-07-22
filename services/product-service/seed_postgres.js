@@ -378,43 +378,7 @@ async function main() {
     }
   }
 
-  // Insert sample reviews linked to the generated product IDs
-  const allProducts = await product.product.findMany();
-  console.log('Inserting sample reviews...');
-  for (const prod of allProducts) {
-    const reviewsExist = await product.review.findFirst({ where: { productId: prod.id } });
-    if (!reviewsExist) {
-      await product.review.createMany({
-        data: [
-          {
-            productId: prod.id,
-            username: 'n*****h',
-            rating: 5,
-            comment: `Sản phẩm ${prod.name} xài cực kỳ tốt nha mọi người, shop giao hàng rất nhanh và đóng gói cẩn thận. Mình đã test thử và rất hài lòng!`,
-            variant: 'Mặc định',
-            createdAt: new Date(Date.now() - 3600000 * 2), // 2 hours ago
-          },
-          {
-            productId: prod.id,
-            username: 't*****0',
-            rating: 5,
-            comment: `Mua đúng đợt sale được giá hời quá trời. Sản phẩm chất lượng cao, đúng mô tả, nhân viên hỗ trợ nhiệt tình. Sẽ ủng hộ lần sau!`,
-            variant: 'Mặc định',
-            createdAt: new Date(Date.now() - 3600000 * 24), // 1 day ago
-          },
-          {
-            productId: prod.id,
-            username: 'm*****a',
-            rating: 4,
-            comment: `Hàng đẹp, chất lượng ổn áp. Giao hàng hơi lâu chút xíu nhưng bù lại đóng gói cẩn thận, sản phẩm nguyên vẹn, dùng rất tốt.`,
-            variant: 'Mặc định',
-            createdAt: new Date(Date.now() - 3600000 * 48), // 2 days ago
-          }
-        ]
-      });
-      console.log(`Seeded reviews for product: ${prod.name}`);
-    }
-  }
+  // Skip seeding sample reviews so that products start with 0 rating until real users review them.
   
   // Seed shop follows
   console.log('Inserting sample shop follows...');
@@ -441,6 +405,7 @@ async function main() {
 
     // Seed product likes
     console.log('Inserting sample product likes...');
+    const allProducts = await product.product.findMany();
     for (const prod of allProducts) {
       const likesExist = await product.productLike.findFirst({ where: { productId: prod.id } });
       if (!likesExist) {

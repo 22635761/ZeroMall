@@ -1,8 +1,10 @@
 import React, { useState } from 'react'
-import { AddProductForm } from './AddProductForm'
-import { ProductListTable } from './ProductListTable'
-import { ShopOnboarding } from './ShopOnboarding'
-import { ShopVouchers } from './ShopVouchers'
+import { AddProductForm } from '../../components/seller/AddProductForm'
+import { ProductListTable } from '../../components/seller/ProductListTable'
+import { ShopOnboarding } from '../../components/seller/ShopOnboarding'
+import { ShopVouchers } from '../../components/seller/ShopVouchers'
+import { ShopOrders } from '../../components/seller/ShopOrders'
+import { ShopWallet } from '../../components/seller/ShopWallet'
 
 interface SellerPortalProps {
   user: any
@@ -867,6 +869,10 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             )
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-vouchers' ? (
             <ShopVouchers user={user} />
+          ) : activeMenu === 'orders' ? (
+            <ShopOrders user={user} token={token || ''} activeSubMenu={activeSubMenu} />
+          ) : activeMenu === 'finance' && activeSubMenu === 'balance' ? (
+            <ShopWallet user={user} />
           ) : (
             <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm min-h-[450px]">
               {activeMenu === 'dashboard' && (

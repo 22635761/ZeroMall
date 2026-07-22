@@ -128,7 +128,7 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                         <div className="flex items-center text-yellow-400">
-                          ★ <span className="text-slate-600 ml-0.5">{p.rating || 5}</span>
+                          ★ <span className="text-slate-600 ml-0.5">{p.rating ?? 0}</span>
                         </div>
                         <span>Đã bán {p.sold >= 1000 ? `${(p.sold / 1000).toFixed(1)}k` : p.sold}</span>
                       </div>

@@ -8,4 +8,5 @@ export class ChargePaymentDto {
 export class DepositDto {
   buyerId: string;
   amount: number;
+  description?: string;
 }

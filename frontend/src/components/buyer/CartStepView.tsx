@@ -1,5 +1,5 @@
 import React from 'react'
-import type { CartItem } from './Header'
+import type { CartItem } from '../../models/cart.model'
 
 interface CartStepViewProps {
   cart: CartItem[]

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
-import type { Product } from './FlashSale'
+import { useParams } from 'react-router-dom'
+import type { Product } from '../../components/buyer/FlashSale'
 
 interface ProductDetailPageProps {
-  product: Product
   user: any
   onBackToHome: () => void
   onAddToCart: (product: Product, quantity: number, variant: string) => void
@@ -11,13 +11,88 @@ interface ProductDetailPageProps {
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
-  product,
   user,
   onBackToHome,
   onAddToCart,
   onBuyNow,
   onOpenLogin
 }) => {
+  const { slugWithId } = useParams<{ slugWithId: string }>()
+  const id = slugWithId?.split('-i.').pop()
+  const [product, setProduct] = useState<Product | null>(null)
+  const [loadingProduct, setLoadingProduct] = useState(true)
+
+  useEffect(() => {
+    const fetchProductDetails = async () => {
+      if (!id) return
+      setLoadingProduct(true)
+      try {
+        const response = await fetch(`http://localhost:8000/products/${id}`)
+        if (response.ok) {
+          const p = await response.json()
+          
+          let flashPriceStr = p.price.toLocaleString('vi-VN') + 'đ'
+          let originalPriceStr = ''
+          if (p.price) {
+            let originalPriceVal = p.price * 1.25
+            if (originalPriceVal > 1000000) {
+              originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
+            } else if (originalPriceVal > 100000) {
+              originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
+            } else {
+              originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
+            }
+            originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+          }
+
+          let variants: string[] = []
+          if (p.hasVariations && p.variationGroups) {
+            try {
+              const groups = JSON.parse(p.variationGroups)
+              variants = groups.flatMap((g: any) => g.options || [])
+            } catch (e) {
+              console.error(e)
+            }
+          }
+
+          let parsedImages: string[] = []
+          try {
+            parsedImages = p.images ? JSON.parse(p.images) : []
+          } catch (e) {
+            console.error('Failed to parse images', e)
+          }
+          if (!parsedImages || parsedImages.length === 0) {
+            parsedImages = p.image ? [p.image] : []
+          }
+
+          setProduct({
+            id: p.id,
+            name: p.name,
+            originalPrice: originalPriceStr,
+            flashPrice: flashPriceStr,
+            image: p.image || 'https://placehold.co/400x400?text=No+Image',
+            sold: p.sales || 0,
+            total: (p.sales || 0) + (p.stock || 0),
+            rating: p.rating ?? 0,
+            reviewsCount: p.reviewsCount ?? 0,
+            description: p.description,
+            variants,
+            images: parsedImages,
+            video: p.video || '',
+            category: p.category,
+            brand: p.brand,
+            shopId: p.shopId
+          })
+        }
+      } catch (e) {
+        console.error('Failed to fetch product details:', e)
+      } finally {
+        setLoadingProduct(false)
+      }
+    }
+
+    fetchProductDetails()
+  }, [id])
   const [selectedVariant, setSelectedVariant] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [activeImgIdx, setActiveImgIdx] = useState(0)
@@ -49,6 +124,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const [flyingItems, setFlyingItems] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number; image: string }[]>([])
 
   const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (!product) return
     // 1. Trigger the actual onAddToCart prop logic
     onAddToCart(product, quantity, selectedVariant)
 
@@ -81,6 +157,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Load reviews from API
   const fetchReviews = async () => {
+    if (!product) return
     setIsLoadingReviews(true)
     try {
       const response = await fetch(`http://localhost:8000/products/${product.id}/reviews`)
@@ -96,6 +173,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Load shop details and stats from APIs
   const fetchShopData = async () => {
+    if (!product) return
     setIsLoadingShop(true)
     
     // 1. Fetch shop details from auth-service
@@ -156,6 +234,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Fetch product likes from API
   const fetchProductLikes = async () => {
+    if (!product) return
     try {
       const res = await fetch(`http://localhost:8000/products/${product.id}/likes?userId=${user?.id || ''}`)
       if (res.ok) {
@@ -170,6 +249,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   // Auto-initialize states and load reviews
   useEffect(() => {
+    if (!product) return
     if (product.variants && product.variants.length > 0) {
       setSelectedVariant(product.variants[0])
     } else {
@@ -202,6 +282,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
 
   const getSubImages = () => {
+    if (!product) return []
     if (product.images && Array.isArray(product.images) && product.images.length > 0) {
       return product.images
     }
@@ -210,17 +291,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const subImages = getSubImages()
   const mediaItems: { type: 'image' | 'video'; url: string }[] = []
-  if (product.video) {
+  if (product && product.video) {
     mediaItems.push({ type: 'video', url: product.video })
   }
   subImages.forEach((img) => {
     mediaItems.push({ type: 'image', url: img })
   })
 
-  const stockAvailable = product.total - product.sold
+  const stockAvailable = product ? (product.total - product.sold) : 0
   
   // Calculate discount percentage
   const getDiscountPct = () => {
+    if (!product) return 15
     try {
       const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
       const flash = parsePrice(product.flashPrice)
@@ -236,7 +318,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const discountPct = getDiscountPct()
   const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
-  const isMall = parsePrice(product.flashPrice) > 200000
+  const isMall = product ? (parsePrice(product.flashPrice) > 200000) : false
 
   const handleDecrease = () => {
     if (quantity > 1) setQuantity((prev) => prev - 1)
@@ -247,6 +329,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
 
   const handleToggleLike = async () => {
+    if (!product) return
     if (!user) {
       onOpenLogin()
       return
@@ -268,6 +351,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
 
   const handleToggleFollow = async () => {
+    if (!product) return
     if (!user) {
       onOpenLogin()
       return
@@ -298,6 +382,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Handle Review Submission
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (!product) return
     
     // Ensure reviewer name is from logged-in user if available
     const finalReviewName = user?.name || reviewName
@@ -347,7 +432,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Calculate dynamic average rating based on database reviews
   const averageRating = reviews.length > 0
     ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-    : '4.8'
+    : '0.0'
 
   // Filter reviews based on filter selection
   const filteredReviews = reviews.filter(review => {
@@ -403,6 +488,27 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     } catch (e) {
       return dateString
     }
+  }
+
+  if (loadingProduct) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/50 p-20 text-center shadow-3xs space-y-3">
+        <div className="w-10 h-10 border-3 border-emerald-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p className="text-xs text-slate-405 font-semibold">Đang tải chi tiết sản phẩm...</p>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="bg-white rounded-2xl border border-slate-200/50 p-20 text-center shadow-3xs flex flex-col items-center gap-4.5">
+        <span className="text-5xl">⚠️</span>
+        <h4 className="font-extrabold text-slate-800 text-sm">Không tìm thấy sản phẩm</h4>
+        <button onClick={onBackToHome} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md transition duration-200 cursor-pointer">
+          Trở về Trang chủ
+        </button>
+      </div>
+    )
   }
 
   return (
@@ -556,8 +662,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             <div className="flex items-center gap-4 text-xs divide-x divide-slate-200 text-slate-500 py-1">
               <div className="flex items-center gap-1.5">
                 <span className="text-[#ee4d2d] font-bold underline text-sm">{averageRating}</span>
-                <div className="flex text-yellow-500 text-xs">
-                  <span>★</span><span>★</span><span>★</span><span>★</span><span>★</span>
+                <div className="flex text-xs gap-0.5">
+                  {Array.from({ length: 5 }).map((_, idx) => {
+                    const starVal = idx + 1;
+                    const ratingNum = parseFloat(averageRating);
+                    return (
+                      <span 
+                        key={idx} 
+                        className={ratingNum >= starVal ? 'text-yellow-500' : 'text-slate-300'}
+                      >
+                        ★
+                      </span>
+                    );
+                  })}
                 </div>
               </div>
               <div className="pl-4">

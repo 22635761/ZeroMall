@@ -126,8 +126,13 @@ exports.Prisma.UserScalarFieldEnum = {
   password: 'password',
   name: 'name',
   role: 'role',
+  status: 'status',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt',
+  avatar: 'avatar',
+  gender: 'gender',
+  birthday: 'birthday',
+  phoneNumber: 'phoneNumber',
   shopId: 'shopId'
 };
 
@@ -153,6 +158,13 @@ exports.Prisma.ShopFollowScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.AuditLogScalarFieldEnum = {
+  id: 'id',
+  timestamp: 'timestamp',
+  user: 'user',
+  action: 'action'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -172,7 +184,8 @@ exports.Prisma.NullsOrder = {
 exports.Prisma.ModelName = {
   User: 'User',
   Shop: 'Shop',
-  ShopFollow: 'ShopFollow'
+  ShopFollow: 'ShopFollow',
+  AuditLog: 'AuditLog'
 };
 
 /**

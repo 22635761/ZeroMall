@@ -147,6 +147,9 @@ exports.Prisma.ProductScalarFieldEnum = {
   condition: 'condition',
   isPreOrder: 'isPreOrder',
   preOrderDays: 'preOrderDays',
+  isViolated: 'isViolated',
+  violationReason: 'violationReason',
+  reportsCount: 'reportsCount',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -169,6 +172,21 @@ exports.Prisma.ProductLikeScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.CategoryScalarFieldEnum = {
+  id: 'id',
+  name: 'name',
+  slug: 'slug',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FlashSaleScalarFieldEnum = {
+  id: 'id',
+  timeSlot: 'timeSlot',
+  productsCount: 'productsCount',
+  status: 'status',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -188,7 +206,9 @@ exports.Prisma.NullsOrder = {
 exports.Prisma.ModelName = {
   Product: 'Product',
   Review: 'Review',
-  ProductLike: 'ProductLike'
+  ProductLike: 'ProductLike',
+  Category: 'Category',
+  FlashSale: 'FlashSale'
 };
 
 /**

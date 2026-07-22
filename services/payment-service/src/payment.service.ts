@@ -27,7 +27,7 @@ export class PaymentService {
   async deposit(dto: DepositDto) {
     const wallet = await this.getWallet(dto.buyerId);
 
-    return this.prisma.wallet.update({
+    const updatedWallet = await this.prisma.wallet.update({
       where: { buyerId: dto.buyerId },
       data: {
         balance: {
@@ -35,6 +35,40 @@ export class PaymentService {
         },
       },
     });
+
+    await this.prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount: dto.amount,
+        type: 'DEPOSIT',
+        description: dto.description || 'Nạp tiền vào ví qua cổng VietQR',
+        status: 'SUCCESS',
+      },
+    });
+
+    return updatedWallet;
+  }
+
+  // Tạo pending WalletTransaction để tracking khi quét QR nạp ví
+  async createDepositPending(buyerId: string, amount: number, memo: string) {
+    const wallet = await this.getWallet(buyerId);
+    const tx = await this.prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount,
+        type: 'DEPOSIT',
+        description: `Đang chờ chuyển khoản QR (Memo: ${memo})`,
+        status: 'PENDING',
+      },
+    });
+    return { transactionId: tx.id, walletId: wallet.id };
+  }
+
+  // Polling trạng thái WalletTransaction theo ID (dùng để frontend poll)
+  async getWalletTransactionStatus(txId: string) {
+    const tx = await this.prisma.walletTransaction.findUnique({ where: { id: txId } });
+    if (!tx) return { status: 'NOT_FOUND' };
+    return { status: tx.status };
   }
 
   async chargePayment(dto: ChargePaymentDto) {
@@ -72,12 +106,22 @@ export class PaymentService {
 
         // Thực hiện trừ tiền ví và cập nhật transaction thành công
         await this.prisma.$transaction(async (prismaTx) => {
-          await prismaTx.wallet.update({
+          const updatedWallet = await prismaTx.wallet.update({
             where: { buyerId: dto.buyerId },
             data: {
               balance: {
                 decrement: dto.amount,
               },
+            },
+          });
+
+          await prismaTx.walletTransaction.create({
+            data: {
+              walletId: updatedWallet.id,
+              amount: dto.amount,
+              type: 'PAYMENT',
+              description: `Thanh toán đơn hàng #${dto.orderId}`,
+              status: 'SUCCESS',
             },
           });
 
@@ -92,6 +136,11 @@ export class PaymentService {
 
         // Gọi order-service để cập nhật đơn hàng thành PROCESSING (đã thanh toán)
         await this.updateOrderStatusOnOrderService(dto.orderId, 'PROCESSING');
+        return txRecord;
+      }
+
+      if (dto.paymentMethod === 'sepay') {
+        // Đối với Sepay, giữ trạng thái giao dịch PENDING cho đến khi nhận được Webhook ngân hàng
         return txRecord;
       }
 
@@ -144,5 +193,316 @@ export class PaymentService {
     } catch (e) {
       console.error('Error calling order-service to update status:', e);
     }
+  }
+
+  async getTransactionStatus(orderId: string) {
+    const tx = await this.prisma.transaction.findFirst({
+      where: { orderId },
+    });
+    if (!tx) {
+      return { status: 'NOT_FOUND' };
+    }
+    return { status: tx.status };
+  }
+
+  async processSepayWebhook(body: any) {
+    console.log('PaymentService: Received Sepay webhook payload:', JSON.stringify(body));
+
+    // Sepay có thể gửi nội dung ở nhiều field khác nhau tùy nguồn (API test vs bank thật vs MoMo)
+    const transactionContent = body.transaction_content || body.transactionContent
+      || body.content || body.description || '';
+    const code = body.code || '';
+    const amountIn = parseFloat(body.amount_in || body.amountIn || body.transferAmount) || 0;
+    const referenceNumber = body.reference_number || body.referenceNumber
+      || body.referenceCode || `SEPAY-${Date.now()}`;
+
+    console.log(`PaymentService: Parsed content="${transactionContent}", amount=${amountIn}, ref=${referenceNumber}`);
+
+    // Kiểm tra xem đây có phải là giao dịch nạp tiền ví hay không
+    // Nội dung: ZMWALLET[BUYER_SHORT_ID]
+    let walletShortId = '';
+    const walletMatch = transactionContent.match(/ZMWALLET([a-zA-Z0-9]+)/i);
+    if (walletMatch && walletMatch[1]) {
+      walletShortId = walletMatch[1];
+    }
+
+    if (walletShortId) {
+      console.log(`PaymentService: Detected wallet deposit webhook for user short ID: ${walletShortId}, amount: ${amountIn}`);
+      // Tìm ví của user có ID bắt đầu bằng walletShortId
+      const wallet = await this.prisma.wallet.findFirst({
+        where: {
+          buyerId: {
+            startsWith: walletShortId.toLowerCase(),
+          },
+        },
+      });
+
+      if (!wallet) {
+        console.error(`PaymentService: No wallet matches user short ID: ${walletShortId}`);
+        return { success: false, message: `Không tìm thấy ví của người dùng với mã ${walletShortId}` };
+      }
+
+      // Kiểm tra xem giao dịch này đã được xử lý chưa để tránh cộng tiền trùng lặp (Idempotency Check)
+      const existingTx = await this.prisma.walletTransaction.findFirst({
+        where: {
+          walletId: wallet.id,
+          description: {
+            contains: `Ref: ${referenceNumber}`,
+          },
+        },
+      });
+
+      if (existingTx) {
+        console.log(`PaymentService: Deposit reference ${referenceNumber} already processed for wallet ${wallet.id}`);
+        return { success: true, message: 'Giao dịch đã được xử lý trước đó' };
+      }
+
+      // Tìm pending WalletTransaction của ví này để update thành SUCCESS
+      const pendingTx = await this.prisma.walletTransaction.findFirst({
+        where: {
+          walletId: wallet.id,
+          status: 'PENDING',
+          type: 'DEPOSIT',
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+
+      // Cộng tiền vào ví
+      await this.prisma.wallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: amountIn } },
+      });
+
+      if (pendingTx) {
+        // Update pending tx thành SUCCESS và ghi đúng số tiền thực tế
+        await this.prisma.walletTransaction.update({
+          where: { id: pendingTx.id },
+          data: {
+            amount: amountIn,
+            status: 'SUCCESS',
+            description: `Nạp tiền thành công qua QR (Ref: ${referenceNumber})`,
+          },
+        });
+        console.log(`PaymentService: Updated pending tx ${pendingTx.id} to SUCCESS for wallet ${wallet.id}`);
+      } else {
+        // Không có pending tx → tạo mới
+        await this.prisma.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            amount: amountIn,
+            type: 'DEPOSIT',
+            description: `Nạp tiền tự động qua QR Ngân hàng (Ref: ${referenceNumber})`,
+            status: 'SUCCESS',
+          },
+        });
+      }
+
+      console.log(`PaymentService: Successfully credited ${amountIn} to wallet of user ${wallet.buyerId}`);
+      return { success: true, message: 'Nạp tiền ví thành công' };
+    }
+
+    // Tìm mã đơn hàng từ trường code hoặc transactionContent (Regex ZM[A-Z0-9]+)
+    let orderShortId = code ? code.replace(/^ZM/i, '') : '';
+    if (!orderShortId && transactionContent) {
+      const match = transactionContent.match(/ZM([a-zA-Z0-9]+)/i);
+      if (match && match[1]) {
+        orderShortId = match[1];
+      }
+    }
+
+    if (!orderShortId) {
+      console.error('PaymentService: Cannot extract Order ID from content:', transactionContent);
+      return { success: false, message: 'Nội dung chuyển khoản không hợp lệ' };
+    }
+
+    // Tìm transaction tương ứng (orderId bắt đầu bằng short ID của UUID)
+    const transaction = await this.prisma.transaction.findFirst({
+      where: {
+        orderId: {
+          startsWith: orderShortId.toLowerCase(),
+        },
+      },
+    });
+
+    if (!transaction) {
+      console.error(`PaymentService: No transaction matching short order ID: ${orderShortId}`);
+      return { success: false, message: `Không tìm thấy đơn hàng với mã ${orderShortId}` };
+    }
+
+    if (transaction.status === 'SUCCESS') {
+      console.log(`PaymentService: Transaction ${transaction.id} already processed`);
+      return { success: true, message: 'Giao dịch đã được xử lý trước đó' };
+    }
+
+    // Cập nhật trạng thái transaction thành SUCCESS
+    await this.prisma.transaction.update({
+      where: { id: transaction.id },
+      data: {
+        status: 'SUCCESS',
+        providerTxId: referenceNumber,
+      },
+    });
+
+    // Gọi order-service cập nhật trạng thái đơn hàng thành PROCESSING
+    await this.updateOrderStatusOnOrderService(transaction.orderId, 'PROCESSING');
+
+    console.log(`PaymentService: Successfully verified and updated payment for order: ${transaction.orderId}`);
+    return { success: true, message: 'Thanh toán thành công' };
+  }
+
+  async getWalletTransactions(buyerId: string) {
+    const wallet = await this.getWallet(buyerId);
+    return this.prisma.walletTransaction.findMany({
+      where: { walletId: wallet.id },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createWithdrawRequest(shopId: string, amount: number, bankName: string, bankAccount: string, accountName: string) {
+    const wallet = await this.getWallet(shopId);
+    if (wallet.balance < amount) {
+      throw new BadRequestException('Số dư ví doanh thu không đủ để rút!');
+    }
+
+    return this.prisma.$transaction(async (prismaTx) => {
+      await prismaTx.wallet.update({
+        where: { buyerId: shopId },
+        data: {
+          balance: {
+            decrement: amount,
+          },
+        },
+      });
+
+      const request = await prismaTx.withdrawRequest.create({
+        data: {
+          shopId,
+          amount,
+          bankName,
+          bankAccount,
+          accountName,
+          status: 'PENDING',
+        },
+      });
+
+      await prismaTx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount,
+          type: 'WITHDRAW',
+          description: `Rút tiền về tài khoản ngân hàng ${bankName} (${bankAccount}) - Mã yêu cầu: ${request.id}`,
+          status: 'PENDING',
+        },
+      });
+
+      return request;
+    });
+  }
+
+  async approveWithdrawRequest(id: string, status: 'APPROVED' | 'REJECTED') {
+    const request = await this.prisma.withdrawRequest.findUnique({
+      where: { id },
+    });
+
+    if (!request) {
+      throw new NotFoundException('Không tìm thấy yêu cầu rút tiền');
+    }
+
+    if (request.status !== 'PENDING') {
+      throw new BadRequestException('Yêu cầu rút tiền này đã được xử lý trước đó!');
+    }
+
+    return this.prisma.$transaction(async (prismaTx) => {
+      const updatedRequest = await prismaTx.withdrawRequest.update({
+        where: { id },
+        data: { status },
+      });
+
+      const wallet = await prismaTx.wallet.findUnique({
+        where: { buyerId: request.shopId },
+      });
+
+      if (wallet) {
+        if (status === 'APPROVED') {
+          await prismaTx.walletTransaction.updateMany({
+            where: {
+              walletId: wallet.id,
+              type: 'WITHDRAW',
+              description: { contains: id },
+            },
+            data: { status: 'SUCCESS' },
+          });
+        } else if (status === 'REJECTED') {
+          await prismaTx.wallet.update({
+            where: { buyerId: request.shopId },
+            data: {
+              balance: {
+                increment: request.amount,
+              },
+            },
+          });
+
+          await prismaTx.walletTransaction.create({
+            data: {
+              walletId: wallet.id,
+              amount: request.amount,
+              type: 'REFUND',
+              description: `Hoàn tiền rút về tài khoản ngân hàng do yêu cầu bị từ chối - Mã: ${id}`,
+              status: 'SUCCESS',
+            },
+          });
+
+          await prismaTx.walletTransaction.updateMany({
+            where: {
+              walletId: wallet.id,
+              type: 'WITHDRAW',
+              description: { contains: id },
+            },
+            data: { status: 'FAILED' },
+          });
+        }
+      }
+
+      return updatedRequest;
+    });
+  }
+
+  async getWithdrawRequests(shopId?: string) {
+    if (shopId) {
+      return this.prisma.withdrawRequest.findMany({
+        where: { shopId },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+    return this.prisma.withdrawRequest.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  // Hoàn tiền đơn hàng vào ví người mua
+  async refundOrder(orderId: string, buyerId: string, amount: number) {
+    const wallet = await this.getWallet(buyerId);
+
+    const updatedWallet = await this.prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: {
+          increment: amount,
+        },
+      },
+    });
+
+    await this.prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        amount,
+        type: 'REFUND',
+        description: `Hoàn tiền trả hàng cho đơn hàng #${orderId}`,
+        status: 'SUCCESS',
+      },
+    });
+
+    console.log(`PaymentService: Refunded ${amount} for order ${orderId} to user ${buyerId} wallet`);
+    return updatedWallet;
   }
 }

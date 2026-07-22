@@ -69,6 +69,10 @@ export class AuthService {
             name: updatedUser.name,
             role: updatedUser.role,
             shopId: updatedUser.shopId,
+            avatar: updatedUser.avatar,
+            gender: updatedUser.gender,
+            birthday: updatedUser.birthday,
+            phoneNumber: updatedUser.phoneNumber,
           },
         };
       }
@@ -79,6 +83,10 @@ export class AuthService {
           email: user.email,
           name: user.name,
           role: user.role,
+          avatar: user.avatar,
+          gender: user.gender,
+          birthday: user.birthday,
+          phoneNumber: user.phoneNumber,
         },
       };
     });
@@ -116,6 +124,10 @@ export class AuthService {
         name: user.name,
         role: user.role,
         shopId: payload.shopId,
+        avatar: user.avatar,
+        gender: user.gender,
+        birthday: user.birthday,
+        phoneNumber: user.phoneNumber,
       },
     };
   }
@@ -248,6 +260,84 @@ export class AuthService {
     }
     return this.prisma.shop.findMany({
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async updateUserProfile(
+    id: string,
+    dto: { name?: string; email?: string; phoneNumber?: string; gender?: string; birthday?: string; avatar?: string }
+  ) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException(`Người dùng với ID ${id} không tồn tại`);
+    }
+
+    return this.prisma.user.update({
+      where: { id },
+      data: dto,
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        role: true,
+        avatar: true,
+        gender: true,
+        birthday: true,
+        phoneNumber: true,
+      }
+    });
+  }
+
+  async getAllUsers() {
+    return this.prisma.user.findMany({
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async updateUserStatus(id: string, status: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { status }
+    });
+  }
+
+  async getCsStaff() {
+    return this.prisma.user.findMany({
+      where: { role: 'PLATFORM_SUPPORT' },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async createCsStaff(dto: any) {
+    const existingUser = await this.prisma.user.findUnique({
+      where: { email: dto.email }
+    });
+    if (existingUser) {
+      throw new ConflictException('Email đã tồn tại trong hệ thống');
+    }
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(dto.password, salt);
+    return this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: passwordHash,
+        name: dto.name,
+        role: 'PLATFORM_SUPPORT',
+        status: 'ACTIVE'
+      }
+    });
+  }
+
+  async getAuditLogs() {
+    return this.prisma.auditLog.findMany({
+      orderBy: { timestamp: 'desc' },
+      take: 100
+    });
+  }
+
+  async createAuditLog(user: string, action: string) {
+    return this.prisma.auditLog.create({
+      data: { user, action }
     });
   }
 }
