@@ -183,7 +183,7 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   // Vouchers and payment
   const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
-  const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay'>('cod')
+  const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'cod' | 'sepay'>('cod')
   const [dynamicShippingFee, setDynamicShippingFee] = useState<number>(0)
   
   // Shop Vouchers State

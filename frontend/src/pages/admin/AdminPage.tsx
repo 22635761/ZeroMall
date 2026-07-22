@@ -1221,14 +1221,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                       </div>
 
                       {(() => {
-                        const methods = ['cod', 'zeropay', 'vietqr', 'napas', 'card', 'gpay'];
+                        const methods = ['cod', 'zeropay', 'sepay'];
                         const methodLabels: Record<string, string> = {
                           cod: 'Thanh toán COD',
                           zeropay: 'Ví điện tử ZeroPay',
-                          vietqr: 'Chuyển khoản VietQR',
-                          napas: 'Thẻ Napas nội địa',
-                          card: 'Thẻ Visa/Mastercard',
-                          gpay: 'Google Pay'
+                          sepay: 'Chuyển khoản VietQR'
                         };
                         const distribution = methods.map(m => {
                           const ordersForMethod = filteredOrders.filter(o => o.paymentMethod?.toLowerCase() === m);

@@ -20,8 +20,8 @@ interface CheckoutStepViewProps {
   setActiveShopVoucherModalId: (id: string | null) => void
   selectedVoucher: 'none' | 'freeship' | 'discount10' | 'discount50k'
   setSelectedVoucher: (v: 'none' | 'freeship' | 'discount10' | 'discount50k') => void
-  paymentMethod: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay'
-  setPaymentMethod: (m: 'zeropay' | 'card' | 'gpay' | 'napas' | 'cod' | 'sepay') => void
+  paymentMethod: 'zeropay' | 'cod' | 'sepay'
+  setPaymentMethod: (m: 'zeropay' | 'cod' | 'sepay') => void
   itemsTotal: number
   insuranceTotal: number
   finalShippingFee: number
@@ -276,13 +276,10 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
             <h3 className="font-black text-slate-805 text-sm sm:text-base uppercase tracking-wider">Phương Thức Thanh Toán</h3>
           </div>
           
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3.5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-xl">
             {[
               { id: 'sepay', label: 'VietQR Chuyển khoản', icon: '📲' },
               { id: 'zeropay', label: 'ZeroPay', icon: '⚡' },
-              { id: 'card', label: 'Thẻ tín dụng', icon: '💳' },
-              { id: 'gpay', label: 'Google Pay', icon: '🤖' },
-              { id: 'napas', label: 'Thẻ ATM', icon: '🏦' },
               { id: 'cod', label: 'Thanh toán COD', icon: '💵' }
             ].map(method => (
               <div
