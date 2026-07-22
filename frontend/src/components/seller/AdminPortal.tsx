@@ -1878,7 +1878,18 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
                     />
                     <button
                       onClick={async () => {
-                        if (!newCsName.trim() || !newCsEmail.trim() || !newCsPassword.trim()) return
+                        if (!newCsName.trim()) {
+                          alert('Vui lòng nhập Họ tên nhân viên CSKH!')
+                          return
+                        }
+                        if (!newCsEmail.trim()) {
+                          alert('Vui lòng nhập Email nhân viên CSKH!')
+                          return
+                        }
+                        if (!newCsPassword.trim()) {
+                          alert('Vui lòng nhập Mật khẩu cho tài khoản!')
+                          return
+                        }
                         try {
                           const res = await fetch('http://localhost:8000/auth/cs-staff', {
                             method: 'POST',
