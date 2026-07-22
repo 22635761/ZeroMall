@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 interface AdminPortalProps {
   user: any
@@ -16,12 +17,77 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>('PENDING_APPROVAL') // 'ALL' | 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null)
   const [searchTerm, setSearchTerm] = useState('')
+
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  const getTabFromParam = (param: string | null): any => {
+    if (!param) return null;
+    switch (param.toLowerCase()) {
+      case 'shops': return 'SHOPS';
+      case 'withdrawals': return 'WITHDRAWALS';
+      case 'disputes': return 'DISPUTES';
+      case 'tickets': return 'TICKETS';
+      case 'orders': return 'ORDERS';
+      case 'users': return 'USERS';
+      case 'manage-shops': return 'MANAGE_SHOPS';
+      case 'categories': return 'CATEGORIES';
+      case 'violations': return 'VIOLATIONS';
+      case 'vouchers': return 'PLATFORM_VOUCHERS';
+      case 'flash-sale': return 'FLASH_SALE';
+      case 'cs-staff': return 'MANAGE_CS_STAFF';
+      case 'reports': return 'SYSTEM_REPORTS';
+      case 'audit-logs': return 'AUDIT_LOGS';
+      default: return null;
+    }
+  }
+
+  const getParamFromTab = (tab: string): string => {
+    switch (tab) {
+      case 'SHOPS': return 'shops';
+      case 'WITHDRAWALS': return 'withdrawals';
+      case 'DISPUTES': return 'disputes';
+      case 'TICKETS': return 'tickets';
+      case 'ORDERS': return 'orders';
+      case 'USERS': return 'users';
+      case 'MANAGE_SHOPS': return 'manage-shops';
+      case 'CATEGORIES': return 'categories';
+      case 'VIOLATIONS': return 'violations';
+      case 'PLATFORM_VOUCHERS': return 'vouchers';
+      case 'FLASH_SALE': return 'flash-sale';
+      case 'MANAGE_CS_STAFF': return 'cs-staff';
+      case 'SYSTEM_REPORTS': return 'reports';
+      case 'AUDIT_LOGS': return 'audit-logs';
+      default: return 'shops';
+    }
+  }
   
   // Tab control and withdrawal states
   const [activePortalTab, setActivePortalTab] = useState<
     'SHOPS' | 'WITHDRAWALS' | 'DISPUTES' | 'TICKETS' | 'ORDERS' |
     'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS'
-  >('SHOPS')
+  >(() => {
+    const searchParamsLocal = new URLSearchParams(window.location.search);
+    const param = searchParamsLocal.get('tab');
+    if (param) {
+      switch (param.toLowerCase()) {
+        case 'shops': return 'SHOPS';
+        case 'withdrawals': return 'WITHDRAWALS';
+        case 'disputes': return 'DISPUTES';
+        case 'tickets': return 'TICKETS';
+        case 'orders': return 'ORDERS';
+        case 'users': return 'USERS';
+        case 'manage-shops': return 'MANAGE_SHOPS';
+        case 'categories': return 'CATEGORIES';
+        case 'violations': return 'VIOLATIONS';
+        case 'vouchers': return 'PLATFORM_VOUCHERS';
+        case 'flash-sale': return 'FLASH_SALE';
+        case 'cs-staff': return 'MANAGE_CS_STAFF';
+        case 'reports': return 'SYSTEM_REPORTS';
+        case 'audit-logs': return 'AUDIT_LOGS';
+      }
+    }
+    return user?.role === 'ADMIN' ? 'USERS' : 'SHOPS';
+  })
   const [withdrawals, setWithdrawals] = useState<any[]>([])
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [disputes, setDisputes] = useState<any[]>([])
@@ -304,10 +370,24 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   }, [statusFilter, activePortalTab])
 
   useEffect(() => {
+    const tabParam = searchParams.get('tab')
+    if (tabParam) {
+      const parsed = getTabFromParam(tabParam)
+      if (parsed) {
+        setActivePortalTab(parsed)
+        return
+      }
+    }
     if (user?.role === 'ADMIN') {
       setActivePortalTab('USERS')
+    } else if (user?.role === 'PLATFORM_SUPPORT') {
+      setActivePortalTab('SHOPS')
     }
   }, [user])
+
+  useEffect(() => {
+    setSearchParams({ tab: getParamFromTab(activePortalTab) }, { replace: true })
+  }, [activePortalTab, setSearchParams])
 
   const handleApproveWithdrawal = async (reqId: string, action: 'APPROVED' | 'REJECTED') => {
     setActionLoadingId(reqId)
