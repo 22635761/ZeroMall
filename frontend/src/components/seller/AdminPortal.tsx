@@ -70,12 +70,14 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   // Refund destination selection
   const [refundDestinations, setRefundDestinations] = useState<Record<string, string>>({})
 
-  const fetchShops = async () => {
+  const fetchShops = async (forceAll: boolean = false) => {
     setLoading(true)
     try {
-      const url = statusFilter === 'ALL' 
+      const url = (forceAll || activePortalTab === 'MANAGE_SHOPS')
         ? `http://localhost:8000/auth/shops`
-        : `http://localhost:8000/auth/shops?status=${statusFilter}`
+        : (statusFilter === 'ALL' 
+            ? `http://localhost:8000/auth/shops`
+            : `http://localhost:8000/auth/shops?status=${statusFilter}`)
       const response = await fetch(url)
       if (!response.ok) throw new Error('Không thể tải danh sách cửa hàng')
       const data = await response.json()
