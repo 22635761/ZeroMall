@@ -116,6 +116,7 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
   const [newCsName, setNewCsName] = useState('')
   const [newCsEmail, setNewCsEmail] = useState('')
   const [newCsPassword, setNewCsPassword] = useState('')
+  const [showAddCsModal, setShowAddCsModal] = useState(false)
 
   // Admin - System Operation Audit logs state
   const [auditLogs, setAuditLogs] = useState<any[]>([])
@@ -1934,69 +1935,134 @@ export const AdminPortal: React.FC<AdminPortalProps> = ({
               <div className="bg-white border border-slate-200/60 rounded-xl p-6 shadow-2xs space-y-6">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <h3 className="text-sm font-extrabold text-slate-800 uppercase">🎧 Quản lý nhân viên Platform CS</h3>
-                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                    <input
-                      type="text"
-                      placeholder="Họ tên CS..."
-                      value={newCsName}
-                      onChange={(e) => setNewCsName(e.target.value)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-205 rounded-lg text-xs font-semibold focus:outline-hidden"
-                    />
-                    <input
-                      type="email"
-                      placeholder="Email CS..."
-                      value={newCsEmail}
-                      onChange={(e) => setNewCsEmail(e.target.value)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-205 rounded-lg text-xs font-semibold focus:outline-hidden"
-                    />
-                    <input
-                      type="password"
-                      placeholder="Mật khẩu..."
-                      value={newCsPassword}
-                      onChange={(e) => setNewCsPassword(e.target.value)}
-                      className="px-3 py-1.5 bg-slate-50 border border-slate-205 rounded-lg text-xs font-semibold focus:outline-hidden"
-                    />
-                    <button
-                      onClick={async () => {
-                        if (!newCsName.trim()) {
-                          alert('Vui lòng nhập Họ tên nhân viên CSKH!')
-                          return
-                        }
-                        if (!newCsEmail.trim()) {
-                          alert('Vui lòng nhập Email nhân viên CSKH!')
-                          return
-                        }
-                        if (!newCsPassword.trim()) {
-                          alert('Vui lòng nhập Mật khẩu cho tài khoản!')
-                          return
-                        }
-                        try {
-                          const res = await fetch('http://localhost:8000/auth/cs-staff', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ name: newCsName, email: newCsEmail, password: newCsPassword })
-                          })
-                          if (res.ok) {
-                            await triggerAuditLog(`Tạo tài khoản CSKH mới cho ${newCsEmail}`)
-                            fetchCsStaff()
-                            setNewCsName('')
-                            setNewCsEmail('')
-                            setNewCsPassword('')
-                            alert('Đã thêm nhân viên CSKH thành công!')
-                          } else {
-                            const errData = await res.json()
-                            alert('Lỗi thêm nhân viên CS: ' + (errData.message || 'Không xác định'))
-                          }
-                        } catch (err: any) {
-                          alert(err.message)
-                        }
-                      }}
-                      className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs cursor-pointer shadow-3xs"
-                    >
-                      Thêm nhân viên
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => setShowAddCsModal(true)}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold rounded-lg text-xs cursor-pointer shadow-3xs flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    </svg>
+                    Thêm nhân viên mới
+                  </button>
                 </div>
+
+                {/* MODAL THÊM NHÂN VIÊN */}
+                {showAddCsModal && (
+                  <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md border border-slate-100 overflow-hidden transform scale-100 transition-all text-left">
+                      {/* Header */}
+                      <div className="px-6 py-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
+                        <h3 className="text-xs font-black text-slate-850 uppercase flex items-center gap-2">
+                          <span>🎧</span> Thêm nhân viên CSKH mới
+                        </h3>
+                        <button
+                          onClick={() => {
+                            setShowAddCsModal(false);
+                            setNewCsName('');
+                            setNewCsEmail('');
+                            setNewCsPassword('');
+                          }}
+                          className="text-slate-400 hover:text-slate-650 p-1 rounded-full hover:bg-slate-100 transition-colors cursor-pointer"
+                        >
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      {/* Form Body */}
+                      <div className="p-6 space-y-4">
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Họ và Tên</label>
+                          <input
+                            type="text"
+                            placeholder="Nhập họ tên nhân viên..."
+                            value={newCsName}
+                            onChange={(e) => setNewCsName(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden focus:border-emerald-500 focus:bg-white transition-all"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Email liên hệ</label>
+                          <input
+                            type="email"
+                            placeholder="Nhập email đăng nhập..."
+                            value={newCsEmail}
+                            onChange={(e) => setNewCsEmail(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden focus:border-emerald-500 focus:bg-white transition-all"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-extrabold text-slate-500 uppercase tracking-wider">Mật khẩu</label>
+                          <input
+                            type="password"
+                            placeholder="Tạo mật khẩu cho tài khoản..."
+                            value={newCsPassword}
+                            onChange={(e) => setNewCsPassword(e.target.value)}
+                            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-semibold focus:outline-hidden focus:border-emerald-500 focus:bg-white transition-all"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Footer Actions */}
+                      <div className="px-6 py-4 bg-slate-50 border-t border-slate-100 flex justify-end gap-2">
+                        <button
+                          onClick={() => {
+                            setShowAddCsModal(false);
+                            setNewCsName('');
+                            setNewCsEmail('');
+                            setNewCsPassword('');
+                          }}
+                          className="px-4 py-2 bg-slate-200 hover:bg-slate-300/80 text-slate-750 font-bold rounded-lg text-xs cursor-pointer transition-colors"
+                        >
+                          Hủy bỏ
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!newCsName.trim()) {
+                              alert('Vui lòng nhập Họ tên nhân viên CSKH!')
+                              return
+                            }
+                            if (!newCsEmail.trim()) {
+                              alert('Vui lòng nhập Email nhân viên CSKH!')
+                              return
+                            }
+                            if (!newCsPassword.trim()) {
+                              alert('Vui lòng nhập Mật khẩu cho tài khoản!')
+                              return
+                            }
+                            try {
+                              const res = await fetch('http://localhost:8000/auth/cs-staff', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ name: newCsName, email: newCsEmail, password: newCsPassword })
+                              })
+                              if (res.ok) {
+                                await triggerAuditLog(`Tạo tài khoản CSKH mới cho ${newCsEmail}`)
+                                fetchCsStaff()
+                                setNewCsName('')
+                                setNewCsEmail('')
+                                setNewCsPassword('')
+                                setShowAddCsModal(false)
+                                alert('Đã thêm nhân viên CSKH thành công!')
+                              } else {
+                                const errData = await res.json()
+                                alert('Lỗi thêm nhân viên CS: ' + (errData.message || 'Không xác định'))
+                              }
+                            } catch (err: any) {
+                              alert(err.message)
+                            }
+                          }}
+                          className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg text-xs cursor-pointer shadow-3xs transition-colors"
+                        >
+                          Xác nhận tạo
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs text-left text-slate-700">
