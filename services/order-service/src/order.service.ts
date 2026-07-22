@@ -167,6 +167,9 @@ export class OrderService implements OnModuleInit {
   async updateOrderStatus(id: string, dto: UpdateOrderStatusDto) {
     const exists = await this.prisma.order.findUnique({
       where: { id },
+      include: {
+        items: true,
+      },
     });
 
     if (!exists) {
@@ -189,13 +192,35 @@ export class OrderService implements OnModuleInit {
       updateData.refundEmail = dto.refundEmail;
     }
 
-    return this.prisma.order.update({
+    const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: updateData,
       include: {
         items: true,
       },
     });
+
+    if (dto.status === 'COMPLETED' && exists.status !== 'COMPLETED') {
+      try {
+        const payload = {
+          orderId: exists.id,
+          totalAmount: exists.totalAmount,
+          items: exists.items.map(item => ({
+            shopId: item.shopId,
+            amount: item.price * item.quantity
+          }))
+        };
+        await fetch('http://payment-service:3005/payments/credit-shop', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (err) {
+        console.error('Error calling payment-service for shop revenue:', err);
+      }
+    }
+
+    return updatedOrder;
   }
 
   async getAllOrders() {

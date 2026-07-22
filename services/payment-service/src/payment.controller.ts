@@ -100,4 +100,23 @@ export class PaymentController {
   async refundOrder(@Body() body: { orderId: string; buyerId: string; amount: number }) {
     return this.paymentService.refundOrder(body.orderId, body.buyerId, body.amount);
   }
+
+  @Get('commission-rate')
+  async getCommissionRate() {
+    const rate = await this.paymentService.getCommissionRate();
+    return { rate };
+  }
+
+  @Post('commission-rate')
+  async updateCommissionRate(@Body('rate') rate: number) {
+    await this.paymentService.updateCommissionRate(rate);
+    return { success: true, message: 'Commission rate updated successfully' };
+  }
+
+  @Post('credit-shop')
+  async creditShopRevenue(
+    @Body() payload: { orderId: string; totalAmount: number; items: { shopId: string; amount: number }[] }
+  ) {
+    return this.paymentService.creditShopRevenue(payload);
+  }
 }

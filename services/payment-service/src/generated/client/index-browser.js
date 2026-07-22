@@ -162,6 +162,11 @@ exports.Prisma.WithdrawRequestScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.SystemConfigScalarFieldEnum = {
+  key: 'key',
+  value: 'value'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -182,7 +187,8 @@ exports.Prisma.ModelName = {
   Transaction: 'Transaction',
   Wallet: 'Wallet',
   WalletTransaction: 'WalletTransaction',
-  WithdrawRequest: 'WithdrawRequest'
+  WithdrawRequest: 'WithdrawRequest',
+  SystemConfig: 'SystemConfig'
 };
 
 /**

@@ -30,6 +30,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [allOrders, setAllOrders] = useState<any[]>([])
   const [reportRange, setReportRange] = useState<'1_DAY' | '3_DAYS' | '7_DAYS' | '30_DAYS' | 'ALL'>('ALL')
   const [activeStatDetail, setActiveStatDetail] = useState<'GMV' | 'ORDERS' | 'USERS' | 'REFUNDS'>('GMV')
+  const [commissionRate, setCommissionRate] = useState<number>(5)
+  const [isEditingCommission, setIsEditingCommission] = useState(false)
+  const [tempCommissionRate, setTempCommissionRate] = useState('5')
   const [searchParams, setSearchParams] = useSearchParams()
 
   const getTabFromParam = (param: string | null): any => {
@@ -173,6 +176,19 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   }
 
+  const fetchCommissionRate = async () => {
+    try {
+      const res = await fetch('http://localhost:8000/payments/commission-rate')
+      if (res.ok) {
+        const data = await res.json()
+        setCommissionRate(data.rate)
+        setTempCommissionRate(data.rate.toString())
+      }
+    } catch (err) {
+      console.error('Error fetching commission rate:', err)
+    }
+  }
+
   useEffect(() => {
     if (activePortalTab === 'MANAGE_SHOPS') {
       fetchShops()
@@ -194,6 +210,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       fetchShops()
       fetchUsers()
       fetchAllOrders()
+      fetchCommissionRate()
     }
   }, [activePortalTab])
 
@@ -1107,32 +1124,108 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
             return (
               <div className="space-y-6">
-                {/* BỘ LỌC THỜI GIAN */}
-                <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div>
-                    <h3 className="text-sm font-extrabold text-slate-800 uppercase">📊 Báo cáo thống kê hệ thống</h3>
-                    <p className="text-[10px] text-slate-400 font-bold mt-1">Lọc số liệu theo thời gian thực từ cơ sở dữ liệu</p>
+                {/* BỘ LỌC THỜI GIAN & CẤU HÌNH CHIẾT KHẤU */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Bộ lọc thời gian */}
+                  <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs flex justify-between items-center gap-4">
+                    <div>
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide">📅 Bộ lọc thời gian</h3>
+                      <p className="text-[9px] text-slate-400 font-bold mt-1">Lọc dữ liệu thống kê trong DB</p>
+                    </div>
+                    <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200/60">
+                      {[
+                        { id: '1_DAY', label: '1 Ngày' },
+                        { id: '3_DAYS', label: '3 Ngày' },
+                        { id: '7_DAYS', label: '7 Ngày' },
+                        { id: '30_DAYS', label: '1 Tháng' },
+                        { id: 'ALL', label: 'Tất cả' }
+                      ].map(range => (
+                        <button
+                          key={range.id}
+                          onClick={() => setReportRange(range.id as any)}
+                          className={`px-2 py-1 rounded-md text-[10px] font-black transition cursor-pointer select-none ${
+                            reportRange === range.id
+                              ? 'bg-white text-emerald-600 shadow-2xs border border-slate-200/20'
+                              : 'text-slate-500 hover:text-slate-850'
+                          }`}
+                        >
+                          {range.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="flex bg-slate-100 p-1 rounded-lg border border-slate-200/60 shrink-0">
-                    {[
-                      { id: '1_DAY', label: '1 Ngày' },
-                      { id: '3_DAYS', label: '3 Ngày' },
-                      { id: '7_DAYS', label: '7 Ngày' },
-                      { id: '30_DAYS', label: '1 Tháng' },
-                      { id: 'ALL', label: 'Tất cả' }
-                    ].map(range => (
-                      <button
-                        key={range.id}
-                        onClick={() => setReportRange(range.id as any)}
-                        className={`px-3 py-1.5 rounded-md text-xs font-black transition cursor-pointer select-none ${
-                          reportRange === range.id
-                            ? 'bg-white text-emerald-600 shadow-2xs border border-slate-200/20'
-                            : 'text-slate-500 hover:text-slate-850'
-                        }`}
-                      >
-                        {range.label}
-                      </button>
-                    ))}
+
+                  {/* Cấu hình chiết khấu sàn */}
+                  <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs flex justify-between items-center gap-4">
+                    <div>
+                      <h3 className="text-xs font-black text-slate-800 uppercase tracking-wide">⚙️ Chiết khấu sàn (%)</h3>
+                      <p className="text-[9px] text-slate-400 font-bold mt-1">Khấu trừ khi Shop hoàn thành đơn hàng</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {isEditingCommission ? (
+                        <>
+                          <input
+                            type="number"
+                            min="0"
+                            max="100"
+                            step="0.1"
+                            value={tempCommissionRate}
+                            onChange={(e) => setTempCommissionRate(e.target.value)}
+                            className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded text-xs font-extrabold focus:outline-hidden text-center focus:border-emerald-500 focus:bg-white"
+                          />
+                          <button
+                            onClick={async () => {
+                              const val = parseFloat(tempCommissionRate)
+                              if (isNaN(val) || val < 0 || val > 100) {
+                                alert('Mức chiết khấu phải từ 0% đến 100%!')
+                                return
+                              }
+                              try {
+                                const res = await fetch('http://localhost:8000/payments/commission-rate', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ rate: val })
+                                })
+                                if (res.ok) {
+                                  await triggerAuditLog(`Thay đổi mức chiết khấu sàn thành ${val}%`)
+                                  setCommissionRate(val)
+                                  setIsEditingCommission(false)
+                                  alert('Đã cập nhật mức chiết khấu sàn thành công!')
+                                } else {
+                                  alert('Lỗi cập nhật chiết khấu sàn')
+                                }
+                              } catch (err: any) {
+                                alert(err.message)
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded text-[10px] cursor-pointer"
+                          >
+                            Lưu
+                          </button>
+                          <button
+                            onClick={() => {
+                              setTempCommissionRate(commissionRate.toString())
+                              setIsEditingCommission(false)
+                            }}
+                            className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded text-[10px] cursor-pointer"
+                          >
+                            Hủy
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <span className="text-sm font-black text-slate-800 bg-slate-100 px-3 py-1 rounded-lg border border-slate-200/50">
+                            {commissionRate}%
+                          </span>
+                          <button
+                            onClick={() => setIsEditingCommission(true)}
+                            className="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-600 font-bold rounded text-[10px] cursor-pointer border border-emerald-100 transition active:scale-95"
+                          >
+                            Thay đổi
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -1236,53 +1329,68 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         }).sort((a, b) => b.sum - a.sum);
 
                         return (
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-4">
-                              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Phân bổ doanh số thanh toán</h5>
-                              <div className="space-y-3.5">
-                                {distribution.map(item => (
-                                  <div key={item.method} className="space-y-1 text-xs">
-                                    <div className="flex justify-between font-bold text-slate-700">
-                                      <span>{item.label} ({item.count} đơn)</span>
-                                      <span>{item.sum.toLocaleString('vi-VN')}đ ({item.pct.toFixed(1)}%)</span>
-                                    </div>
-                                    <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
-                                      <div 
-                                        className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                                        style={{ width: `${item.pct}%` }}
-                                      />
-                                    </div>
-                                  </div>
-                                ))}
+                          <div className="space-y-6">
+                            {/* Khối tóm tắt Doanh thu sàn thu được */}
+                            <div className="bg-emerald-500/[0.03] border border-emerald-500/20 rounded-xl p-4 flex justify-between items-center">
+                              <div>
+                                <h5 className="text-[10px] font-black text-emerald-605 uppercase tracking-wider">Doanh thu chiết khấu sàn (Tạm tính)</h5>
+                                <p className="text-[9px] text-slate-450 mt-0.5 font-bold">Tính bằng {commissionRate}% trên tổng GMV của kỳ lọc ({totalGMV.toLocaleString('vi-VN')}đ)</p>
+                              </div>
+                              <div className="text-right">
+                                <span className="text-base font-black text-emerald-600">
+                                  +{Math.round(totalGMV * (commissionRate / 100)).toLocaleString('vi-VN')}đ
+                                </span>
                               </div>
                             </div>
 
-                            <div className="space-y-4">
-                              <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Top 5 đơn hàng giá trị cao nhất</h5>
-                              <div className="divide-y divide-slate-100">
-                                {[...filteredOrders]
-                                  .sort((a, b) => b.totalAmount - a.totalAmount)
-                                  .slice(0, 5)
-                                  .map((order, idx) => (
-                                    <div key={order.id} className="py-2.5 flex justify-between items-center text-xs">
-                                      <div className="flex items-center gap-2">
-                                        <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">
-                                          {idx + 1}
-                                        </span>
-                                        <div className="flex flex-col">
-                                          <span className="font-bold text-slate-800 font-mono">{order.id}</span>
-                                          <span className="text-[9px] text-slate-400 font-semibold">{order.buyerEmail}</span>
-                                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Phân bổ doanh số thanh toán</h5>
+                                <div className="space-y-3.5">
+                                  {distribution.map(item => (
+                                    <div key={item.method} className="space-y-1 text-xs">
+                                      <div className="flex justify-between font-bold text-slate-700">
+                                        <span>{item.label} ({item.count} đơn)</span>
+                                        <span>{item.sum.toLocaleString('vi-VN')}đ ({item.pct.toFixed(1)}%)</span>
                                       </div>
-                                      <div className="text-right">
-                                        <p className="font-extrabold text-slate-850">{Number(order.totalAmount).toLocaleString('vi-VN')}đ</p>
-                                        <span className="text-[8px] font-bold text-slate-400 uppercase">{order.paymentMethod}</span>
+                                      <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                                        <div 
+                                          className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                                          style={{ width: `${item.pct}%` }}
+                                        />
                                       </div>
                                     </div>
                                   ))}
-                                {filteredOrders.length === 0 && (
-                                  <p className="text-xs text-slate-400 font-bold py-4 text-center">Chưa có dữ liệu đơn hàng</p>
-                                )}
+                                </div>
+                              </div>
+
+                              <div className="space-y-4">
+                                <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Top 5 đơn hàng giá trị cao nhất</h5>
+                                <div className="divide-y divide-slate-100">
+                                  {[...filteredOrders]
+                                    .sort((a, b) => b.totalAmount - a.totalAmount)
+                                    .slice(0, 5)
+                                    .map((order, idx) => (
+                                      <div key={order.id} className="py-2.5 flex justify-between items-center text-xs">
+                                        <div className="flex items-center gap-2">
+                                          <span className="w-5 h-5 rounded-full bg-slate-100 flex items-center justify-center font-bold text-[10px] text-slate-500">
+                                            {idx + 1}
+                                          </span>
+                                          <div className="flex flex-col">
+                                            <span className="font-bold text-slate-800 font-mono">{order.id}</span>
+                                            <span className="text-[9px] text-slate-400 font-semibold">{order.buyerEmail}</span>
+                                          </div>
+                                        </div>
+                                        <div className="text-right">
+                                          <p className="font-extrabold text-slate-850">{Number(order.totalAmount).toLocaleString('vi-VN')}đ</p>
+                                          <span className="text-[8px] font-bold text-slate-400 uppercase">{order.paymentMethod}</span>
+                                        </div>
+                                      </div>
+                                    ))}
+                                  {filteredOrders.length === 0 && (
+                                    <p className="text-xs text-slate-400 font-bold py-4 text-center">Chưa có dữ liệu đơn hàng</p>
+                                  )}
+                                </div>
                               </div>
                             </div>
                           </div>

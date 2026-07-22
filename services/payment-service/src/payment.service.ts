@@ -505,4 +505,107 @@ export class PaymentService {
     console.log(`PaymentService: Refunded ${amount} for order ${orderId} to user ${buyerId} wallet`);
     return updatedWallet;
   }
+
+  async getCommissionRate(): Promise<number> {
+    const config = await this.prisma.systemConfig.findUnique({
+      where: { key: 'commission_rate' },
+    });
+    if (!config) {
+      return 5.0; // Mặc định chiết khấu sàn 5.0%
+    }
+    return parseFloat(config.value);
+  }
+
+  async updateCommissionRate(rate: number) {
+    return this.prisma.systemConfig.upsert({
+      where: { key: 'commission_rate' },
+      update: { value: rate.toString() },
+      create: { key: 'commission_rate', value: rate.toString() },
+    });
+  }
+
+  async creditShopRevenue(payload: { orderId: string; totalAmount: number; items: { shopId: string; amount: number }[] }) {
+    const rate = await this.getCommissionRate();
+    
+    // Kiểm tra trùng lặp
+    const existingTx = await this.prisma.walletTransaction.findFirst({
+      where: {
+        description: {
+          contains: `đơn hàng #${payload.orderId}`
+        }
+      }
+    });
+    if (existingTx) {
+      console.log(`PaymentService: Revenue already credited for order ${payload.orderId}`);
+      return { success: true, message: 'Revenue already credited' };
+    }
+
+    return this.prisma.$transaction(async (prismaTx) => {
+      for (const item of payload.items) {
+        const shopItemsTotal = item.amount;
+        const commissionFee = shopItemsTotal * (rate / 100);
+        const netRevenue = shopItemsTotal - commissionFee;
+
+        // 1. Cộng tiền ví Shop
+        let shopWallet = await prismaTx.wallet.findUnique({
+          where: { buyerId: item.shopId }
+        });
+        if (!shopWallet) {
+          shopWallet = await prismaTx.wallet.create({
+            data: { buyerId: item.shopId, balance: 5000000 }
+          });
+        }
+
+        const updatedShopWallet = await prismaTx.wallet.update({
+          where: { id: shopWallet.id },
+          data: {
+            balance: {
+              increment: netRevenue
+            }
+          }
+        });
+
+        await prismaTx.walletTransaction.create({
+          data: {
+            walletId: updatedShopWallet.id,
+            amount: netRevenue,
+            type: 'REVENUE',
+            description: `Nhận doanh thu đơn hàng #${payload.orderId} (Đã khấu trừ chiết khấu sàn ${rate}%: -${Math.round(commissionFee).toLocaleString('vi-VN')}đ)`,
+            status: 'SUCCESS'
+          }
+        });
+
+        // 2. Cộng tiền chiết khấu về ví Sàn
+        let platformWallet = await prismaTx.wallet.findUnique({
+          where: { buyerId: 'PLATFORM' }
+        });
+        if (!platformWallet) {
+          platformWallet = await prismaTx.wallet.create({
+            data: { buyerId: 'PLATFORM', balance: 0 }
+          });
+        }
+
+        const updatedPlatformWallet = await prismaTx.wallet.update({
+          where: { id: platformWallet.id },
+          data: {
+            balance: {
+              increment: commissionFee
+            }
+          }
+        });
+
+        await prismaTx.walletTransaction.create({
+          data: {
+            walletId: updatedPlatformWallet.id,
+            amount: commissionFee,
+            type: 'COMMISSION',
+            description: `Chiết khấu sàn đơn hàng #${payload.orderId} từ Shop ${item.shopId}`,
+            status: 'SUCCESS'
+          }
+        });
+      }
+
+      return { success: true };
+    });
+  }
 }
