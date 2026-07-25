@@ -110,14 +110,33 @@ ZeroMall/
 
 ## 🚀 4. Hướng Dẫn Chạy Dự Án
 
-### Sử Dụng Docker Compose (Khuyến nghị)
+### CÁCH 1: Khôi Phục Nhanh CSDL Từ Tệp Sao Lưu (`zeromall_backup.sql`) — Khuyên dùng cho máy mới / người khác pull về
 
-**Bước 1 — Khởi động toàn bộ các Container:**
+Khi pull dự án về máy khác, bạn chỉ cần thực hiện 2 bước đơn giản để khởi động đầy đủ dữ liệu thực tế (bảo toàn tất cả đơn hàng, số dư ví, tài khoản ngân hàng, voucher...):
+
+**Bước 1 — Bật toàn bộ dịch vụ với Docker Compose:**
 ```bash
 docker compose up -d --build
 ```
 
-**Bước 2 — Đồng bộ cấu trúc cơ sở dữ liệu (Database Schema):**
+**Bước 2 — Import toàn bộ Cơ Sở Dữ Liệu từ tệp `zeromall_backup.sql` có sẵn:**
+```bash
+docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.sql
+```
+*Chỉ cần chạy duy nhất lệnh trên, toàn bộ 5 Schema (`auth`, `product`, `discount`, `order`, `payment`) sẽ được khôi phục $100\%$ hoàn chỉnh!*
+
+---
+
+### CÁCH 2: Khởi Tạo CSDL Mới Từ Đầu (Prisma Push + Seed Script)
+
+Nếu muốn khởi tạo dữ liệu trắng từ đầu:
+
+**Bước 1 — Bật dịch vụ Docker:**
+```bash
+docker compose up -d --build
+```
+
+**Bước 2 — Đẩy Schema Prisma của từng dịch vụ vào PostgreSQL:**
 ```bash
 # Đồng bộ auth-service
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zeromall?schema=auth" npx prisma db push --schema=services/auth-service/prisma/schema.prisma
@@ -135,16 +154,32 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zeromall?schema=orde
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/zeromall?schema=payment" npx prisma db push --schema=services/payment-service/prisma/schema.prisma
 ```
 
-**Bước 3 — Nạp dữ liệu mẫu (Sản phẩm & Review):**
+**Bước 3 — Nạp dữ liệu mẫu ban đầu:**
 ```bash
 node services/product-service/seed_postgres.js
 ```
 
-**Bước 4 — Truy cập các địa chỉ ứng dụng:**
+---
+
+### 🌐 Địa Chỉ Truy Cập Dịch Vụ
 
 - **React Frontend**: http://localhost:3000
 - **Kong API Gateway**: http://localhost:8000
-- **pgAdmin (Quản lý Database)**: http://localhost:5050 (Email: `admin@zeromall.com`, Mật khẩu: `admin`)
+- **pgAdmin (Quản lý CSDL)**: http://localhost:5050 (Email: `admin@zeromall.com`, Mật khẩu: `admin`)
+
+---
+
+## 💾 6. Hướng Dẫn Sao Lưu & Khôi Phục Cơ Sở Dữ Liệu (Backup & Restore)
+
+- **Xuất tệp sao lưu CSDL mới nhất (Export Backup)**:
+  ```bash
+  docker exec zeromall-postgres pg_dump -U postgres -d zeromall > zeromall_backup.sql
+  ```
+
+- **Nhập tệp sao lưu CSDL (Import Restore)**:
+  ```bash
+  docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.sql
+  ```
 
 ---
 
