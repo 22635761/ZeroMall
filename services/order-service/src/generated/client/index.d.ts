@@ -1002,12 +1002,16 @@ export namespace Prisma {
   export type OrderAvgAggregateOutputType = {
     totalAmount: number | null
     shippingFee: number | null
+    shopDiscountAmount: number | null
+    platformDiscountAmount: number | null
     ghnDistrictId: number | null
   }
 
   export type OrderSumAggregateOutputType = {
     totalAmount: number | null
     shippingFee: number | null
+    shopDiscountAmount: number | null
+    platformDiscountAmount: number | null
     ghnDistrictId: number | null
   }
 
@@ -1022,9 +1026,18 @@ export namespace Prisma {
     shippingFee: number | null
     paymentMethod: string | null
     status: string | null
+    shopDiscountAmount: number | null
+    platformDiscountAmount: number | null
+    shopVoucherCode: string | null
+    platformVoucherCode: string | null
+    appliedVoucherIds: string | null
     ghnDistrictId: number | null
     ghnWardCode: string | null
     ghnOrderCode: string | null
+    refundReason: string | null
+    refundDescription: string | null
+    refundEmail: string | null
+    refundProofImages: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1040,9 +1053,18 @@ export namespace Prisma {
     shippingFee: number | null
     paymentMethod: string | null
     status: string | null
+    shopDiscountAmount: number | null
+    platformDiscountAmount: number | null
+    shopVoucherCode: string | null
+    platformVoucherCode: string | null
+    appliedVoucherIds: string | null
     ghnDistrictId: number | null
     ghnWardCode: string | null
     ghnOrderCode: string | null
+    refundReason: string | null
+    refundDescription: string | null
+    refundEmail: string | null
+    refundProofImages: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1058,9 +1080,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: number
     status: number
+    shopDiscountAmount: number
+    platformDiscountAmount: number
+    shopVoucherCode: number
+    platformVoucherCode: number
+    appliedVoucherIds: number
     ghnDistrictId: number
     ghnWardCode: number
     ghnOrderCode: number
+    refundReason: number
+    refundDescription: number
+    refundEmail: number
+    refundProofImages: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -1070,12 +1101,16 @@ export namespace Prisma {
   export type OrderAvgAggregateInputType = {
     totalAmount?: true
     shippingFee?: true
+    shopDiscountAmount?: true
+    platformDiscountAmount?: true
     ghnDistrictId?: true
   }
 
   export type OrderSumAggregateInputType = {
     totalAmount?: true
     shippingFee?: true
+    shopDiscountAmount?: true
+    platformDiscountAmount?: true
     ghnDistrictId?: true
   }
 
@@ -1090,9 +1125,18 @@ export namespace Prisma {
     shippingFee?: true
     paymentMethod?: true
     status?: true
+    shopDiscountAmount?: true
+    platformDiscountAmount?: true
+    shopVoucherCode?: true
+    platformVoucherCode?: true
+    appliedVoucherIds?: true
     ghnDistrictId?: true
     ghnWardCode?: true
     ghnOrderCode?: true
+    refundReason?: true
+    refundDescription?: true
+    refundEmail?: true
+    refundProofImages?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1108,9 +1152,18 @@ export namespace Prisma {
     shippingFee?: true
     paymentMethod?: true
     status?: true
+    shopDiscountAmount?: true
+    platformDiscountAmount?: true
+    shopVoucherCode?: true
+    platformVoucherCode?: true
+    appliedVoucherIds?: true
     ghnDistrictId?: true
     ghnWardCode?: true
     ghnOrderCode?: true
+    refundReason?: true
+    refundDescription?: true
+    refundEmail?: true
+    refundProofImages?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1126,9 +1179,18 @@ export namespace Prisma {
     shippingFee?: true
     paymentMethod?: true
     status?: true
+    shopDiscountAmount?: true
+    platformDiscountAmount?: true
+    shopVoucherCode?: true
+    platformVoucherCode?: true
+    appliedVoucherIds?: true
     ghnDistrictId?: true
     ghnWardCode?: true
     ghnOrderCode?: true
+    refundReason?: true
+    refundDescription?: true
+    refundEmail?: true
+    refundProofImages?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1231,9 +1293,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status: string
+    shopDiscountAmount: number
+    platformDiscountAmount: number
+    shopVoucherCode: string | null
+    platformVoucherCode: string | null
+    appliedVoucherIds: string | null
     ghnDistrictId: number | null
     ghnWardCode: string | null
     ghnOrderCode: string | null
+    refundReason: string | null
+    refundDescription: string | null
+    refundEmail: string | null
+    refundProofImages: string | null
     createdAt: Date
     updatedAt: Date
     _count: OrderCountAggregateOutputType | null
@@ -1268,9 +1339,18 @@ export namespace Prisma {
     shippingFee?: boolean
     paymentMethod?: boolean
     status?: boolean
+    shopDiscountAmount?: boolean
+    platformDiscountAmount?: boolean
+    shopVoucherCode?: boolean
+    platformVoucherCode?: boolean
+    appliedVoucherIds?: boolean
     ghnDistrictId?: boolean
     ghnWardCode?: boolean
     ghnOrderCode?: boolean
+    refundReason?: boolean
+    refundDescription?: boolean
+    refundEmail?: boolean
+    refundProofImages?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     items?: boolean | Order$itemsArgs<ExtArgs>
@@ -1288,9 +1368,18 @@ export namespace Prisma {
     shippingFee?: boolean
     paymentMethod?: boolean
     status?: boolean
+    shopDiscountAmount?: boolean
+    platformDiscountAmount?: boolean
+    shopVoucherCode?: boolean
+    platformVoucherCode?: boolean
+    appliedVoucherIds?: boolean
     ghnDistrictId?: boolean
     ghnWardCode?: boolean
     ghnOrderCode?: boolean
+    refundReason?: boolean
+    refundDescription?: boolean
+    refundEmail?: boolean
+    refundProofImages?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["order"]>
@@ -1306,9 +1395,18 @@ export namespace Prisma {
     shippingFee?: boolean
     paymentMethod?: boolean
     status?: boolean
+    shopDiscountAmount?: boolean
+    platformDiscountAmount?: boolean
+    shopVoucherCode?: boolean
+    platformVoucherCode?: boolean
+    appliedVoucherIds?: boolean
     ghnDistrictId?: boolean
     ghnWardCode?: boolean
     ghnOrderCode?: boolean
+    refundReason?: boolean
+    refundDescription?: boolean
+    refundEmail?: boolean
+    refundProofImages?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["order"]>
@@ -1324,14 +1422,23 @@ export namespace Prisma {
     shippingFee?: boolean
     paymentMethod?: boolean
     status?: boolean
+    shopDiscountAmount?: boolean
+    platformDiscountAmount?: boolean
+    shopVoucherCode?: boolean
+    platformVoucherCode?: boolean
+    appliedVoucherIds?: boolean
     ghnDistrictId?: boolean
     ghnWardCode?: boolean
     ghnOrderCode?: boolean
+    refundReason?: boolean
+    refundDescription?: boolean
+    refundEmail?: boolean
+    refundProofImages?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "buyerId" | "buyerEmail" | "buyerName" | "buyerPhone" | "shippingAddress" | "totalAmount" | "shippingFee" | "paymentMethod" | "status" | "ghnDistrictId" | "ghnWardCode" | "ghnOrderCode" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "buyerId" | "buyerEmail" | "buyerName" | "buyerPhone" | "shippingAddress" | "totalAmount" | "shippingFee" | "paymentMethod" | "status" | "shopDiscountAmount" | "platformDiscountAmount" | "shopVoucherCode" | "platformVoucherCode" | "appliedVoucherIds" | "ghnDistrictId" | "ghnWardCode" | "ghnOrderCode" | "refundReason" | "refundDescription" | "refundEmail" | "refundProofImages" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     items?: boolean | Order$itemsArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -1355,9 +1462,18 @@ export namespace Prisma {
       shippingFee: number
       paymentMethod: string
       status: string
+      shopDiscountAmount: number
+      platformDiscountAmount: number
+      shopVoucherCode: string | null
+      platformVoucherCode: string | null
+      appliedVoucherIds: string | null
       ghnDistrictId: number | null
       ghnWardCode: string | null
       ghnOrderCode: string | null
+      refundReason: string | null
+      refundDescription: string | null
+      refundEmail: string | null
+      refundProofImages: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["order"]>
@@ -1794,9 +1910,18 @@ export namespace Prisma {
     readonly shippingFee: FieldRef<"Order", 'Float'>
     readonly paymentMethod: FieldRef<"Order", 'String'>
     readonly status: FieldRef<"Order", 'String'>
+    readonly shopDiscountAmount: FieldRef<"Order", 'Float'>
+    readonly platformDiscountAmount: FieldRef<"Order", 'Float'>
+    readonly shopVoucherCode: FieldRef<"Order", 'String'>
+    readonly platformVoucherCode: FieldRef<"Order", 'String'>
+    readonly appliedVoucherIds: FieldRef<"Order", 'String'>
     readonly ghnDistrictId: FieldRef<"Order", 'Int'>
     readonly ghnWardCode: FieldRef<"Order", 'String'>
     readonly ghnOrderCode: FieldRef<"Order", 'String'>
+    readonly refundReason: FieldRef<"Order", 'String'>
+    readonly refundDescription: FieldRef<"Order", 'String'>
+    readonly refundEmail: FieldRef<"Order", 'String'>
+    readonly refundProofImages: FieldRef<"Order", 'String'>
     readonly createdAt: FieldRef<"Order", 'DateTime'>
     readonly updatedAt: FieldRef<"Order", 'DateTime'>
   }
@@ -3412,9 +3537,18 @@ export namespace Prisma {
     shippingFee: 'shippingFee',
     paymentMethod: 'paymentMethod',
     status: 'status',
+    shopDiscountAmount: 'shopDiscountAmount',
+    platformDiscountAmount: 'platformDiscountAmount',
+    shopVoucherCode: 'shopVoucherCode',
+    platformVoucherCode: 'platformVoucherCode',
+    appliedVoucherIds: 'appliedVoucherIds',
     ghnDistrictId: 'ghnDistrictId',
     ghnWardCode: 'ghnWardCode',
     ghnOrderCode: 'ghnOrderCode',
+    refundReason: 'refundReason',
+    refundDescription: 'refundDescription',
+    refundEmail: 'refundEmail',
+    refundProofImages: 'refundProofImages',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -3539,9 +3673,18 @@ export namespace Prisma {
     shippingFee?: FloatFilter<"Order"> | number
     paymentMethod?: StringFilter<"Order"> | string
     status?: StringFilter<"Order"> | string
+    shopDiscountAmount?: FloatFilter<"Order"> | number
+    platformDiscountAmount?: FloatFilter<"Order"> | number
+    shopVoucherCode?: StringNullableFilter<"Order"> | string | null
+    platformVoucherCode?: StringNullableFilter<"Order"> | string | null
+    appliedVoucherIds?: StringNullableFilter<"Order"> | string | null
     ghnDistrictId?: IntNullableFilter<"Order"> | number | null
     ghnWardCode?: StringNullableFilter<"Order"> | string | null
     ghnOrderCode?: StringNullableFilter<"Order"> | string | null
+    refundReason?: StringNullableFilter<"Order"> | string | null
+    refundDescription?: StringNullableFilter<"Order"> | string | null
+    refundEmail?: StringNullableFilter<"Order"> | string | null
+    refundProofImages?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
@@ -3558,9 +3701,18 @@ export namespace Prisma {
     shippingFee?: SortOrder
     paymentMethod?: SortOrder
     status?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
+    shopVoucherCode?: SortOrderInput | SortOrder
+    platformVoucherCode?: SortOrderInput | SortOrder
+    appliedVoucherIds?: SortOrderInput | SortOrder
     ghnDistrictId?: SortOrderInput | SortOrder
     ghnWardCode?: SortOrderInput | SortOrder
     ghnOrderCode?: SortOrderInput | SortOrder
+    refundReason?: SortOrderInput | SortOrder
+    refundDescription?: SortOrderInput | SortOrder
+    refundEmail?: SortOrderInput | SortOrder
+    refundProofImages?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     items?: OrderItemOrderByRelationAggregateInput
@@ -3580,9 +3732,18 @@ export namespace Prisma {
     shippingFee?: FloatFilter<"Order"> | number
     paymentMethod?: StringFilter<"Order"> | string
     status?: StringFilter<"Order"> | string
+    shopDiscountAmount?: FloatFilter<"Order"> | number
+    platformDiscountAmount?: FloatFilter<"Order"> | number
+    shopVoucherCode?: StringNullableFilter<"Order"> | string | null
+    platformVoucherCode?: StringNullableFilter<"Order"> | string | null
+    appliedVoucherIds?: StringNullableFilter<"Order"> | string | null
     ghnDistrictId?: IntNullableFilter<"Order"> | number | null
     ghnWardCode?: StringNullableFilter<"Order"> | string | null
     ghnOrderCode?: StringNullableFilter<"Order"> | string | null
+    refundReason?: StringNullableFilter<"Order"> | string | null
+    refundDescription?: StringNullableFilter<"Order"> | string | null
+    refundEmail?: StringNullableFilter<"Order"> | string | null
+    refundProofImages?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
@@ -3599,9 +3760,18 @@ export namespace Prisma {
     shippingFee?: SortOrder
     paymentMethod?: SortOrder
     status?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
+    shopVoucherCode?: SortOrderInput | SortOrder
+    platformVoucherCode?: SortOrderInput | SortOrder
+    appliedVoucherIds?: SortOrderInput | SortOrder
     ghnDistrictId?: SortOrderInput | SortOrder
     ghnWardCode?: SortOrderInput | SortOrder
     ghnOrderCode?: SortOrderInput | SortOrder
+    refundReason?: SortOrderInput | SortOrder
+    refundDescription?: SortOrderInput | SortOrder
+    refundEmail?: SortOrderInput | SortOrder
+    refundProofImages?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrderCountOrderByAggregateInput
@@ -3625,9 +3795,18 @@ export namespace Prisma {
     shippingFee?: FloatWithAggregatesFilter<"Order"> | number
     paymentMethod?: StringWithAggregatesFilter<"Order"> | string
     status?: StringWithAggregatesFilter<"Order"> | string
+    shopDiscountAmount?: FloatWithAggregatesFilter<"Order"> | number
+    platformDiscountAmount?: FloatWithAggregatesFilter<"Order"> | number
+    shopVoucherCode?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    platformVoucherCode?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    appliedVoucherIds?: StringNullableWithAggregatesFilter<"Order"> | string | null
     ghnDistrictId?: IntNullableWithAggregatesFilter<"Order"> | number | null
     ghnWardCode?: StringNullableWithAggregatesFilter<"Order"> | string | null
     ghnOrderCode?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    refundReason?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    refundDescription?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    refundEmail?: StringNullableWithAggregatesFilter<"Order"> | string | null
+    refundProofImages?: StringNullableWithAggregatesFilter<"Order"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
   }
@@ -3720,9 +3899,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status?: string
+    shopDiscountAmount?: number
+    platformDiscountAmount?: number
+    shopVoucherCode?: string | null
+    platformVoucherCode?: string | null
+    appliedVoucherIds?: string | null
     ghnDistrictId?: number | null
     ghnWardCode?: string | null
     ghnOrderCode?: string | null
+    refundReason?: string | null
+    refundDescription?: string | null
+    refundEmail?: string | null
+    refundProofImages?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -3739,9 +3927,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status?: string
+    shopDiscountAmount?: number
+    platformDiscountAmount?: number
+    shopVoucherCode?: string | null
+    platformVoucherCode?: string | null
+    appliedVoucherIds?: string | null
     ghnDistrictId?: number | null
     ghnWardCode?: string | null
     ghnOrderCode?: string | null
+    refundReason?: string | null
+    refundDescription?: string | null
+    refundEmail?: string | null
+    refundProofImages?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -3758,9 +3955,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -3777,9 +3983,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -3796,9 +4011,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status?: string
+    shopDiscountAmount?: number
+    platformDiscountAmount?: number
+    shopVoucherCode?: string | null
+    platformVoucherCode?: string | null
+    appliedVoucherIds?: string | null
     ghnDistrictId?: number | null
     ghnWardCode?: string | null
     ghnOrderCode?: string | null
+    refundReason?: string | null
+    refundDescription?: string | null
+    refundEmail?: string | null
+    refundProofImages?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -3814,9 +4038,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3832,9 +4065,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -3948,17 +4190,6 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type IntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type StringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -3972,6 +4203,17 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type IntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type DateTimeFilter<$PrismaModel = never> = {
@@ -4011,9 +4253,18 @@ export namespace Prisma {
     shippingFee?: SortOrder
     paymentMethod?: SortOrder
     status?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
+    shopVoucherCode?: SortOrder
+    platformVoucherCode?: SortOrder
+    appliedVoucherIds?: SortOrder
     ghnDistrictId?: SortOrder
     ghnWardCode?: SortOrder
     ghnOrderCode?: SortOrder
+    refundReason?: SortOrder
+    refundDescription?: SortOrder
+    refundEmail?: SortOrder
+    refundProofImages?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4021,6 +4272,8 @@ export namespace Prisma {
   export type OrderAvgOrderByAggregateInput = {
     totalAmount?: SortOrder
     shippingFee?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
     ghnDistrictId?: SortOrder
   }
 
@@ -4035,9 +4288,18 @@ export namespace Prisma {
     shippingFee?: SortOrder
     paymentMethod?: SortOrder
     status?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
+    shopVoucherCode?: SortOrder
+    platformVoucherCode?: SortOrder
+    appliedVoucherIds?: SortOrder
     ghnDistrictId?: SortOrder
     ghnWardCode?: SortOrder
     ghnOrderCode?: SortOrder
+    refundReason?: SortOrder
+    refundDescription?: SortOrder
+    refundEmail?: SortOrder
+    refundProofImages?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4053,9 +4315,18 @@ export namespace Prisma {
     shippingFee?: SortOrder
     paymentMethod?: SortOrder
     status?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
+    shopVoucherCode?: SortOrder
+    platformVoucherCode?: SortOrder
+    appliedVoucherIds?: SortOrder
     ghnDistrictId?: SortOrder
     ghnWardCode?: SortOrder
     ghnOrderCode?: SortOrder
+    refundReason?: SortOrder
+    refundDescription?: SortOrder
+    refundEmail?: SortOrder
+    refundProofImages?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4063,6 +4334,8 @@ export namespace Prisma {
   export type OrderSumOrderByAggregateInput = {
     totalAmount?: SortOrder
     shippingFee?: SortOrder
+    shopDiscountAmount?: SortOrder
+    platformDiscountAmount?: SortOrder
     ghnDistrictId?: SortOrder
   }
 
@@ -4100,22 +4373,6 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
-  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _avg?: NestedFloatNullableFilter<$PrismaModel>
-    _sum?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedIntNullableFilter<$PrismaModel>
-    _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -4132,6 +4389,22 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type IntNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableWithAggregatesFilter<$PrismaModel> | number | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _avg?: NestedFloatNullableFilter<$PrismaModel>
+    _sum?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedIntNullableFilter<$PrismaModel>
+    _max?: NestedIntNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -4252,16 +4525,16 @@ export namespace Prisma {
     divide?: number
   }
 
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
+  }
+
   export type NullableIntFieldUpdateOperationsInput = {
     set?: number | null
     increment?: number
     decrement?: number
     multiply?: number
     divide?: number
-  }
-
-  export type NullableStringFieldUpdateOperationsInput = {
-    set?: string | null
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -4343,17 +4616,6 @@ export namespace Prisma {
     not?: NestedFloatFilter<$PrismaModel> | number
   }
 
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
-  }
-
   export type NestedStringNullableFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel> | null
     in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
@@ -4366,6 +4628,17 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -4423,6 +4696,23 @@ export namespace Prisma {
     _max?: NestedFloatFilter<$PrismaModel>
   }
 
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type NestedIntNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | IntFieldRefInput<$PrismaModel> | null
     in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
@@ -4448,23 +4738,6 @@ export namespace Prisma {
     gt?: number | FloatFieldRefInput<$PrismaModel>
     gte?: number | FloatFieldRefInput<$PrismaModel>
     not?: NestedFloatNullableFilter<$PrismaModel> | number | null
-  }
-
-  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: string | StringFieldRefInput<$PrismaModel> | null
-    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
-    lt?: string | StringFieldRefInput<$PrismaModel>
-    lte?: string | StringFieldRefInput<$PrismaModel>
-    gt?: string | StringFieldRefInput<$PrismaModel>
-    gte?: string | StringFieldRefInput<$PrismaModel>
-    contains?: string | StringFieldRefInput<$PrismaModel>
-    startsWith?: string | StringFieldRefInput<$PrismaModel>
-    endsWith?: string | StringFieldRefInput<$PrismaModel>
-    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedStringNullableFilter<$PrismaModel>
-    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -4571,9 +4844,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status?: string
+    shopDiscountAmount?: number
+    platformDiscountAmount?: number
+    shopVoucherCode?: string | null
+    platformVoucherCode?: string | null
+    appliedVoucherIds?: string | null
     ghnDistrictId?: number | null
     ghnWardCode?: string | null
     ghnOrderCode?: string | null
+    refundReason?: string | null
+    refundDescription?: string | null
+    refundEmail?: string | null
+    refundProofImages?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -4589,9 +4871,18 @@ export namespace Prisma {
     shippingFee: number
     paymentMethod: string
     status?: string
+    shopDiscountAmount?: number
+    platformDiscountAmount?: number
+    shopVoucherCode?: string | null
+    platformVoucherCode?: string | null
+    appliedVoucherIds?: string | null
     ghnDistrictId?: number | null
     ghnWardCode?: string | null
     ghnOrderCode?: string | null
+    refundReason?: string | null
+    refundDescription?: string | null
+    refundEmail?: string | null
+    refundProofImages?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -4623,9 +4914,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -4641,9 +4941,18 @@ export namespace Prisma {
     shippingFee?: FloatFieldUpdateOperationsInput | number
     paymentMethod?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    shopDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    platformDiscountAmount?: FloatFieldUpdateOperationsInput | number
+    shopVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    platformVoucherCode?: NullableStringFieldUpdateOperationsInput | string | null
+    appliedVoucherIds?: NullableStringFieldUpdateOperationsInput | string | null
     ghnDistrictId?: NullableIntFieldUpdateOperationsInput | number | null
     ghnWardCode?: NullableStringFieldUpdateOperationsInput | string | null
     ghnOrderCode?: NullableStringFieldUpdateOperationsInput | string | null
+    refundReason?: NullableStringFieldUpdateOperationsInput | string | null
+    refundDescription?: NullableStringFieldUpdateOperationsInput | string | null
+    refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

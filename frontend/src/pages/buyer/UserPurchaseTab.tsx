@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { orderService } from '../../services/order.service'
 import type { Order } from '../../models/order.model'
+import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
+import { ReviewModal } from '../../components/buyer/ReviewModal'
+import type { ReviewSubmitData } from '../../components/buyer/ReviewModal'
 
 interface UserPurchaseTabProps {
   user: any
@@ -20,6 +23,29 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   const [refundReason, setRefundReason] = useState('')
   const [refundDesc, setRefundDesc] = useState('')
   const [refundEmail, setRefundEmail] = useState(user?.email || '')
+
+  // Track rated orders in localStorage so state persists across page refresh
+  const [ratedOrders, setRatedOrders] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem('zeromall_rated_orders')
+      return saved ? new Set(JSON.parse(saved)) : new Set()
+    } catch {
+      return new Set()
+    }
+  })
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('zeromall_rated_orders', JSON.stringify(Array.from(ratedOrders)))
+    } catch (e) { console.error(e) }
+  }, [ratedOrders])
+
+  // Review modal state
+  const [showReviewModal, setShowReviewModal] = useState(false)
+  const [selectedOrderForReview, setSelectedOrderForReview] = useState<Order | null>(null)
+
+  // Detail modal state for refund / cancel orders
+  const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null)
 
   const fetchOrders = async () => {
     if (!user) return
@@ -42,17 +68,31 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     switch (status) {
       case 'PENDING':
       case 'PENDING_PAYMENT':
-        return 'PENDING'
+      case 'UNPAID':
+        return 'PENDING_CONFIRMATION'
       case 'PROCESSING':
+      case 'PREPARING':
+      case 'CONFIRMED':
+      case 'AWAITING_SHIPMENT':
+        return 'PROCESSING'
       case 'SHIPPED':
-        return 'SHIPPING'
+      case 'SHIPPING':
+      case 'DELIVERING':
+      case 'IN_TRANSIT':
+        return 'SHIPPED'
       case 'DELIVERED':
       case 'COMPLETED':
-        return 'COMPLETED'
+      case 'SUCCESS':
+        return 'DELIVERED'
       case 'REFUND_PENDING':
+      case 'RETURN_PENDING':
+      case 'RETURN_SHIPPED':
+      case 'REFUND_DISPUTED':
       case 'REFUNDED':
+      case 'RETURNED':
         return 'REFUND'
       case 'CANCELLED':
+      case 'CANCELED':
         return 'CANCELLED'
       default:
         return 'ALL'
@@ -63,26 +103,36 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     switch (status) {
       case 'PENDING':
       case 'PENDING_PAYMENT':
-        return 'CHỜ THANH TOÁN'
+      case 'UNPAID':
+        return 'CHỜ XÁC NHẬN'
       case 'PROCESSING':
-        return 'CHỜ CHUẨN BỊ HÀNG'
+      case 'PREPARING':
+      case 'CONFIRMED':
+      case 'AWAITING_SHIPMENT':
+        return 'CHỜ LẤY HÀNG'
       case 'SHIPPED':
-        return 'ĐANG GIAO HÀNG'
+      case 'SHIPPING':
+      case 'DELIVERING':
+      case 'IN_TRANSIT':
+        return 'CHỜ GIAO HÀNG'
       case 'DELIVERED':
       case 'COMPLETED':
-        return 'HOÀN THÀNH'
+      case 'SUCCESS':
+        return 'ĐÃ GIAO'
       case 'CANCELLED':
+      case 'CANCELED':
         return 'ĐÃ HỦY'
       case 'REFUND_PENDING':
-        return 'TRẢ HÀNG/HOÀN TIỀN CHỜ DUYỆT'
+        return 'TRẢ HÀNG (CHỜ DUYỆT)'
       case 'RETURN_PENDING':
-        return 'CHỜ TRẢ HÀNG'
+        return 'TRẢ HÀNG (CHỜ TRẢ)'
       case 'RETURN_SHIPPED':
-        return 'ĐANG TRẢ HÀNG'
+        return 'TRẢ HÀNG (ĐANG TRẢ)'
       case 'REFUND_DISPUTED':
-        return 'TRANH CHẤP KHIẾU NẠI'
+        return 'TRẢ HÀNG (TRANH CHẤP)'
       case 'REFUNDED':
-        return 'ĐÃ HOÀN TIỀN'
+      case 'RETURNED':
+        return 'TRẢ HÀNG (ĐÃ HOÀN TIỀN)'
       default:
         return status
     }
@@ -92,28 +142,26 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     switch (status) {
       case 'PENDING':
       case 'PENDING_PAYMENT':
-        return 'text-amber-600'
+      case 'UNPAID':
+        return 'text-amber-600 font-extrabold'
       case 'PROCESSING':
-        return 'text-blue-600'
+      case 'PREPARING':
+      case 'CONFIRMED':
+        return 'text-blue-600 font-extrabold'
       case 'SHIPPED':
-        return 'text-purple-600'
+      case 'SHIPPING':
+      case 'DELIVERING':
+      case 'IN_TRANSIT':
+        return 'text-purple-600 font-extrabold'
       case 'DELIVERED':
       case 'COMPLETED':
-        return 'text-emerald-600'
+      case 'SUCCESS':
+        return 'text-emerald-600 font-extrabold'
       case 'CANCELLED':
-        return 'text-slate-400'
-      case 'REFUND_PENDING':
-        return 'text-orange-500 font-extrabold'
-      case 'RETURN_PENDING':
-        return 'text-yellow-600 font-extrabold'
-      case 'RETURN_SHIPPED':
-        return 'text-purple-600 font-extrabold'
-      case 'REFUND_DISPUTED':
-        return 'text-rose-600 font-extrabold'
-      case 'REFUNDED':
-        return 'text-rose-500 font-extrabold'
+      case 'CANCELED':
+        return 'text-slate-400 font-semibold'
       default:
-        return 'text-[#ee4d2d]'
+        return 'text-[#ee4d2d] font-bold'
     }
   }
 
@@ -166,6 +214,52 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   const handleRequestRefundClick = (order: Order) => {
     setSelectedOrderForRefund(order)
     setShowRefundModal(true)
+  }
+
+  const handleOpenReviewModal = (order: Order) => {
+    setSelectedOrderForReview(order)
+    setShowReviewModal(true)
+  }
+
+  const handleReviewSubmit = async (data: ReviewSubmitData) => {
+    if (!selectedOrderForReview) return
+    const order = selectedOrderForReview
+    const allMediaUrls = [...data.images, ...data.videos]
+
+    // Gửi đánh giá sản phẩm lên database qua API
+    for (const item of order.items) {
+      await fetch(`http://localhost:8000/products/${item.productId}/reviews`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user?.name || 'Khách hàng',
+          rating: data.rating,
+          comment: data.comment,
+          variant: item.variant || 'Tiêu chuẩn',
+          images: allMediaUrls.length > 0 ? JSON.stringify(allMediaUrls) : undefined,
+          orderId: order.id
+        })
+      })
+    }
+
+    // Giải ngân Escrow sớm cho Shop & Ví Sàn thu chiết khấu vì khách đã đánh giá
+    await fetch(`http://localhost:8000/payments/escrow/${order.id}/release`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    // Đổi trạng thái đơn hàng thành COMPLETED (Hoàn tất)
+    try {
+      await orderService.updateOrderStatus(order.id, 'COMPLETED')
+    } catch (e) {
+      console.error('Error updating order to COMPLETED:', e)
+    }
+
+    setRatedOrders(prev => new Set([...prev, order.id]))
+    setShowReviewModal(false)
+    setSelectedOrderForReview(null)
+    alert('Đã gửi đánh giá thành công! Tiền hàng đã được giải ngân cho Shop và chiết khấu đã về Ví Sàn.')
+    fetchOrders()
   }
 
   const handleSelectRefundOption = (option: 'OPTION_1' | 'OPTION_2') => {
@@ -225,7 +319,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     const query = searchQuery.toLowerCase()
     const idMatch = order.id.toLowerCase().includes(query)
     const itemMatch = order.items.some((item: any) => 
-      item.productName.toLowerCase().includes(query) || 
+      (item.name || item.productName || '').toLowerCase().includes(query) || 
       (item.variant && item.variant.toLowerCase().includes(query))
     )
     
@@ -245,10 +339,11 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
       <div className="flex border-b border-slate-200 text-xs font-semibold text-slate-700 bg-white">
         {[
           { label: 'Tất cả', id: 'ALL' },
-          { label: 'Chờ thanh toán', id: 'PENDING' },
-          { label: 'Vận chuyển', id: 'SHIPPING' },
-          { label: 'Hoàn thành', id: 'COMPLETED' },
-          { label: 'Trả hàng/Hoàn tiền', id: 'REFUND' },
+          { label: 'Chờ xác nhận', id: 'PENDING_CONFIRMATION' },
+          { label: 'Chờ lấy hàng', id: 'PROCESSING' },
+          { label: 'Chờ giao hàng', id: 'SHIPPED' },
+          { label: 'Đã giao', id: 'DELIVERED' },
+          { label: 'Trả hàng', id: 'REFUND' },
           { label: 'Đã hủy', id: 'CANCELLED' }
         ].map(tab => (
           <button
@@ -310,13 +405,17 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                 {order.items.map((item: any) => (
                   <div key={item.id} className="flex gap-3 text-xs">
                     <img 
-                      src={item.productImage || 'https://placehold.co/100x100?text=No+Image'} 
-                      alt={item.productName} 
+                      src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'} 
+                      alt={item.name || item.productName} 
                       className="w-[70px] h-[70px] border border-slate-200 rounded-sm object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="font-semibold text-slate-800 line-clamp-1">{item.productName}</h4>
-                      <p className="text-[10px] text-slate-400">Phân loại hàng: {item.variant || 'Tiêu chuẩn'}</p>
+                      <h4 className="font-semibold text-slate-800 line-clamp-1">{item.name || item.productName}</h4>
+                      {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
+                        <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                          Phân loại hàng: <span className="font-semibold text-slate-600">{item.variant}</span>
+                        </p>
+                      )}
                       <p className="font-medium text-slate-700">x{item.quantity}</p>
                     </div>
                     <div className="text-right shrink-0">
@@ -338,7 +437,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
               {/* Action buttons footer */}
               <div className="flex justify-end gap-2 pt-2">
-                {/* Nút Thanh toán ngay cho đơn PENDING Sepay */}
+                {/* 1. CHỜ THANH TOÁN (PENDING Sepay) */}
                 {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT') && order.paymentMethod === 'sepay' && (
                   <button
                     onClick={() => handleRePaySepay(order)}
@@ -348,45 +447,120 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                   </button>
                 )}
 
-                {/* Nút yêu cầu Trả hàng/Hoàn tiền (chỉ khi đã nhận hàng thành công) */}
-                {(order.status === 'COMPLETED' || order.status === 'DELIVERED') && (
-                  <button
-                    onClick={() => handleRequestRefundClick(order)}
-                    className="px-4 py-2 border border-rose-200 hover:border-rose-450 hover:bg-rose-50 text-rose-600 rounded-sm font-semibold transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                  >
-                    🔄 Yêu cầu Trả hàng/Hoàn tiền
-                  </button>
+                {/* 2. ĐÃ GIAO (DELIVERED) — chưa đánh giá: hiện Đánh giá + Trả hàng */}
+                {order.status === 'DELIVERED' && !ratedOrders.has(order.id) && (
+                  <>
+                    <button
+                      onClick={() => handleOpenReviewModal(order)}
+                      className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                      title="Đánh giá ngay để tiền hàng về ví Shop nhanh hơn!"
+                    >
+                      ⭐ Đánh giá sản phẩm
+                    </button>
+                    <button
+                      onClick={() => handleRequestRefundClick(order)}
+                      className="px-4 py-2 border border-rose-200 hover:border-rose-450 hover:bg-rose-50 text-rose-600 rounded-sm font-semibold transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      🔄 Yêu cầu Trả hàng/Hoàn tiền
+                    </button>
+                  </>
                 )}
-                {order.status === 'RETURN_PENDING' && (
+
+                {/* 2b. ĐÃ ĐÁNH GIÁ (COMPLETED hoặc DELIVERED+rated): Liên hệ người bán + Mua lại */}
+                {(order.status === 'COMPLETED' || (order.status === 'DELIVERED' && ratedOrders.has(order.id))) && (
+                  <>
+                    <button
+                      onClick={() => fetchOrders()}
+                      className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-600 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      Liên Hệ Người Bán
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/'}
+                      className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      Mua lại
+                    </button>
+                  </>
+                )}
+
+                {/* 3. CHỜ GIAO HÀNG (SHIPPED / SHIPPING / DELIVERING / IN_TRANSIT) -> Chỉ hiện Xác nhận đã nhận được hàng */}
+                {(order.status === 'SHIPPED' || order.status === 'SHIPPING' || order.status === 'DELIVERING' || order.status === 'IN_TRANSIT') && (
                   <button
                     onClick={async () => {
-                      if (window.confirm('Bạn xác nhận đã đóng gói và gửi hàng trả lại cho Shop?')) {
+                      if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn?')) {
                         try {
-                          await orderService.updateOrderStatus(order.id, 'RETURN_SHIPPED')
-                          alert('Xác nhận đã gửi trả hàng thành công!')
+                          await orderService.updateOrderStatus(order.id, 'DELIVERED')
+                          alert('Cảm ơn bạn đã xác nhận! Đơn hàng đã chuyển sang trạng thái Đã Giao.')
                           fetchOrders()
                         } catch (err: any) {
-                          alert('Lỗi: ' + err.message)
+                          alert('Lỗi khi xác nhận nhận hàng: ' + err.message)
                         }
                       }
                     }}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
                   >
-                    📦 Xác nhận Đã gửi trả hàng
+                    ✅ Đã nhận được hàng
                   </button>
                 )}
-                <button
-                  onClick={() => fetchOrders()}
-                  className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-600 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                >
-                  Liên Hệ Người Bán
-                </button>
-                <button
-                  onClick={() => window.location.href = '/'}
-                  className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                >
-                  Mua Lại
-                </button>
+
+                {/* 4. TRẢ HÀNG (REFUND_PENDING, RETURN_PENDING, RETURN_SHIPPED, REFUND_DISPUTED, REFUNDED, RETURNED) -> Chỉ hiện Xem chi tiết */}
+                {(order.status === 'REFUND_PENDING' || order.status === 'RETURN_PENDING' || order.status === 'RETURN_SHIPPED' || order.status === 'REFUND_DISPUTED' || order.status === 'REFUNDED' || order.status === 'RETURNED') && (
+                  <>
+                    {order.status === 'RETURN_PENDING' && (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Bạn xác nhận đã đóng gói và gửi hàng trả lại cho Shop?')) {
+                            try {
+                              await orderService.updateOrderStatus(order.id, 'RETURN_SHIPPED')
+                              alert('Xác nhận đã gửi trả hàng thành công!')
+                              fetchOrders()
+                            } catch (err: any) {
+                              alert('Lỗi: ' + err.message)
+                            }
+                          }
+                        }}
+                        className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                      >
+                        📦 Xác nhận Đã gửi trả hàng
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setSelectedOrderDetail(order)}
+                      className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-700 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      📄 Xem chi tiết
+                    </button>
+                  </>
+                )}
+
+                {/* 5. ĐÃ HỦY (CANCELLED, CANCELED) -> Chỉ hiện Xem chi tiết đơn hủy & Mua lại */}
+                {(order.status === 'CANCELLED' || order.status === 'CANCELED') && (
+                  <>
+                    <button
+                      onClick={() => setSelectedOrderDetail(order)}
+                      className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-700 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      📄 Xem chi tiết đơn hủy
+                    </button>
+                    <button
+                      onClick={() => window.location.href = '/'}
+                      className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      Mua lại
+                    </button>
+                  </>
+                )}
+
+                {/* 6. CHỜ XÁC NHẬN & CHỜ LẤY HÀNG -> Hiện Liên hệ người bán */}
+                {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'PROCESSING' || order.status === 'PREPARING') && (
+                  <button
+                    onClick={() => fetchOrders()}
+                    className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-600 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                  >
+                    Liên Hệ Người Bán
+                  </button>
+                )}
               </div>
 
             </div>
@@ -398,45 +572,31 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
     {/* Re-Pay QR Modal cho đơn PENDING */}
     {showRePayModal && rePayOrder && rePayBankInfo && (
-      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 text-left">
-        <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden">
-          <div className="bg-[#feeee9]/30 px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xl">📲</span>
-              <span className="font-extrabold text-slate-800 text-sm">Thanh Toán Đơn Hàng</span>
-            </div>
-            <button
-              onClick={() => { setShowRePayModal(false); setRePayOrder(null) }}
-              className="text-slate-400 hover:text-slate-600 transition text-lg font-bold"
-            >✕</button>
-          </div>
-          <div className="p-6 space-y-5 text-center">
-            <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl w-fit mx-auto">
-              <img src={rePayQrUrl} alt="VietQR" className="w-52 h-52 mx-auto object-contain" />
-            </div>
-            <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-600 animate-pulse">
-              <div className="w-3 h-3 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-              <span>Hệ thống đang chờ chuyển khoản...</span>
-            </div>
-            <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs text-slate-700 text-left space-y-2">
-              <div className="flex justify-between"><span className="text-slate-400">Ngân hàng:</span><span className="font-bold">{rePayBankInfo.bankId}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Số tài khoản:</span><span className="font-bold">{rePayBankInfo.bankAcc}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Chủ tài khoản:</span><span className="font-bold uppercase">{rePayBankInfo.bankName}</span></div>
-              <div className="flex justify-between"><span className="text-slate-400">Số tiền:</span><span className="font-bold text-[#ee4d2d]">{rePayOrder.totalAmount.toLocaleString('vi-VN')}đ</span></div>
-              <div className="flex justify-between items-center">
-                <span className="text-slate-400">Nội dung CK:</span>
-                <div className="flex items-center gap-1.5">
-                  <span className="font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded font-mono">{rePayMemo}</span>
-                  <button onClick={() => { navigator.clipboard.writeText(rePayMemo); alert('Copied!') }} className="text-sky-600 text-[10px] font-bold cursor-pointer">Copy</button>
-                </div>
-              </div>
-            </div>
-            <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-3 text-[10px] text-amber-700 text-left">
-              ⚠️ Nhập đúng <strong>Nội dung chuyển khoản ({rePayMemo})</strong>. Hệ thống tự động xác nhận sau vài giây.
-            </div>
-          </div>
-        </div>
-      </div>
+      <SepayPaymentModal
+        isOpen={showRePayModal}
+        onClose={() => {
+          setShowRePayModal(false)
+          setRePayOrder(null)
+        }}
+        bankInfo={rePayBankInfo}
+        qrUrl={rePayQrUrl}
+        memo={rePayMemo}
+        amount={rePayOrder.totalAmount}
+      />
+    )}
+
+    {/* Review Modal */}
+    {showReviewModal && selectedOrderForReview && (
+      <ReviewModal
+        isOpen={showReviewModal}
+        order={selectedOrderForReview}
+        user={user}
+        onClose={() => {
+          setShowReviewModal(false)
+          setSelectedOrderForReview(null)
+        }}
+        onSubmit={handleReviewSubmit}
+      />
     )}
 
     {/* 1. Modal: Tình huống bạn đang gặp? (Bước 1) */}
@@ -556,7 +716,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                     />
                     <div className="min-w-0 flex-1">
                       <h4 className="font-bold text-slate-800 truncate">{item.name}</h4>
-                      {item.variant && (
+                      {item.variant && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Mặc định' && (
                         <p className="text-[10px] text-slate-400 mt-1">Phân loại hàng: {item.variant}</p>
                       )}
                       <p className="font-medium text-slate-450 mt-0.5">Số lượng: x{item.quantity}</p>
@@ -676,6 +836,84 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
           </div>
 
         </main>
+      </div>
+    )}
+
+    {/* Modal: Xem Chi Tiết Đơn Hàng / Đơn Hủy / Đơn Trả Hàng */}
+    {selectedOrderDetail && (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 text-left space-y-4 p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-black text-slate-800 text-base">
+                Chi Tiết Đơn Hàng #{selectedOrderDetail.id.slice(0, 12)}
+              </h3>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                Ngày đặt: {new Date(selectedOrderDetail.createdAt).toLocaleString('vi-VN')}
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedOrderDetail(null)}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xl transition cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Status info box */}
+          <div className="p-3.5 bg-slate-50 rounded-2xl border border-slate-150 space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <span className="font-bold text-slate-500 uppercase text-[10px]">Trạng Thái:</span>
+              <span className={`font-black ${getStatusColor(selectedOrderDetail.status)}`}>
+                {getStatusText(selectedOrderDetail.status)}
+              </span>
+            </div>
+            {(selectedOrderDetail.refundReason || (selectedOrderDetail as any).cancelReason || selectedOrderDetail.refundDescription) && (
+              <div className="pt-2 border-t border-slate-200/60 text-xs space-y-1">
+                <p className="text-[10px] font-bold text-slate-400 uppercase">Lý do & Mô tả:</p>
+                <p className="text-slate-700 font-medium text-xs bg-white p-2.5 rounded-xl border border-slate-200">
+                  {selectedOrderDetail.refundReason || (selectedOrderDetail as any).cancelReason || selectedOrderDetail.refundDescription || 'Không có mô tả chi tiết'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Items list */}
+          <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh Sách Sản Phẩm</p>
+            {selectedOrderDetail.items.map((item: any) => (
+              <div key={item.id} className="flex gap-3 text-xs border-b border-slate-100 pb-2.5">
+                <img
+                  src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'}
+                  alt={item.name || item.productName}
+                  className="w-12 h-12 object-cover border border-slate-200 rounded-lg shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-bold text-slate-800 line-clamp-1">{item.name || item.productName}</h4>
+                  <p className="text-[10px] text-slate-400">x{item.quantity} {item.variant ? `(${item.variant})` : ''}</p>
+                </div>
+                <div className="text-right font-extrabold text-slate-700">
+                  {formatMoney(item.price * item.quantity)}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer Total */}
+          <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Thành Tiền</p>
+              <p className="text-lg font-black text-[#ee4d2d]">{formatMoney(selectedOrderDetail.totalAmount)}</p>
+            </div>
+            <button
+              onClick={() => setSelectedOrderDetail(null)}
+              className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
       </div>
     )}
   </>)

@@ -25,11 +25,11 @@ export class DiscountController {
   }
 
   @Get('active')
-  async getActiveShopVouchers(@Query('shopId') shopId: string) {
+  async getActiveShopVouchers(@Query('shopId') shopId: string, @Query('userId') userId?: string) {
     if (!shopId) {
       throw new BadRequestException('Mã ShopId không được để trống!');
     }
-    return this.discountService.getActiveShopVouchers(shopId);
+    return this.discountService.getActiveShopVouchers(shopId, userId);
   }
 
   @Delete(':id')
@@ -38,12 +38,17 @@ export class DiscountController {
   }
 
   @Get('all-active')
-  async getAllActiveVouchers() {
-    return this.discountService.getAllActiveVouchers();
+  async getAllActiveVouchers(@Query('userId') userId?: string) {
+    return this.discountService.getAllActiveVouchers(userId);
   }
 
   @Post('use')
   async useVouchers(@Body() dto: UseVouchersDto) {
     return this.discountService.useVouchers(dto.voucherIds);
+  }
+
+  @Post('rollback')
+  async rollbackVouchers(@Body('voucherIds') voucherIds: string[]) {
+    return this.discountService.rollbackVouchers(voucherIds);
   }
 }

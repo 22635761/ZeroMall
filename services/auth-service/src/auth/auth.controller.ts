@@ -88,6 +88,14 @@ export class AuthController {
     return this.authService.updateUserProfile(id, dto);
   }
 
+  @Put('users/:id/password')
+  async changePassword(
+    @Param('id') id: string,
+    @Body() dto: { currentPassword?: string; newPassword: string }
+  ) {
+    return this.authService.changeUserPassword(id, dto);
+  }
+
   @Get('users')
   async getAllUsers() {
     return this.authService.getAllUsers();

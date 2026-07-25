@@ -1,4 +1,4 @@
-import { Controller, Post, Get, Put, Param, Body, Req, Headers, Query, UnauthorizedException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Body, Req, Headers, Query, UnauthorizedException } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { ChargePaymentDto, DepositDto } from './payment.dto';
 
@@ -38,9 +38,25 @@ export class PaymentController {
     return this.paymentService.getWalletTransactionStatus(txId);
   }
 
+  // Hủy/Xóa pending deposit transaction khi người dùng đóng modal QR
+  @Delete('wallet/tx/:txId')
+  async cancelWalletTx(@Param('txId') txId: string) {
+    return this.paymentService.cancelWalletTransaction(txId);
+  }
+
+  @Get('withdraw/pending')
+  async getPendingWithdrawRequests() {
+    return this.paymentService.getWithdrawRequests();
+  }
+
   @Get('withdraw')
   async getWithdrawRequests(@Query('shopId') shopId?: string) {
     return this.paymentService.getWithdrawRequests(shopId);
+  }
+
+  @Get('withdraw/:id/detail')
+  async getWithdrawRequestById(@Param('id') id: string) {
+    return this.paymentService.getWithdrawRequestById(id);
   }
 
   @Post('withdraw')
@@ -118,5 +134,29 @@ export class PaymentController {
     @Body() payload: { orderId: string; totalAmount: number; items: { shopId: string; amount: number }[] }
   ) {
     return this.paymentService.creditShopRevenue(payload);
+  }
+
+  // ─── ESCROW ENDPOINTS ────────────────────────────────────────────────────
+
+  @Post('escrow')
+  async createEscrow(
+    @Body() body: { orderId: string; shopId: string; amount: number; commissionRate?: number }
+  ) {
+    return this.paymentService.createEscrow(body.orderId, body.shopId, body.amount, body.commissionRate);
+  }
+
+  @Post('escrow/:orderId/release')
+  async releaseEscrow(@Param('orderId') orderId: string) {
+    return this.paymentService.releaseEscrow(orderId);
+  }
+
+  @Post('escrow/:orderId/cancel')
+  async cancelEscrow(@Param('orderId') orderId: string) {
+    return this.paymentService.cancelEscrow(orderId);
+  }
+
+  @Get('escrow/:orderId')
+  async getEscrowStatus(@Param('orderId') orderId: string) {
+    return this.paymentService.getEscrowStatus(orderId);
   }
 }

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { Order } from '../../models/order.model'
 import { orderService } from '../../services/order.service'
 import { paymentService } from '../../services/payment.service'
+import { formatOrderId } from '../../utils/orderUtils'
 
 interface BuyerOrdersPageProps {
   user: any
@@ -146,17 +147,52 @@ export const BuyerOrdersPage: React.FC<BuyerOrdersPageProps> = ({ user, onBackTo
     return value.toLocaleString('vi-VN') + 'đ'
   }
 
+  const mapStatusToTab = (status: string): string => {
+    switch (status) {
+      case 'PENDING':
+      case 'PENDING_PAYMENT':
+      case 'UNPAID':
+        return 'PENDING_CONFIRMATION'
+      case 'PROCESSING':
+      case 'PREPARING':
+      case 'CONFIRMED':
+      case 'AWAITING_SHIPMENT':
+        return 'PROCESSING'
+      case 'SHIPPED':
+      case 'SHIPPING':
+      case 'DELIVERING':
+      case 'IN_TRANSIT':
+        return 'SHIPPED'
+      case 'DELIVERED':
+      case 'COMPLETED':
+      case 'SUCCESS':
+        return 'DELIVERED'
+      case 'REFUND_PENDING':
+      case 'RETURN_PENDING':
+      case 'RETURN_SHIPPED':
+      case 'REFUND_DISPUTED':
+      case 'REFUNDED':
+      case 'RETURNED':
+        return 'REFUND'
+      case 'CANCELLED':
+      case 'CANCELED':
+        return 'CANCELLED'
+      default:
+        return 'ALL'
+    }
+  }
+
   const filteredOrders = activeTab === 'ALL'
     ? orders
-    : orders.filter(o => o.status === activeTab)
+    : orders.filter(o => mapStatusToTab(o.status) === activeTab)
 
   const tabs = [
     { id: 'ALL', label: 'Tất cả' },
-    { id: 'PENDING_PAYMENT', label: 'Chờ thanh toán' },
-    { id: 'PROCESSING', label: 'Đang xử lý' },
-    { id: 'SHIPPING', label: 'Đang giao' },
-    { id: 'COMPLETED', label: 'Hoàn thành' },
-    { id: 'REFUND_PENDING', label: 'Trả Hàng/Hoàn Tiền' },
+    { id: 'PENDING_CONFIRMATION', label: 'Chờ xác nhận' },
+    { id: 'PROCESSING', label: 'Chờ lấy hàng' },
+    { id: 'SHIPPED', label: 'Chờ giao hàng' },
+    { id: 'DELIVERED', label: 'Đã giao' },
+    { id: 'REFUND', label: 'Trả hàng' },
     { id: 'CANCELLED', label: 'Đã hủy' },
   ]
 
@@ -265,7 +301,7 @@ export const BuyerOrdersPage: React.FC<BuyerOrdersPageProps> = ({ user, onBackTo
                       <div className="flex items-center gap-2.5 font-bold text-slate-600 flex-wrap">
                         <span>Đơn hàng:</span>
                         <span className="font-mono text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
-                          {order.id.substring(0, 8).toUpperCase()}...
+                          #{formatOrderId(order.id)}
                         </span>
                         <span className="text-slate-300">|</span>
                         <span>{new Date(order.createdAt).toLocaleDateString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -297,8 +333,8 @@ export const BuyerOrdersPage: React.FC<BuyerOrdersPageProps> = ({ user, onBackTo
                               <h5 className="font-bold text-slate-800 text-xs sm:text-sm truncate">
                                 {item.name}
                               </h5>
-                              {item.variant && (
-                                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Phân loại: {item.variant}</p>
+                              {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
+                                <p className="text-[10px] text-slate-400 mt-1 font-semibold">Phân loại hàng: {item.variant}</p>
                               )}
                               <p className="text-[10px] text-slate-400 font-bold mt-0.5">Số lượng: x{item.quantity}</p>
                             </div>

@@ -6,6 +6,7 @@ export class CreateVoucherDto {
   minSpend: number;
   maxDiscount?: number | null;
   usageLimit: number;
+  targetUserId?: string | null;
   startDate: string;
   endDate: string;
 }

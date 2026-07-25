@@ -131,6 +131,7 @@ exports.Prisma.VoucherScalarFieldEnum = {
   maxDiscount: 'maxDiscount',
   usageLimit: 'usageLimit',
   usedCount: 'usedCount',
+  targetUserId: 'targetUserId',
   startDate: 'startDate',
   endDate: 'endDate',
   createdAt: 'createdAt',

@@ -17,6 +17,11 @@ export class CreateOrderDto {
   totalAmount: number;
   shippingFee: number;
   paymentMethod: string;
+  shopDiscountAmount?: number;
+  platformDiscountAmount?: number;
+  shopVoucherCode?: string;
+  platformVoucherCode?: string;
+  appliedVoucherIds?: string;
   ghnDistrictId?: number;
   ghnWardCode?: string;
   items: CreateOrderItemDto[];

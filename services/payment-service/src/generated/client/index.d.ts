@@ -38,6 +38,11 @@ export type WithdrawRequest = $Result.DefaultSelection<Prisma.$WithdrawRequestPa
  * 
  */
 export type SystemConfig = $Result.DefaultSelection<Prisma.$SystemConfigPayload>
+/**
+ * Model EscrowTransaction
+ * 
+ */
+export type EscrowTransaction = $Result.DefaultSelection<Prisma.$EscrowTransactionPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -209,6 +214,16 @@ export class PrismaClient<
     * ```
     */
   get systemConfig(): Prisma.SystemConfigDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.escrowTransaction`: Exposes CRUD operations for the **EscrowTransaction** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more EscrowTransactions
+    * const escrowTransactions = await prisma.escrowTransaction.findMany()
+    * ```
+    */
+  get escrowTransaction(): Prisma.EscrowTransactionDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -647,7 +662,8 @@ export namespace Prisma {
     Wallet: 'Wallet',
     WalletTransaction: 'WalletTransaction',
     WithdrawRequest: 'WithdrawRequest',
-    SystemConfig: 'SystemConfig'
+    SystemConfig: 'SystemConfig',
+    EscrowTransaction: 'EscrowTransaction'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -663,7 +679,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "transaction" | "wallet" | "walletTransaction" | "withdrawRequest" | "systemConfig"
+      modelProps: "transaction" | "wallet" | "walletTransaction" | "withdrawRequest" | "systemConfig" | "escrowTransaction"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1037,6 +1053,80 @@ export namespace Prisma {
           }
         }
       }
+      EscrowTransaction: {
+        payload: Prisma.$EscrowTransactionPayload<ExtArgs>
+        fields: Prisma.EscrowTransactionFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.EscrowTransactionFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.EscrowTransactionFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          findFirst: {
+            args: Prisma.EscrowTransactionFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.EscrowTransactionFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          findMany: {
+            args: Prisma.EscrowTransactionFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>[]
+          }
+          create: {
+            args: Prisma.EscrowTransactionCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          createMany: {
+            args: Prisma.EscrowTransactionCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.EscrowTransactionCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>[]
+          }
+          delete: {
+            args: Prisma.EscrowTransactionDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          update: {
+            args: Prisma.EscrowTransactionUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          deleteMany: {
+            args: Prisma.EscrowTransactionDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.EscrowTransactionUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.EscrowTransactionUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>[]
+          }
+          upsert: {
+            args: Prisma.EscrowTransactionUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$EscrowTransactionPayload>
+          }
+          aggregate: {
+            args: Prisma.EscrowTransactionAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateEscrowTransaction>
+          }
+          groupBy: {
+            args: Prisma.EscrowTransactionGroupByArgs<ExtArgs>
+            result: $Utils.Optional<EscrowTransactionGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.EscrowTransactionCountArgs<ExtArgs>
+            result: $Utils.Optional<EscrowTransactionCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1150,6 +1240,7 @@ export namespace Prisma {
     walletTransaction?: WalletTransactionOmit
     withdrawRequest?: WithdrawRequestOmit
     systemConfig?: SystemConfigOmit
+    escrowTransaction?: EscrowTransactionOmit
   }
 
   /* Types for Logging */
@@ -2360,16 +2451,19 @@ export namespace Prisma {
 
   export type WalletAvgAggregateOutputType = {
     balance: number | null
+    onHoldBalance: number | null
   }
 
   export type WalletSumAggregateOutputType = {
     balance: number | null
+    onHoldBalance: number | null
   }
 
   export type WalletMinAggregateOutputType = {
     id: string | null
     buyerId: string | null
     balance: number | null
+    onHoldBalance: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2378,6 +2472,7 @@ export namespace Prisma {
     id: string | null
     buyerId: string | null
     balance: number | null
+    onHoldBalance: number | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2386,6 +2481,7 @@ export namespace Prisma {
     id: number
     buyerId: number
     balance: number
+    onHoldBalance: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -2394,16 +2490,19 @@ export namespace Prisma {
 
   export type WalletAvgAggregateInputType = {
     balance?: true
+    onHoldBalance?: true
   }
 
   export type WalletSumAggregateInputType = {
     balance?: true
+    onHoldBalance?: true
   }
 
   export type WalletMinAggregateInputType = {
     id?: true
     buyerId?: true
     balance?: true
+    onHoldBalance?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2412,6 +2511,7 @@ export namespace Prisma {
     id?: true
     buyerId?: true
     balance?: true
+    onHoldBalance?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -2420,6 +2520,7 @@ export namespace Prisma {
     id?: true
     buyerId?: true
     balance?: true
+    onHoldBalance?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -2515,6 +2616,7 @@ export namespace Prisma {
     id: string
     buyerId: string
     balance: number
+    onHoldBalance: number
     createdAt: Date
     updatedAt: Date
     _count: WalletCountAggregateOutputType | null
@@ -2542,6 +2644,7 @@ export namespace Prisma {
     id?: boolean
     buyerId?: boolean
     balance?: boolean
+    onHoldBalance?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     transactions?: boolean | Wallet$transactionsArgs<ExtArgs>
@@ -2552,6 +2655,7 @@ export namespace Prisma {
     id?: boolean
     buyerId?: boolean
     balance?: boolean
+    onHoldBalance?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["wallet"]>
@@ -2560,6 +2664,7 @@ export namespace Prisma {
     id?: boolean
     buyerId?: boolean
     balance?: boolean
+    onHoldBalance?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["wallet"]>
@@ -2568,11 +2673,12 @@ export namespace Prisma {
     id?: boolean
     buyerId?: boolean
     balance?: boolean
+    onHoldBalance?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "buyerId" | "balance" | "createdAt" | "updatedAt", ExtArgs["result"]["wallet"]>
+  export type WalletOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "buyerId" | "balance" | "onHoldBalance" | "createdAt" | "updatedAt", ExtArgs["result"]["wallet"]>
   export type WalletInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     transactions?: boolean | Wallet$transactionsArgs<ExtArgs>
     _count?: boolean | WalletCountOutputTypeDefaultArgs<ExtArgs>
@@ -2589,6 +2695,7 @@ export namespace Prisma {
       id: string
       buyerId: string
       balance: number
+      onHoldBalance: number
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["wallet"]>
@@ -3018,6 +3125,7 @@ export namespace Prisma {
     readonly id: FieldRef<"Wallet", 'String'>
     readonly buyerId: FieldRef<"Wallet", 'String'>
     readonly balance: FieldRef<"Wallet", 'Float'>
+    readonly onHoldBalance: FieldRef<"Wallet", 'Float'>
     readonly createdAt: FieldRef<"Wallet", 'DateTime'>
     readonly updatedAt: FieldRef<"Wallet", 'DateTime'>
   }
@@ -6626,6 +6734,1096 @@ export namespace Prisma {
 
 
   /**
+   * Model EscrowTransaction
+   */
+
+  export type AggregateEscrowTransaction = {
+    _count: EscrowTransactionCountAggregateOutputType | null
+    _avg: EscrowTransactionAvgAggregateOutputType | null
+    _sum: EscrowTransactionSumAggregateOutputType | null
+    _min: EscrowTransactionMinAggregateOutputType | null
+    _max: EscrowTransactionMaxAggregateOutputType | null
+  }
+
+  export type EscrowTransactionAvgAggregateOutputType = {
+    amount: number | null
+    commissionRate: number | null
+  }
+
+  export type EscrowTransactionSumAggregateOutputType = {
+    amount: number | null
+    commissionRate: number | null
+  }
+
+  export type EscrowTransactionMinAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    shopId: string | null
+    amount: number | null
+    commissionRate: number | null
+    status: string | null
+    releaseAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type EscrowTransactionMaxAggregateOutputType = {
+    id: string | null
+    orderId: string | null
+    shopId: string | null
+    amount: number | null
+    commissionRate: number | null
+    status: string | null
+    releaseAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type EscrowTransactionCountAggregateOutputType = {
+    id: number
+    orderId: number
+    shopId: number
+    amount: number
+    commissionRate: number
+    status: number
+    releaseAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type EscrowTransactionAvgAggregateInputType = {
+    amount?: true
+    commissionRate?: true
+  }
+
+  export type EscrowTransactionSumAggregateInputType = {
+    amount?: true
+    commissionRate?: true
+  }
+
+  export type EscrowTransactionMinAggregateInputType = {
+    id?: true
+    orderId?: true
+    shopId?: true
+    amount?: true
+    commissionRate?: true
+    status?: true
+    releaseAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type EscrowTransactionMaxAggregateInputType = {
+    id?: true
+    orderId?: true
+    shopId?: true
+    amount?: true
+    commissionRate?: true
+    status?: true
+    releaseAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type EscrowTransactionCountAggregateInputType = {
+    id?: true
+    orderId?: true
+    shopId?: true
+    amount?: true
+    commissionRate?: true
+    status?: true
+    releaseAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type EscrowTransactionAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which EscrowTransaction to aggregate.
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EscrowTransactions to fetch.
+     */
+    orderBy?: EscrowTransactionOrderByWithRelationInput | EscrowTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: EscrowTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EscrowTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EscrowTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned EscrowTransactions
+    **/
+    _count?: true | EscrowTransactionCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: EscrowTransactionAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: EscrowTransactionSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: EscrowTransactionMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: EscrowTransactionMaxAggregateInputType
+  }
+
+  export type GetEscrowTransactionAggregateType<T extends EscrowTransactionAggregateArgs> = {
+        [P in keyof T & keyof AggregateEscrowTransaction]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateEscrowTransaction[P]>
+      : GetScalarType<T[P], AggregateEscrowTransaction[P]>
+  }
+
+
+
+
+  export type EscrowTransactionGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: EscrowTransactionWhereInput
+    orderBy?: EscrowTransactionOrderByWithAggregationInput | EscrowTransactionOrderByWithAggregationInput[]
+    by: EscrowTransactionScalarFieldEnum[] | EscrowTransactionScalarFieldEnum
+    having?: EscrowTransactionScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: EscrowTransactionCountAggregateInputType | true
+    _avg?: EscrowTransactionAvgAggregateInputType
+    _sum?: EscrowTransactionSumAggregateInputType
+    _min?: EscrowTransactionMinAggregateInputType
+    _max?: EscrowTransactionMaxAggregateInputType
+  }
+
+  export type EscrowTransactionGroupByOutputType = {
+    id: string
+    orderId: string
+    shopId: string
+    amount: number
+    commissionRate: number
+    status: string
+    releaseAt: Date
+    createdAt: Date
+    updatedAt: Date
+    _count: EscrowTransactionCountAggregateOutputType | null
+    _avg: EscrowTransactionAvgAggregateOutputType | null
+    _sum: EscrowTransactionSumAggregateOutputType | null
+    _min: EscrowTransactionMinAggregateOutputType | null
+    _max: EscrowTransactionMaxAggregateOutputType | null
+  }
+
+  type GetEscrowTransactionGroupByPayload<T extends EscrowTransactionGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<EscrowTransactionGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof EscrowTransactionGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], EscrowTransactionGroupByOutputType[P]>
+            : GetScalarType<T[P], EscrowTransactionGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type EscrowTransactionSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    shopId?: boolean
+    amount?: boolean
+    commissionRate?: boolean
+    status?: boolean
+    releaseAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["escrowTransaction"]>
+
+  export type EscrowTransactionSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    shopId?: boolean
+    amount?: boolean
+    commissionRate?: boolean
+    status?: boolean
+    releaseAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["escrowTransaction"]>
+
+  export type EscrowTransactionSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    orderId?: boolean
+    shopId?: boolean
+    amount?: boolean
+    commissionRate?: boolean
+    status?: boolean
+    releaseAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["escrowTransaction"]>
+
+  export type EscrowTransactionSelectScalar = {
+    id?: boolean
+    orderId?: boolean
+    shopId?: boolean
+    amount?: boolean
+    commissionRate?: boolean
+    status?: boolean
+    releaseAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type EscrowTransactionOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "orderId" | "shopId" | "amount" | "commissionRate" | "status" | "releaseAt" | "createdAt" | "updatedAt", ExtArgs["result"]["escrowTransaction"]>
+
+  export type $EscrowTransactionPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "EscrowTransaction"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      orderId: string
+      shopId: string
+      amount: number
+      commissionRate: number
+      status: string
+      releaseAt: Date
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["escrowTransaction"]>
+    composites: {}
+  }
+
+  type EscrowTransactionGetPayload<S extends boolean | null | undefined | EscrowTransactionDefaultArgs> = $Result.GetResult<Prisma.$EscrowTransactionPayload, S>
+
+  type EscrowTransactionCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<EscrowTransactionFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: EscrowTransactionCountAggregateInputType | true
+    }
+
+  export interface EscrowTransactionDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['EscrowTransaction'], meta: { name: 'EscrowTransaction' } }
+    /**
+     * Find zero or one EscrowTransaction that matches the filter.
+     * @param {EscrowTransactionFindUniqueArgs} args - Arguments to find a EscrowTransaction
+     * @example
+     * // Get one EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends EscrowTransactionFindUniqueArgs>(args: SelectSubset<T, EscrowTransactionFindUniqueArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one EscrowTransaction that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {EscrowTransactionFindUniqueOrThrowArgs} args - Arguments to find a EscrowTransaction
+     * @example
+     * // Get one EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends EscrowTransactionFindUniqueOrThrowArgs>(args: SelectSubset<T, EscrowTransactionFindUniqueOrThrowArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first EscrowTransaction that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionFindFirstArgs} args - Arguments to find a EscrowTransaction
+     * @example
+     * // Get one EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends EscrowTransactionFindFirstArgs>(args?: SelectSubset<T, EscrowTransactionFindFirstArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first EscrowTransaction that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionFindFirstOrThrowArgs} args - Arguments to find a EscrowTransaction
+     * @example
+     * // Get one EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends EscrowTransactionFindFirstOrThrowArgs>(args?: SelectSubset<T, EscrowTransactionFindFirstOrThrowArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more EscrowTransactions that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all EscrowTransactions
+     * const escrowTransactions = await prisma.escrowTransaction.findMany()
+     * 
+     * // Get first 10 EscrowTransactions
+     * const escrowTransactions = await prisma.escrowTransaction.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const escrowTransactionWithIdOnly = await prisma.escrowTransaction.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends EscrowTransactionFindManyArgs>(args?: SelectSubset<T, EscrowTransactionFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a EscrowTransaction.
+     * @param {EscrowTransactionCreateArgs} args - Arguments to create a EscrowTransaction.
+     * @example
+     * // Create one EscrowTransaction
+     * const EscrowTransaction = await prisma.escrowTransaction.create({
+     *   data: {
+     *     // ... data to create a EscrowTransaction
+     *   }
+     * })
+     * 
+     */
+    create<T extends EscrowTransactionCreateArgs>(args: SelectSubset<T, EscrowTransactionCreateArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many EscrowTransactions.
+     * @param {EscrowTransactionCreateManyArgs} args - Arguments to create many EscrowTransactions.
+     * @example
+     * // Create many EscrowTransactions
+     * const escrowTransaction = await prisma.escrowTransaction.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends EscrowTransactionCreateManyArgs>(args?: SelectSubset<T, EscrowTransactionCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many EscrowTransactions and returns the data saved in the database.
+     * @param {EscrowTransactionCreateManyAndReturnArgs} args - Arguments to create many EscrowTransactions.
+     * @example
+     * // Create many EscrowTransactions
+     * const escrowTransaction = await prisma.escrowTransaction.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many EscrowTransactions and only return the `id`
+     * const escrowTransactionWithIdOnly = await prisma.escrowTransaction.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends EscrowTransactionCreateManyAndReturnArgs>(args?: SelectSubset<T, EscrowTransactionCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a EscrowTransaction.
+     * @param {EscrowTransactionDeleteArgs} args - Arguments to delete one EscrowTransaction.
+     * @example
+     * // Delete one EscrowTransaction
+     * const EscrowTransaction = await prisma.escrowTransaction.delete({
+     *   where: {
+     *     // ... filter to delete one EscrowTransaction
+     *   }
+     * })
+     * 
+     */
+    delete<T extends EscrowTransactionDeleteArgs>(args: SelectSubset<T, EscrowTransactionDeleteArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one EscrowTransaction.
+     * @param {EscrowTransactionUpdateArgs} args - Arguments to update one EscrowTransaction.
+     * @example
+     * // Update one EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends EscrowTransactionUpdateArgs>(args: SelectSubset<T, EscrowTransactionUpdateArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more EscrowTransactions.
+     * @param {EscrowTransactionDeleteManyArgs} args - Arguments to filter EscrowTransactions to delete.
+     * @example
+     * // Delete a few EscrowTransactions
+     * const { count } = await prisma.escrowTransaction.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends EscrowTransactionDeleteManyArgs>(args?: SelectSubset<T, EscrowTransactionDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more EscrowTransactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many EscrowTransactions
+     * const escrowTransaction = await prisma.escrowTransaction.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends EscrowTransactionUpdateManyArgs>(args: SelectSubset<T, EscrowTransactionUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more EscrowTransactions and returns the data updated in the database.
+     * @param {EscrowTransactionUpdateManyAndReturnArgs} args - Arguments to update many EscrowTransactions.
+     * @example
+     * // Update many EscrowTransactions
+     * const escrowTransaction = await prisma.escrowTransaction.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more EscrowTransactions and only return the `id`
+     * const escrowTransactionWithIdOnly = await prisma.escrowTransaction.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends EscrowTransactionUpdateManyAndReturnArgs>(args: SelectSubset<T, EscrowTransactionUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one EscrowTransaction.
+     * @param {EscrowTransactionUpsertArgs} args - Arguments to update or create a EscrowTransaction.
+     * @example
+     * // Update or create a EscrowTransaction
+     * const escrowTransaction = await prisma.escrowTransaction.upsert({
+     *   create: {
+     *     // ... data to create a EscrowTransaction
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the EscrowTransaction we want to update
+     *   }
+     * })
+     */
+    upsert<T extends EscrowTransactionUpsertArgs>(args: SelectSubset<T, EscrowTransactionUpsertArgs<ExtArgs>>): Prisma__EscrowTransactionClient<$Result.GetResult<Prisma.$EscrowTransactionPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of EscrowTransactions.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionCountArgs} args - Arguments to filter EscrowTransactions to count.
+     * @example
+     * // Count the number of EscrowTransactions
+     * const count = await prisma.escrowTransaction.count({
+     *   where: {
+     *     // ... the filter for the EscrowTransactions we want to count
+     *   }
+     * })
+    **/
+    count<T extends EscrowTransactionCountArgs>(
+      args?: Subset<T, EscrowTransactionCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], EscrowTransactionCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a EscrowTransaction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends EscrowTransactionAggregateArgs>(args: Subset<T, EscrowTransactionAggregateArgs>): Prisma.PrismaPromise<GetEscrowTransactionAggregateType<T>>
+
+    /**
+     * Group by EscrowTransaction.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {EscrowTransactionGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends EscrowTransactionGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: EscrowTransactionGroupByArgs['orderBy'] }
+        : { orderBy?: EscrowTransactionGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, EscrowTransactionGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetEscrowTransactionGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the EscrowTransaction model
+   */
+  readonly fields: EscrowTransactionFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for EscrowTransaction.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__EscrowTransactionClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the EscrowTransaction model
+   */
+  interface EscrowTransactionFieldRefs {
+    readonly id: FieldRef<"EscrowTransaction", 'String'>
+    readonly orderId: FieldRef<"EscrowTransaction", 'String'>
+    readonly shopId: FieldRef<"EscrowTransaction", 'String'>
+    readonly amount: FieldRef<"EscrowTransaction", 'Float'>
+    readonly commissionRate: FieldRef<"EscrowTransaction", 'Float'>
+    readonly status: FieldRef<"EscrowTransaction", 'String'>
+    readonly releaseAt: FieldRef<"EscrowTransaction", 'DateTime'>
+    readonly createdAt: FieldRef<"EscrowTransaction", 'DateTime'>
+    readonly updatedAt: FieldRef<"EscrowTransaction", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * EscrowTransaction findUnique
+   */
+  export type EscrowTransactionFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter, which EscrowTransaction to fetch.
+     */
+    where: EscrowTransactionWhereUniqueInput
+  }
+
+  /**
+   * EscrowTransaction findUniqueOrThrow
+   */
+  export type EscrowTransactionFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter, which EscrowTransaction to fetch.
+     */
+    where: EscrowTransactionWhereUniqueInput
+  }
+
+  /**
+   * EscrowTransaction findFirst
+   */
+  export type EscrowTransactionFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter, which EscrowTransaction to fetch.
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EscrowTransactions to fetch.
+     */
+    orderBy?: EscrowTransactionOrderByWithRelationInput | EscrowTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for EscrowTransactions.
+     */
+    cursor?: EscrowTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EscrowTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EscrowTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EscrowTransactions.
+     */
+    distinct?: EscrowTransactionScalarFieldEnum | EscrowTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * EscrowTransaction findFirstOrThrow
+   */
+  export type EscrowTransactionFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter, which EscrowTransaction to fetch.
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EscrowTransactions to fetch.
+     */
+    orderBy?: EscrowTransactionOrderByWithRelationInput | EscrowTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for EscrowTransactions.
+     */
+    cursor?: EscrowTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EscrowTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EscrowTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EscrowTransactions.
+     */
+    distinct?: EscrowTransactionScalarFieldEnum | EscrowTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * EscrowTransaction findMany
+   */
+  export type EscrowTransactionFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter, which EscrowTransactions to fetch.
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of EscrowTransactions to fetch.
+     */
+    orderBy?: EscrowTransactionOrderByWithRelationInput | EscrowTransactionOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing EscrowTransactions.
+     */
+    cursor?: EscrowTransactionWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` EscrowTransactions from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` EscrowTransactions.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of EscrowTransactions.
+     */
+    distinct?: EscrowTransactionScalarFieldEnum | EscrowTransactionScalarFieldEnum[]
+  }
+
+  /**
+   * EscrowTransaction create
+   */
+  export type EscrowTransactionCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * The data needed to create a EscrowTransaction.
+     */
+    data: XOR<EscrowTransactionCreateInput, EscrowTransactionUncheckedCreateInput>
+  }
+
+  /**
+   * EscrowTransaction createMany
+   */
+  export type EscrowTransactionCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many EscrowTransactions.
+     */
+    data: EscrowTransactionCreateManyInput | EscrowTransactionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * EscrowTransaction createManyAndReturn
+   */
+  export type EscrowTransactionCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * The data used to create many EscrowTransactions.
+     */
+    data: EscrowTransactionCreateManyInput | EscrowTransactionCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * EscrowTransaction update
+   */
+  export type EscrowTransactionUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * The data needed to update a EscrowTransaction.
+     */
+    data: XOR<EscrowTransactionUpdateInput, EscrowTransactionUncheckedUpdateInput>
+    /**
+     * Choose, which EscrowTransaction to update.
+     */
+    where: EscrowTransactionWhereUniqueInput
+  }
+
+  /**
+   * EscrowTransaction updateMany
+   */
+  export type EscrowTransactionUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update EscrowTransactions.
+     */
+    data: XOR<EscrowTransactionUpdateManyMutationInput, EscrowTransactionUncheckedUpdateManyInput>
+    /**
+     * Filter which EscrowTransactions to update
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * Limit how many EscrowTransactions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * EscrowTransaction updateManyAndReturn
+   */
+  export type EscrowTransactionUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * The data used to update EscrowTransactions.
+     */
+    data: XOR<EscrowTransactionUpdateManyMutationInput, EscrowTransactionUncheckedUpdateManyInput>
+    /**
+     * Filter which EscrowTransactions to update
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * Limit how many EscrowTransactions to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * EscrowTransaction upsert
+   */
+  export type EscrowTransactionUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * The filter to search for the EscrowTransaction to update in case it exists.
+     */
+    where: EscrowTransactionWhereUniqueInput
+    /**
+     * In case the EscrowTransaction found by the `where` argument doesn't exist, create a new EscrowTransaction with this data.
+     */
+    create: XOR<EscrowTransactionCreateInput, EscrowTransactionUncheckedCreateInput>
+    /**
+     * In case the EscrowTransaction was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<EscrowTransactionUpdateInput, EscrowTransactionUncheckedUpdateInput>
+  }
+
+  /**
+   * EscrowTransaction delete
+   */
+  export type EscrowTransactionDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+    /**
+     * Filter which EscrowTransaction to delete.
+     */
+    where: EscrowTransactionWhereUniqueInput
+  }
+
+  /**
+   * EscrowTransaction deleteMany
+   */
+  export type EscrowTransactionDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which EscrowTransactions to delete
+     */
+    where?: EscrowTransactionWhereInput
+    /**
+     * Limit how many EscrowTransactions to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * EscrowTransaction without action
+   */
+  export type EscrowTransactionDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the EscrowTransaction
+     */
+    select?: EscrowTransactionSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the EscrowTransaction
+     */
+    omit?: EscrowTransactionOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -6658,6 +7856,7 @@ export namespace Prisma {
     id: 'id',
     buyerId: 'buyerId',
     balance: 'balance',
+    onHoldBalance: 'onHoldBalance',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -6699,6 +7898,21 @@ export namespace Prisma {
   };
 
   export type SystemConfigScalarFieldEnum = (typeof SystemConfigScalarFieldEnum)[keyof typeof SystemConfigScalarFieldEnum]
+
+
+  export const EscrowTransactionScalarFieldEnum: {
+    id: 'id',
+    orderId: 'orderId',
+    shopId: 'shopId',
+    amount: 'amount',
+    commissionRate: 'commissionRate',
+    status: 'status',
+    releaseAt: 'releaseAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type EscrowTransactionScalarFieldEnum = (typeof EscrowTransactionScalarFieldEnum)[keyof typeof EscrowTransactionScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -6870,6 +8084,7 @@ export namespace Prisma {
     id?: StringFilter<"Wallet"> | string
     buyerId?: StringFilter<"Wallet"> | string
     balance?: FloatFilter<"Wallet"> | number
+    onHoldBalance?: FloatFilter<"Wallet"> | number
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
     transactions?: WalletTransactionListRelationFilter
@@ -6879,6 +8094,7 @@ export namespace Prisma {
     id?: SortOrder
     buyerId?: SortOrder
     balance?: SortOrder
+    onHoldBalance?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     transactions?: WalletTransactionOrderByRelationAggregateInput
@@ -6891,6 +8107,7 @@ export namespace Prisma {
     OR?: WalletWhereInput[]
     NOT?: WalletWhereInput | WalletWhereInput[]
     balance?: FloatFilter<"Wallet"> | number
+    onHoldBalance?: FloatFilter<"Wallet"> | number
     createdAt?: DateTimeFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeFilter<"Wallet"> | Date | string
     transactions?: WalletTransactionListRelationFilter
@@ -6900,6 +8117,7 @@ export namespace Prisma {
     id?: SortOrder
     buyerId?: SortOrder
     balance?: SortOrder
+    onHoldBalance?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WalletCountOrderByAggregateInput
@@ -6916,6 +8134,7 @@ export namespace Prisma {
     id?: StringWithAggregatesFilter<"Wallet"> | string
     buyerId?: StringWithAggregatesFilter<"Wallet"> | string
     balance?: FloatWithAggregatesFilter<"Wallet"> | number
+    onHoldBalance?: FloatWithAggregatesFilter<"Wallet"> | number
     createdAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Wallet"> | Date | string
   }
@@ -7098,6 +8317,80 @@ export namespace Prisma {
     value?: StringWithAggregatesFilter<"SystemConfig"> | string
   }
 
+  export type EscrowTransactionWhereInput = {
+    AND?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
+    OR?: EscrowTransactionWhereInput[]
+    NOT?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
+    id?: StringFilter<"EscrowTransaction"> | string
+    orderId?: StringFilter<"EscrowTransaction"> | string
+    shopId?: StringFilter<"EscrowTransaction"> | string
+    amount?: FloatFilter<"EscrowTransaction"> | number
+    commissionRate?: FloatFilter<"EscrowTransaction"> | number
+    status?: StringFilter<"EscrowTransaction"> | string
+    releaseAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+    createdAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+    updatedAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+  }
+
+  export type EscrowTransactionOrderByWithRelationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    shopId?: SortOrder
+    amount?: SortOrder
+    commissionRate?: SortOrder
+    status?: SortOrder
+    releaseAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EscrowTransactionWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    orderId?: string
+    AND?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
+    OR?: EscrowTransactionWhereInput[]
+    NOT?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
+    shopId?: StringFilter<"EscrowTransaction"> | string
+    amount?: FloatFilter<"EscrowTransaction"> | number
+    commissionRate?: FloatFilter<"EscrowTransaction"> | number
+    status?: StringFilter<"EscrowTransaction"> | string
+    releaseAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+    createdAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+    updatedAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
+  }, "id" | "orderId">
+
+  export type EscrowTransactionOrderByWithAggregationInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    shopId?: SortOrder
+    amount?: SortOrder
+    commissionRate?: SortOrder
+    status?: SortOrder
+    releaseAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: EscrowTransactionCountOrderByAggregateInput
+    _avg?: EscrowTransactionAvgOrderByAggregateInput
+    _max?: EscrowTransactionMaxOrderByAggregateInput
+    _min?: EscrowTransactionMinOrderByAggregateInput
+    _sum?: EscrowTransactionSumOrderByAggregateInput
+  }
+
+  export type EscrowTransactionScalarWhereWithAggregatesInput = {
+    AND?: EscrowTransactionScalarWhereWithAggregatesInput | EscrowTransactionScalarWhereWithAggregatesInput[]
+    OR?: EscrowTransactionScalarWhereWithAggregatesInput[]
+    NOT?: EscrowTransactionScalarWhereWithAggregatesInput | EscrowTransactionScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"EscrowTransaction"> | string
+    orderId?: StringWithAggregatesFilter<"EscrowTransaction"> | string
+    shopId?: StringWithAggregatesFilter<"EscrowTransaction"> | string
+    amount?: FloatWithAggregatesFilter<"EscrowTransaction"> | number
+    commissionRate?: FloatWithAggregatesFilter<"EscrowTransaction"> | number
+    status?: StringWithAggregatesFilter<"EscrowTransaction"> | string
+    releaseAt?: DateTimeWithAggregatesFilter<"EscrowTransaction"> | Date | string
+    createdAt?: DateTimeWithAggregatesFilter<"EscrowTransaction"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"EscrowTransaction"> | Date | string
+  }
+
   export type TransactionCreateInput = {
     id?: string
     orderId: string
@@ -7186,6 +8479,7 @@ export namespace Prisma {
     id?: string
     buyerId: string
     balance?: number
+    onHoldBalance?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     transactions?: WalletTransactionCreateNestedManyWithoutWalletInput
@@ -7195,6 +8489,7 @@ export namespace Prisma {
     id?: string
     buyerId: string
     balance?: number
+    onHoldBalance?: number
     createdAt?: Date | string
     updatedAt?: Date | string
     transactions?: WalletTransactionUncheckedCreateNestedManyWithoutWalletInput
@@ -7204,6 +8499,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     transactions?: WalletTransactionUpdateManyWithoutWalletNestedInput
@@ -7213,6 +8509,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     transactions?: WalletTransactionUncheckedUpdateManyWithoutWalletNestedInput
@@ -7222,6 +8519,7 @@ export namespace Prisma {
     id?: string
     buyerId: string
     balance?: number
+    onHoldBalance?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -7230,6 +8528,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7238,6 +8537,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -7430,6 +8730,90 @@ export namespace Prisma {
     value?: StringFieldUpdateOperationsInput | string
   }
 
+  export type EscrowTransactionCreateInput = {
+    id?: string
+    orderId: string
+    shopId: string
+    amount: number
+    commissionRate: number
+    status?: string
+    releaseAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EscrowTransactionUncheckedCreateInput = {
+    id?: string
+    orderId: string
+    shopId: string
+    amount: number
+    commissionRate: number
+    status?: string
+    releaseAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EscrowTransactionUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    amount?: FloatFieldUpdateOperationsInput | number
+    commissionRate?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    releaseAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EscrowTransactionUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    amount?: FloatFieldUpdateOperationsInput | number
+    commissionRate?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    releaseAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EscrowTransactionCreateManyInput = {
+    id?: string
+    orderId: string
+    shopId: string
+    amount: number
+    commissionRate: number
+    status?: string
+    releaseAt: Date | string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type EscrowTransactionUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    amount?: FloatFieldUpdateOperationsInput | number
+    commissionRate?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    releaseAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type EscrowTransactionUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    orderId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    amount?: FloatFieldUpdateOperationsInput | number
+    commissionRate?: FloatFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    releaseAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -7611,18 +8995,21 @@ export namespace Prisma {
     id?: SortOrder
     buyerId?: SortOrder
     balance?: SortOrder
+    onHoldBalance?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type WalletAvgOrderByAggregateInput = {
     balance?: SortOrder
+    onHoldBalance?: SortOrder
   }
 
   export type WalletMaxOrderByAggregateInput = {
     id?: SortOrder
     buyerId?: SortOrder
     balance?: SortOrder
+    onHoldBalance?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -7631,12 +9018,14 @@ export namespace Prisma {
     id?: SortOrder
     buyerId?: SortOrder
     balance?: SortOrder
+    onHoldBalance?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type WalletSumOrderByAggregateInput = {
     balance?: SortOrder
+    onHoldBalance?: SortOrder
   }
 
   export type WalletScalarRelationFilter = {
@@ -7739,6 +9128,52 @@ export namespace Prisma {
   export type SystemConfigMinOrderByAggregateInput = {
     key?: SortOrder
     value?: SortOrder
+  }
+
+  export type EscrowTransactionCountOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    shopId?: SortOrder
+    amount?: SortOrder
+    commissionRate?: SortOrder
+    status?: SortOrder
+    releaseAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EscrowTransactionAvgOrderByAggregateInput = {
+    amount?: SortOrder
+    commissionRate?: SortOrder
+  }
+
+  export type EscrowTransactionMaxOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    shopId?: SortOrder
+    amount?: SortOrder
+    commissionRate?: SortOrder
+    status?: SortOrder
+    releaseAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EscrowTransactionMinOrderByAggregateInput = {
+    id?: SortOrder
+    orderId?: SortOrder
+    shopId?: SortOrder
+    amount?: SortOrder
+    commissionRate?: SortOrder
+    status?: SortOrder
+    releaseAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type EscrowTransactionSumOrderByAggregateInput = {
+    amount?: SortOrder
+    commissionRate?: SortOrder
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -8014,6 +9449,7 @@ export namespace Prisma {
     id?: string
     buyerId: string
     balance?: number
+    onHoldBalance?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8022,6 +9458,7 @@ export namespace Prisma {
     id?: string
     buyerId: string
     balance?: number
+    onHoldBalance?: number
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8046,6 +9483,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8054,6 +9492,7 @@ export namespace Prisma {
     id?: StringFieldUpdateOperationsInput | string
     buyerId?: StringFieldUpdateOperationsInput | string
     balance?: FloatFieldUpdateOperationsInput | number
+    onHoldBalance?: FloatFieldUpdateOperationsInput | number
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

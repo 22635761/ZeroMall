@@ -18,6 +18,7 @@ model Voucher {
   maxDiscount  Float?
   usageLimit   Int
   usedCount    Int      @default(0)
+  targetUserId String?  // ID của user được cấp riêng (Goodwill Compensation Voucher CSKH)
   startDate    DateTime
   endDate      DateTime
   createdAt    DateTime @default(now())

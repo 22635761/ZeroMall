@@ -7,9 +7,21 @@ import { CreateReviewDto } from './review.dto';
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(shopId?: string) {
+  async findAll(shopId?: string, category?: string) {
+    let whereClause: any = {};
+    if (shopId) whereClause.shopId = shopId;
+    if (category && category !== 'all') {
+      const trimmed = category.trim();
+      whereClause.OR = [
+        { category: { contains: trimmed, mode: 'insensitive' } },
+        { categoryRef: { slug: { equals: trimmed, mode: 'insensitive' } } },
+        { categoryRef: { name: { contains: trimmed, mode: 'insensitive' } } },
+      ];
+    }
+
     const products = await this.prisma.product.findMany({
-      where: shopId ? { shopId } : undefined,
+      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      include: { categoryRef: true },
       orderBy: { createdAt: 'desc' },
     });
 
@@ -162,10 +174,12 @@ export class ProductService {
     return this.prisma.review.create({
       data: {
         productId,
+        orderId: dto.orderId,
         username: dto.username,
         rating: dto.rating,
         comment: dto.comment,
         variant: dto.variant,
+        images: dto.images,
       },
     });
   }
@@ -236,7 +250,8 @@ export class ProductService {
 
   async getAllCategories() {
     const list = await this.prisma.category.findMany({
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
+      include: { _count: { select: { products: true } } }
     });
     if (list.length === 0) {
       const defaults = [
@@ -248,11 +263,13 @@ export class ProductService {
       await Promise.all(
         defaults.map(d => this.prisma.category.create({ data: d }))
       );
-      return this.prisma.category.findMany({
-        orderBy: { createdAt: 'desc' }
+      const newList = await this.prisma.category.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { products: true } } }
       });
+      return newList.map(c => ({ ...c, productCount: c._count.products }));
     }
-    return list;
+    return list.map(c => ({ ...c, productCount: c._count.products }));
   }
 
   async createCategory(name: string) {
@@ -331,13 +348,50 @@ export class ProductService {
     return list;
   }
 
+  private parseTimeRange(slot: string): { start: number; end: number } | null {
+    try {
+      const parts = slot.split('-').map(s => s.trim());
+      if (parts.length !== 2) return null;
+      const startH = parseInt(parts[0].split(':')[0], 10);
+      const endH = parseInt(parts[1].split(':')[0], 10);
+      if (isNaN(startH) || isNaN(endH)) return null;
+      return { start: startH, end: endH === 0 ? 24 : endH };
+    } catch (e) {
+      return null;
+    }
+  }
+
   async createFlashSale(timeSlot: string) {
+    const newRange = this.parseTimeRange(timeSlot);
+    if (!newRange) {
+      throw new Error('Định dạng khung giờ không hợp lệ. Vui lòng nhập định dạng HH:mm - HH:mm');
+    }
+
+    const existingSlots = await this.prisma.flashSale.findMany();
+    for (const slot of existingSlots) {
+      const range = this.parseTimeRange(slot.timeSlot);
+      if (range) {
+        // Check time overlap: (start1 < end2) && (end1 > start2)
+        if (newRange.start < range.end && newRange.end > range.start) {
+          throw new Error(`Khung giờ "${timeSlot}" bị trùng lặp thời gian với khung giờ đã có "${slot.timeSlot}"!`);
+        }
+      }
+    }
+
     return this.prisma.flashSale.create({
       data: { timeSlot }
     });
   }
 
   async updateFlashSaleStatus(id: string, status: string) {
+    if (status === 'RUNNING') {
+      // Đảm bảo chỉ có DUY NHẤT 1 khung giờ ở trạng thái RUNNING tại một thời điểm
+      await this.prisma.flashSale.updateMany({
+        where: { id: { not: id }, status: 'RUNNING' },
+        data: { status: 'ENDED' }
+      });
+    }
+
     return this.prisma.flashSale.update({
       where: { id },
       data: { status }

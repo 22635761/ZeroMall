@@ -905,6 +905,7 @@ export namespace Prisma {
     maxDiscount: number | null
     usageLimit: number | null
     usedCount: number | null
+    targetUserId: string | null
     startDate: Date | null
     endDate: Date | null
     createdAt: Date | null
@@ -922,6 +923,7 @@ export namespace Prisma {
     maxDiscount: number | null
     usageLimit: number | null
     usedCount: number | null
+    targetUserId: string | null
     startDate: Date | null
     endDate: Date | null
     createdAt: Date | null
@@ -939,6 +941,7 @@ export namespace Prisma {
     maxDiscount: number
     usageLimit: number
     usedCount: number
+    targetUserId: number
     startDate: number
     endDate: number
     createdAt: number
@@ -974,6 +977,7 @@ export namespace Prisma {
     maxDiscount?: true
     usageLimit?: true
     usedCount?: true
+    targetUserId?: true
     startDate?: true
     endDate?: true
     createdAt?: true
@@ -991,6 +995,7 @@ export namespace Prisma {
     maxDiscount?: true
     usageLimit?: true
     usedCount?: true
+    targetUserId?: true
     startDate?: true
     endDate?: true
     createdAt?: true
@@ -1008,6 +1013,7 @@ export namespace Prisma {
     maxDiscount?: true
     usageLimit?: true
     usedCount?: true
+    targetUserId?: true
     startDate?: true
     endDate?: true
     createdAt?: true
@@ -1112,6 +1118,7 @@ export namespace Prisma {
     maxDiscount: number | null
     usageLimit: number
     usedCount: number
+    targetUserId: string | null
     startDate: Date
     endDate: Date
     createdAt: Date
@@ -1148,6 +1155,7 @@ export namespace Prisma {
     maxDiscount?: boolean
     usageLimit?: boolean
     usedCount?: boolean
+    targetUserId?: boolean
     startDate?: boolean
     endDate?: boolean
     createdAt?: boolean
@@ -1165,6 +1173,7 @@ export namespace Prisma {
     maxDiscount?: boolean
     usageLimit?: boolean
     usedCount?: boolean
+    targetUserId?: boolean
     startDate?: boolean
     endDate?: boolean
     createdAt?: boolean
@@ -1182,6 +1191,7 @@ export namespace Prisma {
     maxDiscount?: boolean
     usageLimit?: boolean
     usedCount?: boolean
+    targetUserId?: boolean
     startDate?: boolean
     endDate?: boolean
     createdAt?: boolean
@@ -1199,13 +1209,14 @@ export namespace Prisma {
     maxDiscount?: boolean
     usageLimit?: boolean
     usedCount?: boolean
+    targetUserId?: boolean
     startDate?: boolean
     endDate?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type VoucherOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "name" | "code" | "type" | "value" | "minSpend" | "maxDiscount" | "usageLimit" | "usedCount" | "startDate" | "endDate" | "createdAt" | "updatedAt", ExtArgs["result"]["voucher"]>
+  export type VoucherOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "name" | "code" | "type" | "value" | "minSpend" | "maxDiscount" | "usageLimit" | "usedCount" | "targetUserId" | "startDate" | "endDate" | "createdAt" | "updatedAt", ExtArgs["result"]["voucher"]>
 
   export type $VoucherPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "Voucher"
@@ -1221,6 +1232,7 @@ export namespace Prisma {
       maxDiscount: number | null
       usageLimit: number
       usedCount: number
+      targetUserId: string | null
       startDate: Date
       endDate: Date
       createdAt: Date
@@ -1658,6 +1670,7 @@ export namespace Prisma {
     readonly maxDiscount: FieldRef<"Voucher", 'Float'>
     readonly usageLimit: FieldRef<"Voucher", 'Int'>
     readonly usedCount: FieldRef<"Voucher", 'Int'>
+    readonly targetUserId: FieldRef<"Voucher", 'String'>
     readonly startDate: FieldRef<"Voucher", 'DateTime'>
     readonly endDate: FieldRef<"Voucher", 'DateTime'>
     readonly createdAt: FieldRef<"Voucher", 'DateTime'>
@@ -2058,6 +2071,7 @@ export namespace Prisma {
     maxDiscount: 'maxDiscount',
     usageLimit: 'usageLimit',
     usedCount: 'usedCount',
+    targetUserId: 'targetUserId',
     startDate: 'startDate',
     endDate: 'endDate',
     createdAt: 'createdAt',
@@ -2169,6 +2183,7 @@ export namespace Prisma {
     maxDiscount?: FloatNullableFilter<"Voucher"> | number | null
     usageLimit?: IntFilter<"Voucher"> | number
     usedCount?: IntFilter<"Voucher"> | number
+    targetUserId?: StringNullableFilter<"Voucher"> | string | null
     startDate?: DateTimeFilter<"Voucher"> | Date | string
     endDate?: DateTimeFilter<"Voucher"> | Date | string
     createdAt?: DateTimeFilter<"Voucher"> | Date | string
@@ -2186,6 +2201,7 @@ export namespace Prisma {
     maxDiscount?: SortOrderInput | SortOrder
     usageLimit?: SortOrder
     usedCount?: SortOrder
+    targetUserId?: SortOrderInput | SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     createdAt?: SortOrder
@@ -2207,6 +2223,7 @@ export namespace Prisma {
     maxDiscount?: FloatNullableFilter<"Voucher"> | number | null
     usageLimit?: IntFilter<"Voucher"> | number
     usedCount?: IntFilter<"Voucher"> | number
+    targetUserId?: StringNullableFilter<"Voucher"> | string | null
     startDate?: DateTimeFilter<"Voucher"> | Date | string
     endDate?: DateTimeFilter<"Voucher"> | Date | string
     createdAt?: DateTimeFilter<"Voucher"> | Date | string
@@ -2224,6 +2241,7 @@ export namespace Prisma {
     maxDiscount?: SortOrderInput | SortOrder
     usageLimit?: SortOrder
     usedCount?: SortOrder
+    targetUserId?: SortOrderInput | SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     createdAt?: SortOrder
@@ -2249,6 +2267,7 @@ export namespace Prisma {
     maxDiscount?: FloatNullableWithAggregatesFilter<"Voucher"> | number | null
     usageLimit?: IntWithAggregatesFilter<"Voucher"> | number
     usedCount?: IntWithAggregatesFilter<"Voucher"> | number
+    targetUserId?: StringNullableWithAggregatesFilter<"Voucher"> | string | null
     startDate?: DateTimeWithAggregatesFilter<"Voucher"> | Date | string
     endDate?: DateTimeWithAggregatesFilter<"Voucher"> | Date | string
     createdAt?: DateTimeWithAggregatesFilter<"Voucher"> | Date | string
@@ -2266,6 +2285,7 @@ export namespace Prisma {
     maxDiscount?: number | null
     usageLimit: number
     usedCount?: number
+    targetUserId?: string | null
     startDate: Date | string
     endDate: Date | string
     createdAt?: Date | string
@@ -2283,6 +2303,7 @@ export namespace Prisma {
     maxDiscount?: number | null
     usageLimit: number
     usedCount?: number
+    targetUserId?: string | null
     startDate: Date | string
     endDate: Date | string
     createdAt?: Date | string
@@ -2300,6 +2321,7 @@ export namespace Prisma {
     maxDiscount?: NullableFloatFieldUpdateOperationsInput | number | null
     usageLimit?: IntFieldUpdateOperationsInput | number
     usedCount?: IntFieldUpdateOperationsInput | number
+    targetUserId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -2317,6 +2339,7 @@ export namespace Prisma {
     maxDiscount?: NullableFloatFieldUpdateOperationsInput | number | null
     usageLimit?: IntFieldUpdateOperationsInput | number
     usedCount?: IntFieldUpdateOperationsInput | number
+    targetUserId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -2334,6 +2357,7 @@ export namespace Prisma {
     maxDiscount?: number | null
     usageLimit: number
     usedCount?: number
+    targetUserId?: string | null
     startDate: Date | string
     endDate: Date | string
     createdAt?: Date | string
@@ -2351,6 +2375,7 @@ export namespace Prisma {
     maxDiscount?: NullableFloatFieldUpdateOperationsInput | number | null
     usageLimit?: IntFieldUpdateOperationsInput | number
     usedCount?: IntFieldUpdateOperationsInput | number
+    targetUserId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -2368,6 +2393,7 @@ export namespace Prisma {
     maxDiscount?: NullableFloatFieldUpdateOperationsInput | number | null
     usageLimit?: IntFieldUpdateOperationsInput | number
     usedCount?: IntFieldUpdateOperationsInput | number
+    targetUserId?: NullableStringFieldUpdateOperationsInput | string | null
     startDate?: DateTimeFieldUpdateOperationsInput | Date | string
     endDate?: DateTimeFieldUpdateOperationsInput | Date | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -2422,6 +2448,21 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
+  export type StringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -2454,6 +2495,7 @@ export namespace Prisma {
     maxDiscount?: SortOrder
     usageLimit?: SortOrder
     usedCount?: SortOrder
+    targetUserId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     createdAt?: SortOrder
@@ -2479,6 +2521,7 @@ export namespace Prisma {
     maxDiscount?: SortOrder
     usageLimit?: SortOrder
     usedCount?: SortOrder
+    targetUserId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     createdAt?: SortOrder
@@ -2496,6 +2539,7 @@ export namespace Prisma {
     maxDiscount?: SortOrder
     usageLimit?: SortOrder
     usedCount?: SortOrder
+    targetUserId?: SortOrder
     startDate?: SortOrder
     endDate?: SortOrder
     createdAt?: SortOrder
@@ -2576,6 +2620,24 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
+  export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -2616,6 +2678,10 @@ export namespace Prisma {
     decrement?: number
     multiply?: number
     divide?: number
+  }
+
+  export type NullableStringFieldUpdateOperationsInput = {
+    set?: string | null
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -2667,6 +2733,20 @@ export namespace Prisma {
     gt?: number | IntFieldRefInput<$PrismaModel>
     gte?: number | IntFieldRefInput<$PrismaModel>
     not?: NestedIntFilter<$PrismaModel> | number
+  }
+
+  export type NestedStringNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableFilter<$PrismaModel> | string | null
   }
 
   export type NestedDateTimeFilter<$PrismaModel = never> = {
@@ -2754,6 +2834,23 @@ export namespace Prisma {
     _sum?: NestedIntFilter<$PrismaModel>
     _min?: NestedIntFilter<$PrismaModel>
     _max?: NestedIntFilter<$PrismaModel>
+  }
+
+  export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    contains?: string | StringFieldRefInput<$PrismaModel>
+    startsWith?: string | StringFieldRefInput<$PrismaModel>
+    endsWith?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedStringNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {

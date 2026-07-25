@@ -3,6 +3,7 @@ import type { CartItem } from '../../models/cart.model'
 import { CartStepView } from '../../components/buyer/CartStepView'
 import { CheckoutStepView } from '../../components/buyer/CheckoutStepView'
 import { AddressModal } from '../../components/buyer/AddressModal'
+import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
 import type { ShippingAddress } from '../../models/address.model'
 import { DEFAULT_ADDRESSES } from '../../models/address.model'
 
@@ -493,6 +494,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         quantity: item.quantity
       }))
 
+      const appliedVoucherIds = Object.values(selectedShopVouchers).filter(Boolean)
+
       const orderData = {
         buyerId: user?.id || 'guest-buyer-id',
         buyerEmail: user?.email || 'buyer@zeromall.com',
@@ -502,6 +505,10 @@ export const CartPage: React.FC<CartPageProps> = ({
         totalAmount: grandTotal,
         shippingFee: finalShippingFee,
         paymentMethod: paymentMethod,
+        shopDiscountAmount: shopVoucherDiscountTotal || 0,
+        platformDiscountAmount: voucherDiscount || 0,
+        platformVoucherCode: selectedVoucher !== 'none' ? selectedVoucher.toUpperCase() : null,
+        appliedVoucherIds: appliedVoucherIds.length > 0 ? JSON.stringify(appliedVoucherIds) : null,
         ghnDistrictId: activeAddress?.ghnDistrictId || null,
         ghnWardCode: activeAddress?.ghnWardCode || null,
         items: orderItems
@@ -731,112 +738,20 @@ export const CartPage: React.FC<CartPageProps> = ({
 
       {/* Sepay VietQR Payment Modal */}
       {showSepayModal && sepayBankInfo && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="bg-[#feeee9]/30 px-6 py-5 border-b border-slate-100 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">📲</span>
-                <span className="font-extrabold text-slate-800 text-sm sm:text-base">Thanh Toán Chuyển Khoản</span>
-              </div>
-              <button
-                onClick={() => {
-                  if (window.confirm('Đóng? Đơn hàng vẫn ở trạng thái "Chờ thanh toán". Bạn có thể vào Đơn mua để thanh toán lại sau.')) {
-                    setShowSepayModal(false)
-                    // Giữ nguyên giỏ hàng, chuyển sang tab Đơn mua để thấy đơn PENDING
-                    onBackToHome()
-                    setTimeout(() => window.location.href = '/user/purchases', 100)
-                  }
-                }}
-                className="text-slate-400 hover:text-slate-600 transition text-lg font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 space-y-6 text-center">
-              {/* QR Image */}
-              <div className="bg-slate-50 border border-slate-200/60 p-4 rounded-2xl w-fit mx-auto shadow-sm">
-                <img 
-                  src={sepayQrUrl} 
-                  alt="VietQR Sepay" 
-                  className="w-56 h-56 mx-auto object-contain"
-                />
-              </div>
-
-              {/* Status micro-animation */}
-              <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-600 animate-pulse">
-                <div className="w-3.5 h-3.5 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-                <span>Hệ thống đang chờ quét mã chuyển khoản...</span>
-              </div>
-
-              {/* Bank Details Table */}
-              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 text-xs font-semibold text-slate-700 text-left space-y-2.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Ngân hàng:</span>
-                  <span className="font-extrabold text-slate-800">{sepayBankInfo.bankId}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Số tài khoản:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-slate-800">{sepayBankInfo.bankAcc}</span>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(sepayBankInfo.bankAcc)
-                        alert('Đã copy số tài khoản!')
-                      }}
-                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Chủ tài khoản:</span>
-                  <span className="font-extrabold text-slate-800 uppercase">{sepayBankInfo.bankName}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Số tiền:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-red-600">{formatPrice(grandTotal)}</span>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(String(grandTotal))
-                        alert('Đã copy số tiền!')
-                      }}
-                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-400 font-medium">Nội dung CK:</span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="font-extrabold text-emerald-600 bg-emerald-50 border border-emerald-500/25 px-2 py-0.5 rounded text-sm sm:text-base font-mono">
-                      {sepayMemo}
-                    </span>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(sepayMemo)
-                        alert('Đã copy nội dung chuyển khoản!')
-                      }}
-                      className="text-sky-600 hover:underline font-bold text-[10px] cursor-pointer"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Warning Alert */}
-              <div className="border border-amber-200 bg-amber-50/50 rounded-2xl p-4 text-[10px] font-medium text-amber-700 text-left leading-relaxed">
-                ⚠️ <strong>Quan trọng:</strong> Vui lòng nhập chính xác <strong>Nội dung chuyển khoản ({sepayMemo})</strong> ở trên. Hệ thống sẽ tự động quét biến động số dư và xác nhận đơn hàng sau 10 giây.
-              </div>
-            </div>
-          </div>
-        </div>
+        <SepayPaymentModal
+          isOpen={showSepayModal}
+          onClose={() => {
+            if (window.confirm('Đóng? Đơn hàng vẫn ở trạng thái "Chờ thanh toán". Bạn có thể vào Đơn mua để thanh toán lại sau.')) {
+              setShowSepayModal(false)
+              onBackToHome()
+              setTimeout(() => window.location.href = '/user/purchases', 100)
+            }
+          }}
+          bankInfo={sepayBankInfo}
+          qrUrl={sepayQrUrl}
+          memo={sepayMemo}
+          amount={grandTotal}
+        />
       )}
 
     </div>

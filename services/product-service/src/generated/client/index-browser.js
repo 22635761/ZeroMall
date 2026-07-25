@@ -128,6 +128,7 @@ exports.Prisma.ProductScalarFieldEnum = {
   images: 'images',
   video: 'video',
   category: 'category',
+  categoryId: 'categoryId',
   brand: 'brand',
   description: 'description',
   price: 'price',
@@ -157,10 +158,12 @@ exports.Prisma.ProductScalarFieldEnum = {
 exports.Prisma.ReviewScalarFieldEnum = {
   id: 'id',
   productId: 'productId',
+  orderId: 'orderId',
   username: 'username',
   rating: 'rating',
   comment: 'comment',
   variant: 'variant',
+  images: 'images',
   reply: 'reply',
   createdAt: 'createdAt'
 };

@@ -59,6 +59,7 @@ export class DiscountService {
         minSpend: Number(dto.minSpend),
         maxDiscount: dto.type === 'percentage' && dto.maxDiscount ? Number(dto.maxDiscount) : null,
         usageLimit: Number(dto.usageLimit),
+        targetUserId: dto.targetUserId ? dto.targetUserId.trim() : null,
         startDate: start,
         endDate: end,
       },
@@ -73,16 +74,27 @@ export class DiscountService {
     });
   }
 
-  async getActiveShopVouchers(shopId: string) {
+  async getActiveShopVouchers(shopId: string, userId?: string) {
     if (!shopId) return [];
     const now = new Date();
+    const whereCondition: any = {
+      shopId,
+      startDate: { lte: now },
+      endDate: { gte: now },
+      usedCount: { lt: this.prisma.voucher.fields.usageLimit },
+    };
+
+    if (userId) {
+      whereCondition.OR = [
+        { targetUserId: null },
+        { targetUserId: userId },
+      ];
+    } else {
+      whereCondition.targetUserId = null;
+    }
+
     return this.prisma.voucher.findMany({
-      where: {
-        shopId,
-        startDate: { lte: now },
-        endDate: { gte: now },
-        usedCount: { lt: this.prisma.voucher.fields.usageLimit },
-      },
+      where: whereCondition,
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -115,14 +127,48 @@ export class DiscountService {
     }
   }
 
-  async getAllActiveVouchers() {
+  async rollbackVouchers(voucherIds: string[]) {
+    if (!voucherIds || voucherIds.length === 0) return { success: true };
+
+    try {
+      await Promise.all(
+        voucherIds.map((id) =>
+          this.prisma.voucher.update({
+            where: { id },
+            data: {
+              usedCount: {
+                decrement: 1,
+              },
+            },
+          }),
+        ),
+      );
+      return { success: true };
+    } catch (e) {
+      console.error('Error rolling back vouchers:', e);
+      return { success: false };
+    }
+  }
+
+  async getAllActiveVouchers(userId?: string) {
     const now = new Date();
+    const whereCondition: any = {
+      startDate: { lte: now },
+      endDate: { gte: now },
+      usedCount: { lt: this.prisma.voucher.fields.usageLimit },
+    };
+
+    if (userId) {
+      whereCondition.OR = [
+        { targetUserId: null },
+        { targetUserId: userId },
+      ];
+    } else {
+      whereCondition.targetUserId = null;
+    }
+
     return this.prisma.voucher.findMany({
-      where: {
-        startDate: { lte: now },
-        endDate: { gte: now },
-        usedCount: { lt: this.prisma.voucher.fields.usageLimit },
-      },
+      where: whereCondition,
       orderBy: { createdAt: 'desc' },
     });
   }

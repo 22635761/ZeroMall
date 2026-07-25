@@ -26,6 +26,7 @@ export interface Order {
   refundReason?: string
   refundDescription?: string
   refundEmail?: string
+  refundProofImages?: string
   createdAt: string
   updatedAt: string
   items: OrderItem[]

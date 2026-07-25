@@ -1,11 +1,60 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { ChargePaymentDto, DepositDto } from './payment.dto';
 import { randomUUID } from 'crypto';
 
 @Injectable()
-export class PaymentService {
+export class PaymentService implements OnModuleInit {
   constructor(private readonly prisma: PrismaService) {}
+
+  onModuleInit() {
+    this.startEscrowScanner();
+  }
+
+  private startEscrowScanner() {
+    // Quét mỗi 10 giây trong môi trường test/demo
+    setInterval(async () => {
+      try {
+        await this.scanAndReleaseEscrows();
+      } catch (err) {
+        console.error('[EscrowScanner] Error scanning escrows:', err);
+      }
+    }, 10000);
+  }
+
+  async scanAndReleaseEscrows() {
+    const now = new Date();
+    const escrowsToRelease = await this.prisma.escrowTransaction.findMany({
+      where: {
+        status: 'HELD',
+        releaseAt: {
+          lte: now
+        }
+      }
+    });
+
+    if (escrowsToRelease.length > 0) {
+      console.log(`[EscrowScanner] Found ${escrowsToRelease.length} escrows ready for release. Processing...`);
+      for (const escrow of escrowsToRelease) {
+        try {
+          await this.releaseEscrow(escrow.orderId);
+          // Tự động chuyển đơn sang COMPLETED bên order-service sau khi hết hạn 3 ngày tạm giữ Escrow
+          try {
+            await fetch(`http://order-service:3002/orders/${escrow.orderId}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'COMPLETED' })
+            });
+            console.log(`[EscrowScanner] Order ${escrow.orderId} status auto-updated to COMPLETED`);
+          } catch (e) {
+            console.error(`[EscrowScanner] Failed to sync order ${escrow.orderId} status:`, e);
+          }
+        } catch (err) {
+          console.error(`[EscrowScanner] Failed to release escrow for order ${escrow.orderId}:`, err);
+        }
+      }
+    }
+  }
 
   async getWallet(buyerId: string) {
     let wallet = await this.prisma.wallet.findUnique({
@@ -69,6 +118,19 @@ export class PaymentService {
     const tx = await this.prisma.walletTransaction.findUnique({ where: { id: txId } });
     if (!tx) return { status: 'NOT_FOUND' };
     return { status: tx.status };
+  }
+
+  // Hủy / Xóa WalletTransaction PENDING khi người dùng bấm ✕ đóng modal nạp tiền
+  async cancelWalletTransaction(txId: string) {
+    try {
+      const tx = await this.prisma.walletTransaction.findUnique({ where: { id: txId } });
+      if (tx && tx.status === 'PENDING') {
+        await this.prisma.walletTransaction.delete({ where: { id: txId } });
+      }
+      return { success: true };
+    } catch (e) {
+      return { success: false, message: e.message };
+    }
   }
 
   async chargePayment(dto: ChargePaymentDto) {
@@ -218,8 +280,40 @@ export class PaymentService {
 
     console.log(`PaymentService: Parsed content="${transactionContent}", amount=${amountIn}, ref=${referenceNumber}`);
 
-    // Kiểm tra xem đây có phải là giao dịch nạp tiền ví hay không
-    // Nội dung: ZMWALLET[BUYER_SHORT_ID]
+    // ------------------------------------------------------------------
+    // A. KIỂM TRA GIAO DỊCH GIẢI NGÂN RÚT TIỀN (OUTBOUND PAYOUT WEBHOOK)
+    // Nội dung: RUTTIEN ZM WR100234 hoặc RUTTIEN ZM WR-100234
+    // ------------------------------------------------------------------
+    let withdrawCode = '';
+    const withdrawMatch = transactionContent.match(/RUTTIEN\s*(?:ZM)?\s*(?:WR-?)?([a-zA-Z0-9]+)/i);
+    if (withdrawMatch && withdrawMatch[1]) {
+      withdrawCode = withdrawMatch[1].toUpperCase();
+    }
+
+    if (withdrawCode) {
+      console.log(`PaymentService: Detected withdrawal payout webhook with code: ${withdrawCode}`);
+      
+      const pendingWithdrawals = await this.prisma.withdrawRequest.findMany({
+        where: { status: 'PENDING' },
+      });
+
+      const matchedRequest = pendingWithdrawals.find(req => {
+        const numericId = req.id.replace(/-/g, '').substring(0, 8);
+        const hexNum = String((parseInt(numericId, 16) % 899999) + 100000);
+        return req.id.toLowerCase().includes(withdrawCode.toLowerCase()) || 
+               hexNum === withdrawCode ||
+               `WR${hexNum}` === withdrawCode ||
+               `WR-${hexNum}` === withdrawCode;
+      });
+
+      if (matchedRequest) {
+        console.log(`PaymentService: Auto-approving withdraw request ${matchedRequest.id} via Sepay webhook`);
+        await this.approveWithdrawRequest(matchedRequest.id, 'APPROVED');
+        return { success: true, message: `Tự động phê duyệt giải ngân lệnh rút tiền #${matchedRequest.id} thành công` };
+      } else {
+        console.warn(`PaymentService: No pending withdraw request matched payout code ${withdrawCode}`);
+      }
+    }
     let walletShortId = '';
     const walletMatch = transactionContent.match(/ZMWALLET([a-zA-Z0-9]+)/i);
     if (walletMatch && walletMatch[1]) {
@@ -409,6 +503,9 @@ export class PaymentService {
     }
 
     if (request.status !== 'PENDING') {
+      if (request.status === status) {
+        return request;
+      }
       throw new BadRequestException('Yêu cầu rút tiền này đã được xử lý trước đó!');
     }
 
@@ -476,6 +573,12 @@ export class PaymentService {
     }
     return this.prisma.withdrawRequest.findMany({
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getWithdrawRequestById(id: string) {
+    return this.prisma.withdrawRequest.findUnique({
+      where: { id },
     });
   }
 
@@ -607,5 +710,178 @@ export class PaymentService {
 
       return { success: true };
     });
+  }
+
+  // ─── ESCROW MANAGEMENT ───────────────────────────────────────────────────
+
+  async createEscrow(orderId: string, shopId: string, amount: number, customCommissionRate?: number) {
+    // Idempotency check: Đã có escrow cho đơn này chưa?
+    const existing = await this.prisma.escrowTransaction.findUnique({
+      where: { orderId }
+    });
+    if (existing) {
+      console.log(`[Escrow] Escrow for order ${orderId} already exists (status: ${existing.status}). Skip.`);
+      return existing;
+    }
+
+    // Ưu tiên tỷ lệ chiết khấu được truyền vào (bảo lưu tại thời điểm đặt hàng), nếu không có thì lấy tỷ lệ hiện tại của sàn
+    let commissionRate = customCommissionRate;
+    if (commissionRate === undefined || commissionRate === null) {
+      const config = await this.prisma.systemConfig.findUnique({ where: { key: 'commission_rate' } });
+      commissionRate = config ? parseFloat(config.value) : 5;
+    }
+
+    // Thời gian tạm giữ 3 ngày chuẩn sàn TMĐT
+    const HOLD_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+    const releaseAt = new Date(Date.now() + HOLD_DURATION_MS);
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Tạo bản ghi Escrow
+      const escrow = await tx.escrowTransaction.create({
+        data: {
+          orderId,
+          shopId,
+          amount,
+          commissionRate,
+          status: 'HELD',
+          releaseAt
+        }
+      });
+
+      // Cộng vào onHoldBalance của Shop
+      let shopWallet = await tx.wallet.findUnique({ where: { buyerId: shopId } });
+      if (!shopWallet) {
+        shopWallet = await tx.wallet.create({ data: { buyerId: shopId, balance: 0, onHoldBalance: 0 } });
+      }
+      await tx.wallet.update({
+        where: { id: shopWallet.id },
+        data: { onHoldBalance: { increment: amount } }
+      });
+
+      console.log(`[Escrow] Created escrow for order ${orderId}: ${amount}đ, shopId=${shopId}, releaseAt=${releaseAt.toISOString()}`);
+      return escrow;
+    });
+  }
+
+  async releaseEscrow(orderId: string) {
+    let escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    if (!escrow) {
+      console.log(`[Escrow] Escrow record not found for order ${orderId}, attempting auto-creation...`);
+      try {
+        const orderRes = await fetch(`http://order-service:3002/orders/${orderId}`);
+        if (orderRes.ok) {
+          const orderData = await orderRes.json();
+          const shopId = orderData.shopId || (orderData.items && orderData.items[0]?.shopId) || 'default-shop-id';
+          const amount = orderData.totalAmount || 0;
+          escrow = await this.createEscrow(orderId, shopId, amount);
+        }
+      } catch (err) {
+        console.error(`[Escrow] Error fetching order ${orderId} for auto-creation:`, err);
+      }
+    }
+
+    if (!escrow) {
+      console.log(`[Escrow] Could not resolve escrow for order ${orderId}. Skipping.`);
+      return { success: true, skipped: true };
+    }
+
+    if (escrow.status !== 'HELD') {
+      console.log(`[Escrow] Order ${orderId} escrow already ${escrow.status}. Skip release.`);
+      return { success: true, skipped: true };
+    }
+
+    const commission = escrow.amount * (escrow.commissionRate / 100);
+    const netRevenue = escrow.amount - commission;
+
+    return await this.prisma.$transaction(async (tx) => {
+      // 1. Cập nhật trạng thái escrow
+      await tx.escrowTransaction.update({
+        where: { orderId },
+        data: { status: 'RELEASED' }
+      });
+
+      // 2. Trừ onHoldBalance và cộng balance của Shop
+      let shopWallet = await tx.wallet.findUnique({ where: { buyerId: escrow.shopId } });
+      if (!shopWallet) {
+        shopWallet = await tx.wallet.create({
+          data: { buyerId: escrow.shopId, balance: 0, onHoldBalance: 0 },
+        });
+      }
+      await tx.wallet.update({
+        where: { id: shopWallet.id },
+        data: {
+          onHoldBalance: { decrement: escrow.amount },
+          balance: { increment: netRevenue },
+        },
+      });
+      await tx.walletTransaction.create({
+        data: {
+          walletId: shopWallet.id,
+          amount: netRevenue,
+          type: 'REVENUE',
+          description: `Giải ngân doanh thu đơn hàng #${orderId} (sau chiết khấu ${escrow.commissionRate}%)`,
+          status: 'SUCCESS',
+        },
+      });
+
+      // 3. Cộng chiết khấu vào ví sàn
+      let platformWallet = await tx.wallet.findUnique({ where: { buyerId: 'PLATFORM' } });
+      if (!platformWallet) {
+        platformWallet = await tx.wallet.create({ data: { buyerId: 'PLATFORM', balance: 0, onHoldBalance: 0 } });
+      }
+      await tx.wallet.update({
+        where: { id: platformWallet.id },
+        data: { balance: { increment: commission } }
+      });
+      await tx.walletTransaction.create({
+        data: {
+          walletId: platformWallet.id,
+          amount: commission,
+          type: 'COMMISSION',
+          description: `Chiết khấu sàn ${escrow.commissionRate}% đơn hàng #${orderId} từ Shop ${escrow.shopId}`,
+          status: 'SUCCESS'
+        }
+      });
+
+      console.log(`[Escrow] Released order ${orderId}: shopNet=${netRevenue}đ, commission=${commission}đ`);
+      return { success: true, netRevenue, commission };
+    });
+  }
+
+  async cancelEscrow(orderId: string) {
+    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    if (!escrow) {
+      console.log(`[Escrow] No escrow found for order ${orderId}. Nothing to cancel.`);
+      return { success: true, skipped: true };
+    }
+    if (escrow.status !== 'HELD') {
+      console.log(`[Escrow] Order ${orderId} escrow already ${escrow.status}. Skip cancel.`);
+      return { success: true, skipped: true };
+    }
+
+    return await this.prisma.$transaction(async (tx) => {
+      // Cập nhật escrow sang CANCELLED
+      await tx.escrowTransaction.update({
+        where: { orderId },
+        data: { status: 'CANCELLED' }
+      });
+
+      // Trừ onHoldBalance của Shop (tiền sẽ được hoàn cho người mua riêng)
+      const shopWallet = await tx.wallet.findUnique({ where: { buyerId: escrow.shopId } });
+      if (shopWallet) {
+        await tx.wallet.update({
+          where: { id: shopWallet.id },
+          data: { onHoldBalance: { decrement: escrow.amount } }
+        });
+      }
+
+      console.log(`[Escrow] Cancelled escrow for order ${orderId}: ${escrow.amount}đ released from onHold of shop ${escrow.shopId}`);
+      return { success: true };
+    });
+  }
+
+  async getEscrowStatus(orderId: string) {
+    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    return escrow || null;
   }
 }

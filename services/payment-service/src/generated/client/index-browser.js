@@ -136,6 +136,7 @@ exports.Prisma.WalletScalarFieldEnum = {
   id: 'id',
   buyerId: 'buyerId',
   balance: 'balance',
+  onHoldBalance: 'onHoldBalance',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -167,6 +168,18 @@ exports.Prisma.SystemConfigScalarFieldEnum = {
   value: 'value'
 };
 
+exports.Prisma.EscrowTransactionScalarFieldEnum = {
+  id: 'id',
+  orderId: 'orderId',
+  shopId: 'shopId',
+  amount: 'amount',
+  commissionRate: 'commissionRate',
+  status: 'status',
+  releaseAt: 'releaseAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -188,7 +201,8 @@ exports.Prisma.ModelName = {
   Wallet: 'Wallet',
   WalletTransaction: 'WalletTransaction',
   WithdrawRequest: 'WithdrawRequest',
-  SystemConfig: 'SystemConfig'
+  SystemConfig: 'SystemConfig',
+  EscrowTransaction: 'EscrowTransaction'
 };
 
 /**

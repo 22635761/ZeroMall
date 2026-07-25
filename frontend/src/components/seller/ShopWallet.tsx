@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react'
+import { getLinkedBankAccounts, type LinkedBankAccount } from './ShopBankAccounts'
 
 interface ShopWalletProps {
   user: any
+  onNavigateToBankAccounts?: () => void
 }
 
 interface Wallet {
   id: string
   buyerId: string
   balance: number
+  onHoldBalance: number
   createdAt: string
   updatedAt: string
 }
@@ -33,11 +36,15 @@ interface WithdrawRequest {
   createdAt: string
 }
 
-export const ShopWallet: React.FC<ShopWalletProps> = ({ user }) => {
+export const ShopWallet: React.FC<ShopWalletProps> = ({ user, onNavigateToBankAccounts }) => {
   const [wallet, setWallet] = useState<Wallet | null>(null)
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [withdrawRequests, setWithdrawRequests] = useState<WithdrawRequest[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  
+  // Linked bank accounts state
+  const [linkedAccounts, setLinkedAccounts] = useState<LinkedBankAccount[]>([])
+  const [selectedBankId, setSelectedBankId] = useState<string>('')
   
   // Withdraw form states
   const [withdrawAmount, setWithdrawAmount] = useState('')
@@ -46,7 +53,7 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user }) => {
   const [accountName, setAccountName] = useState('')
   const [actionMessage, setActionMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null)
 
-  const shopId = user?.shopId || 'shop-test-id'
+  const shopId = user?.shopId || user?.id || 'shop-test-id'
 
   const fetchWalletData = async () => {
     setIsLoading(true)
@@ -80,15 +87,34 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user }) => {
 
   useEffect(() => {
     fetchWalletData()
-  }, [user])
+    const loadedBanks = getLinkedBankAccounts(shopId)
+    setLinkedAccounts(loadedBanks)
+    if (loadedBanks.length > 0) {
+      const defaultBank = loadedBanks.find(b => b.isDefault) || loadedBanks[0]
+      setSelectedBankId(defaultBank.id)
+      setBankName(defaultBank.bankName)
+      setBankAccount(defaultBank.accountNumber)
+      setAccountName(defaultBank.accountName)
+    }
+  }, [shopId])
+
+  const handleSelectLinkedBank = (accId: string) => {
+    setSelectedBankId(accId)
+    const found = linkedAccounts.find(a => a.id === accId)
+    if (found) {
+      setBankName(found.bankName)
+      setBankAccount(found.accountNumber)
+      setAccountName(found.accountName)
+    }
+  }
 
   const handleWithdrawSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setActionMessage(null)
 
     const amount = parseFloat(withdrawAmount)
-    if (isNaN(amount) || amount < 50000) {
-      setActionMessage({ text: 'Số tiền rút tối thiểu là 50.000đ', type: 'error' })
+    if (isNaN(amount) || amount < 2000) {
+      setActionMessage({ text: 'Số tiền rút tối thiểu là 2.000đ', type: 'error' })
       return
     }
 
@@ -153,12 +179,31 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user }) => {
               <div className="absolute right-0 bottom-0 opacity-10 translate-x-6 translate-y-6 text-[120px] pointer-events-none select-none">
                 🪙
               </div>
-              <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Doanh Thu Khả Dụng</p>
+              <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">Doanh Thu Khả Dụng (Có thể rút)</p>
               <h3 className="text-2xl sm:text-3xl font-black mt-2 tracking-tight">
                 {wallet ? formatMoney(wallet.balance) : '0đ'}
               </h3>
-              <p className="text-[9px] opacity-75 mt-2">Số dư sẽ tự động tăng khi khách hàng mua đơn thanh toán thành công.</p>
+              <p className="text-[9px] opacity-75 mt-2">Số dư sau khi trừ chiết khấu sàn, bạn có thể tạo yêu cầu rút tiền về ngân hàng.</p>
             </div>
+
+            {/* On-Hold Balance Card */}
+            {wallet && wallet.onHoldBalance > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5 flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-600 text-lg shrink-0">
+                    🔒
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Đang tạm giữ (Đóng băng)</p>
+                    <p className="text-[9px] text-amber-600 mt-0.5">Sẽ tự động giải ngân sau 3 ngày nếu khách không khiếu nại,<br/>hoặc ngay khi khách đánh giá sản phẩm.</p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="font-black text-xl text-amber-700">{formatMoney(wallet.onHoldBalance)}</p>
+                  <p className="text-[9px] text-amber-500 font-semibold mt-0.5">Chưa thể rút</p>
+                </div>
+              </div>
+            )}
 
             {/* Withdraw Request Box */}
             <div className="bg-white border border-slate-200/80 rounded-2xl p-5 space-y-4">
@@ -184,54 +229,75 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user }) => {
                       type="number"
                       value={withdrawAmount}
                       onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="Tối thiểu 50,000đ"
+                      placeholder="Tối thiểu 2,000đ"
                       className="w-full pl-3 pr-10 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 font-bold text-slate-800"
                       required
-                      min="50000"
+                      min="2000"
                     />
                     <span className="absolute right-3 top-2 text-slate-400 font-bold">đ</span>
                   </div>
                 </div>
 
+                {/* Selecting from Linked Bank Accounts */}
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Chọn ngân hàng</label>
-                  <select
-                    value={bankName}
-                    onChange={(e) => setBankName(e.target.value)}
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 font-bold text-slate-850"
-                  >
-                    <option value="Vietcombank">Vietcombank (VCB)</option>
-                    <option value="MBBank">MB Bank (MB)</option>
-                    <option value="Techcombank">Techcombank (TCB)</option>
-                    <option value="Vietinbank">Vietinbank (CTG)</option>
-                    <option value="BIDV">BIDV (BID)</option>
-                    <option value="Agribank">Agribank (ARG)</option>
-                  </select>
+                  <div className="flex justify-between items-center">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase block">Chọn ngân hàng đã liên kết *</label>
+                    {onNavigateToBankAccounts && (
+                      <button
+                        type="button"
+                        onClick={onNavigateToBankAccounts}
+                        className="text-[10px] font-bold text-emerald-600 hover:underline cursor-pointer"
+                      >
+                        ＋ Quản lý ngân hàng
+                      </button>
+                    )}
+                  </div>
+
+                  {linkedAccounts.length > 0 ? (
+                    <select
+                      value={selectedBankId}
+                      onChange={(e) => handleSelectLinkedBank(e.target.value)}
+                      className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-extrabold text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white"
+                    >
+                      {linkedAccounts.map(acc => (
+                        <option key={acc.id} value={acc.id}>
+                          {acc.bankName} — {acc.accountNumber} ({acc.accountName}) {acc.isDefault ? '[Mặc Định]' : ''}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2 text-left">
+                      <p className="text-[11px] font-bold text-amber-800">⚠️ Bạn chưa có tài khoản ngân hàng liên kết</p>
+                      {onNavigateToBankAccounts && (
+                        <button
+                          type="button"
+                          onClick={onNavigateToBankAccounts}
+                          className="px-3 py-1 bg-amber-600 text-white font-bold text-[10px] rounded-lg hover:bg-amber-500 transition cursor-pointer"
+                        >
+                          🔗 Thêm ngân hàng ngay
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Số tài khoản ngân hàng</label>
-                  <input 
-                    type="text"
-                    value={bankAccount}
-                    onChange={(e) => setBankAccount(e.target.value)}
-                    placeholder="Nhập số tài khoản ngân hàng"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 font-bold text-slate-800"
-                    required
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase block">Tên chủ tài khoản (Không dấu)</label>
-                  <input 
-                    type="text"
-                    value={accountName}
-                    onChange={(e) => setAccountName(e.target.value)}
-                    placeholder="Ví dụ: NGUYEN VAN A"
-                    className="w-full px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-600 uppercase font-bold text-slate-800"
-                    required
-                  />
-                </div>
+                {/* Selected Bank Details Preview Card */}
+                {bankAccount && (
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-xl p-3 space-y-1 text-left text-xs font-mono">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 font-sans uppercase">Ngân Hàng:</span>
+                      <span className="font-extrabold text-slate-800 font-sans">{bankName}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 font-sans uppercase">Số Tài Khoản:</span>
+                      <span className="font-black text-emerald-700 tracking-wide">{bankAccount}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-bold text-slate-400 font-sans uppercase">Chủ Tài Khoản:</span>
+                      <span className="font-bold text-slate-700 font-sans uppercase">{accountName}</span>
+                    </div>
+                  </div>
+                )}
 
                 <button 
                   type="submit"

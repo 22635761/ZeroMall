@@ -36,6 +36,8 @@ model User {
 model Shop {
   id           String   @id @default(uuid())
   name         String
+  logo         String?
+  description  String?
   ownerId      String   @unique
   owner        User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   staff        User[]   @relation("ShopStaff")

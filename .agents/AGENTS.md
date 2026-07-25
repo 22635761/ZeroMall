@@ -1,3 +1,5 @@
 # Project Customization Rules
 
 - **Không tự động push lên Git**: Không thực hiện lệnh `git push` trừ khi người dùng yêu cầu rõ ràng trong yêu cầu công việc. Chỉ lưu thay đổi cục bộ (local commits) hoặc chuẩn bị sẵn để người dùng tự duyệt push.
+- **Giữ mã nguồn sạch và mô-đun hóa (Clean Code & Modularity)**: Phân tách các phần giao diện phức tạp như Modals, Components lớn, hoặc các trang nghiệp vụ riêng biệt ra các tệp tin và thư mục chuyên biệt (ví dụ: `src/components/admin/`, `src/pages/CsSupport/`) thay vì viết chung dồn vào một tệp tin lớn. Điều này giúp dễ quản lý, dễ bảo trì, và dễ debug.
+- **Không sử dụng dữ liệu mẫu / ảnh giả tĩnh (No Hardcoded Static Demo Data)**: Tất cả dữ liệu hiển thị (ảnh đại diện shop, thông tin sản phẩm, số dư ví, vouchers...) phải được truy vấn từ API/CSDL thực tế. Nếu người dùng chưa thiết lập (ví dụ: chưa tải ảnh logo shop), phải hiển thị giao diện mặc định chuẩn (như avatar theo chữ cái đầu của tên shop), tuyệt đối không tự chèn ảnh mẫu ngẫu nhiên (như Unsplash demo) gây sai lệch dữ liệu.

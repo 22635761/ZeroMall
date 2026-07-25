@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import type { Order } from '../../models/order.model'
 import { orderService } from '../../services/order.service'
+import { formatOrderId } from '../../utils/orderUtils'
 
 interface ShopOrdersProps {
   user: any
@@ -14,6 +15,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState<string>('all')
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
+  const [previewImage, setPreviewImage] = useState<string | null>(null)
 
   const shopId = user?.shopId
 
@@ -121,60 +123,10 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       let ghnOrderCode: string | undefined = undefined
 
       if (newStatus === 'SHIPPING' && order) {
-        if (order.ghnDistrictId && order.ghnWardCode) {
-          try {
-            const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476'
-            const ghnShopId = parseInt(import.meta.env.VITE_GHN_SHOP_ID || '6350257', 10)
-            
-            const ghnResponse = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/create', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Token': ghnToken,
-                'ShopId': String(ghnShopId)
-              },
-              body: JSON.stringify({
-                payment_type_id: 2, // Shop trả tiền ship
-                note: 'Cho xem hang, khong cho thu',
-                required_note: 'CHOXEMHANGNOTHU',
-                to_name: order.buyerName,
-                to_phone: order.buyerPhone.replace(/[\s\(\)\-\+]/g, ''),
-                to_address: order.shippingAddress,
-                to_ward_code: order.ghnWardCode,
-                to_district_id: order.ghnDistrictId,
-                cod_amount: order.paymentMethod === 'cod' ? Math.round(order.totalAmount) : 0,
-                weight: 500,
-                length: 15,
-                width: 15,
-                height: 15,
-                service_type_id: 2,
-                items: order.items.map((item) => ({
-                  name: item.name.substring(0, 50),
-                  code: item.productId.substring(0, 10),
-                  quantity: item.quantity,
-                  price: Math.round(item.price)
-                }))
-              })
-            })
-
-            const ghnData = await ghnResponse.json()
-            if (ghnData.code === 200 && ghnData.data) {
-              ghnOrderCode = ghnData.data.order_code
-              alert(`Tạo đơn hàng vận chuyển thật trên GHN thành công! Mã vận đơn: ${ghnOrderCode}`)
-            } else {
-              console.error('GHN API Error Response:', ghnData)
-              alert(`GHN API lỗi: ${ghnData.message || 'Lỗi không xác định'}. Hệ thống sẽ tự động tạo mã vận đơn giả lập để tiếp tục.`)
-              ghnOrderCode = `GHN-MOCK-${Date.now()}`
-            }
-          } catch (e) {
-            console.error('Lỗi khi gọi API GHN:', e)
-            alert('Không thể kết nối đến máy chủ GHN. Hệ thống sẽ tự động tạo mã vận đơn giả lập để tiếp tục.')
-            ghnOrderCode = `GHN-MOCK-${Date.now()}`
-          }
-        } else {
-          // Fallback nếu đơn hàng thiếu thông tin mã GHN (ví dụ đơn cũ)
-          ghnOrderCode = `GHN-MOCK-${Date.now()}`
-        }
+        // Safe Simulation Mode: Tạo mã vận đơn giả lập chuẩn định dạng GHN, không gửi request thật lên hệ thống GHN thật
+        const randomNum = Math.floor(100000000 + Math.random() * 900000000)
+        ghnOrderCode = `GHN-VN-${randomNum}`
+        alert(`📦 Đã tạo mã vận đơn giả lập GHN thành công: ${ghnOrderCode}\n(Hệ thống đang ở chế độ Simulation an toàn, KHÔNG tạo đơn thật trên GHN).`)
       }
 
       await orderService.updateOrderStatus(orderId, newStatus, ghnOrderCode, token)
@@ -261,6 +213,8 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
         </button>
       </div>
 
+
+
       {/* Tabs */}
       <div className="bg-white border border-slate-200/50 rounded-2xl p-1.5 flex gap-1 overflow-x-auto shadow-xs">
         {tabs.map((tab) => {
@@ -323,7 +277,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                 {/* Order Header info */}
                 <div className="bg-slate-50/60 border-b border-slate-100 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-black text-slate-800">#{order.id.slice(0, 8).toUpperCase()}</span>
+                    <span className="text-xs font-black text-slate-800">#{formatOrderId(order.id)}</span>
                     <span className="text-slate-300">|</span>
                     <span className="text-[10px] text-slate-400 font-semibold">
                       Ngày đặt: {new Date(order.createdAt).toLocaleString('vi-VN')}
@@ -369,9 +323,9 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                       />
                       <div className="flex-1 min-w-0 space-y-1">
                         <h4 className="text-xs font-bold text-slate-700 leading-snug line-clamp-2">{item.name}</h4>
-                        {item.variant && (
+                        {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
                           <p className="text-[10px] text-slate-400 font-semibold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md inline-block">
-                            Phân loại: {item.variant}
+                            Phân loại hàng: {item.variant}
                           </p>
                         )}
                         <div className="flex items-center justify-between text-xs pt-1">
@@ -383,25 +337,65 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                   ))}
                 </div>
 
-                {/* Refund info details if present */}
+                {/* Refund info details & proof images gallery if present */}
                 {(order.refundReason || order.refundDescription || order.refundEmail) && (
-                  <div className="px-5 py-3.5 bg-rose-50/20 border-t border-slate-100 text-xs space-y-1.5 text-left">
-                    <p className="text-[#ee4d2d] font-bold">⚠️ Thông tin Trả hàng/Hoàn tiền:</p>
-                    {order.refundReason && (
-                      <p className="text-slate-700 font-semibold">
-                        <span className="text-slate-400">Lý do:</span> {order.refundReason}
+                  <div className="px-5 py-4 bg-rose-50/20 border-t border-slate-100 text-xs space-y-3 text-left">
+                    <div className="flex items-center justify-between">
+                      <p className="text-[#ee4d2d] font-extrabold flex items-center gap-1.5">
+                        <span>⚠️ Thông tin Trả hàng/Hoàn tiền từ Người Mua:</span>
                       </p>
-                    )}
-                    {order.refundDescription && (
-                      <p className="text-slate-650">
-                        <span className="text-slate-400 font-semibold">Chi tiết/Mô tả:</span> {order.refundDescription}
-                      </p>
-                    )}
-                    {order.refundEmail && (
-                      <p className="text-[11px] text-slate-500">
-                        <span className="text-slate-400 font-semibold">Email liên hệ:</span> {order.refundEmail}
-                      </p>
-                    )}
+                      <span className="text-[10px] text-slate-400 font-bold">
+                        Bấm vào ảnh để xem phóng to
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-3.5 rounded-2xl border border-rose-100 shadow-3xs">
+                      <div className="space-y-1.5">
+                        {order.refundReason && (
+                          <p className="text-slate-800 font-bold">
+                            <span className="text-slate-400 font-semibold">Lý do khiếu nại:</span> {order.refundReason}
+                          </p>
+                        )}
+                        {order.refundDescription && (
+                          <p className="text-slate-650 leading-relaxed text-[11px]">
+                            <span className="text-slate-400 font-semibold">Mô tả chi tiết:</span> {order.refundDescription}
+                          </p>
+                        )}
+                        {order.refundEmail && (
+                          <p className="text-[11px] text-slate-500">
+                            <span className="text-slate-400 font-semibold">Email liên hệ:</span> {order.refundEmail}
+                          </p>
+                        )}
+                      </div>
+
+                      {/* Proof Images Gallery */}
+                      <div className="space-y-1.5 border-t md:border-t-0 md:border-l border-slate-100 pt-2 md:pt-0 md:pl-4">
+                        <p className="text-[10px] uppercase font-extrabold text-slate-400">📷 Hình ảnh minh chứng sản phẩm lỗi</p>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          {(() => {
+                            let images: string[] = []
+                            if (order.refundProofImages) {
+                              try { images = JSON.parse(order.refundProofImages) } catch (e) { images = [order.refundProofImages] }
+                            }
+                            if (images.length === 0 && order.items?.length) {
+                              images = order.items.map(i => i.image)
+                            }
+                            return images.map((imgUrl, imgIdx) => (
+                              <div
+                                key={imgIdx}
+                                onClick={() => setPreviewImage(imgUrl)}
+                                className="relative group w-16 h-16 rounded-xl overflow-hidden border border-slate-200 cursor-pointer shadow-3xs hover:border-emerald-500 transition"
+                              >
+                                <img src={imgUrl} alt={`bằng chứng ${imgIdx}`} className="w-full h-full object-cover group-hover:scale-110 transition duration-300" />
+                                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-bold transition">
+                                  🔍
+                                </div>
+                              </div>
+                            ))
+                          })()}
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
 
@@ -511,6 +505,24 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* IMAGE PREVIEW LIGHTBOX MODAL */}
+      {previewImage && (
+        <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="relative max-w-3xl w-full bg-black rounded-3xl overflow-hidden shadow-2xl flex flex-col items-center">
+            <button
+              onClick={() => setPreviewImage(null)}
+              className="absolute top-4 right-4 bg-white/20 hover:bg-white/40 text-white w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm z-10 cursor-pointer transition"
+            >
+              ✕
+            </button>
+            <img src={previewImage} alt="Hình ảnh bằng chứng phóng to" className="max-h-[80vh] w-auto object-contain p-2" />
+            <div className="p-3 bg-slate-900 w-full text-center text-xs text-slate-300 font-bold border-t border-slate-800">
+              📷 Hình ảnh minh chứng sản phẩm từ phía Người Mua
+            </div>
+          </div>
         </div>
       )}
     </div>

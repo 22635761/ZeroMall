@@ -1,6 +1,6 @@
 import React from 'react'
 import { AdminPage } from './AdminPage'
-import { CsSupportPage } from './CsSupportPage'
+import { CsSupportPage } from '../CsSupport/CsSupportPage'
 
 interface AdminPortalProps {
   user: any

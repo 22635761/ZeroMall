@@ -17,15 +17,22 @@ model Order {
   totalAmount     Float
   shippingFee     Float
   paymentMethod   String      // "cod" | "zeropay" | "card" | "gpay" | "napas"
-  status          String      @default("PENDING_PAYMENT") // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
-  ghnDistrictId   Int?
-  ghnWardCode     String?
-  ghnOrderCode    String?
-  refundReason    String?
-  refundDescription String?
-  refundEmail     String?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  status                String      @default("PENDING_PAYMENT") // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
+  shopDiscountAmount    Float       @default(0)
+  platformDiscountAmount Float      @default(0)
+  shopVoucherCode       String?
+  platformVoucherCode   String?
+  appliedVoucherIds     String?     // JSON array các voucher IDs đã áp dụng
+  ghnDistrictId         Int?
+  ghnWardCode           String?
+  ghnOrderCode          String?
+  refundReason          String?
+  refundDescription     String?
+  refundEmail           String?
+  refundProofImages     String?
+  commissionRate        Float       @default(5) // Tỷ lệ chiết khấu bảo lưu tại thời điểm đặt hàng
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
   items           OrderItem[]
 }
 

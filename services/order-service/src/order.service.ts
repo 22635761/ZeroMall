@@ -66,15 +66,46 @@ export class OrderService implements OnModuleInit {
         where: { id: order.id },
         data: { status: 'CANCELLED' },
       });
+      if (order.appliedVoucherIds) {
+        this.rollbackVouchers(order.appliedVoucherIds);
+      }
       console.log(`[AutoCancel] Cancelled overdue order: ${order.id}`);
     }
   }
 
+  private generateNumericOrderId(): string {
+    const now = new Date();
+    const yy = String(now.getFullYear()).slice(2);
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const hh = String(now.getHours()).padStart(2, '0');
+    const min = String(now.getMinutes()).padStart(2, '0');
+    const ss = String(now.getSeconds()).padStart(2, '0');
+    const ms = String(now.getMilliseconds()).padStart(3, '0'); // Miligiây (000-999)
+    const rand = Math.floor(10 + Math.random() * 90); // 2 số ngẫu nhiên (10-99)
+    return `${yy}${mm}${dd}${hh}${min}${ss}${ms}${rand}`;
+  }
+
   async createOrder(dto: CreateOrderDto) {
+    const customOrderId = this.generateNumericOrderId();
+
+    // Lấy tỉ lệ chiết khấu hiện tại từ payment-service và bảo lưu vào đơn hàng
+    let commissionRate = 5;
+    try {
+      const cfgRes = await fetch('http://payment-service:3005/payments/system-config/commission_rate');
+      if (cfgRes.ok) {
+        const cfgData = await cfgRes.json();
+        commissionRate = parseFloat(cfgData.value) || 5;
+      }
+    } catch (e) {
+      console.warn('[Order] Could not fetch commission rate, using default 5%');
+    }
+
     const order = await this.prisma.$transaction(async (tx) => {
-      // Create the order
+      // Create the order with pure numeric ID (e.g. 260723849102)
       const newOrder = await tx.order.create({
         data: {
+          id: customOrderId,
           buyerId: dto.buyerId,
           buyerEmail: dto.buyerEmail,
           buyerName: dto.buyerName,
@@ -84,8 +115,14 @@ export class OrderService implements OnModuleInit {
           shippingFee: dto.shippingFee,
           paymentMethod: dto.paymentMethod,
           status: dto.paymentMethod === 'cod' ? 'PROCESSING' : 'PENDING_PAYMENT',
+          shopDiscountAmount: dto.shopDiscountAmount || 0,
+          platformDiscountAmount: dto.platformDiscountAmount || 0,
+          shopVoucherCode: dto.shopVoucherCode || null,
+          platformVoucherCode: dto.platformVoucherCode || null,
+          appliedVoucherIds: dto.appliedVoucherIds || null,
           ghnDistrictId: dto.ghnDistrictId || null,
           ghnWardCode: dto.ghnWardCode || null,
+          commissionRate: commissionRate,
           items: {
             create: dto.items.map((item) => ({
               productId: item.productId,
@@ -105,6 +142,11 @@ export class OrderService implements OnModuleInit {
 
       return newOrder;
     });
+
+    // Nếu đơn hàng COD (status = PROCESSING ngay từ đầu), cập nhật ngay số lượng đã bán (sales) và kho (stock)
+    if (order.status === 'PROCESSING') {
+      this.notifyProductPurchase(order.items);
+    }
 
     // Bắn sự kiện order.created sang Kafka bất đồng bộ sau khi lưu DB thành công
     try {
@@ -128,6 +170,32 @@ export class OrderService implements OnModuleInit {
     }
 
     return order;
+  }
+
+  private async notifyProductPurchase(items: { productId: string; quantity: number }[]) {
+    if (!items || items.length === 0) return;
+    try {
+      const productServiceUrl = process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
+      const url = `${productServiceUrl}/products/purchase`;
+      console.log(`[OrderService] Notifying product-service of purchase for ${items.length} items at ${url}`);
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+      if (res.ok) {
+        console.log('[OrderService] Product sales and stock updated successfully');
+      } else {
+        console.error('[OrderService] Product service returned error:', res.status);
+      }
+    } catch (err) {
+      console.error('[OrderService] Error calling product-service purchase endpoint:', err);
+    }
   }
 
   async getOrdersByBuyer(buyerId: string) {
@@ -200,27 +268,83 @@ export class OrderService implements OnModuleInit {
       },
     });
 
-    if (dto.status === 'COMPLETED' && exists.status !== 'COMPLETED') {
+    const isPaidStatus = ['PROCESSING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'SUCCESS'].includes(dto.status);
+    const wasUnpaidStatus = ['PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(exists.status);
+
+    if (isPaidStatus && wasUnpaidStatus) {
+      this.notifyProductPurchase(exists.items);
+    }
+
+    if (dto.status === 'CANCELLED' && exists.status !== 'CANCELLED' && exists.appliedVoucherIds) {
+      this.rollbackVouchers(exists.appliedVoucherIds);
+    }
+
+    if ((dto.status === 'DELIVERED' || dto.status === 'COMPLETED') && exists.status !== dto.status) {
       try {
-        const payload = {
-          orderId: exists.id,
-          totalAmount: exists.totalAmount,
-          items: exists.items.map(item => ({
-            shopId: item.shopId,
-            amount: item.price * item.quantity
-          }))
-        };
-        await fetch('http://payment-service:3005/payments/credit-shop', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
+        // Nhóm các item theo shopId và tính tiền Escrow chuẩn: Subtotal - ShopVoucherDiscount
+        const shopItemsMap: Record<string, typeof exists.items> = {};
+        for (const item of exists.items) {
+          if (!shopItemsMap[item.shopId]) shopItemsMap[item.shopId] = [];
+          shopItemsMap[item.shopId].push(item);
+        }
+
+        const shopCount = Object.keys(shopItemsMap).length;
+        const shopDiscountPerShop = shopCount > 0 ? (exists.shopDiscountAmount || 0) / shopCount : 0;
+
+        for (const [shopId, items] of Object.entries(shopItemsMap)) {
+          const shopSubtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+          const shopEscrowAmount = Math.max(0, shopSubtotal - shopDiscountPerShop);
+
+          await fetch('http://payment-service:3005/payments/escrow', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: exists.id,
+              shopId,
+              amount: shopEscrowAmount,
+              commissionRate: (exists as any).commissionRate ?? 5,
+            }),
+          });
+          console.log(`[Order] Escrow created for shop ${shopId} order ${exists.id}: ${shopEscrowAmount}đ (subtotal ${shopSubtotal}đ - shopDiscount ${shopDiscountPerShop}đ)`);
+        }
+
+        // Nếu chuyển sang COMPLETED (khách bấm Đã Nhận Hàng hoặc Đánh Giá SP), giải ngân ngay lập tức vào Ví Shop!
+        if (dto.status === 'COMPLETED') {
+          await fetch(`http://payment-service:3005/payments/escrow/${exists.id}/release`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          });
+          console.log(`[Order] Escrow released immediately for COMPLETED order ${exists.id}`);
+        }
       } catch (err) {
-        console.error('Error calling payment-service for shop revenue:', err);
+        console.error('[Order] Error managing escrow for order:', err);
       }
     }
 
     return updatedOrder;
+  }
+
+  private async rollbackVouchers(appliedVoucherIdsJson: string) {
+    if (!appliedVoucherIdsJson) return;
+    try {
+      let voucherIds: string[] = [];
+      try {
+        voucherIds = JSON.parse(appliedVoucherIdsJson);
+      } catch {
+        voucherIds = appliedVoucherIdsJson.split(',').map((s) => s.trim()).filter(Boolean);
+      }
+      if (voucherIds.length === 0) return;
+
+      const discountServiceUrl = process.env.DISCOUNT_SERVICE_URL || 'http://discount-service:3003';
+      console.log(`[OrderService] Rolling back voucher usage for ${voucherIds.length} vouchers`);
+      await fetch(`${discountServiceUrl}/discounts/rollback`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ voucherIds }),
+      });
+    } catch (e) {
+      console.error('[OrderService] Failed to rollback voucher usage:', e);
+    }
   }
 
   async getAllOrders() {

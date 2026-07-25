@@ -8,46 +8,50 @@ generator client {
 }
 
 model Product {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   shopId          String
   name            String
   image           String?
-  images          String?  @db.Text // JSON string representation of string[]
+  images          String?   @db.Text // JSON string representation of string[]
   video           String? // Video URL
   category        String
+  categoryId      String?
+  categoryRef     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   brand           String
   description     String
   price           String // Can store a simple numeric string like "29990000" or a range like "150.000đ - 200.000đ"
   originalPrice   String? // Original/old price before discount
   stock           Int
-  sales           Int      @default(0)
+  sales           Int       @default(0)
   status          String // "active" | "hidden"
   sku             String?
   variationsText  String?
-  hasVariations   Boolean  @default(false)
-  variationGroups String?  @db.Text // JSON string representation of VariationGroup[]
-  variationRows   String?  @db.Text // JSON string representation of VariationRow[]
+  hasVariations   Boolean   @default(false)
+  variationGroups String?   @db.Text // JSON string representation of VariationGroup[]
+  variationRows   String?   @db.Text // JSON string representation of VariationRow[]
   weight          String?
   length          String?
   width           String?
   height          String?
-  condition       String   @default("new") // "new" | "used"
-  isPreOrder      Boolean  @default(false)
+  condition       String    @default("new") // "new" | "used"
+  isPreOrder      Boolean   @default(false)
   preOrderDays    String?
-  isViolated      Boolean  @default(false)
+  isViolated      Boolean   @default(false)
   violationReason String?
-  reportsCount    Int      @default(0)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  reportsCount    Int       @default(0)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 }
 
 model Review {
   id        String   @id @default(uuid())
   productId String
+  orderId   String? // Liên kết với đơn hàng
   username  String
   rating    Int // Từ 1 đến 5 sao
   comment   String
   variant   String // Phân loại sản phẩm (ví dụ: Màu Đỏ, Size L)
+  images    String?  @db.Text // JSON array các URL ảnh/video Cloudinary
   reply     String? // Phản hồi của người bán (nếu có)
   createdAt DateTime @default(now())
 }
@@ -62,10 +66,11 @@ model ProductLike {
 }
 
 model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  slug      String   @unique
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
 }
 
 model FlashSale {

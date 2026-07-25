@@ -15,6 +15,8 @@ model Product {
   images          String?  @db.Text // JSON string representation of string[]
   video           String?  // Video URL
   category        String
+  categoryId      String?
+  categoryRef     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   brand           String
   description     String
   price           String   // Can store a simple numeric string like "29990000" or a range like "150.000đ - 200.000đ"
@@ -44,10 +46,12 @@ model Product {
 model Review {
   id        String   @id @default(uuid())
   productId String
+  orderId   String?  // Liên kết với đơn hàng
   username  String
   rating    Int      // Từ 1 đến 5 sao
   comment   String
   variant   String   // Phân loại sản phẩm (ví dụ: Màu Đỏ, Size L)
+  images    String?  @db.Text // JSON array các URL ảnh/video Cloudinary
   reply     String?  // Phản hồi của người bán (nếu có)
   createdAt DateTime @default(now())
 }
@@ -62,10 +66,11 @@ model ProductLike {
 }
 
 model Category {
-  id        String   @id @default(uuid())
-  name      String   @unique
-  slug      String   @unique
-  createdAt DateTime @default(now())
+  id        String    @id @default(uuid())
+  name      String    @unique
+  slug      String    @unique
+  products  Product[]
+  createdAt DateTime  @default(now())
 }
 
 model FlashSale {

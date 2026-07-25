@@ -132,8 +132,8 @@ export const UserVoucherTab: React.FC<UserVoucherTabProps> = () => {
       {/* Header Banner Section */}
       <div className="pb-5 border-b border-slate-200/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-lg font-bold text-slate-800">Kho Voucher (Dữ liệu thật)</h2>
-          <p className="text-xs text-slate-500 mt-1">Lưu trữ và quản lý các mã giảm giá thật từ cửa hàng. Voucher đã lưu sẽ tự động hiển thị khi thanh toán đơn hàng.</p>
+          <h2 className="text-lg font-bold text-slate-800">Kho Voucher</h2>
+          <p className="text-xs text-slate-500 mt-1">Lưu trữ và quản lý các mã giảm giá từ cửa hàng. Voucher đã lưu sẽ tự động hiển thị khi thanh toán đơn hàng.</p>
         </div>
         <button 
           onClick={() => navigate('/')}

@@ -10,12 +10,15 @@ export const UserLayout: React.FC<UserLayoutProps> = ({ user }) => {
   const currentPath = location.pathname
 
   const isProfileActive = currentPath === '/user/account/profile'
+  const isPaymentActive = currentPath === '/user/account/payment'
+  const isAddressActive = currentPath === '/user/account/address'
+  const isPasswordActive = currentPath === '/user/account/password'
   const isPurchaseActive = currentPath === '/user/purchase'
   const isVoucherActive = currentPath === '/user/voucher'
   const isWalletActive = currentPath === '/user/wallet'
 
   const userAvatar = user?.avatar || 'https://placehold.co/100x100?text=User'
-  const userName = user?.email || 'cuonggquoc'
+  const userName = user?.name || user?.email || 'cuonggquoc'
 
   return (
     <div className="flex flex-col lg:flex-row gap-6 text-left selection:bg-[#ee4d2d] selection:text-white mt-4">
@@ -67,10 +70,28 @@ export const UserLayout: React.FC<UserLayoutProps> = ({ user }) => {
                 </Link>
               </li>
               <li>
-                <span className="block text-slate-400 cursor-not-allowed">Địa Chỉ</span>
+                <Link 
+                  to="/user/account/payment" 
+                  className={`block transition font-medium ${isPaymentActive ? 'text-[#ee4d2d]' : 'text-slate-500 hover:text-[#ee4d2d]'}`}
+                >
+                  Ngân Hàng
+                </Link>
               </li>
               <li>
-                <span className="block text-slate-400 cursor-not-allowed">Đổi Mật Khẩu</span>
+                <Link 
+                  to="/user/account/address" 
+                  className={`block transition font-medium ${isAddressActive ? 'text-[#ee4d2d]' : 'text-slate-500 hover:text-[#ee4d2d]'}`}
+                >
+                  Địa Chỉ
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  to="/user/account/password" 
+                  className={`block transition font-medium ${isPasswordActive ? 'text-[#ee4d2d]' : 'text-slate-500 hover:text-[#ee4d2d]'}`}
+                >
+                  Đổi Mật Khẩu
+                </Link>
               </li>
             </ul>
           </div>

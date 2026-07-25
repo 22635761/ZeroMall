@@ -8,20 +8,21 @@ generator client {
 }
 
 model Voucher {
-  id          String   @id @default(uuid())
-  shopId      String
-  name        String
-  code        String
-  type        String // "percentage" | "fixed"
-  value       Float
-  minSpend    Float
-  maxDiscount Float?
-  usageLimit  Int
-  usedCount   Int      @default(0)
-  startDate   DateTime
-  endDate     DateTime
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(uuid())
+  shopId       String
+  name         String
+  code         String
+  type         String // "percentage" | "fixed"
+  value        Float
+  minSpend     Float
+  maxDiscount  Float?
+  usageLimit   Int
+  usedCount    Int      @default(0)
+  targetUserId String? // ID của user được cấp riêng (Goodwill Compensation Voucher CSKH)
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   @@unique([shopId, code])
 }

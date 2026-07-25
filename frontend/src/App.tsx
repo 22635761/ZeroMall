@@ -16,9 +16,14 @@ import { SellerPortal } from './pages/seller/SellerPortal'
 import { AdminPortal } from './pages/admin/AdminPortal'
 import { ProfileModal } from './components/common/ProfileModal'
 import { BuyerOrdersPage } from './pages/buyer/BuyerOrdersPage'
+import { CategoryProductsPage } from './pages/buyer/CategoryProductsPage'
+import { ShopDetailPage } from './pages/buyer/ShopDetailPage'
 import { toSlug } from './utils/slug'
 import { UserLayout } from './pages/buyer/UserLayout'
 import { UserProfileTab } from './pages/buyer/UserProfileTab'
+import { UserAddressTab } from './pages/buyer/UserAddressTab'
+import { UserPasswordTab } from './pages/buyer/UserPasswordTab'
+import { UserBankAccountsTab } from './pages/buyer/UserBankAccountsTab'
 import { UserPurchaseTab } from './pages/buyer/UserPurchaseTab'
 import { UserVoucherTab } from './pages/buyer/UserVoucherTab'
 import { UserWalletTab } from './pages/buyer/UserWalletTab'
@@ -95,6 +100,17 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
   handleBuyNow
 }) => {
   const navigate = useNavigate();
+  const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+
+  const filteredProducts = selectedCategory
+    ? dbProducts.filter(p => {
+        const catName = selectedCategory.name?.toLowerCase();
+        const catSlug = selectedCategory.slug?.toLowerCase();
+        const pCat = p.category?.toLowerCase();
+        return pCat === catName || pCat === catSlug || (p as any).categoryRef?.slug === catSlug || (p as any).categoryRef?.name?.toLowerCase() === catName;
+      })
+    : dbProducts;
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-800 font-sans selection:bg-[#ee4d2d] selection:text-white">
       {/* Shopee-style Header */}
@@ -115,8 +131,8 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
         onBackToHome={() => navigate('/')}
       />
 
-      {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5 space-y-5">
+      {/* Main Content View Container */}
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <Routes>
           <Route
             path="/"
@@ -128,16 +144,42 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                 {/* Categories Grid */}
                 <Categories />
 
+                {/* Category Filter Active Indicator */}
+                {selectedCategory && (
+                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center text-xs animate-in fade-in duration-200">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">🏷️</span>
+                      <span className="font-bold text-slate-700">Đang lọc theo danh mục:</span>
+                      <span className="font-black text-emerald-700 bg-white border border-emerald-200 px-3 py-1 rounded-full">{selectedCategory.name}</span>
+                      <span className="text-slate-400 font-semibold">({filteredProducts.length} sản phẩm phù hợp)</span>
+                    </div>
+                    <button
+                      onClick={() => setSelectedCategory(null)}
+                      className="bg-white hover:bg-emerald-100 text-emerald-700 font-bold px-3.5 py-1.5 rounded-xl border border-emerald-300 transition cursor-pointer flex items-center gap-1"
+                    >
+                      ✕ Hủy lọc danh mục
+                    </button>
+                  </div>
+                )}
+
                 {/* Flash Sale Grid */}
                 <FlashSale products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
 
                 {/* Daily Discover grid */}
-                <ProductList products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+                <ProductList products={filteredProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
 
                 {/* Platform Services Assurances */}
                 <ServicePolicies />
               </>
             }
+          />
+          <Route
+            path="/category/:categorySlug"
+            element={<CategoryProductsPage products={dbProducts} />}
+          />
+          <Route
+            path="/shop/:shopId"
+            element={<ShopDetailPage user={user} allProducts={dbProducts} />}
           />
           <Route
             path="/cart"
@@ -178,6 +220,9 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
           <Route path="/user" element={<UserLayout user={user} />}>
             <Route index element={<Navigate to="account/profile" replace />} />
             <Route path="account/profile" element={<UserProfileTab user={user} onAuthSuccess={handleAuthSuccess} />} />
+            <Route path="account/address" element={<UserAddressTab user={user} />} />
+            <Route path="account/password" element={<UserPasswordTab user={user} />} />
+            <Route path="account/payment" element={<UserBankAccountsTab user={user} />} />
             <Route path="purchase" element={<UserPurchaseTab user={user} />} />
             <Route path="voucher" element={<UserVoucherTab user={user} />} />
             <Route path="wallet" element={<UserWalletTab user={user} />} />

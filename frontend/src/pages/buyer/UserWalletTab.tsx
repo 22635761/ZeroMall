@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { BuyerWithdrawForm } from '../../components/buyer/BuyerWithdrawForm'
 
 interface UserWalletTabProps {
   user: any
@@ -27,6 +28,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
   const [transactions, setTransactions] = useState<WalletTransaction[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [depositAmount, setDepositAmount] = useState('')
+  const [activeSection, setActiveSection] = useState<'deposit' | 'withdraw'>('deposit')
   const [sepayConfig, setSepayConfig] = useState({ bankId: 'MB', bankAcc: '0964579675', bankName: 'VU QUOC CUONG' })
 
   // QR Modal states — same pattern as CartPage Sepay payment
@@ -123,6 +125,23 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
     }
   }
 
+  // ─── Bấm dấu ✕ đóng QR Modal → Hủy / xóa giao dịch nạp tiền PENDING ───
+  const handleCloseDepositModal = async () => {
+    if (activeTxId) {
+      try {
+        await fetch(`http://localhost:8000/payments/wallet/tx/${activeTxId}`, {
+          method: 'DELETE',
+        })
+      } catch (e) {
+        console.error('Error cancelling pending deposit tx:', e)
+      }
+    }
+    setShowDepositModal(false)
+    setActiveTxId('')
+    setDepositAmount('')
+    fetchWalletData(true)
+  }
+
   const formatMoney = (amount: number) => amount.toLocaleString('vi-VN') + 'đ'
 
   return (
@@ -134,7 +153,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
           <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
             <span>💳</span> Ví Điện Tử ZeroMall Pay
           </h2>
-          <p className="text-xs text-slate-500 mt-1">Nạp tiền tự động qua QR, thanh toán đơn hàng nhanh chóng.</p>
+          <p className="text-xs text-slate-500 mt-1">Nạp tiền, rút tiền về ngân hàng, quản lý tài khoản thụ hưởng.</p>
         </div>
         <button
           onClick={() => fetchWalletData()}
@@ -152,7 +171,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
 
-          {/* Left: Balance + Deposit Form */}
+          {/* Left: Balance + Deposit/Withdraw Forms */}
           <div className="lg:col-span-5 space-y-5">
 
             {/* Balance Card */}
@@ -167,7 +186,32 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
               </div>
             </div>
 
+            {/* Deposit / Withdraw Tab Switcher */}
+            <div className="flex border border-slate-200/80 rounded-sm overflow-hidden shadow-3xs">
+              <button
+                onClick={() => setActiveSection('deposit')}
+                className={`flex-1 py-2.5 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeSection === 'deposit'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                ➕ Nạp Tiền
+              </button>
+              <button
+                onClick={() => setActiveSection('withdraw')}
+                className={`flex-1 py-2.5 text-xs font-bold transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  activeSection === 'withdraw'
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
+              >
+                💸 Rút Tiền
+              </button>
+            </div>
+
             {/* Deposit Box */}
+            {activeSection === 'deposit' && (
             <div className="bg-white border border-slate-200/80 rounded-sm p-5 space-y-4 shadow-3xs">
               <h4 className="font-extrabold text-sm text-slate-800 border-b border-slate-100 pb-2 flex items-center gap-1.5">
                 <span>➕</span> Nạp Tiền Vào Ví
@@ -220,6 +264,16 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
                 </button>
               </form>
             </div>
+            )}
+
+            {/* Withdraw Section */}
+            {activeSection === 'withdraw' && (
+              <BuyerWithdrawForm
+                userId={user?.id || ''}
+                walletBalance={wallet?.balance || 0}
+                onWithdrawSuccess={() => fetchWalletData(true)}
+              />
+            )}
           </div>
 
           {/* Right: Transaction History */}
@@ -229,15 +283,17 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
                 <span>📋</span> Lịch Sử Giao Dịch Ví
               </h4>
 
-              {transactions.length === 0 ? (
-                <div className="my-auto py-20 text-center space-y-2">
-                  <span className="text-4xl block opacity-60">💸</span>
-                  <p className="text-xs text-slate-400 font-semibold">Chưa có giao dịch ví nào.</p>
-                </div>
-              ) : (
-                <div className="flex-1 overflow-y-auto space-y-3.5 max-h-[500px] pr-1">
-                  {transactions.map(tx => {
-                    const isCredit = tx.type === 'DEPOSIT' || tx.type === 'REFUND' || tx.type === 'REVENUE'
+              {(() => {
+                const displayTransactions = transactions.filter(tx => !(tx.type === 'DEPOSIT' && tx.status === 'PENDING'))
+                return displayTransactions.length === 0 ? (
+                  <div className="my-auto py-20 text-center space-y-2">
+                    <span className="text-4xl block opacity-60">💸</span>
+                    <p className="text-xs text-slate-400 font-semibold">Chưa có giao dịch ví nào.</p>
+                  </div>
+                ) : (
+                  <div className="flex-1 overflow-y-auto space-y-3.5 max-h-[500px] pr-1">
+                    {displayTransactions.map(tx => {
+                      const isCredit = tx.type === 'DEPOSIT' || tx.type === 'REFUND' || tx.type === 'REVENUE'
                     const typeLabel =
                       tx.type === 'DEPOSIT' ? 'Nạp tiền' :
                       tx.type === 'PAYMENT' ? 'Thanh toán' :
@@ -279,7 +335,8 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
                     )
                   })}
                 </div>
-              )}
+              )
+            })()}
             </div>
           </div>
         </div>
@@ -297,13 +354,8 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
                 <span className="font-extrabold text-slate-800 text-sm sm:text-base">Nạp Tiền Ví ZeroMall</span>
               </div>
               <button
-                onClick={() => {
-                  if (window.confirm('Đóng? Giao dịch sẽ ở trạng thái Đang xử lý cho đến khi nhận được chuyển khoản.')) {
-                    setShowDepositModal(false)
-                    fetchWalletData(true)
-                  }
-                }}
-                className="text-slate-400 hover:text-slate-600 transition text-lg font-bold"
+                onClick={handleCloseDepositModal}
+                className="text-slate-400 hover:text-slate-600 transition text-lg font-bold cursor-pointer"
               >
                 ✕
               </button>

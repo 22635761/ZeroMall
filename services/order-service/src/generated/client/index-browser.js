@@ -131,9 +131,18 @@ exports.Prisma.OrderScalarFieldEnum = {
   shippingFee: 'shippingFee',
   paymentMethod: 'paymentMethod',
   status: 'status',
+  shopDiscountAmount: 'shopDiscountAmount',
+  platformDiscountAmount: 'platformDiscountAmount',
+  shopVoucherCode: 'shopVoucherCode',
+  platformVoucherCode: 'platformVoucherCode',
+  appliedVoucherIds: 'appliedVoucherIds',
   ghnDistrictId: 'ghnDistrictId',
   ghnWardCode: 'ghnWardCode',
   ghnOrderCode: 'ghnOrderCode',
+  refundReason: 'refundReason',
+  refundDescription: 'refundDescription',
+  refundEmail: 'refundEmail',
+  refundProofImages: 'refundProofImages',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

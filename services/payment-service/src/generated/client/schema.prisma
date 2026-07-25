@@ -20,12 +20,13 @@ model Transaction {
 }
 
 model Wallet {
-  id           String              @id @default(uuid())
-  buyerId      String              @unique
-  balance      Float               @default(5000000) // 5 triệu đồng mặc định để test
-  createdAt    DateTime            @default(now())
-  updatedAt    DateTime            @updatedAt
-  transactions WalletTransaction[]
+  id            String              @id @default(uuid())
+  buyerId       String              @unique
+  balance       Float               @default(5000000) // 5 triệu đồng mặc định để test
+  onHoldBalance Float               @default(0) // Số dư đóng băng tạm giữ
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  transactions  WalletTransaction[]
 }
 
 model WalletTransaction {
@@ -33,7 +34,7 @@ model WalletTransaction {
   walletId    String
   wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
   amount      Float
-  type        String // "DEPOSIT" | "PAYMENT" | "REFUND" | "WITHDRAW" | "REVENUE"
+  type        String // "DEPOSIT" | "PAYMENT" | "REFUND" | "WITHDRAW" | "REVENUE" | "COMMISSION"
   description String
   status      String   @default("SUCCESS") // "PENDING" | "SUCCESS" | "FAILED"
   createdAt   DateTime @default(now())
@@ -54,4 +55,16 @@ model WithdrawRequest {
 model SystemConfig {
   key   String @id
   value String
+}
+
+model EscrowTransaction {
+  id             String   @id @default(uuid())
+  orderId        String   @unique
+  shopId         String
+  amount         Float
+  commissionRate Float
+  status         String   @default("HELD") // "HELD" | "RELEASED" | "CANCELLED"
+  releaseAt      DateTime
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 }

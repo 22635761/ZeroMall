@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
@@ -286,6 +286,30 @@ export class AuthService {
         phoneNumber: true,
       }
     });
+  }
+
+  async changeUserPassword(id: string, dto: { currentPassword?: string; newPassword: string }) {
+    const user = await this.prisma.user.findUnique({ where: { id } });
+    if (!user) {
+      throw new NotFoundException('Không tìm thấy người dùng');
+    }
+
+    if (dto.currentPassword) {
+      const isValid = await bcrypt.compare(dto.currentPassword, user.password);
+      if (!isValid) {
+        throw new BadRequestException('Mật khẩu hiện tại không chính xác!');
+      }
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const passwordHash = await bcrypt.hash(dto.newPassword, salt);
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: passwordHash },
+    });
+
+    return { message: 'Đổi mật khẩu thành công' };
   }
 
   async getAllUsers() {
