@@ -193,4 +193,4 @@ Mật khẩu mặc định cho tất cả tài khoản: **`123456`**
 | `seller1@zeromall.com` | SHOP_OWNER | Cửa hàng "ZeroMall Fashion Hub" |
 | `seller2@zeromall.com` | SHOP_OWNER | Cửa hàng "ZeroMall Home & Kitchen" |
 | `admin@zeromall.com` | ADMIN | Quản trị viên hệ thống |
-| `cs@zeromall.com` | PLATFORM_SUPPORT | Nhân viên Hỗ trợ & Chăm sóc khách hàng |
+| `cskh_1@gmail.com` | PLATFORM_SUPPORT | Nhân viên Hỗ trợ & Chăm sóc khách hàng CSKH |
