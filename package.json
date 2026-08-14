@@ -14,7 +14,9 @@
     "dev:discount": "npm run start:dev -w services/discount-service",
     "dev:order": "npm run start:dev -w services/order-service",
     "dev:payment": "npm run start:dev -w services/payment-service",
-    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:auth\" \"npm run dev:product\" \"npm run dev:discount\" \"npm run dev:order\" \"npm run dev:payment\""
+    "dev:notification": "npm run start:dev -w services/notification-service",
+    "dev:chat": "npm run start:dev -w services/chat-service",
+    "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:auth\" \"npm run dev:product\" \"npm run dev:discount\" \"npm run dev:order\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:chat\""
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

@@ -1,171 +1,300 @@
-import React, { useState, useRef, useEffect } from 'react'
+import React, { useState, useRef, useEffect } from 'react';
+import {
+  getOrCreateConversation,
+  fetchMessages,
+  markConversationRead,
+  createChatSocket,
+} from '../../services/chat.service';
+import type { ChatConversation, ChatMessage } from '../../services/chat.service';
 
-interface Message {
-  id: string
-  sender: 'buyer' | 'seller'
-  text: string
-  time: string
+interface ChatWidgetProps {
+  user?: any;
+  targetShopId?: string;
+  targetShopName?: string;
 }
 
-export const ChatWidget: React.FC = () => {
-  const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'm-1',
-      sender: 'seller',
-      text: 'Dạ, chào bạn! ZeroMall Official Mall rất vui được hỗ trợ. Bạn cần tư vấn về sản phẩm nào hôm nay ạ? 💚',
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
-  ])
-  const [inputText, setInputText] = useState('')
-  const [isTyping, setIsTyping] = useState(false)
-  
-  const chatEndRef = useRef<HTMLDivElement>(null)
+export const ChatWidget: React.FC<ChatWidgetProps> = ({
+  user,
+  targetShopId = 'zeromall-official',
+  targetShopName = 'ZeroMall Official Mall',
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeShopId, setActiveShopId] = useState(targetShopId);
+  const [activeShopName, setActiveShopName] = useState(targetShopName);
 
+  const [currentConversation, setCurrentConversation] = useState<ChatConversation | null>(null);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState('');
+  const [partnerTyping, setPartnerTyping] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const socketRef = useRef<ReturnType<typeof createChatSocket> | null>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<any>(null);
+
+  const buyerId = user?.id || user?._id || user?.userId;
+
+  // Listen to global open chat event from product detail/shop pages
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, isTyping])
+    const handleOpenChat = (e: any) => {
+      if (e.detail?.shopId) {
+        setActiveShopId(e.detail.shopId);
+        setActiveShopName(e.detail.shopName || 'Shop');
+        setIsOpen(true);
+      }
+    };
+
+    window.addEventListener('open_chat_with_shop', handleOpenChat as EventListener);
+    return () => {
+      window.removeEventListener('open_chat_with_shop', handleOpenChat as EventListener);
+    };
+  }, []);
+
+  // Scroll to bottom
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, partnerTyping]);
+
+  // Load conversations when widget opens or user changes
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (!buyerId) {
+      // Guest mode placeholder notice
+      return;
+    }
+
+    setLoading(true);
+
+    // Get or create conversation with the target shop
+    getOrCreateConversation(buyerId, activeShopId)
+      .then((conv) => {
+        setCurrentConversation(conv);
+        return fetchMessages(conv.id);
+      })
+      .then((res) => {
+        setMessages(res.messages || []);
+      })
+      .catch((err) => {
+        console.error('Error initializing chat:', err);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+
+    // Conversations list available for future use if needed
+  }, [isOpen, buyerId, activeShopId]);
+
+  // Socket connection setup for active conversation
+  useEffect(() => {
+    if (!currentConversation?.id) return;
+
+    const socket = createChatSocket();
+    socketRef.current = socket;
+
+    socket.emit('join_conversation', { conversationId: currentConversation.id });
+
+    // Mark as read when entering room
+    if (buyerId) {
+      markConversationRead(currentConversation.id, 'BUYER').catch(() => {});
+    }
+
+    socket.on('new_message', (msg: ChatMessage) => {
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === msg.id)) return prev;
+        return [...prev, msg];
+      });
+      // Clear typing indicator
+      setPartnerTyping(false);
+    });
+
+    socket.on('user_typing', (data: { senderId: string; isTyping: boolean }) => {
+      if (data.senderId !== buyerId) {
+        setPartnerTyping(data.isTyping);
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [currentConversation?.id, buyerId]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+
+    if (socketRef.current && currentConversation?.id && buyerId) {
+      socketRef.current.emit('typing', {
+        conversationId: currentConversation.id,
+        senderId: buyerId,
+        isTyping: true,
+      });
+
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+      typingTimeoutRef.current = setTimeout(() => {
+        socketRef.current?.emit('typing', {
+          conversationId: currentConversation.id,
+          senderId: buyerId,
+          isTyping: false,
+        });
+      }, 2000);
+    }
+  };
 
   const handleSend = () => {
-    if (!inputText.trim()) return
+    if (!inputText.trim() || !currentConversation?.id) return;
 
-    const newMsg: Message = {
-      id: `m-${Date.now()}`,
-      sender: 'buyer',
-      text: inputText,
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
+    const messageData = {
+      conversationId: currentConversation.id,
+      senderId: buyerId || 'guest',
+      senderType: 'BUYER' as const,
+      type: 'TEXT' as const,
+      content: inputText.trim(),
+    };
 
-    setMessages((prev) => [...prev, newMsg])
-    setInputText('')
-    setIsTyping(true)
+    setInputText('');
 
-    // Simulate Seller typing & replying
-    setTimeout(() => {
-      setIsTyping(false)
-      const replyText = getSimulatedReply(inputText)
-      const replyMsg: Message = {
-        id: `m-${Date.now() + 1}`,
-        sender: 'seller',
-        text: replyText,
-        time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-      }
-      setMessages((prev) => [...prev, replyMsg])
-    }, 1200)
-  }
+    if (socketRef.current) {
+      socketRef.current.emit('send_message', messageData);
+    }
+  };
 
-  const getSimulatedReply = (userInput: string): string => {
-    const text = userInput.toLowerCase()
-    if (text.includes('iphone') || text.includes('ip')) {
-      return 'Dạ iPhone 15 Pro Max Titanium bản chính hãng VN/A đang có sẵn hàng tại kho. Nếu bạn thanh toán ngay bây giờ sẽ được miễn phí ship toàn quốc và tặng thêm củ sạc 20W ạ! 📱'
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSend();
     }
-    if (text.includes('sony') || text.includes('tai nghe')) {
-      return 'Sony WH-1000XM5 bên mình là hàng nhập khẩu chính hãng, bảo hành 12 tháng. Dòng này chống ồn cực tốt, đeo cực êm tai nha bạn!'
-    }
-    if (text.includes('bàn phím') || text.includes('keyboard') || text.includes('gmmk') || text.includes('logitech')) {
-      return 'Bên mình có phím cơ custom GMMK 2 và Logitech MX Keys Mini gõ rất êm. Các phím đều là hàng chính hãng bảo hành dài hạn ạ!'
-    }
-    if (text.includes('ship') || text.includes('giao')) {
-      return 'Dạ bên mình liên kết với GHN và GHTK. Đơn hàng giao trong nội thành Hà Nội/TP.HCM mất khoảng 1 ngày, các tỉnh khác từ 2-3 ngày ạ.'
-    }
-    if (text.includes('voucher') || text.includes('giảm giá') || text.includes('mã')) {
-      return 'Dạ bạn có thể áp dụng Voucher Freeship Xtra hoặc Voucher Hoàn Xu 10% ngay tại phần Thanh Toán của Giỏ Hàng để được hưởng ưu đãi tối đa ạ!'
-    }
-    return 'Dạ shop cảm ơn bạn đã quan tâm. Bạn có thể nhấn nút "Thêm vào giỏ hàng" hoặc "Mua Ngay" để đặt hàng nhanh nhất, shop sẽ chuẩn bị và bàn giao cho Đơn vị vận chuyển sớm nhất cho bạn ạ! 📦'
-  }
+  };
+
+  const formatTime = (dateStr: string) => {
+    const d = new Date(dateStr);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Helper fallback for shop initials
+  const getInitials = (name: string) => {
+    return name
+      .split(' ')
+      .map((word) => word[0])
+      .join('')
+      .substring(0, 2)
+      .toUpperCase();
+  };
 
   return (
     <div className="fixed bottom-6 right-6 z-50 text-slate-800">
       {/* Floating Chat Bubble Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 cursor-pointer transition duration-200 relative group"
+        className="w-14 h-14 rounded-full bg-gradient-to-tr from-emerald-600 to-teal-500 text-white flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 cursor-pointer transition duration-200 relative group border-none"
       >
         <span className="text-2xl">{isOpen ? '✕' : '💬'}</span>
-        {/* Tooltip */}
         {!isOpen && (
           <span className="absolute right-16 scale-0 group-hover:scale-100 bg-[#222] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition duration-150 shadow-xl whitespace-nowrap">
-            Chat với người bán 💬
+            Chat với Người bán 💬
           </span>
         )}
       </button>
 
       {/* Chat Window Panel */}
       {isOpen && (
-        <div className="absolute bottom-18 right-0 w-80 sm:w-96 h-[420px] bg-[#f9f9f9] border border-slate-200 rounded-2xl overflow-hidden shadow-2xl flex flex-col justify-between animate-in fade-in slide-in-from-bottom-3 duration-150">
-          
+        <div className="absolute bottom-18 right-0 w-80 sm:w-96 h-[460px] bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-2xl flex flex-col justify-between animate-in fade-in slide-in-from-bottom-3 duration-150">
           {/* Header */}
-          <div className="px-4 py-3 bg-emerald-600 text-white flex items-center justify-between shadow-xs">
+          <div className="px-4 py-3 bg-gradient-to-r from-emerald-600 to-teal-600 text-white flex items-center justify-between shadow-xs">
             <div className="flex items-center gap-2">
-              <div className="relative">
-                <span className="text-xl">🏪</span>
-                <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-white"></span>
+              <div className="w-8 h-8 rounded-full bg-white/20 border border-white/30 flex items-center justify-center text-xs font-bold text-white">
+                {getInitials(activeShopName)}
               </div>
-              <div className="text-left">
-                <h4 className="text-xs font-bold">ZeroMall Official Mall</h4>
-                <p className="text-[9px] text-white/80 font-medium">Vừa hoạt động</p>
+              <div>
+                <h3 className="font-bold text-xs truncate max-w-[180px]">{activeShopName}</h3>
+                <div className="flex items-center gap-1.5 text-[10px] text-emerald-100">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-pulse"></span>
+                  <span>Đang hoạt động</span>
+                </div>
               </div>
             </div>
+
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white hover:text-slate-200 font-bold text-sm cursor-pointer"
+              className="text-white/80 hover:text-white text-lg bg-transparent border-none p-1 cursor-pointer"
             >
               ✕
             </button>
           </div>
 
-          {/* Messages stream */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            {messages.map((m) => (
-              <div
-                key={m.id}
-                className={`flex flex-col max-w-[80%] ${
-                  m.sender === 'buyer' ? 'ml-auto items-end' : 'mr-auto items-start'
-                }`}
-              >
-                <div
-                  className={`p-3.5 rounded-xl text-xs leading-relaxed ${
-                    m.sender === 'buyer'
-                      ? 'bg-emerald-600 text-white'
-                      : 'bg-white border border-slate-200 text-slate-800'
-                  }`}
-                >
-                  {m.text}
-                </div>
-                <span className="text-[9px] text-slate-400 mt-1 px-1">{m.time}</span>
+          {/* Messages Area */}
+          <div className="flex-1 p-3 overflow-y-auto bg-slate-50 space-y-3">
+            {!user ? (
+              <div className="py-12 text-center text-slate-500 text-xs px-4">
+                <span className="text-3xl block mb-2">🔒</span>
+                Vui lòng đăng nhập để bắt đầu trò chuyện với Shop.
               </div>
-            ))}
+            ) : loading ? (
+              <div className="py-12 text-center text-slate-400 text-xs flex flex-col items-center gap-2">
+                <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                Đang nạp cuộc hội thoại...
+              </div>
+            ) : messages.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 text-xs">
+                <span className="text-2xl block mb-1">👋</span>
+                Chào bạn! Gửi tin nhắn cho Shop để được tư vấn nhé.
+              </div>
+            ) : (
+              messages.map((msg) => {
+                const isBuyer = msg.senderType === 'BUYER';
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isBuyer ? 'items-end' : 'items-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] px-3 py-2 rounded-2xl text-xs shadow-xs leading-relaxed ${
+                        isBuyer
+                          ? 'bg-emerald-600 text-white rounded-br-none'
+                          : 'bg-white text-slate-800 border border-slate-200/80 rounded-bl-none'
+                      }`}
+                    >
+                      {msg.content}
+                    </div>
+                    <span className="text-[9px] text-slate-400 mt-1 px-1">
+                      {formatTime(msg.createdAt)}
+                    </span>
+                  </div>
+                );
+              })
+            )}
 
-            {isTyping && (
-              <div className="flex items-center gap-1.5 bg-white border border-slate-200 p-3 rounded-lg w-16 mr-auto">
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce"></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                <span className="w-1.5 h-1.5 bg-slate-400 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+            {/* Partner Typing Indicator */}
+            {partnerTyping && (
+              <div className="flex items-center gap-1.5 text-xs text-slate-400 bg-white border border-slate-200 rounded-full px-3 py-1 w-fit animate-pulse">
+                <span>Shop đang nhập tin nhắn...</span>
               </div>
             )}
-            <div ref={chatEndRef}></div>
+
+            <div ref={chatEndRef} />
           </div>
 
-          {/* Input form */}
-          <div className="p-2.5 bg-white border-t border-slate-200 flex gap-2 items-center shrink-0">
-            <input
-              type="text"
-              placeholder="Nhập tin nhắn..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-              className="flex-1 px-3.5 py-2 border border-slate-200 rounded-lg text-xs text-slate-700 placeholder-slate-400 focus:outline-none focus:border-emerald-500 transition bg-slate-50"
-            />
-            <button
-              onClick={handleSend}
-              className="px-4.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold cursor-pointer transition active:scale-95 shadow-sm"
-            >
-              Gửi
-            </button>
-          </div>
-
+          {/* Input Footer */}
+          {user && (
+            <div className="p-2.5 bg-white border-t border-slate-200/80 flex items-center gap-2">
+              <input
+                type="text"
+                value={inputText}
+                onChange={handleInputChange}
+                onKeyPress={handleKeyPress}
+                placeholder="Nhập tin nhắn..."
+                className="flex-1 bg-slate-100 border border-slate-200 rounded-full px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white transition"
+              />
+              <button
+                onClick={handleSend}
+                disabled={!inputText.trim()}
+                className="w-8 h-8 rounded-full bg-emerald-600 text-white flex items-center justify-center disabled:opacity-40 disabled:cursor-not-allowed hover:bg-emerald-700 transition cursor-pointer border-none flex-shrink-0"
+              >
+                ➔
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
-  )
-}
+  );
+};

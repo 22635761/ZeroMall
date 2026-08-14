@@ -1,3 +1,15 @@
+# ZeroMall — Hướng Dẫn Cài Đặt & Chạy Dự Án
+
+## Yêu Cầu Hệ Thống
+
+| Công cụ | Phiên bản tối thiểu |
+|---------|---------------------|
+| [Docker Desktop](https://www.docker.com/products/docker-desktop/) | 4.x trở lên |
+| [Node.js](https://nodejs.org/) | 18.x trở lên |
+| Git | Bất kỳ |
+
+
+
 # ZeroMall — Shopee Clone (Microservices + Monorepo)
 
 ZeroMall là một hệ thống thương mại điện tử mô phỏng theo mô hình **Shopee**, được xây dựng theo kiến trúc Microservices, đóng gói hoàn chỉnh bằng **Docker Compose**, định tuyến tập trung qua **Kong API Gateway** và đồng bộ dữ liệu thực tế với **PostgreSQL**.
@@ -109,19 +121,38 @@ ZeroMall/
 ---
 
 ## 🚀 4. Hướng Dẫn Chạy Dự Án
-
+---
 ### CÁCH 1: Khôi Phục Nhanh CSDL Từ Tệp Sao Lưu (`zeromall_backup.sql`) — Khuyên dùng cho máy mới / người khác pull về
+
+
+## Bước 1 — Clone dự án
+
+```bash
+git clone <url-repo-của-bạn>
+cd ZeroMall
+```
+
+---
+
+## Bước 2 — Cài đặt dependencies (chỉ cần làm 1 lần)
+
+```bash
+npm install
+```
+
+---
+
 
 Khi pull dự án về máy khác, bạn chỉ cần thực hiện 2 bước đơn giản để khởi động đầy đủ dữ liệu thực tế (bảo toàn tất cả đơn hàng, số dư ví, tài khoản ngân hàng, voucher...):
 
-**Bước 1 — Bật toàn bộ dịch vụ với Docker Compose:**
+**Bước 3 — Bật toàn bộ dịch vụ với Docker Compose:**
 ```bash
 docker compose up -d --build
 ```
 
-**Bước 2 — Import toàn bộ Cơ Sở Dữ Liệu từ tệp `zeromall_backup.sql` có sẵn:**
+**Bước 4 — Import toàn bộ Cơ Sở Dữ Liệu từ tệp `zeromall_backup.sql` có sẵn:**
 ```bash
-docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.sql
+docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup2.sql
 ```
 *Chỉ cần chạy duy nhất lệnh trên, toàn bộ 5 Schema (`auth`, `product`, `discount`, `order`, `payment`) sẽ được khôi phục $100\%$ hoàn chỉnh!*
 

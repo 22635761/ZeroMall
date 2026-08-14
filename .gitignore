@@ -124,3 +124,9 @@ Thumbs.db
 
 # Docker volumes data
 data/
+
+# Database backup files (share separately, not via git)
+*.sql
+
+# Prisma generated clients (regenerated during build)
+**/src/generated/

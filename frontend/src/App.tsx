@@ -231,7 +231,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
       </main>
 
       {/* Floating Customer Support Chat */}
-      <ChatWidget />
+      <ChatWidget user={user} />
 
       {/* Profile Modal */}
       <ProfileModal
@@ -337,9 +337,19 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
 }
 
 function App() {
-  // Cart & Checkout state
+  // Auth states
+  const [user, setUser] = useState<any>(null)
+  const [token, setToken] = useState<string | null>(null)
+  const [isAuthOpen, setIsAuthOpen] = useState(false)
+  const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
+  const [isProfileOpen, setIsProfileOpen] = useState(false)
+
+  // Cart & Checkout state - user/guest isolated
+  const getCartStorageKey = (u: any) => (u?.id ? `zm_cart_${u.id}` : 'zm_cart_guest')
+
   const [cart, setCart] = useState<CartItem[]>(() => {
-    const saved = localStorage.getItem('zm_cart')
+    const key = user?.id ? `zm_cart_${user.id}` : 'zm_cart_guest'
+    const saved = localStorage.getItem(key)
     if (saved) {
       try {
         return JSON.parse(saved)
@@ -351,6 +361,21 @@ function App() {
   })
   
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null)
+
+  // Sync user-specific cart when user logs in/out
+  useEffect(() => {
+    const key = getCartStorageKey(user)
+    const saved = localStorage.getItem(key)
+    if (saved) {
+      try {
+        setCart(JSON.parse(saved))
+      } catch (e) {
+        setCart([])
+      }
+    } else {
+      setCart([])
+    }
+  }, [user?.id])
 
   // Toast effect
   useEffect(() => {
@@ -364,17 +389,11 @@ function App() {
     setToast({ message, type })
   }
 
-  // Persist cart to localStorage
+  // Persist cart to localStorage for active user/guest
   useEffect(() => {
-    localStorage.setItem('zm_cart', JSON.stringify(cart))
-  }, [cart])
-
-  // Auth states
-  const [user, setUser] = useState<any>(null)
-  const [token, setToken] = useState<string | null>(null)
-  const [isAuthOpen, setIsAuthOpen] = useState(false)
-  const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
+    const key = getCartStorageKey(user)
+    localStorage.setItem(key, JSON.stringify(cart))
+  }, [cart, user])
 
   // Products from Database for Buyer
   const [dbProducts, setDbProducts] = useState<Product[]>([])

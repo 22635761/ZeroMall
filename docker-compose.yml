@@ -206,9 +206,27 @@ services:
     ports:
       - '3006:3006'
     environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=notification&options=-csearch_path=notification
       - KAFKA_BROKERS=kafka:29092
     depends_on:
-      - kafka
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    restart: always
+
+  chat-service:
+    build:
+      context: .
+      dockerfile: services/chat-service/Dockerfile
+    container_name: zeromall-chat-service
+    ports:
+      - '3007:3007'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=chat&options=-csearch_path=chat
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: always
 
 volumes:

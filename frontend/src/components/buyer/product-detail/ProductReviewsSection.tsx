@@ -35,7 +35,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({
   user,
   onOpenLogin,
   showReviewForm,
-  setShowReviewForm,
+  setShowReviewForm: _setShowReviewForm,
   reviewRating,
   setReviewRating,
   reviewComment,
@@ -58,14 +58,14 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({
     <div className="bg-white rounded-2xl shadow-xs border border-slate-200/50 p-6 space-y-6">
       <div className="flex justify-between items-center border-b border-slate-100 pb-3">
         <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-          Đánh Giá Sản Phẩm (Dữ liệu PostgreSQL thật)
+          Đánh Giá Sản Phẩm (Từ người mua đã nhận hàng)
         </h2>
         {user ? (
           <button
-            onClick={() => setShowReviewForm(!showReviewForm)}
-            className="bg-[#ee4d2d] hover:bg-[#f05d40] text-white text-[11px] font-bold px-3 py-1.5 rounded-sm transition cursor-pointer shadow-3xs"
+            onClick={() => window.location.href = '/user/purchase'}
+            className="bg-amber-500 hover:bg-amber-600 text-white text-[11px] font-bold px-3 py-1.5 rounded-sm transition cursor-pointer shadow-3xs flex items-center gap-1"
           >
-            {showReviewForm ? '✕ Đóng Khung Viết' : '✍ Viết Đánh Giá Mới'}
+            <span>⭐ Đánh Giá Từ Đơn Mua</span>
           </button>
         ) : (
           <span className="text-xs text-slate-500 font-medium">
@@ -76,7 +76,7 @@ export const ProductReviewsSection: React.FC<ProductReviewsSectionProps> = ({
             >
               đăng nhập
             </button>{' '}
-            để đánh giá sản phẩm.
+            để đánh giá sản phẩm sau khi nhận hàng.
           </span>
         )}
       </div>

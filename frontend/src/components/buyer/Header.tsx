@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { CartItem } from '../../models/cart.model'
+import { NotificationPopover } from '../common/NotificationPopover'
 
 interface HeaderProps {
   cart: CartItem[]
@@ -68,9 +69,7 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Right links */}
           <div className="flex items-center gap-4">
-            <a href="#" className="flex items-center gap-1 hover:text-emerald-600 transition">
-              <span>🔔</span> Thông Báo
-            </a>
+            <NotificationPopover user={user} />
             <a href="#" className="flex items-center gap-1 hover:text-emerald-600 transition">
               <span>❓</span> Hỗ Trợ
             </a>

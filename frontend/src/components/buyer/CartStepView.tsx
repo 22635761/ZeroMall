@@ -19,7 +19,7 @@ interface CartStepViewProps {
   selectedCartItems: CartItem[]
   itemsTotal: number
   formatPrice: (val: number) => string
-  parsePrice: (priceStr: string) => number
+  parsePrice: (priceVal: any) => number
 }
 
 export const CartStepView: React.FC<CartStepViewProps> = ({
@@ -82,7 +82,7 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
           {Object.keys(groupedItems).map(shopId => {
             const shopItems = groupedItems[shopId]
             const shopInfo = shopsInfo[shopId]
-            const shopName = shopInfo?.name || `Cửa hàng ${shopId.substring(0, 8)}`
+            const shopName = shopInfo?.name || (shopId.startsWith('Shop') ? shopId : `Shop ${shopId.substring(0, 8)}`)
             const allShopSelected = shopItems.every(item => selectedKeys.includes(getItemKey(item)))
             
             return (
@@ -98,7 +98,13 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                       className="w-4.5 h-4.5 rounded-md border-slate-300 text-[#ee4d2d] focus:ring-[#ee4d2d] cursor-pointer"
                     />
                     <span className="text-base">🏪</span>
-                    <span className="font-extrabold text-slate-805 text-xs">{shopName}</span>
+                    <a 
+                      href={`/shop/${shopId}`} 
+                      className="font-extrabold text-slate-800 hover:text-[#ee4d2d] transition text-xs flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>{shopName}</span>
+                      <span className="text-[10px] text-slate-400">›</span>
+                    </a>
                     {getShopShippingBadges(shopId)}
                   </div>
                   
@@ -112,7 +118,8 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                   {shopItems.map((item, idx) => {
                     const itemKey = getItemKey(item)
                     const isSelected = selectedKeys.includes(itemKey)
-                    const itemSubtotal = parsePrice(item.product.flashPrice) * item.quantity
+                    const unitPrice = parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0)
+                    const itemSubtotal = unitPrice * item.quantity
                     
                     return (
                       <div key={idx} className={`p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center transition ${isSelected ? 'bg-[#feeee9]/15' : ''}`}>
@@ -149,7 +156,7 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                         {/* Price Column */}
                         <div className="col-span-2 flex lg:justify-center items-center justify-between text-xs">
                           <span className="lg:hidden text-slate-400 font-bold">Đơn giá:</span>
-                          <span className="font-bold text-slate-700">{item.product.flashPrice}</span>
+                          <span className="font-bold text-slate-700">{item.product.flashPrice || formatPrice(unitPrice)}</span>
                         </div>
 
                         {/* Quantity Controls */}

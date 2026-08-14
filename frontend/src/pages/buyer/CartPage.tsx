@@ -255,13 +255,27 @@ export const CartPage: React.FC<CartPageProps> = ({
   }, [showSepayModal, activeOrderId, selectedShopVouchers, selectedCartItems])
 
   // Calculations helpers
-  const parsePrice = (priceStr: string) => {
-    return parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
+  const parsePrice = (priceVal: any): number => {
+    if (typeof priceVal === 'number') return priceVal
+    if (!priceVal) return 0
+    const cleaned = String(priceVal).replace(/[^0-9]/g, '')
+    return parseInt(cleaned, 10) || 0
   }
 
   const formatPrice = (value: number) => {
     return value.toLocaleString('vi-VN') + 'đ'
   }
+
+  // Ensure cart items are selected by default when entering cart page
+  useEffect(() => {
+    if (cart.length > 0) {
+      const allKeys = cart.map(getItemKey)
+      const hasAnySelected = selectedKeys.some(k => allKeys.includes(k))
+      if (!hasAnySelected) {
+        setSelectedKeys(allKeys)
+      }
+    }
+  }, [cart])
 
   // Fetch shop information dynamically for unique shop IDs in the cart
   useEffect(() => {
@@ -377,7 +391,8 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   // Selected items calculation
   const itemsTotal = selectedCartItems.reduce((acc, item) => {
-    return acc + parsePrice(item.product.flashPrice) * item.quantity
+    const itemUnitPrice = parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0)
+    return acc + itemUnitPrice * item.quantity
   }, 0)
 
   // Base shipping fee: calculated via GHN Production API, fallback to 37.700đ per shop
@@ -583,6 +598,12 @@ export const CartPage: React.FC<CartPageProps> = ({
         return
       }
 
+      // Clear purchased items from cart state immediately
+      selectedCartItems.forEach(item => {
+        onRemoveItem(item.product.id, item.selectedVariant)
+      })
+      setSelectedKeys(prev => prev.filter(k => !selectedKeys.includes(k)))
+
       setStep('success')
     } catch (err: any) {
       alert(err.message || 'Lỗi hệ thống khi thanh toán')
@@ -714,7 +735,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               Tiếp Tục Mua Sắm
             </button>
             <button
-              onClick={() => { onBackToHome(); setTimeout(() => window.location.href='/user/purchases', 100) }}
+              onClick={() => { onBackToHome(); setTimeout(() => window.location.href='/user/purchase', 100) }}
               className="mt-2 px-6 py-3 bg-[#ee4d2d] hover:bg-[#d03d20] text-white rounded-xl font-bold text-xs shadow-md transition duration-200 cursor-pointer"
             >
               Xem Đơn Mua
@@ -744,7 +765,7 @@ export const CartPage: React.FC<CartPageProps> = ({
             if (window.confirm('Đóng? Đơn hàng vẫn ở trạng thái "Chờ thanh toán". Bạn có thể vào Đơn mua để thanh toán lại sau.')) {
               setShowSepayModal(false)
               onBackToHome()
-              setTimeout(() => window.location.href = '/user/purchases', 100)
+              setTimeout(() => window.location.href = '/user/purchase', 100)
             }
           }}
           bankInfo={sepayBankInfo}

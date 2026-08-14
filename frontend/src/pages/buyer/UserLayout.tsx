@@ -45,12 +45,6 @@ export const UserLayout: React.FC<UserLayoutProps> = ({ user }) => {
 
         {/* Menu Navigation Group */}
         <nav className="space-y-4 text-xs font-normal text-slate-700">
-          
-          {/* Thông báo */}
-          <div className="flex items-center gap-2.5 px-1 py-1 hover:text-[#ee4d2d] cursor-pointer transition">
-            <span className="text-[14px]">🔔</span>
-            <span>Thông Báo</span>
-          </div>
 
           {/* Tài Khoản Của Tôi */}
           <div className="space-y-2">

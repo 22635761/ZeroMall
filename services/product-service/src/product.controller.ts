@@ -68,6 +68,11 @@ export class ProductController {
     return this.productService.updateFlashSaleStatus(id, status);
   }
 
+  @Get('shop/:shopId/reviews')
+  async getShopReviews(@Param('shopId') shopId: string) {
+    return this.productService.getShopReviews(shopId);
+  }
+
   // --- WILDCARD / DYNAMIC ID ROUTES ---
 
   @Get(':id')

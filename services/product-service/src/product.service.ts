@@ -69,33 +69,38 @@ export class ProductService {
   }
 
   async create(dto: CreateProductDto) {
+    const imagesStr = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
+    const variationGroupsStr = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
+    const variationRowsStr = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
+    const categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+
     return this.prisma.product.create({
       data: {
-        shopId: dto.shopId,
-        name: dto.name,
-        image: dto.image,
-        images: dto.images,
-        video: dto.video,
-        category: dto.category,
-        brand: dto.brand,
-        description: dto.description,
-        price: dto.price,
-        originalPrice: dto.originalPrice,
-        stock: dto.stock,
-        sales: dto.sales ?? 0,
-        status: dto.status,
-        sku: dto.sku,
-        variationsText: dto.variationsText,
-        hasVariations: dto.hasVariations ?? false,
-        variationGroups: dto.variationGroups,
-        variationRows: dto.variationRows,
-        weight: dto.weight,
-        length: dto.length,
-        width: dto.width,
-        height: dto.height,
-        condition: dto.condition ?? 'new',
-        isPreOrder: dto.isPreOrder ?? false,
-        preOrderDays: dto.preOrderDays,
+        shopId: String(dto.shopId),
+        name: String(dto.name || 'Sản phẩm mới'),
+        image: dto.image ? String(dto.image) : null,
+        images: imagesStr,
+        video: dto.video ? String(dto.video) : null,
+        category: categoryStr,
+        brand: dto.brand ? String(dto.brand) : 'No Brand',
+        description: dto.description ? String(dto.description) : String(dto.name || 'Mô tả sản phẩm'),
+        price: String(dto.price || '0'),
+        originalPrice: dto.originalPrice ? String(dto.originalPrice) : null,
+        stock: typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0,
+        sales: typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0,
+        status: dto.status ? String(dto.status) : 'active',
+        sku: dto.sku ? String(dto.sku) : null,
+        variationsText: dto.variationsText ? String(dto.variationsText) : null,
+        hasVariations: Boolean(dto.hasVariations),
+        variationGroups: variationGroupsStr,
+        variationRows: variationRowsStr,
+        weight: dto.weight != null ? String(dto.weight) : null,
+        length: dto.length != null ? String(dto.length) : null,
+        width: dto.width != null ? String(dto.width) : null,
+        height: dto.height != null ? String(dto.height) : null,
+        condition: dto.condition ? String(dto.condition) : 'new',
+        isPreOrder: Boolean(dto.isPreOrder),
+        preOrderDays: dto.preOrderDays != null ? String(dto.preOrderDays) : '7',
       },
     });
   }
@@ -116,34 +121,36 @@ export class ProductService {
 
   async update(id: string, dto: UpdateProductDto) {
     await this.findOne(id); // Ensure product exists
+    const updateData: any = {};
+
+    if (dto.name !== undefined) updateData.name = String(dto.name);
+    if (dto.image !== undefined) updateData.image = dto.image ? String(dto.image) : null;
+    if (dto.images !== undefined) updateData.images = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
+    if (dto.video !== undefined) updateData.video = dto.video ? String(dto.video) : null;
+    if (dto.category !== undefined) updateData.category = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+    if (dto.brand !== undefined) updateData.brand = String(dto.brand);
+    if (dto.description !== undefined) updateData.description = String(dto.description);
+    if (dto.price !== undefined) updateData.price = String(dto.price);
+    if (dto.originalPrice !== undefined) updateData.originalPrice = dto.originalPrice ? String(dto.originalPrice) : null;
+    if (dto.stock !== undefined) updateData.stock = typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0;
+    if (dto.sales !== undefined) updateData.sales = typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0;
+    if (dto.status !== undefined) updateData.status = String(dto.status);
+    if (dto.sku !== undefined) updateData.sku = dto.sku ? String(dto.sku) : null;
+    if (dto.variationsText !== undefined) updateData.variationsText = dto.variationsText ? String(dto.variationsText) : null;
+    if (dto.hasVariations !== undefined) updateData.hasVariations = Boolean(dto.hasVariations);
+    if (dto.variationGroups !== undefined) updateData.variationGroups = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
+    if (dto.variationRows !== undefined) updateData.variationRows = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
+    if (dto.weight !== undefined) updateData.weight = dto.weight != null ? String(dto.weight) : null;
+    if (dto.length !== undefined) updateData.length = dto.length != null ? String(dto.length) : null;
+    if (dto.width !== undefined) updateData.width = dto.width != null ? String(dto.width) : null;
+    if (dto.height !== undefined) updateData.height = dto.height != null ? String(dto.height) : null;
+    if (dto.condition !== undefined) updateData.condition = String(dto.condition);
+    if (dto.isPreOrder !== undefined) updateData.isPreOrder = Boolean(dto.isPreOrder);
+    if (dto.preOrderDays !== undefined) updateData.preOrderDays = dto.preOrderDays != null ? String(dto.preOrderDays) : '7';
+
     return this.prisma.product.update({
       where: { id },
-      data: {
-        name: dto.name,
-        image: dto.image,
-        images: dto.images,
-        video: dto.video,
-        category: dto.category,
-        brand: dto.brand,
-        description: dto.description,
-        price: dto.price,
-        originalPrice: dto.originalPrice,
-        stock: dto.stock,
-        sales: dto.sales,
-        status: dto.status,
-        sku: dto.sku,
-        variationsText: dto.variationsText,
-        hasVariations: dto.hasVariations,
-        variationGroups: dto.variationGroups,
-        variationRows: dto.variationRows,
-        weight: dto.weight,
-        length: dto.length,
-        width: dto.width,
-        height: dto.height,
-        condition: dto.condition,
-        isPreOrder: dto.isPreOrder,
-        preOrderDays: dto.preOrderDays,
-      },
+      data: updateData,
     });
   }
 
@@ -396,5 +403,26 @@ export class ProductService {
       where: { id },
       data: { status }
     });
+  }
+
+  async getShopReviews(shopId: string) {
+    const products = await this.prisma.product.findMany({
+      where: { shopId },
+      select: { id: true, name: true, image: true },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productIds = Array.from(productMap.keys());
+    if (productIds.length === 0) return [];
+    
+    const reviews = await this.prisma.review.findMany({
+      where: { productId: { in: productIds } },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return reviews.map((r) => ({
+      ...r,
+      productName: productMap.get(r.productId)?.name || 'Sản phẩm',
+      productImage: productMap.get(r.productId)?.image || '',
+    }));
   }
 }

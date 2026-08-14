@@ -317,7 +317,15 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                 </button>
 
                 <button
-                  onClick={() => alert(`Đang kết nối chat trực tiếp với ${shopDetails?.name || 'Shop'}...`)}
+                  onClick={() => {
+                    const targetId = shopDetails?.id || shopId || 'zeromall-official';
+                    const targetName = shopDetails?.name || 'ZeroMall Shop';
+                    window.dispatchEvent(
+                      new CustomEvent('open_chat_with_shop', {
+                        detail: { shopId: targetId, shopName: targetName },
+                      })
+                    );
+                  }}
                   className="px-4 py-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/25 text-xs font-bold rounded-xl backdrop-blur-md transition cursor-pointer flex items-center gap-1.5"
                 >
                   <span>💬</span> Chat Ngay

@@ -279,6 +279,22 @@ export class OrderService implements OnModuleInit {
       this.rollbackVouchers(exists.appliedVoucherIds);
     }
 
+    // Bắn sự kiện order.updated sang Kafka để gửi thông báo Realtime cho Khách hàng
+    try {
+      this.kafkaClient.emit('order.updated', JSON.stringify({
+        orderId: updatedOrder.id,
+        buyerId: updatedOrder.buyerId,
+        buyerName: updatedOrder.buyerName,
+        status: updatedOrder.status,
+        previousStatus: exists.status,
+        items: updatedOrder.items,
+        updatedAt: updatedOrder.updatedAt,
+      }));
+      console.log(`[Kafka] Published order.updated event for order ${updatedOrder.id} with status ${updatedOrder.status}`);
+    } catch (e) {
+      console.error('[Kafka] Failed to publish order.updated event:', e);
+    }
+
     if ((dto.status === 'DELIVERED' || dto.status === 'COMPLETED') && exists.status !== dto.status) {
       try {
         // Nhóm các item theo shopId và tính tiền Escrow chuẩn: Subtotal - ShopVoucherDiscount

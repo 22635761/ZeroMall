@@ -4,8 +4,13 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  app.enableCors();
+  
+  app.enableCors({
+    origin: '*',
+    credentials: true,
+  });
 
+  // Enable Kafka Microservice consumer
   app.connectMicroservice<MicroserviceOptions>({
     transport: Transport.KAFKA,
     options: {
@@ -22,6 +27,6 @@ async function bootstrap() {
   await app.startAllMicroservices();
   const port = process.env.PORT ?? 3006;
   await app.listen(port);
-  console.log(`[Notification Service] Running HTTP on port ${port} and listening to Kafka events`);
+  console.log(`[Notification Service] Running HTTP/WS on port ${port} and listening to Kafka events`);
 }
 bootstrap();

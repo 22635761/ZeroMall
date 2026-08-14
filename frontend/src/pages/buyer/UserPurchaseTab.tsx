@@ -47,12 +47,28 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   // Detail modal state for refund / cancel orders
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null)
 
+  const [shopsInfo, setShopsInfo] = useState<{ [key: string]: string }>({})
+
   const fetchOrders = async () => {
     if (!user) return
     setIsLoading(true)
     try {
       const data = await orderService.fetchBuyerOrders(user.id)
-      setOrders(data)
+      const now = Date.now()
+      const twoDaysMs = 2 * 24 * 60 * 60 * 1000
+
+      const processedOrders = data.map((order: Order) => {
+        if (order.status === 'DELIVERED') {
+          const updatedTime = new Date(order.updatedAt || (order as any).createdAt).getTime()
+          if (now - updatedTime >= twoDaysMs) {
+            orderService.updateOrderStatus(order.id, 'COMPLETED').catch(() => {})
+            return { ...order, status: 'COMPLETED' }
+          }
+        }
+        return order
+      })
+
+      setOrders(processedOrders)
     } catch (err) {
       console.error(err)
     } finally {
@@ -63,6 +79,28 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   useEffect(() => {
     fetchOrders()
   }, [user])
+
+  useEffect(() => {
+    const fetchShopNames = async () => {
+      const uniqueShopIds = Array.from(new Set(orders.flatMap(o => o.items.map((i: any) => i.shopId)).filter(Boolean)))
+      for (const shopId of uniqueShopIds) {
+        if (shopId && !shopsInfo[shopId]) {
+          try {
+            const res = await fetch(`http://localhost:8000/auth/shops/${shopId}`)
+            if (res.ok) {
+              const data = await res.json()
+              if (data.name) {
+                setShopsInfo(prev => ({ ...prev, [shopId]: data.name }))
+              }
+            }
+          } catch (e) { console.error(e) }
+        }
+      }
+    }
+    if (orders.length > 0) {
+      fetchShopNames()
+    }
+  }, [orders])
 
   const mapStatusToTab = (status: string): string => {
     switch (status) {
@@ -388,17 +426,43 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
           {filteredOrders.map(order => (
             <div key={order.id} className="bg-white border border-slate-200/65 rounded-sm p-4 sm:p-5 shadow-3xs space-y-4">
               
-              <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 text-xs">
-                <div className="flex items-center gap-2">
-                  <span className="bg-[#ee4d2d] text-white px-1.5 py-0.5 rounded-sm text-[10px] font-bold tracking-wider">Yêu thích</span>
-                  <span className="font-bold text-slate-800">ZeroMall Official Store</span>
-                  <button className="border border-slate-200 hover:bg-slate-50 text-[10px] px-2 py-0.5 rounded-sm text-slate-500 font-medium cursor-pointer transition">Chat</button>
-                  <button className="border border-slate-200 hover:bg-slate-50 text-[10px] px-2 py-0.5 rounded-sm text-slate-500 font-medium cursor-pointer transition">Xem Shop</button>
-                </div>
-                <div className={`font-bold ${getStatusColor(order.status)}`}>
-                  {getStatusText(order.status)}
-                </div>
-              </div>
+              {(() => {
+                const firstItem = order.items?.[0];
+                const targetShopId = firstItem?.shopId || 'zeromall-official';
+                const fetchedShopName = shopsInfo[targetShopId];
+                const itemShopName = (firstItem as any)?.shopName;
+                const shopName = fetchedShopName || (itemShopName && !itemShopName.includes('-') ? itemShopName : (targetShopId.startsWith('Shop') ? targetShopId : `Shop ${targetShopId.substring(0, 8)}`));
+
+                return (
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 text-xs">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-[#ee4d2d] text-white px-1.5 py-0.5 rounded-sm text-[10px] font-bold tracking-wider">Yêu thích</span>
+                      <span className="font-bold text-slate-800">{shopName}</span>
+                      <button
+                        onClick={() => {
+                          window.dispatchEvent(
+                            new CustomEvent('open_chat_with_shop', {
+                              detail: { shopId: targetShopId, shopName: shopName },
+                            })
+                          );
+                        }}
+                        className="border border-slate-200 hover:bg-slate-50 text-[10px] px-2 py-0.5 rounded-sm text-slate-500 font-medium cursor-pointer transition flex items-center gap-1"
+                      >
+                        <span>💬</span> Chat
+                      </button>
+                      <a 
+                        href={`/shop/${targetShopId}`}
+                        className="border border-slate-200 hover:bg-slate-50 text-[10px] px-2 py-0.5 rounded-sm text-slate-500 font-medium cursor-pointer transition flex items-center gap-1"
+                      >
+                        <span>🏪</span> Xem Shop
+                      </a>
+                    </div>
+                    <div className={`font-bold ${getStatusColor(order.status)}`}>
+                      {getStatusText(order.status)}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Order Items List */}
               <div className="space-y-3">
@@ -447,16 +511,38 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                   </button>
                 )}
 
-                {/* 2. ĐÃ GIAO (DELIVERED) — chưa đánh giá: hiện Đánh giá + Trả hàng */}
-                {order.status === 'DELIVERED' && !ratedOrders.has(order.id) && (
+                {/* 2. ĐÃ GIAO (DELIVERED) — người bán đã báo giao thành công */}
+                {order.status === 'DELIVERED' && (
                   <>
-                    <button
-                      onClick={() => handleOpenReviewModal(order)}
-                      className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                      title="Đánh giá ngay để tiền hàng về ví Shop nhanh hơn!"
-                    >
-                      ⭐ Đánh giá sản phẩm
-                    </button>
+                    {!ratedOrders.has(order.id) && (
+                      <button
+                        onClick={async () => {
+                          if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn từ Shop?')) {
+                            try {
+                              await orderService.updateOrderStatus(order.id, 'COMPLETED')
+                              alert('Cảm ơn bạn đã xác nhận! Đơn hàng đã hoàn tất. Vui lòng đánh giá sản phẩm.')
+                              fetchOrders()
+                            } catch (err: any) {
+                              alert('Lỗi khi xác nhận nhận hàng: ' + err.message)
+                            }
+                          }
+                        }}
+                        className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                      >
+                        ✅ Đã nhận được hàng
+                      </button>
+                    )}
+
+                    {!ratedOrders.has(order.id) && (
+                      <button
+                        onClick={() => handleOpenReviewModal(order)}
+                        className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                        title="Đánh giá ngay để chia sẻ trải nghiệm mua hàng!"
+                      >
+                        ⭐ Đánh giá sản phẩm
+                      </button>
+                    )}
+
                     <button
                       onClick={() => handleRequestRefundClick(order)}
                       className="px-4 py-2 border border-rose-200 hover:border-rose-450 hover:bg-rose-50 text-rose-600 rounded-sm font-semibold transition duration-150 cursor-pointer shadow-3xs text-[11px]"
@@ -466,15 +552,17 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                   </>
                 )}
 
-                {/* 2b. ĐÃ ĐÁNH GIÁ (COMPLETED hoặc DELIVERED+rated): Liên hệ người bán + Mua lại */}
+                {/* 2b. HOÀN TẤT (COMPLETED) hoặc DELIVERED+rated */}
                 {(order.status === 'COMPLETED' || (order.status === 'DELIVERED' && ratedOrders.has(order.id))) && (
                   <>
-                    <button
-                      onClick={() => fetchOrders()}
-                      className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-600 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                    >
-                      Liên Hệ Người Bán
-                    </button>
+                    {!ratedOrders.has(order.id) && (
+                      <button
+                        onClick={() => handleOpenReviewModal(order)}
+                        className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-700 font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                      >
+                        ⭐ Đánh giá sản phẩm
+                      </button>
+                    )}
                     <button
                       onClick={() => window.location.href = '/'}
                       className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
@@ -484,24 +572,26 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                   </>
                 )}
 
-                {/* 3. CHỜ GIAO HÀNG (SHIPPED / SHIPPING / DELIVERING / IN_TRANSIT) -> Chỉ hiện Xác nhận đã nhận được hàng */}
+                {/* 3. ĐANG GIAO HÀNG (SHIPPED / SHIPPING / DELIVERING / IN_TRANSIT) */}
                 {(order.status === 'SHIPPED' || order.status === 'SHIPPING' || order.status === 'DELIVERING' || order.status === 'IN_TRANSIT') && (
-                  <button
-                    onClick={async () => {
-                      if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn?')) {
-                        try {
-                          await orderService.updateOrderStatus(order.id, 'DELIVERED')
-                          alert('Cảm ơn bạn đã xác nhận! Đơn hàng đã chuyển sang trạng thái Đã Giao.')
-                          fetchOrders()
-                        } catch (err: any) {
-                          alert('Lỗi khi xác nhận nhận hàng: ' + err.message)
+                  <>
+                    <button
+                      onClick={async () => {
+                        if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn?')) {
+                          try {
+                            await orderService.updateOrderStatus(order.id, 'DELIVERED')
+                            alert('Cảm ơn bạn đã xác nhận! Đơn hàng đã chuyển sang trạng thái Đã Giao.')
+                            fetchOrders()
+                          } catch (err: any) {
+                            alert('Lỗi khi xác nhận nhận hàng: ' + err.message)
+                          }
                         }
-                      }
-                    }}
-                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                  >
-                    ✅ Đã nhận được hàng
-                  </button>
+                      }}
+                      className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      ✅ Đã nhận được hàng
+                    </button>
+                  </>
                 )}
 
                 {/* 4. TRẢ HÀNG (REFUND_PENDING, RETURN_PENDING, RETURN_SHIPPED, REFUND_DISPUTED, REFUNDED, RETURNED) -> Chỉ hiện Xem chi tiết */}
@@ -550,16 +640,6 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                       Mua lại
                     </button>
                   </>
-                )}
-
-                {/* 6. CHỜ XÁC NHẬN & CHỜ LẤY HÀNG -> Hiện Liên hệ người bán */}
-                {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'PROCESSING' || order.status === 'PREPARING') && (
-                  <button
-                    onClick={() => fetchOrders()}
-                    className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-600 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                  >
-                    Liên Hệ Người Bán
-                  </button>
                 )}
               </div>
 

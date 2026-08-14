@@ -32,7 +32,7 @@ interface CheckoutStepViewProps {
   handlePlaceOrder: () => void
   setStep: (step: 'cart' | 'checkout' | 'success') => void
   setShowAddressModal: (show: boolean) => void
-  parsePrice: (priceStr: string) => number
+  parsePrice: (priceVal: any) => number
   formatPrice: (value: number) => string
   getShopVoucherDiscount: (shopId: string, shopItemsTotal: number) => number
   showVoucherModal: boolean
@@ -151,11 +151,10 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
           if (typeof shopId !== 'string') return null
           const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
           const shopInfo = shopsInfo[shopId]
-          const shopName = shopInfo?.name || `Cửa hàng ${shopId.substring(0, 8)}`
+          const shopName = shopInfo?.name || (shopId.startsWith('Shop') ? shopId : `Shop ${shopId.substring(0, 8)}`)
           
           const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice) * item.quantity, 0)
           const shopVoucherDiscount = getShopVoucherDiscount(shopId, shopItemsTotal)
-          const shopSubtotal = shopItemsTotal + 37700 - shopVoucherDiscount
           
           return (
             <div key={shopId} className="bg-white rounded-2xl border border-slate-200/50 shadow-3xs overflow-hidden">
@@ -164,10 +163,24 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               <div className="px-6 py-4 bg-slate-50/70 border-b border-slate-100 flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <span className="text-lg">🏪</span>
-                  <span className="font-bold text-slate-855 text-sm sm:text-base">{shopName}</span>
-                  <span className="text-xs text-emerald-600 bg-emerald-50 px-2.5 py-0.5 rounded border border-emerald-100 font-bold flex items-center gap-1">
+                  <a 
+                    href={`/shop/${shopId}`} 
+                    className="font-bold text-slate-800 hover:text-[#ee4d2d] transition text-sm sm:text-base cursor-pointer flex items-center gap-1"
+                  >
+                    <span>{shopName}</span>
+                    <span className="text-xs text-slate-400">›</span>
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open_chat_with_shop', {
+                        detail: { shopId, shopName }
+                      }))
+                    }}
+                    className="text-xs text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2.5 py-0.5 rounded border border-emerald-200 font-bold flex items-center gap-1 cursor-pointer transition"
+                  >
                     <span>💬</span> Chat ngay
-                  </span>
+                  </button>
                 </div>
               </div>
 
@@ -257,11 +270,6 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                     onChange={(e) => setShopMessages(prev => ({ ...prev, [shopId]: e.target.value }))}
                     className="border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:ring-1 focus:ring-[#ee4d2d] focus:outline-none w-full max-w-md bg-white font-semibold text-slate-700 placeholder:text-slate-400 placeholder:font-normal"
                   />
-                </div>
-                
-                <div className="text-right whitespace-nowrap md:self-end">
-                  <span className="text-xs text-slate-400 font-bold mr-2">Tổng số tiền ({shopItems.length} sản phẩm):</span>
-                  <span className="text-base font-black text-[#ee4d2d]">{formatPrice(shopSubtotal)}</span>
                 </div>
               </div>
 

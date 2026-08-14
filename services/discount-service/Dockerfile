@@ -6,7 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY services/discount-service/package.json ./services/discount-service/
 
-# Install dependencies using npm workspace scoping
+# Set npm retry and timeout configs for network stability
+RUN npm config set fetch-retries 5 && npm config set fetch-retry-maxtimeout 120000
+
+# Install ALL dependencies (dev + prod) once in builder
 RUN npm ci -w services/discount-service
 
 # Copy source code and Prisma configurations
@@ -27,11 +30,10 @@ FROM node:22-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY services/discount-service/package.json ./services/discount-service/
-
-# Install only production dependencies
-RUN npm ci --omit=dev -w services/discount-service
+# Copy node_modules from builder — NO npm ci needed in runtime stage
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/services/discount-service/package.json ./services/discount-service/package.json
 
 # Copy compiled source code and generated database client
 COPY --from=builder /app/services/discount-service/dist ./services/discount-service/dist

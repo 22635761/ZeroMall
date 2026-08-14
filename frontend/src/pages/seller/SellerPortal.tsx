@@ -12,6 +12,10 @@ import { ShopOrders } from '../../components/seller/ShopOrders'
 import { ShopWallet } from '../../components/seller/ShopWallet'
 import { ShopRevenue } from '../../components/seller/ShopRevenue'
 import { ShopBankAccounts } from '../../components/seller/ShopBankAccounts'
+import { SellerChatManager } from '../../components/seller/SellerChatManager'
+import { ShopReviews } from '../../components/seller/ShopReviews'
+import { NotificationPopover } from '../../components/common/NotificationPopover'
+import { orderService } from '../../services/order.service'
 
 interface SellerPortalProps {
   user: any
@@ -111,17 +115,32 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     }
   }
 
+  // Fetch shop orders for dashboard stats
+  const [shopOrders, setShopOrders] = useState<any[]>([])
+
+  const fetchShopOrders = async () => {
+    if (!user?.shopId) return
+    try {
+      const data = await orderService.fetchSellerOrders(user.shopId, token || '')
+      setShopOrders(data || [])
+    } catch (e) {
+      console.error('Error fetching shop orders:', e)
+    }
+  }
+
   useEffect(() => {
     if (user?.shopId) {
       fetchProducts()
       fetchShopDetails()
+      fetchShopOrders()
     } else {
       setProductsList([])
       setShopDetails(null)
+      setShopOrders([])
       setShopLoading(false)
       setLoadedShopName(null)
     }
-  }, [user?.shopId])
+  }, [user?.shopId, token])
 
   // CRUD API Handlers
   const handleAddProductSuccess = async (productData: any) => {
@@ -138,27 +157,27 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
         shopId: user.shopId,
         name: productData.name,
         image: productData.image,
-        images: productData.images ? JSON.stringify(productData.images) : JSON.stringify([]),
+        images: typeof productData.images === 'string' ? productData.images : JSON.stringify(productData.images || []),
         video: productData.video || '',
-        category: productData.category,
-        brand: productData.brand,
-        description: productData.description,
-        price: String(productData.price),
+        category: typeof productData.category === 'string' ? productData.category : (productData.category?.name || 'Tổng Hợp'),
+        brand: productData.brand || 'No Brand',
+        description: productData.description || productData.name || 'Mô tả sản phẩm',
+        price: String(productData.price || '0'),
         originalPrice: productData.originalPrice ? String(productData.originalPrice) : null,
-        stock: productData.stock,
-        sales: productData.sales ?? 0,
-        status: productData.status,
-        sku: productData.sku,
-        variationsText: productData.variationsText,
-        hasVariations: productData.hasVariations,
-        variationGroups: productData.variationGroups ? JSON.stringify(productData.variationGroups) : JSON.stringify([]),
-        variationRows: productData.variationRows ? JSON.stringify(productData.variationRows) : JSON.stringify([]),
-        weight: productData.weight,
-        length: productData.length,
-        width: productData.width,
-        height: productData.height,
-        condition: productData.condition,
-        isPreOrder: productData.isPreOrder,
+        stock: Number(productData.stock || 0),
+        sales: Number(productData.sales || 0),
+        status: productData.status || 'active',
+        sku: productData.sku || '',
+        variationsText: productData.variationsText || '',
+        hasVariations: Boolean(productData.hasVariations),
+        variationGroups: typeof productData.variationGroups === 'string' ? productData.variationGroups : JSON.stringify(productData.variationGroups || []),
+        variationRows: typeof productData.variationRows === 'string' ? productData.variationRows : JSON.stringify(productData.variationRows || []),
+        weight: productData.weight != null ? String(productData.weight) : null,
+        length: productData.length != null ? String(productData.length) : null,
+        width: productData.width != null ? String(productData.width) : null,
+        height: productData.height != null ? String(productData.height) : null,
+        condition: productData.condition || 'new',
+        isPreOrder: Boolean(productData.isPreOrder),
         preOrderDays: String(productData.preOrderDays || '7')
       }
 
@@ -168,7 +187,12 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
         body: JSON.stringify(payload)
       })
 
-      if (!response.ok) throw new Error('Không thể lưu sản phẩm vào cơ sở dữ liệu')
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => null)
+        const errorMsg = errorData?.message ? (Array.isArray(errorData.message) ? errorData.message.join(', ') : errorData.message) : 'Không thể lưu sản phẩm vào cơ sở dữ liệu'
+        throw new Error(errorMsg)
+      }
+
       
       await fetchProducts()
       setEditingProduct(null)
@@ -338,6 +362,12 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             🛒 Về Trang Mua Sắm
           </button>
           
+          <NotificationPopover
+            user={{ id: shopDetails?.id || user?.shopId || user?.id }}
+            isSeller={true}
+            onNavigateToMenu={(menu) => setSearchParams({ menu })}
+          />
+
           <span className="text-slate-200">|</span>
 
           <div className="flex items-center gap-3">
@@ -430,61 +460,89 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             <ShopWallet user={user} onNavigateToBankAccounts={() => selectSubMenu('finance', 'bank-accounts')} />
           ) : activeMenu === 'finance' && activeSubMenu === 'bank-accounts' ? (
             <ShopBankAccounts user={user} shopId={shopDetails?.id} />
+          ) : (activeMenu === 'chat' || activeSubMenu === 'chat-mgmt') ? (
+            <SellerChatManager user={user} shopId={shopDetails?.id} />
+          ) : activeSubMenu === 'reviews-mgmt' ? (
+            <ShopReviews user={user} shopId={shopDetails?.id} />
           ) : (
             <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm min-h-[450px]">
-              {activeMenu === 'dashboard' && (
-                <div className="space-y-6 animate-in fade-in duration-200">
-                  {/* Stats Summary cards */}
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Phân Tích Bán Hàng</h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Doanh số</p>
-                        <p className="text-lg font-black text-emerald-600 mt-1">0đ</p>
-                        <p className="text-[9px] text-slate-400 mt-1">Hôm nay: -% so với hôm qua</p>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Đơn hàng</p>
-                        <p className="text-lg font-black text-slate-700 mt-1">0</p>
-                        <p className="text-[9px] text-slate-400 mt-1">Hôm nay: -% so với hôm qua</p>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Tỷ lệ chuyển đổi</p>
-                        <p className="text-lg font-black text-slate-700 mt-1">0.0%</p>
-                        <p className="text-[9px] text-slate-400 mt-1">Hôm nay: -% so với hôm qua</p>
-                      </div>
-                      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase">Lượt truy cập</p>
-                        <p className="text-lg font-black text-slate-700 mt-1">0</p>
-                        <p className="text-[9px] text-slate-400 mt-1">Hôm nay: -% so với hôm qua</p>
-                      </div>
-                    </div>
-                  </div>
+              {activeMenu === 'dashboard' && (() => {
+                const validOrders = shopOrders.filter(o => o.status !== 'CANCELLED' && o.status !== 'CANCELED')
+                const totalRevenue = validOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)
+                const pendingCount = shopOrders.filter(o => ['PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(o.status)).length
+                const processingCount = shopOrders.filter(o => ['PROCESSING', 'PREPARING', 'CONFIRMED'].includes(o.status)).length
+                const shippingCount = shopOrders.filter(o => ['SHIPPING', 'SHIPPED', 'IN_TRANSIT'].includes(o.status)).length
+                const cancelledCount = shopOrders.filter(o => ['CANCELLED', 'CANCELED'].includes(o.status)).length
 
-                  {/* To do list */}
-                  <div>
-                    <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Danh Sách Việc Cần Làm</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-                      <div className="bg-slate-50/50 border border-slate-100 hover:bg-slate-50 p-4 rounded-xl cursor-pointer transition">
-                        <p className="text-lg font-bold text-emerald-600">0</p>
-                        <p className="text-[10px] text-slate-500 font-bold mt-1">Chờ Xác Nhận</p>
+                return (
+                  <div className="space-y-6 animate-in fade-in duration-200">
+                    {/* Stats Summary cards */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Phân Tích Bán Hàng</h3>
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Doanh số toàn thời gian</p>
+                          <p className="text-lg font-black text-emerald-600 mt-1">{totalRevenue.toLocaleString('vi-VN')}đ</p>
+                          <p className="text-[9px] text-slate-400 mt-1">Tổng từ các đơn đã chốt</p>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Tổng đơn hàng</p>
+                          <p className="text-lg font-black text-slate-700 mt-1">{shopOrders.length}</p>
+                          <p className="text-[9px] text-slate-400 mt-1">Bao gồm cả đơn đã hủy/hoàn</p>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Sản phẩm đang bán</p>
+                          <p className="text-lg font-black text-slate-700 mt-1">{productsList.length}</p>
+                          <p className="text-[9px] text-slate-400 mt-1">Sản phẩm đã đăng trên sàn</p>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4.5">
+                          <p className="text-[10px] text-slate-400 font-bold uppercase">Tỷ lệ thành công</p>
+                          <p className="text-lg font-black text-slate-700 mt-1">
+                            {shopOrders.length > 0 ? ((validOrders.length / shopOrders.length) * 100).toFixed(1) + '%' : '100%'}
+                          </p>
+                          <p className="text-[9px] text-slate-400 mt-1">Đơn hoàn tất / Tổng đơn</p>
+                        </div>
                       </div>
-                      <div className="bg-slate-50/50 border border-slate-100 hover:bg-slate-50 p-4 rounded-xl cursor-pointer transition">
-                        <p className="text-lg font-bold text-emerald-600">0</p>
-                        <p className="text-[10px] text-slate-500 font-bold mt-1">Chờ Lấy Hàng</p>
-                      </div>
-                      <div className="bg-slate-50/50 border border-slate-100 hover:bg-slate-50 p-4 rounded-xl cursor-pointer transition">
-                        <p className="text-lg font-bold text-emerald-600">0</p>
-                        <p className="text-[10px] text-slate-500 font-bold mt-1">Đã Xử Lý</p>
-                      </div>
-                      <div className="bg-slate-50/50 border border-slate-100 hover:bg-slate-50 p-4 rounded-xl cursor-pointer transition">
-                        <p className="text-lg font-bold text-emerald-600">0</p>
-                        <p className="text-[10px] text-slate-500 font-bold mt-1">Đơn Hủy</p>
+                    </div>
+
+                    {/* To do list */}
+                    <div>
+                      <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-3">Danh Sách Việc Cần Làm</h3>
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+                        <div 
+                          onClick={() => selectSubMenu('orders', 'all-orders')}
+                          className="bg-amber-50/40 border border-amber-100/80 hover:bg-amber-50 p-4 rounded-xl cursor-pointer transition shadow-3xs"
+                        >
+                          <p className="text-lg font-black text-amber-600">{pendingCount}</p>
+                          <p className="text-[10px] text-slate-600 font-bold mt-1">⏳ Chờ Xác Nhận</p>
+                        </div>
+                        <div 
+                          onClick={() => selectSubMenu('orders', 'all-orders')}
+                          className="bg-blue-50/40 border border-blue-100/80 hover:bg-blue-50 p-4 rounded-xl cursor-pointer transition shadow-3xs"
+                        >
+                          <p className="text-lg font-black text-blue-600">{processingCount}</p>
+                          <p className="text-[10px] text-slate-600 font-bold mt-1">📦 Chờ Chuẩn Bị Hàng</p>
+                        </div>
+                        <div 
+                          onClick={() => selectSubMenu('orders', 'all-orders')}
+                          className="bg-purple-50/40 border border-purple-100/80 hover:bg-purple-50 p-4 rounded-xl cursor-pointer transition shadow-3xs"
+                        >
+                          <p className="text-lg font-black text-purple-600">{shippingCount}</p>
+                          <p className="text-[10px] text-slate-600 font-bold mt-1">🚛 Đã Bàn Giao Vận Chuyển</p>
+                        </div>
+                        <div 
+                          onClick={() => selectSubMenu('orders', 'cancelled-orders')}
+                          className="bg-rose-50/40 border border-rose-100/80 hover:bg-rose-50 p-4 rounded-xl cursor-pointer transition shadow-3xs"
+                        >
+                          <p className="text-lg font-black text-rose-600">{cancelledCount}</p>
+                          <p className="text-[10px] text-slate-600 font-bold mt-1">🚫 Đơn Hủy</p>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )
+              })()}
+
 
               {/* Empty state or placeholders for menus */}
               {activeMenu !== 'dashboard' && (

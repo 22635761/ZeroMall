@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { Order } from '../../models/order.model'
 import { orderService } from '../../services/order.service'
 import { formatOrderId } from '../../utils/orderUtils'
+import { OrderDetail } from './OrderDetail'
 
 interface ShopOrdersProps {
   user: any
@@ -16,6 +17,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   const [activeTab, setActiveTab] = useState<string>('all')
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
 
   const shopId = user?.shopId
 
@@ -144,10 +146,11 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   // Define tabs configuration
   const tabs = [
     { id: 'all', label: 'Tất cả' },
-    { id: 'PENDING_PAYMENT', label: 'Chờ thanh toán' },
-    { id: 'PROCESSING', label: 'Chờ xử lý' },
-    { id: 'SHIPPING', label: 'Đang giao' },
-    { id: 'COMPLETED', label: 'Đã hoàn thành' },
+    { id: 'PENDING', label: '⏳ Chờ xác nhận' },
+    { id: 'PROCESSING', label: '📦 Chuẩn bị hàng' },
+    { id: 'SHIPPING', label: '🚛 Đang giao' },
+    { id: 'DELIVERED', label: '✅ Đã giao' },
+    { id: 'COMPLETED', label: '🎉 Đã hoàn tất' },
     { id: 'REFUND_PENDING', label: 'Yêu cầu hoàn tiền' },
     { id: 'RETURN_PENDING', label: 'Chờ trả hàng' },
     { id: 'RETURN_SHIPPED', label: 'Đang trả hàng' },
@@ -159,6 +162,12 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   // Filter orders by active tab
   const filteredOrders = orders.filter((order) => {
     if (activeTab === 'all') return true
+    if (activeTab === 'PENDING') return order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'UNPAID'
+    if (activeTab === 'PROCESSING') return order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED'
+    if (activeTab === 'SHIPPING') return order.status === 'SHIPPING' || order.status === 'SHIPPED' || order.status === 'IN_TRANSIT'
+    if (activeTab === 'DELIVERED') return order.status === 'DELIVERED'
+    if (activeTab === 'COMPLETED') return order.status === 'COMPLETED' || order.status === 'SUCCESS'
+    if (activeTab === 'CANCELLED') return order.status === 'CANCELLED' || order.status === 'CANCELED'
     return order.status === activeTab
   })
 
@@ -173,11 +182,13 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       case 'PENDING_PAYMENT':
         return <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ thanh toán</span>
       case 'PROCESSING':
-        return <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ chuẩn bị hàng</span>
+        return <span className="bg-amber-100 text-amber-700 px-2.5 py-1 rounded-full text-[10px] font-bold">📦 Đang Chuẩn Bị Hàng</span>
       case 'SHIPPING':
-        return <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Đang giao hàng</span>
+        return <span className="bg-blue-100 text-blue-700 px-2.5 py-1 rounded-full text-[10px] font-bold">🚛 Đã Giao Vận Chuyển</span>
+      case 'DELIVERED':
+        return <span className="bg-teal-100 text-teal-700 px-2.5 py-1 rounded-full text-[10px] font-bold">✅ Đã Giao Thành Công</span>
       case 'COMPLETED':
-        return <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Đã giao thành công</span>
+        return <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">🎉 Đã Hoàn Tất</span>
       case 'REFUND_PENDING':
         return <span className="bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Yêu cầu hoàn tiền</span>
       case 'RETURN_PENDING':
@@ -193,6 +204,24 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       default:
         return null
     }
+  }
+
+  // If viewing a single order in detail
+  const selectedOrder = selectedOrderId ? orders.find(o => o.id === selectedOrderId) : null
+  if (selectedOrder) {
+    return (
+      <OrderDetail
+        order={selectedOrder}
+        token={token}
+        onBack={() => setSelectedOrderId(null)}
+        onStatusUpdate={async (orderId, newStatus) => {
+          await handleUpdateStatus(orderId, newStatus)
+          // refresh detail view
+          await fetchOrders()
+        }}
+        updatingOrderId={updatingOrderId}
+      />
+    )
   }
 
   return (
@@ -272,7 +301,12 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
             return (
               <div 
                 key={order.id} 
-                className="bg-white border border-slate-200/60 hover:border-emerald-500/10 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition duration-300 flex flex-col justify-between"
+                className="bg-white border border-slate-200/60 hover:border-emerald-500/30 rounded-3xl overflow-hidden shadow-xs hover:shadow-md transition duration-300 flex flex-col justify-between cursor-pointer"
+                onClick={(e) => {
+                  // Only open detail if not clicking a button inside
+                  if ((e.target as HTMLElement).closest('button')) return
+                  setSelectedOrderId(order.id)
+                }}
               >
                 {/* Order Header info */}
                 <div className="bg-slate-50/60 border-b border-slate-100 px-5 py-3.5 flex flex-wrap items-center justify-between gap-3">
@@ -411,33 +445,48 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
 
                   {/* Actions buttons */}
                   <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
-                    {order.status === 'PROCESSING' && (
+                    {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'UNPAID') && (
+                      <button
+                        onClick={() => handleUpdateStatus(order.id, 'PROCESSING')}
+                        disabled={updatingOrderId !== null}
+                        className="bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {updatingOrderId === order.id ? (
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <span>📦</span>
+                        )}
+                        Xác nhận đơn & Chuẩn bị hàng
+                      </button>
+                    )}
+
+                    {(order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED') && (
                       <button
                         onClick={() => handleUpdateStatus(order.id, 'SHIPPING')}
+                        disabled={updatingOrderId !== null}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                      >
+                        {updatingOrderId === order.id ? (
+                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                          <span>🚛</span>
+                        )}
+                        Bàn giao cho đơn vị vận chuyển
+                      </button>
+                    )}
+
+                    {(order.status === 'SHIPPING' || order.status === 'SHIPPED' || order.status === 'IN_TRANSIT') && (
+                      <button
+                        onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
                         disabled={updatingOrderId !== null}
                         className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
                       >
                         {updatingOrderId === order.id ? (
                           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                          <span>🚚</span>
-                        )}
-                        Xác nhận & Giao hàng
-                      </button>
-                    )}
-
-                    {order.status === 'SHIPPING' && (
-                      <button
-                        onClick={() => handleUpdateStatus(order.id, 'COMPLETED')}
-                        disabled={updatingOrderId !== null}
-                        className="bg-emerald-100 hover:bg-emerald-200 text-emerald-700 border border-emerald-300/30 font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      >
-                        {updatingOrderId === order.id ? (
-                          <div className="w-3 h-3 border-2 border-emerald-700 border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
                           <span>✅</span>
                         )}
-                        Giao thành công (Test)
+                        Xác nhận giao thành công
                       </button>
                     )}
 

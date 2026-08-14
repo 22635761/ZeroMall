@@ -37,6 +37,20 @@ services:
         paths:
           - /payments
         strip_path: false
+  - name: notification-service
+    url: http://notification-service:3006
+    routes:
+      - name: notification-route
+        paths:
+          - /notifications
+        strip_path: false
+  - name: chat-service
+    url: http://chat-service:3007
+    routes:
+      - name: chat-route
+        paths:
+          - /chat
+        strip_path: false
 
 plugins:
   - name: cors

@@ -60,7 +60,18 @@ export const ShopInfoCard: React.FC<ShopInfoCardProps> = ({
         </div>
         
         <div className="flex flex-col gap-1.5 text-[11px]">
-          <button className="px-3 py-1.5 border border-[#ee4d2d]/30 text-[#ee4d2d] bg-[#feeee9]/25 hover:bg-[#feeee9]/55 font-bold rounded-sm cursor-pointer transition">
+          <button
+            onClick={() => {
+              const targetId = shopDetails?.id || shopId || 'zeromall-official';
+              const targetName = shopDetails?.name || 'ZeroMall Shop';
+              window.dispatchEvent(
+                new CustomEvent('open_chat_with_shop', {
+                  detail: { shopId: targetId, shopName: targetName },
+                })
+              );
+            }}
+            className="px-3 py-1.5 border border-[#ee4d2d]/30 text-[#ee4d2d] bg-[#feeee9]/25 hover:bg-[#feeee9]/55 font-bold rounded-sm cursor-pointer transition"
+          >
             💬 Chat Ngay
           </button>
           <button
