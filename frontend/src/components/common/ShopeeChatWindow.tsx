@@ -99,12 +99,11 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       .catch(() => {});
   }, [isOpen]);
 
-  // 2. Fetch Conversations List
+  // 2. Fetch Conversations List (Polling & Initial)
   const loadConversationsList = async (targetShopIdToSelect?: string | null) => {
     const effectiveSenderId = isSeller ? sellerShopId : currentUserId;
     if (!effectiveSenderId) return;
 
-    setLoadingConvs(true);
     try {
       const filter = isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId };
       let list = await fetchConversations(filter);
@@ -140,11 +139,32 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setLoadingConvs(true);
       loadConversationsList(initialShopId);
     }
   }, [isOpen, currentUserId, sellerShopId, initialShopId, mode]);
 
-  // 3. Fetch Messages & Connect Socket when Selected Conversation changes
+  // 3. Global Conversations List Auto-Polling every 3s to reflect new incoming messages
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const listPollInterval = setInterval(() => {
+      const filter = isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId };
+      fetchConversations(filter)
+        .then((latestList) => {
+          setConversations((prev) => {
+            const isChanged = prev.length !== latestList.length ||
+              latestList.some((n, idx) => n.lastMessage !== prev[idx]?.lastMessage || n.lastMessageAt !== prev[idx]?.lastMessageAt);
+            return isChanged ? latestList : prev;
+          });
+        })
+        .catch(() => {});
+    }, 3000);
+
+    return () => clearInterval(listPollInterval);
+  }, [isOpen, isSeller, sellerShopId, currentUserId]);
+
+  // 4. Fetch Messages & Connect Socket when Selected Conversation changes
   useEffect(() => {
     if (!selectedConv?.id) return;
 
@@ -170,10 +190,8 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
         return [...prev, msg];
       });
       setPartnerTyping(false);
-      // Soft refresh conversation list
-      fetchConversations(isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId })
-        .then((l) => setConversations(l))
-        .catch(() => {});
+      // Refresh list
+      loadConversationsList();
     });
 
     socket.on('user_typing', (data: { senderId: string; isTyping: boolean }) => {
@@ -183,8 +201,8 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       }
     });
 
-    // Fallback Background Polling every 3s to guarantee 100% sync even in strict network environments
-    const pollInterval = setInterval(() => {
+    // Fallback Background Polling every 2.5s for the active chat messages
+    const messagePollInterval = setInterval(() => {
       if (selectedConv?.id) {
         fetchMessages(selectedConv.id)
           .then((res) => {
@@ -199,10 +217,10 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
           })
           .catch(() => {});
       }
-    }, 3000);
+    }, 2500);
 
     return () => {
-      clearInterval(pollInterval);
+      clearInterval(messagePollInterval);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -213,7 +231,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, partnerTyping]);
 
-  // Send Message Handler (Instant Local + WebSockets + HTTP Fallback for 100% persistence)
+  // Send Message Handler (Instant Local + WebSockets + HTTP API Direct Call)
   const handleSendMessage = async () => {
     if (!inputText.trim() || !selectedConv?.id) return;
 
@@ -244,9 +262,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
         return [...prev, savedMsg];
       });
       // Soft refresh conversation list
-      fetchConversations(isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId })
-        .then((l) => setConversations(l))
-        .catch(() => {});
+      loadConversationsList();
     } catch (e) {
       console.error('Error sending chat message via API:', e);
     }
