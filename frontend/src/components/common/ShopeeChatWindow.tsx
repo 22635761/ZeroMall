@@ -108,10 +108,15 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       const filter = isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId };
       let list = await fetchConversations(filter);
 
+      // Exclude invalid self-chat (where user is buyer of their own shop)
+      if (user?.shopId) {
+        list = list.filter((c) => !(c.buyerId === currentUserId && c.shopId === user.shopId));
+      }
+
       const targetId = targetShopIdToSelect || initialShopId;
 
-      // If buyer opened a specific shop from product page, ensure conversation exists
-      if (!isSeller && targetId) {
+      // If buyer opened a specific shop from product page, ensure conversation exists (preventing self chat)
+      if (!isSeller && targetId && targetId !== user?.shopId) {
         let existing = list.find((c) => c.shopId === targetId);
         if (!existing) {
           const newConv = await getOrCreateConversation(currentUserId, targetId);
@@ -127,6 +132,8 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
           }
           return list[0];
         });
+      } else {
+        setSelectedConv(null);
       }
 
       setConversations(list);
@@ -152,21 +159,28 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       const filter = isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId };
       fetchConversations(filter)
         .then((latestList) => {
+          let cleanedList = latestList;
+          if (user?.shopId) {
+            cleanedList = latestList.filter((c) => !(c.buyerId === currentUserId && c.shopId === user.shopId));
+          }
           setConversations((prev) => {
-            const isChanged = prev.length !== latestList.length ||
-              latestList.some((n, idx) => n.lastMessage !== prev[idx]?.lastMessage || n.lastMessageAt !== prev[idx]?.lastMessageAt);
-            return isChanged ? latestList : prev;
+            const isChanged = prev.length !== cleanedList.length ||
+              cleanedList.some((n, idx) => n.lastMessage !== prev[idx]?.lastMessage || n.lastMessageAt !== prev[idx]?.lastMessageAt);
+            return isChanged ? cleanedList : prev;
           });
         })
         .catch(() => {});
     }, 3000);
 
     return () => clearInterval(listPollInterval);
-  }, [isOpen, isSeller, sellerShopId, currentUserId]);
+  }, [isOpen, isSeller, sellerShopId, currentUserId, user?.shopId]);
 
   // 4. Fetch Messages & Connect Socket when Selected Conversation changes
   useEffect(() => {
-    if (!selectedConv?.id) return;
+    if (!selectedConv?.id) {
+      setMessages([]);
+      return;
+    }
 
     setLoadingMsgs(true);
     fetchMessages(selectedConv.id)
