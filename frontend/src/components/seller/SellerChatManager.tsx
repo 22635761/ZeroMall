@@ -6,14 +6,17 @@ interface SellerChatManagerProps {
   shopId?: string;
 }
 
-export const SellerChatManager: React.FC<SellerChatManagerProps> = ({ user, shopId: _shopId }) => {
+export const SellerChatManager: React.FC<SellerChatManagerProps> = ({ user, shopId }) => {
+  const effectiveShopId = shopId || user?.shopId;
+
   return (
-    <div className="w-full h-[650px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative font-sans">
+    <div className="w-full h-[660px] bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden relative font-sans">
       <ShopeeChatWindow
         user={user}
         mode="SELLER"
         isOpen={true}
-        onClose={() => {}}
+        shopId={effectiveShopId}
+        isEmbedded={true}
       />
     </div>
   );

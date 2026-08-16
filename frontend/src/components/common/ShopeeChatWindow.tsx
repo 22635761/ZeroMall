@@ -13,9 +13,11 @@ interface ShopeeChatWindowProps {
   user: any;
   mode?: 'BUYER' | 'SELLER';
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   initialShopId?: string | null;
   initialShopName?: string | null;
+  shopId?: string | null;
+  isEmbedded?: boolean;
 }
 
 export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
@@ -25,12 +27,15 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
   onClose,
   initialShopId,
   initialShopName,
+  shopId: propShopId,
+  isEmbedded = false,
 }) => {
   const isSeller = mode === 'SELLER';
   const currentUserId = user?.id || user?._id || user?.userId;
-  const sellerShopId = user?.shopId || currentUserId;
+  // Accurately determine seller shop ID from prop, user.shopId, or currentUserId
+  const sellerShopId = propShopId || user?.shopId || currentUserId;
 
-  // Window State: 'POPUP' (Floating bottom-right 760x520) or 'EXPANDED' (Full Screen / Large Modal)
+  // Window State: 'POPUP' (Floating bottom-right) or 'EXPANDED' (Full Screen / Large Modal)
   const [windowMode, setWindowMode] = useState<'POPUP' | 'EXPANDED'>('POPUP');
 
   // Conversations State
@@ -79,26 +84,26 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       })
       .catch(() => {});
 
-    // Fetch users info if seller
-    if (isSeller) {
-      fetch('http://localhost:8000/auth/users')
-        .then((res) => res.json())
-        .then((data) => {
-          if (Array.isArray(data)) {
-            const map: Record<string, { id: string; name: string; avatar?: string | null }> = {};
-            data.forEach((u) => {
-              map[u.id] = { id: u.id, name: u.name || u.email, avatar: u.avatar };
-            });
-            setUsersMap(map);
-          }
-        })
-        .catch(() => {});
-    }
-  }, [isOpen, isSeller]);
+    // Fetch users info
+    fetch('http://localhost:8000/auth/users')
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          const map: Record<string, { id: string; name: string; avatar?: string | null }> = {};
+          data.forEach((u) => {
+            map[u.id] = { id: u.id, name: u.name || u.email, avatar: u.avatar };
+          });
+          setUsersMap(map);
+        }
+      })
+      .catch(() => {});
+  }, [isOpen]);
 
   // 2. Fetch Conversations List
   const loadConversationsList = async (targetShopIdToSelect?: string | null) => {
-    if (!currentUserId) return;
+    const effectiveSenderId = isSeller ? sellerShopId : currentUserId;
+    if (!effectiveSenderId) return;
+
     setLoadingConvs(true);
     try {
       const filter = isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId };
@@ -137,7 +142,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     if (isOpen) {
       loadConversationsList(initialShopId);
     }
-  }, [isOpen, currentUserId, initialShopId, mode]);
+  }, [isOpen, currentUserId, sellerShopId, initialShopId, mode]);
 
   // 3. Fetch Messages & Connect Socket when Selected Conversation changes
   useEffect(() => {
@@ -165,14 +170,15 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
         return [...prev, msg];
       });
       setPartnerTyping(false);
-      // Soft refresh list to update last message preview
+      // Soft refresh conversation list
       fetchConversations(isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId })
         .then((l) => setConversations(l))
         .catch(() => {});
     });
 
     socket.on('user_typing', (data: { senderId: string; isTyping: boolean }) => {
-      if (data.senderId !== currentUserId) {
+      const myId = isSeller ? sellerShopId : currentUserId;
+      if (data.senderId !== myId) {
         setPartnerTyping(data.isTyping);
       }
     });
@@ -181,7 +187,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [selectedConv?.id]);
+  }, [selectedConv?.id, sellerShopId, currentUserId, isSeller]);
 
   // Auto Scroll
   useEffect(() => {
@@ -216,10 +222,11 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInputText(e.target.value);
 
-    if (socketRef.current && selectedConv?.id && currentUserId) {
+    const myId = isSeller ? sellerShopId : currentUserId;
+    if (socketRef.current && selectedConv?.id && myId) {
       socketRef.current.emit('typing', {
         conversationId: selectedConv.id,
-        senderId: isSeller ? sellerShopId : currentUserId,
+        senderId: myId,
         isTyping: true,
       });
 
@@ -227,7 +234,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       typingTimeoutRef.current = setTimeout(() => {
         socketRef.current?.emit('typing', {
           conversationId: selectedConv.id,
-          senderId: isSeller ? sellerShopId : currentUserId,
+          senderId: myId,
           isTyping: false,
         });
       }, 2000);
@@ -275,7 +282,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     });
   }, [conversations, searchQuery, filterType, isSeller, shopsMap, usersMap]);
 
-  // Date Formatter (e.g. "07/08" or "18:30")
+  // Date Formatter
   const formatConvTime = (dateStr?: string | null) => {
     if (!dateStr) return '';
     const date = new Date(dateStr);
@@ -295,7 +302,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
-  // Fallback Dynamic Initial Badge (Rule compliant: No dummy/static demo image)
+  // Dynamic Initial Badge
   const getInitials = (name: string) => {
     if (!name) return 'Z';
     const parts = name.trim().split(/\s+/);
@@ -307,10 +314,12 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
 
   return (
     <div
-      className={`fixed z-50 transition-all duration-200 font-sans text-slate-800 selection:bg-emerald-600 selection:text-white ${
-        windowMode === 'EXPANDED'
-          ? 'inset-4 md:inset-8 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden'
-          : 'bottom-4 right-4 w-[860px] max-w-[95vw] h-[570px] max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden'
+      className={`font-sans text-slate-800 selection:bg-emerald-600 selection:text-white ${
+        isEmbedded
+          ? 'w-full h-full flex flex-col overflow-hidden rounded-2xl bg-white'
+          : windowMode === 'EXPANDED'
+            ? 'fixed z-50 inset-4 md:inset-8 bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden'
+            : 'fixed z-50 bottom-4 right-4 w-[860px] max-w-[95vw] h-[570px] max-h-[85vh] bg-white rounded-2xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden'
       }`}
     >
       {/* 1. ZERO MALL BRANDED CHAT HEADER BAR */}
@@ -320,7 +329,9 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
             💬
           </div>
           <div className="flex items-baseline gap-2">
-            <span className="text-base font-black tracking-tight">ZeroMall Chat</span>
+            <span className="text-base font-black tracking-tight">
+              {isSeller ? 'Quản Lý Tin Nhắn Cửa Hàng' : 'ZeroMall Chat'}
+            </span>
             {totalUnread > 0 && (
               <span className="bg-rose-500 text-white text-[10px] font-black px-2 py-0.5 rounded-full shadow-xs">
                 {totalUnread} mới
@@ -330,22 +341,28 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
         </div>
 
         <div className="flex items-center gap-1 text-white/80">
-          {/* Expand / Popup mode toggle */}
-          <button
-            onClick={() => setWindowMode(windowMode === 'POPUP' ? 'EXPANDED' : 'POPUP')}
-            className="p-1.5 hover:text-white hover:bg-white/15 rounded-lg transition cursor-pointer text-sm"
-            title={windowMode === 'POPUP' ? 'Phóng to toàn màn hình' : 'Thu nhỏ cửa sổ'}
-          >
-            {windowMode === 'POPUP' ? '⤢' : '↙'}
-          </button>
-          {/* Close / Minimize */}
-          <button
-            onClick={onClose}
-            className="p-1.5 hover:text-white hover:bg-white/15 rounded-lg transition cursor-pointer text-base"
-            title="Đóng chat"
-          >
-            ✕
-          </button>
+          {!isEmbedded && (
+            <>
+              {/* Expand / Popup mode toggle */}
+              <button
+                onClick={() => setWindowMode(windowMode === 'POPUP' ? 'EXPANDED' : 'POPUP')}
+                className="p-1.5 hover:text-white hover:bg-white/15 rounded-lg transition cursor-pointer text-sm"
+                title={windowMode === 'POPUP' ? 'Phóng to toàn màn hình' : 'Thu nhỏ cửa sổ'}
+              >
+                {windowMode === 'POPUP' ? '⤢' : '↙'}
+              </button>
+              {/* Close / Minimize */}
+              {onClose && (
+                <button
+                  onClick={onClose}
+                  className="p-1.5 hover:text-white hover:bg-white/15 rounded-lg transition cursor-pointer text-base"
+                  title="Đóng chat"
+                >
+                  ✕
+                </button>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -374,7 +391,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
                 onChange={(e) => setFilterType(e.target.value as any)}
                 className="bg-transparent border-none font-bold text-slate-600 cursor-pointer focus:outline-none"
               >
-                <option value="ALL">Tất cả hội thoại ({conversations.length})</option>
+                <option value="ALL">Tất cả ({conversations.length})</option>
                 <option value="UNREAD">Chưa đọc ({totalUnread})</option>
               </select>
             </div>
@@ -391,7 +408,9 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
               <div className="py-12 text-center text-xs text-slate-400 space-y-1.5 px-4">
                 <span className="text-3xl block">💬</span>
                 <p className="font-bold text-slate-600">Chưa có cuộc hội thoại nào</p>
-                <p className="text-[11px] text-slate-400">Các tin nhắn với Shop sẽ xuất hiện tại đây.</p>
+                <p className="text-[11px] text-slate-400">
+                  {isSeller ? 'Tin nhắn của khách hàng sẽ hiển thị tại đây.' : 'Các tin nhắn với Shop sẽ xuất hiện tại đây.'}
+                </p>
               </div>
             ) : (
               filteredConversations.map((conv) => {
@@ -476,10 +495,12 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
 
               <div className="space-y-1">
                 <h3 className="text-base font-black text-slate-800">
-                  Chào mừng bạn đến với ZeroMall Chat
+                  {isSeller ? 'Hộp Thư Cửa Hàng ZeroMall' : 'Chào mừng bạn đến với ZeroMall Chat'}
                 </h3>
                 <p className="text-xs text-slate-400 font-semibold">
-                  Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu!
+                  {isSeller
+                    ? 'Chọn một khách hàng từ danh sách bên trái để phản hồi tin nhắn!'
+                    : 'Chọn một cuộc trò chuyện từ danh sách bên trái để bắt đầu!'}
                 </p>
               </div>
             </div>
