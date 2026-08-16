@@ -52,7 +52,7 @@ export const CsOrdersTab: React.FC<CsOrdersTabProps> = ({
                   <td className="py-3.5 font-mono text-[10px] font-bold text-slate-800">#{formatOrderId(o.id)}</td>
                   <td className="py-3.5 font-mono text-[10px] text-slate-500">{o.buyerId}</td>
                   <td className="py-3.5 max-w-xs truncate font-semibold text-slate-800">
-                    {o.items?.map((item: any) => `${item.productName} (x${item.quantity})`).join(', ') || 'N/A'}
+                    {o.items?.map((item: any) => `${item.name || item.productName || 'Sản phẩm'} (x${item.quantity})`).join(', ') || 'N/A'}
                   </td>
                   <td className="py-3.5 text-right font-black text-slate-750">
                     {Number(o.totalAmount).toLocaleString('vi-VN')}đ
