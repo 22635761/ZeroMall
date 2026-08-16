@@ -334,7 +334,6 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     { id: 'SHOPS', label: 'Duyệt Đăng Ký Shop', icon: '🏪' },
     { id: 'WITHDRAWALS', label: 'Phê duyệt rút tiền', icon: '💰' },
     { id: 'DISPUTES', label: 'Tranh chấp khiếu nại', icon: '⚖️' },
-    { id: 'TICKETS', label: 'Ticket toàn sàn', icon: '🎫' },
     { id: 'ORDERS', label: 'Lịch sử đơn hàng', icon: '📋' },
   ]
 
