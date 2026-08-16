@@ -3,7 +3,6 @@ import { useSearchParams } from 'react-router-dom'
 import { CsShopsTab } from '../../components/cs-support/CsShopsTab'
 import { CsWithdrawalsTab } from '../../components/cs-support/CsWithdrawalsTab'
 import { CsDisputesTab } from '../../components/cs-support/CsDisputesTab'
-import { CsTicketsTab } from '../../components/cs-support/CsTicketsTab'
 import { CsOrdersTab } from '../../components/cs-support/CsOrdersTab'
 
 interface CsSupportPageProps {
@@ -23,12 +22,6 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
   const [withdrawLoading, setWithdrawLoading] = useState(false)
   const [disputes, setDisputes] = useState<any[]>([])
   const [disputesLoading, setDisputesLoading] = useState(false)
-  const [tickets, setTickets] = useState<any[]>([
-    { id: 'TKT-101', category: 'ACCOUNT_ERROR', title: 'Lỗi khóa tài khoản nhầm', email: 'buyer@zeromall.vn', description: 'Tài khoản của tôi tự dưng báo bị khóa khi đang thanh toán ví.', status: 'PENDING', createdAt: new Date(Date.now() - 3600000 * 2).toISOString() },
-    { id: 'TKT-102', category: 'PAYMENT_ERROR', title: 'Đã quét mã Sepay nhưng không tự động xác nhận', email: 'buyer2@zeromall.vn', description: 'Tôi đã chuyển khoản thành công 120,000đ nhưng trạng thái đơn hàng vẫn báo Chờ thanh toán.', status: 'PENDING', createdAt: new Date(Date.now() - 3600000 * 4).toISOString() },
-    { id: 'TKT-103', category: 'VOUCHER_ERROR', title: 'Voucher GIAM50K báo không khả dụng', email: 'guest@zeromall.vn', description: 'Tôi áp dụng voucher giảm 50k của shop nhưng hệ thống báo lỗi không áp dụng được mặc dù đơn hàng trên 200k.', status: 'PENDING', createdAt: new Date(Date.now() - 3600000 * 8).toISOString() },
-    { id: 'TKT-104', category: 'SHIPPING_ERROR', title: 'Đơn hàng GHN giao quá 5 ngày chưa nhận được', email: 'hello@zeromall.vn', description: 'Đơn hàng mã GHN82736481 ghi đang giao nhưng 5 ngày rồi chưa cập nhật hành trình.', status: 'PENDING', createdAt: new Date(Date.now() - 3600000 * 12).toISOString() },
-  ])
   const [allOrders, setAllOrders] = useState<any[]>([])
   const [allOrdersLoading, setAllOrdersLoading] = useState(false)
   const [orderSearchTerm, setOrderSearchTerm] = useState('')
@@ -46,7 +39,6 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
       case 'shops': return 'SHOPS';
       case 'withdrawals': return 'WITHDRAWALS';
       case 'disputes': return 'DISPUTES';
-      case 'tickets': return 'TICKETS';
       case 'orders': return 'ORDERS';
       default: return null;
     }
@@ -57,14 +49,13 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
       case 'SHOPS': return 'shops';
       case 'WITHDRAWALS': return 'withdrawals';
       case 'DISPUTES': return 'disputes';
-      case 'TICKETS': return 'tickets';
       case 'ORDERS': return 'orders';
       default: return 'shops';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'SHOPS' | 'WITHDRAWALS' | 'DISPUTES' | 'TICKETS' | 'ORDERS'
+    'SHOPS' | 'WITHDRAWALS' | 'DISPUTES' | 'ORDERS'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -325,11 +316,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     }
   }
 
-  const handleResolveTicket = (ticketId: string) => {
-    setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, status: 'RESOLVED' } : t))
-    triggerAuditLog(`Đánh dấu xử lý xong Ticket lỗi #${ticketId}`)
-    alert(`Đã cập nhật Ticket #${ticketId} thành Đã xử lý!`)
-  }
+
 
   const filteredShops = shops.filter(shop => {
     const matchesSearch = shop.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -463,13 +450,6 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
               actionLoadingId={actionLoadingId}
               handleAdminApproveDispute={handleAdminApproveDispute}
               handleAdminRejectDispute={handleAdminRejectDispute}
-            />
-          )}
-
-          {activePortalTab === 'TICKETS' && (
-            <CsTicketsTab
-              tickets={tickets}
-              handleResolveTicket={handleResolveTicket}
             />
           )}
 
