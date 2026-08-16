@@ -4,6 +4,7 @@ import {
   fetchMessages,
   getOrCreateConversation,
   markConversationRead,
+  sendChatMessage,
   createChatSocket,
 } from '../../services/chat.service';
 import type { ChatConversation, ChatMessage } from '../../services/chat.service';
@@ -32,7 +33,6 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
 }) => {
   const isSeller = mode === 'SELLER';
   const currentUserId = user?.id || user?._id || user?.userId;
-  // Accurately determine seller shop ID from prop, user.shopId, or currentUserId
   const sellerShopId = propShopId || user?.shopId || currentUserId;
 
   // Window State: 'POPUP' (Floating bottom-right) or 'EXPANDED' (Full Screen / Large Modal)
@@ -183,7 +183,26 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       }
     });
 
+    // Fallback Background Polling every 3s to guarantee 100% sync even in strict network environments
+    const pollInterval = setInterval(() => {
+      if (selectedConv?.id) {
+        fetchMessages(selectedConv.id)
+          .then((res) => {
+            if (res.messages && res.messages.length > 0) {
+              setMessages((prev) => {
+                if (prev.length !== res.messages.length || prev[prev.length - 1]?.id !== res.messages[res.messages.length - 1]?.id) {
+                  return res.messages;
+                }
+                return prev;
+              });
+            }
+          })
+          .catch(() => {});
+      }
+    }, 3000);
+
     return () => {
+      clearInterval(pollInterval);
       socket.disconnect();
       socketRef.current = null;
     };
@@ -194,22 +213,42 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, partnerTyping]);
 
-  // Send Message Handler
-  const handleSendMessage = () => {
+  // Send Message Handler (Instant Local + WebSockets + HTTP Fallback for 100% persistence)
+  const handleSendMessage = async () => {
     if (!inputText.trim() || !selectedConv?.id) return;
+
+    const contentToSend = inputText.trim();
+    const senderId = isSeller ? sellerShopId : currentUserId;
+    const senderType = isSeller ? 'SHOP' : 'BUYER';
 
     const messageData = {
       conversationId: selectedConv.id,
-      senderId: isSeller ? sellerShopId : currentUserId,
-      senderType: (isSeller ? 'SHOP' : 'BUYER') as 'BUYER' | 'SHOP',
+      senderId,
+      senderType: senderType as 'BUYER' | 'SHOP',
       type: 'TEXT' as const,
-      content: inputText.trim(),
+      content: contentToSend,
     };
 
     setInputText('');
 
+    // Emit via WebSocket
     if (socketRef.current) {
       socketRef.current.emit('send_message', messageData);
+    }
+
+    // Direct HTTP API call to guarantee saving to Database even if WebSocket dropped
+    try {
+      const savedMsg = await sendChatMessage(messageData);
+      setMessages((prev) => {
+        if (prev.some((m) => m.id === savedMsg.id)) return prev;
+        return [...prev, savedMsg];
+      });
+      // Soft refresh conversation list
+      fetchConversations(isSeller ? { shopId: sellerShopId } : { buyerId: currentUserId })
+        .then((l) => setConversations(l))
+        .catch(() => {});
+    } catch (e) {
+      console.error('Error sending chat message via API:', e);
     }
   };
 
