@@ -45,11 +45,12 @@ function SellerPortalWrapper({ user, token, handleAuthSuccess, handleLogout }: {
   )
 }
 
-function AdminPortalWrapper({ user, handleLogout }: { user: any, handleLogout: any }) {
+function AdminPortalWrapper({ user, handleAuthSuccess, handleLogout }: { user: any, handleAuthSuccess: any, handleLogout: any }) {
   const navigate = useNavigate();
   return (
     <AdminPortal
       user={user}
+      onAuthSuccess={handleAuthSuccess}
       onLogout={handleLogout}
       onBackToHome={() => navigate('/')}
     />
@@ -616,55 +617,94 @@ function App() {
     )
   }
 
+  // 3. Subdomain-based app detection (Shopee Architecture: seller.zeromall.local, admin.zeromall.local, zeromall.local)
+  const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
+  const isSellerHost = hostname.startsWith('seller.') || hostname === 'seller.zeromall.local';
+  const isAdminHost = hostname.startsWith('admin.') || hostname === 'admin.zeromall.local';
+
   return (
     <Router>
       <Routes>
-        <Route
-          path="/seller"
-          element={
-            <SellerPortalWrapper
-              user={user}
-              token={token}
-              handleAuthSuccess={handleAuthSuccess}
-              handleLogout={handleLogout}
+        {/* If visiting seller subdomain, route default to Seller Portal */}
+        {isSellerHost ? (
+          <>
+            <Route
+              path="/*"
+              element={
+                <SellerPortalWrapper
+                  user={user}
+                  token={token}
+                  handleAuthSuccess={handleAuthSuccess}
+                  handleLogout={handleLogout}
+                />
+              }
             />
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AdminPortalWrapper
-              user={user}
-              handleLogout={handleLogout}
+          </>
+        ) : isAdminHost ? (
+          <>
+            <Route
+              path="/*"
+              element={
+                <AdminPortalWrapper
+                  user={user}
+                  handleAuthSuccess={handleAuthSuccess}
+                  handleLogout={handleLogout}
+                />
+              }
             />
-          }
-        />
-        <Route
-          path="/*"
-          element={
-            <BuyerContainer
-              cart={cart}
-              user={user}
-              dbProducts={dbProducts}
-              handleSearch={() => {}} // Tạm thời search xử lý rỗng hoặc truyền handleSearch
-              handleRemoveCartItem={handleRemoveCartItem}
-              handleUpdateCartQuantity={handleUpdateCartQuantity}
-              handleLogout={handleLogout}
-              handleOpenLogin={handleOpenLogin}
-              handleOpenRegister={handleOpenRegister}
-              handleAuthSuccess={handleAuthSuccess}
-              authTab={authTab}
-              setAuthTab={setAuthTab}
-              isAuthOpen={isAuthOpen}
-              setIsAuthOpen={setIsAuthOpen}
-              isProfileOpen={isProfileOpen}
-              setIsProfileOpen={setIsProfileOpen}
-              toast={toast}
-              handleAddToCart={handleAddToCart}
-              handleBuyNow={handleBuyNow}
+          </>
+        ) : (
+          <>
+            {/* Standard path-based routing (localhost:3000/seller, localhost:3000/admin, localhost:3000/) */}
+            <Route
+              path="/seller"
+              element={
+                <SellerPortalWrapper
+                  user={user}
+                  token={token}
+                  handleAuthSuccess={handleAuthSuccess}
+                  handleLogout={handleLogout}
+                />
+              }
             />
-          }
-        />
+            <Route
+              path="/admin"
+              element={
+                <AdminPortalWrapper
+                  user={user}
+                  handleAuthSuccess={handleAuthSuccess}
+                  handleLogout={handleLogout}
+                />
+              }
+            />
+            <Route
+              path="/*"
+              element={
+                <BuyerContainer
+                  cart={cart}
+                  user={user}
+                  dbProducts={dbProducts}
+                  handleSearch={() => {}} // Tạm thời search xử lý rỗng hoặc truyền handleSearch
+                  handleRemoveCartItem={handleRemoveCartItem}
+                  handleUpdateCartQuantity={handleUpdateCartQuantity}
+                  handleLogout={handleLogout}
+                  handleOpenLogin={handleOpenLogin}
+                  handleOpenRegister={handleOpenRegister}
+                  handleAuthSuccess={handleAuthSuccess}
+                  authTab={authTab}
+                  setAuthTab={setAuthTab}
+                  isAuthOpen={isAuthOpen}
+                  setIsAuthOpen={setIsAuthOpen}
+                  isProfileOpen={isProfileOpen}
+                  setIsProfileOpen={setIsProfileOpen}
+                  toast={toast}
+                  handleAddToCart={handleAddToCart}
+                  handleBuyNow={handleBuyNow}
+                />
+              }
+            />
+          </>
+        )}
       </Routes>
     </Router>
   )
