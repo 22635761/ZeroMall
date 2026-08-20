@@ -409,12 +409,13 @@ export class PaymentService implements OnModuleInit {
       return { success: false, message: 'Nội dung chuyển khoản không hợp lệ' };
     }
 
-    // Tìm transaction tương ứng (orderId bắt đầu bằng short ID của UUID)
+    // Tìm transaction tương ứng (hỗ trợ cả khớp toàn bộ orderId hoặc bắt đầu bằng short ID)
     const transaction = await this.prisma.transaction.findFirst({
       where: {
-        orderId: {
-          startsWith: orderShortId.toLowerCase(),
-        },
+        OR: [
+          { orderId: { equals: orderShortId, mode: 'insensitive' } },
+          { orderId: { startsWith: orderShortId, mode: 'insensitive' } },
+        ],
       },
     });
 
