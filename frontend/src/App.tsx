@@ -535,6 +535,8 @@ function App() {
     sessionStorage.setItem('zm_tab_session_id', 'active_session')
     if (userData?.role === 'ADMIN' || userData?.role === 'PLATFORM_SUPPORT') {
       window.location.href = '/admin'
+    } else if (userData?.role === 'SHOP_OWNER' || userData?.role === 'SHOP_STAFF') {
+      window.location.href = '/seller'
     } else {
       window.location.href = '/'
     }
