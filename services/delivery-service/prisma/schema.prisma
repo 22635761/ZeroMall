@@ -1,0 +1,44 @@
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+model DeliveryOrder {
+  id              String   @id @default(uuid())
+  orderId         String   @unique
+  trackingNumber  String   @unique
+  shopId          String?
+  shopName        String?
+  buyerId         String?
+  buyerName       String
+  buyerPhone      String
+  shippingAddress String
+  totalAmount     Float    @default(0)
+  codAmount       Float    @default(0)
+  paymentMethod   String   @default("cod")
+  currentStage    String   @default("PICKING") // PICKING, IN_HUB, IN_TRANSIT, DELIVERING, DELIVERED, FAILED
+  hubName         String?  @default("Kho Tổng Tân Bình SOC")
+  shipperName     String?  @default("Nguyễn Văn Giao (SPX)")
+  shipperPhone    String?  @default("0908123456")
+  proofImage      String?
+  failedReason    String?
+  itemsSummary    String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  logs            DeliveryTrackingLog[]
+}
+
+model DeliveryTrackingLog {
+  id              String        @id @default(uuid())
+  deliveryOrderId String
+  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
+  stage           String
+  title           String
+  description     String
+  location        String?
+  timestamp       DateTime      @default(now())
+}

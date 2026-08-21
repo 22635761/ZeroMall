@@ -125,10 +125,37 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       let ghnOrderCode: string | undefined = undefined
 
       if (newStatus === 'SHIPPING' && order) {
-        // Safe Simulation Mode: Tạo mã vận đơn giả lập chuẩn định dạng GHN, không gửi request thật lên hệ thống GHN thật
-        const randomNum = Math.floor(100000000 + Math.random() * 900000000)
-        ghnOrderCode = `GHN-VN-${randomNum}`
-        alert(`📦 Đã tạo mã vận đơn giả lập GHN thành công: ${ghnOrderCode}\n(Hệ thống đang ở chế độ Simulation an toàn, KHÔNG tạo đơn thật trên GHN).`)
+        try {
+          const itemsSummary = order.items?.map((i: any) => `${i.name || i.productName} x${i.quantity}`).join(', ')
+          const delRes = await fetch('http://localhost:8000/delivery/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: order.id,
+              shopId: order.items[0]?.shopId || shopId,
+              shopName: user?.shopName || 'Cửa hàng ZeroMall',
+              buyerId: order.buyerId,
+              buyerName: order.buyerName,
+              buyerPhone: order.buyerPhone,
+              shippingAddress: order.shippingAddress,
+              totalAmount: order.totalAmount,
+              paymentMethod: order.paymentMethod,
+              itemsSummary,
+            }),
+          })
+          if (delRes.ok) {
+            const delData = await delRes.json()
+            ghnOrderCode = delData.trackingNumber
+            alert(`🚚 Đã chuyển đơn sang ZeroMall Express (ZMX) thành công!\nMã vận đơn: ${ghnOrderCode}\nTài xế ZMX sẽ sớm đến lấy hàng.`)
+          }
+        } catch (delErr) {
+          console.error('Failed to create delivery order on ZMX:', delErr)
+        }
+
+        if (!ghnOrderCode) {
+          const randomNum = Math.floor(100000000 + Math.random() * 900000000)
+          ghnOrderCode = `ZMX-VN-${randomNum}`
+        }
       }
 
       await orderService.updateOrderStatus(orderId, newStatus, ghnOrderCode, token)

@@ -14,6 +14,7 @@ import { ChatWidget } from './components/buyer/ChatWidget'
 import { AuthModal } from './components/common/AuthModal'
 import { SellerPortal } from './pages/seller/SellerPortal'
 import { AdminPortal } from './pages/admin/AdminPortal'
+import { DeliveryPortal } from './pages/delivery/DeliveryPortal'
 import { ProfileModal } from './components/common/ProfileModal'
 import { BuyerOrdersPage } from './pages/buyer/BuyerOrdersPage'
 import { CategoryProductsPage } from './pages/buyer/CategoryProductsPage'
@@ -29,6 +30,11 @@ import { UserVoucherTab } from './pages/buyer/UserVoucherTab'
 import { UserWalletTab } from './pages/buyer/UserWalletTab'
 
 // Wrappers and containers for React Router
+
+function DeliveryPortalWrapper() {
+  const navigate = useNavigate();
+  return <DeliveryPortal onBackToHome={() => navigate('/')} />
+}
 
 
 
@@ -619,10 +625,11 @@ function App() {
     )
   }
 
-  // 3. Subdomain-based app detection (Shopee Architecture: seller.zeromall.local, admin.zeromall.local, zeromall.local)
+  // 3. Subdomain-based app detection (Shopee Architecture: seller.zeromall.local, admin.zeromall.local, delivery.zeromall.local, zeromall.local)
   const hostname = typeof window !== 'undefined' ? window.location.hostname : '';
   const isSellerHost = hostname.startsWith('seller.') || hostname === 'seller.zeromall.local';
   const isAdminHost = hostname.startsWith('admin.') || hostname === 'admin.zeromall.local';
+  const isDeliveryHost = hostname.startsWith('delivery.') || hostname === 'delivery.zeromall.local';
 
   return (
     <Router>
@@ -655,9 +662,20 @@ function App() {
               }
             />
           </>
+        ) : isDeliveryHost ? (
+          <>
+            <Route
+              path="/*"
+              element={<DeliveryPortalWrapper />}
+            />
+          </>
         ) : (
           <>
-            {/* Standard path-based routing (localhost:3000/seller, localhost:3000/admin, localhost:3000/) */}
+            {/* Standard path-based routing (localhost:3000/seller, localhost:3000/admin, localhost:3000/delivery, localhost:3000/) */}
+            <Route
+              path="/delivery"
+              element={<DeliveryPortalWrapper />}
+            />
             <Route
               path="/seller"
               element={

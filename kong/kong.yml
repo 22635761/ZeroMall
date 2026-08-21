@@ -51,6 +51,13 @@ services:
         paths:
           - /chat
         strip_path: false
+  - name: delivery-service
+    url: http://delivery-service:3008
+    routes:
+      - name: delivery-route
+        paths:
+          - /delivery
+        strip_path: false
 
 plugins:
   - name: cors

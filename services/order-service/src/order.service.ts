@@ -275,8 +275,29 @@ export class OrderService implements OnModuleInit {
       this.notifyProductPurchase(exists.items);
     }
 
-    if (dto.status === 'CANCELLED' && exists.status !== 'CANCELLED' && exists.appliedVoucherIds) {
-      this.rollbackVouchers(exists.appliedVoucherIds);
+    if (dto.status === 'CANCELLED' && exists.status !== 'CANCELLED') {
+      if (exists.appliedVoucherIds) {
+        this.rollbackVouchers(exists.appliedVoucherIds);
+      }
+
+      // Nếu đơn hàng đã được thanh toán (hoặc thanh toán qua Ví/Sepay và ở trạng thái PROCESSING/PENDING_PAYMENT), hoàn tiền về Ví ZeroPay cho khách
+      if (exists.paymentMethod === 'zeropay' || (exists.paymentMethod === 'sepay' && exists.status === 'PROCESSING')) {
+        try {
+          const paymentServiceUrl = process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3005';
+          await fetch(`${paymentServiceUrl}/payments/refund`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              orderId: exists.id,
+              buyerId: exists.buyerId,
+              amount: exists.totalAmount,
+            }),
+          });
+          console.log(`[OrderService] Automatically refunded ${exists.totalAmount}đ to wallet of buyer ${exists.buyerId} for cancelled order ${exists.id}`);
+        } catch (e) {
+          console.error('[OrderService] Error auto-refunding buyer on order cancellation:', e);
+        }
+      }
     }
 
     // Bắn sự kiện order.updated sang Kafka để gửi thông báo Realtime cho Khách hàng

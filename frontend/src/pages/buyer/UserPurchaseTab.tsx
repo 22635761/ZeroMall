@@ -44,6 +44,36 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   const [showReviewModal, setShowReviewModal] = useState(false)
   const [selectedOrderForReview, setSelectedOrderForReview] = useState<Order | null>(null)
 
+  // Cancel order modal state
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [selectedOrderForCancel, setSelectedOrderForCancel] = useState<Order | null>(null)
+  const [cancelReason, setCancelReason] = useState('Muốn thay đổi địa chỉ nhận hàng')
+  const [isCancelling, setIsCancelling] = useState(false)
+
+  // Live Tracking modal state
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
+  const [trackingData, setTrackingData] = useState<any>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+
+  const handleOpenTrackingModal = async (orderId: string) => {
+    setTrackingLoading(true)
+    setShowTrackingModal(true)
+    try {
+      const res = await fetch(`http://localhost:8000/delivery/tracking/${orderId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTrackingData(data)
+      } else {
+        setTrackingData(null)
+      }
+    } catch (e) {
+      console.error('Error fetching live tracking:', e)
+      setTrackingData(null)
+    } finally {
+      setTrackingLoading(false)
+    }
+  }
+
   // Detail modal state for refund / cancel orders
   const [selectedOrderDetail, setSelectedOrderDetail] = useState<Order | null>(null)
 
@@ -252,6 +282,35 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   const handleRequestRefundClick = (order: Order) => {
     setSelectedOrderForRefund(order)
     setShowRefundModal(true)
+  }
+
+  const handleOpenCancelModal = (order: Order) => {
+    setSelectedOrderForCancel(order)
+    setCancelReason('Muốn thay đổi địa chỉ nhận hàng')
+    setShowCancelModal(true)
+  }
+
+  const handleCancelOrderSubmit = async () => {
+    if (!selectedOrderForCancel) return
+    setIsCancelling(true)
+    try {
+      await orderService.updateOrderStatus(
+        selectedOrderForCancel.id,
+        'CANCELLED',
+        undefined,
+        undefined,
+        cancelReason,
+        `Người mua hủy đơn: ${cancelReason}`
+      )
+      alert('Đã hủy đơn hàng thành công! ' + (selectedOrderForCancel.paymentMethod === 'zeropay' || selectedOrderForCancel.status === 'PROCESSING' ? 'Tiền đã được hoàn về Ví ZeroPay của bạn.' : ''))
+      setShowCancelModal(false)
+      setSelectedOrderForCancel(null)
+      fetchOrders()
+    } catch (err: any) {
+      alert('Lỗi khi hủy đơn hàng: ' + err.message)
+    } finally {
+      setIsCancelling(false)
+    }
   }
 
   const handleOpenReviewModal = (order: Order) => {
@@ -501,14 +560,25 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
               {/* Action buttons footer */}
               <div className="flex justify-end gap-2 pt-2">
-                {/* 1. CHỜ THANH TOÁN (PENDING Sepay) */}
-                {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT') && order.paymentMethod === 'sepay' && (
-                  <button
-                    onClick={() => handleRePaySepay(order)}
-                    className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
-                  >
-                    📲 Thanh toán ngay
-                  </button>
+                {/* 1. CHỜ THANH TOÁN (PENDING Sepay) & CHỜ XÁC NHẬN (PENDING) & CHỜ LẤY HÀNG (PROCESSING) -> Khách được hủy đơn */}
+                {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED') && (
+                  <>
+                    <button
+                      onClick={() => handleOpenCancelModal(order)}
+                      className="px-4 py-2 border border-slate-300 hover:border-rose-400 hover:bg-rose-50 text-slate-600 hover:text-rose-600 rounded-sm font-semibold transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                    >
+                      ❌ Hủy Đơn Hàng
+                    </button>
+
+                    {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT') && order.paymentMethod === 'sepay' && (
+                      <button
+                        onClick={() => handleRePaySepay(order)}
+                        className="px-5 py-2 bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
+                      >
+                        📲 Thanh toán ngay
+                      </button>
+                    )}
+                  </>
                 )}
 
                 {/* 2. ĐÃ GIAO (DELIVERED) — người bán đã báo giao thành công */}
@@ -575,6 +645,13 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                 {/* 3. ĐANG GIAO HÀNG (SHIPPED / SHIPPING / DELIVERING / IN_TRANSIT) */}
                 {(order.status === 'SHIPPED' || order.status === 'SHIPPING' || order.status === 'DELIVERING' || order.status === 'IN_TRANSIT') && (
                   <>
+                    <button
+                      onClick={() => handleOpenTrackingModal(order.id)}
+                      className="px-4 py-2 bg-orange-50 hover:bg-orange-100 border border-orange-300 text-orange-700 font-bold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px] flex items-center gap-1"
+                    >
+                      🚚 Xem Hành Trình (ZMX)
+                    </button>
+
                     <button
                       onClick={async () => {
                         if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn?')) {
@@ -993,6 +1070,187 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
               Đóng
             </button>
           </div>
+        </div>
+      </div>
+    )}
+    {/* Modal Hủy Đơn Hàng Chuẩn Shopee */}
+    {showCancelModal && selectedOrderForCancel && (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-100 animate-in zoom-in-95 duration-150 text-left">
+          <div className="flex justify-between items-center pb-3 border-b border-slate-100">
+            <div>
+              <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
+                <span>❌</span> Hủy Đơn Hàng #{selectedOrderForCancel.id.slice(0, 12)}
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                Vui lòng chọn lý do hủy đơn hàng của bạn
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowCancelModal(false); setSelectedOrderForCancel(null); }}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xl transition cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          {/* Warning Banner */}
+          <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200/80 text-[11px] text-amber-800 space-y-1">
+            <p className="font-bold flex items-center gap-1.5">
+              <span>⚠️</span> Lưu ý khi hủy đơn hàng:
+            </p>
+            <p className="text-amber-700 leading-relaxed font-normal">
+              {selectedOrderForCancel.paymentMethod === 'zeropay' || (selectedOrderForCancel.paymentMethod === 'sepay' && selectedOrderForCancel.status === 'PROCESSING')
+                ? '• Đơn hàng đã được thanh toán trực tuyến. Sau khi hủy, 100% số tiền sẽ được hoàn ngay lập tức về Ví ZeroPay của bạn.'
+                : '• Đơn hàng thanh toán khi nhận hàng (COD) hoặc chưa thanh toán sẽ được hủy ngay lập tức.'}
+              <br />• Các Voucher giảm giá đã dùng sẽ được tự động hoàn lại vào kho voucher của bạn.
+            </p>
+          </div>
+
+          {/* Reason Selection */}
+          <div className="space-y-2 text-left">
+            <label className="block text-xs font-bold text-slate-700">Lý do hủy đơn:</label>
+            {[
+              'Muốn thay đổi địa chỉ nhận hàng',
+              'Muốn thay đổi mã giảm giá / Voucher',
+              'Muốn thay đổi sản phẩm trong đơn (kích cỡ, màu sắc, số lượng)',
+              'Tìm thấy giá rẻ hơn ở nơi khác',
+              'Đổi ý, không muốn mua nữa',
+              'Lý do khác'
+            ].map((reason) => (
+              <label 
+                key={reason}
+                className={`flex items-center gap-3 p-2.5 rounded-xl border text-xs cursor-pointer transition ${
+                  cancelReason === reason 
+                    ? 'border-emerald-600 bg-emerald-50/50 text-emerald-900 font-bold' 
+                    : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="cancelReason"
+                  value={reason}
+                  checked={cancelReason === reason}
+                  onChange={(e) => setCancelReason(e.target.value)}
+                  className="accent-emerald-600 w-4 h-4"
+                />
+                <span>{reason}</span>
+              </label>
+            ))}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="pt-3 border-t border-slate-100 flex gap-2">
+            <button
+              onClick={() => { setShowCancelModal(false); setSelectedOrderForCancel(null); }}
+              className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+            >
+              Không Hủy Nữa
+            </button>
+            <button
+              onClick={handleCancelOrderSubmit}
+              disabled={isCancelling}
+              className="flex-1 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-md disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isCancelling ? 'Đang xử lý...' : 'Xác Nhận Hủy Đơn'}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Modal: Xem Hành Trình Vận Chuyển Realtime (Shopee Xpress Style) */}
+    {showTrackingModal && (
+      <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
+        <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 text-left space-y-4 p-6">
+          {/* Header */}
+          <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div>
+              <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
+                <span>🚚</span> Thông Tin Vận Chuyển ZeroExpress (ZMX)
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-0.5">
+                {trackingData ? `Mã vận đơn: ${trackingData.trackingNumber}` : 'Đang tra cứu hệ thống ZMX...'}
+              </p>
+            </div>
+            <button
+              onClick={() => { setShowTrackingModal(false); setTrackingData(null); }}
+              className="text-slate-400 hover:text-slate-600 font-bold text-xl transition cursor-pointer p-1"
+            >
+              ✕
+            </button>
+          </div>
+
+          {trackingLoading ? (
+            <div className="py-12 flex flex-col items-center justify-center space-y-3">
+              <div className="w-8 h-8 border-3 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="text-xs text-slate-500 font-bold">Đang kết nối vệ tinh trạm bưu cục ZMX...</p>
+            </div>
+          ) : !trackingData ? (
+            <div className="py-8 text-center space-y-2">
+              <span className="text-3xl">📦</span>
+              <p className="text-xs text-slate-600 font-bold">Người bán đang đóng gói kiện hàng</p>
+              <p className="text-[11px] text-slate-400">Đơn vị vận chuyển ZMX đang điều phối tài xế đến lấy hàng.</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Stepper Status Box */}
+              <div className="p-4 bg-orange-50/70 rounded-2xl border border-orange-200/80 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="font-bold text-orange-950">Trạng thái hiện tại:</span>
+                  <span className="font-black text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full text-[11px]">
+                    {trackingData.currentStage === 'PICKING' && 'Chờ lấy hàng'}
+                    {trackingData.currentStage === 'IN_HUB' && 'Đang ở Kho phân loại'}
+                    {trackingData.currentStage === 'IN_TRANSIT' && 'Đang trung chuyển'}
+                    {trackingData.currentStage === 'DELIVERING' && 'Đang phát hàng'}
+                    {trackingData.currentStage === 'DELIVERED' && 'Giao thành công'}
+                    {trackingData.currentStage === 'FAILED' && 'Giao không thành công'}
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-600 space-y-0.5">
+                  <p>• <b>Đơn vị vận chuyển:</b> ZeroMall Express (ZMX Logistics)</p>
+                  <p>• <b>Tài xế phụ trách:</b> {trackingData.shipperName} ({trackingData.shipperPhone})</p>
+                </div>
+              </div>
+
+              {/* Vertical Milestones */}
+              <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Chi Tiết Lịch Sử Hành Trình</p>
+                {trackingData.logs && trackingData.logs.map((log: any, idx: number) => (
+                  <div key={log.id} className="flex gap-3 relative text-xs">
+                    {idx !== trackingData.logs.length - 1 && (
+                      <div className="absolute left-2 top-5 bottom-0 w-0.5 bg-slate-200"></div>
+                    )}
+                    <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold z-10 ${
+                      idx === 0 ? 'bg-orange-500 text-white shadow-xs' : 'bg-slate-200 text-slate-500'
+                    }`}>
+                      {idx === 0 ? '●' : '○'}
+                    </div>
+                    <div className="flex-1 space-y-0.5">
+                      <div className="flex justify-between items-baseline">
+                        <span className={`font-bold ${idx === 0 ? 'text-orange-600' : 'text-slate-700'}`}>{log.title}</span>
+                        <span className="text-[10px] text-slate-400">{new Date(log.timestamp).toLocaleString('vi-VN')}</span>
+                      </div>
+                      <p className="text-slate-500 text-[11px] leading-relaxed font-normal">{log.description}</p>
+                      {log.location && (
+                        <p className="text-[10px] text-slate-400 font-medium">📍 {log.location}</p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Close Button */}
+              <div className="pt-3 border-t border-slate-100 flex justify-end">
+                <button
+                  onClick={() => { setShowTrackingModal(false); setTrackingData(null); }}
+                  className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                >
+                  Đóng
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     )}

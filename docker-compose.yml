@@ -114,6 +114,21 @@ services:
         condition: service_healthy
     restart: always
 
+  delivery-service:
+    build:
+      context: .
+      dockerfile: services/delivery-service/Dockerfile
+    container_name: zeromall-delivery-service
+    ports:
+      - '3008:3008'
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=delivery&options=-csearch_path=delivery
+      - ORDER_SERVICE_URL=http://order-service:3004
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: always
+
   frontend:
     build:
       context: .

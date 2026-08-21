@@ -65,6 +65,13 @@ export const Header: React.FC<HeaderProps> = ({
             >
               🏪 Kênh Người Bán
             </button>
+            <span className="text-slate-200">|</span>
+            <a 
+              href="/delivery"
+              className="hover:text-orange-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-orange-500 hover:text-orange-600 text-xs flex items-center gap-1"
+            >
+              🚚 ZeroExpress (ZMX)
+            </a>
           </div>
 
           {/* Right links */}
