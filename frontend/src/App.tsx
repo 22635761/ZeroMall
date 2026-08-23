@@ -31,34 +31,40 @@ import { UserWalletTab } from './pages/buyer/UserWalletTab'
 
 // Wrappers and containers for React Router
 
-function DeliveryPortalWrapper() {
-  const navigate = useNavigate();
-  return <DeliveryPortal onBackToHome={() => navigate('/')} />
+function getBuyerHomeUrl() {
+  if (typeof window === 'undefined') return '/';
+  const hostname = window.location.hostname;
+  const port = window.location.port ? `:${window.location.port}` : '';
+  const protocol = window.location.protocol;
+  if (hostname.endsWith('.zeromall.local') || hostname === 'zeromall.local') {
+    return `${protocol}//zeromall.local${port}/`;
+  }
+  return '/';
 }
 
-
+function DeliveryPortalWrapper() {
+  return <DeliveryPortal onBackToHome={() => { window.location.href = getBuyerHomeUrl(); }} />
+}
 
 function SellerPortalWrapper({ user, token, handleAuthSuccess, handleLogout }: { user: any, token: any, handleAuthSuccess: any, handleLogout: any }) {
-  const navigate = useNavigate();
   return (
     <SellerPortal
       user={user}
       token={token}
       onAuthSuccess={handleAuthSuccess}
       onLogout={handleLogout}
-      onBackToHome={() => navigate('/')}
+      onBackToHome={() => { window.location.href = getBuyerHomeUrl(); }}
     />
   )
 }
 
 function AdminPortalWrapper({ user, handleAuthSuccess, handleLogout }: { user: any, handleAuthSuccess: any, handleLogout: any }) {
-  const navigate = useNavigate();
   return (
     <AdminPortal
       user={user}
       onAuthSuccess={handleAuthSuccess}
       onLogout={handleLogout}
-      onBackToHome={() => navigate('/')}
+      onBackToHome={() => { window.location.href = getBuyerHomeUrl(); }}
     />
   )
 }

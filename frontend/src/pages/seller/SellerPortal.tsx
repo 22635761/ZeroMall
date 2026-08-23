@@ -14,6 +14,7 @@ import { ShopRevenue } from '../../components/seller/ShopRevenue'
 import { ShopBankAccounts } from '../../components/seller/ShopBankAccounts'
 import { SellerChatManager } from '../../components/seller/SellerChatManager'
 import { ShopReviews } from '../../components/seller/ShopReviews'
+import { ShopLogisticsManager } from '../../components/seller/ShopLogisticsManager'
 import { NotificationPopover } from '../../components/common/NotificationPopover'
 import { orderService } from '../../services/order.service'
 
@@ -252,6 +253,15 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       ]
     },
     {
+      id: 'logistics',
+      title: 'Vận Chuyển ZMX',
+      icon: '🚚',
+      subMenus: [
+        { id: 'spx-shipments', title: 'Quản Lý Vận Đơn' },
+        { id: 'spx-settlement', title: 'Đối Soát COD' }
+      ]
+    },
+    {
       id: 'products',
       title: 'Quản Lý Sản Phẩm',
       icon: '📦',
@@ -452,6 +462,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             <ShopVouchers user={user} />
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-flashsale' ? (
             <ShopFlashSale user={user} />
+          ) : activeMenu === 'logistics' ? (
+            <ShopLogisticsManager user={user} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'orders' ? (
             <ShopOrders user={user} token={token || ''} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'finance' && activeSubMenu === 'revenue' ? (

@@ -4,6 +4,7 @@ import type { Order } from '../../models/order.model'
 import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
 import { ReviewModal } from '../../components/buyer/ReviewModal'
 import type { ReviewSubmitData } from '../../components/buyer/ReviewModal'
+import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
 
 interface UserPurchaseTabProps {
   user: any
@@ -494,9 +495,15 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
                 return (
                   <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-100 text-xs">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="bg-[#ee4d2d] text-white px-1.5 py-0.5 rounded-sm text-[10px] font-bold tracking-wider">Yêu thích</span>
                       <span className="font-bold text-slate-800">{shopName}</span>
+                      
+                      {/* Hiển thị Mã Đơn Hàng rõ ràng */}
+                      <span className="font-mono text-[11px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                        Mã đơn: #{order.id}
+                      </span>
+
                       <button
                         onClick={() => {
                           window.dispatchEvent(
@@ -516,8 +523,16 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                         <span>🏪</span> Xem Shop
                       </a>
                     </div>
-                    <div className={`font-bold ${getStatusColor(order.status)}`}>
-                      {getStatusText(order.status)}
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => handleOpenTrackingModal(order.id)}
+                        className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 text-emerald-700 font-bold rounded-lg text-[11px] transition cursor-pointer flex items-center gap-1"
+                      >
+                        <span>🚚</span> Tra Cứu Vận Chuyển ZMX
+                      </button>
+                      <div className={`font-bold ${getStatusColor(order.status)}`}>
+                        {getStatusText(order.status)}
+                      </div>
                     </div>
                   </div>
                 );
@@ -1194,41 +1209,57 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
             </div>
           ) : (
             <div className="space-y-4">
+              {/* 🗺️ BẢN ĐỒ HÀNH TRÌNH TƯƠNG TÁC GOONG MAP / OSM LIVE */}
+              <LiveMapTracking
+                trackingData={trackingData}
+                goongApiKey={import.meta.env.VITE_GOONG_API_KEY}
+              />
+
               {/* Stepper Status Box */}
-              <div className="p-4 bg-orange-50/70 rounded-2xl border border-orange-200/80 space-y-2">
+              <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-200/80 space-y-2">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="font-bold text-orange-950">Trạng thái hiện tại:</span>
-                  <span className="font-black text-orange-600 bg-orange-100 px-2.5 py-0.5 rounded-full text-[11px]">
-                    {trackingData.currentStage === 'PICKING' && 'Chờ lấy hàng'}
-                    {trackingData.currentStage === 'IN_HUB' && 'Đang ở Kho phân loại'}
-                    {trackingData.currentStage === 'IN_TRANSIT' && 'Đang trung chuyển'}
-                    {trackingData.currentStage === 'DELIVERING' && 'Đang phát hàng'}
-                    {trackingData.currentStage === 'DELIVERED' && 'Giao thành công'}
-                    {trackingData.currentStage === 'FAILED' && 'Giao không thành công'}
+                  <span className="font-bold text-emerald-950">Trạng thái hiện tại:</span>
+                  <span className="font-black text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full text-[11px]">
+                    {trackingData.status === 'CREATED' && 'Đang chuẩn bị hàng'}
+                    {trackingData.status === 'WAITING_PICKUP' && 'Chờ Shipper đến lấy'}
+                    {trackingData.status === 'PICKUP_ASSIGNED' && 'Shipper đang đến lấy'}
+                    {trackingData.status === 'PICKED_UP' && 'Đã lấy hàng'}
+                    {trackingData.status === 'AT_ORIGIN_HUB' && 'Tại Bưu cục gửi'}
+                    {trackingData.status === 'SORTING' && 'Đang phân loại tại Kho SOC'}
+                    {trackingData.status === 'IN_TRANSIT' && 'Xe tải đang trung chuyển'}
+                    {trackingData.status === 'AT_DESTINATION_HUB' && 'Đã đến Bưu cục phát'}
+                    {trackingData.status === 'OUT_FOR_DELIVERY' && 'Shipper đang giao tận nhà'}
+                    {trackingData.status === 'DELIVERED' && 'Giao thành công'}
+                    {trackingData.status === 'DELIVERY_FAILED' && 'Giao không thành công'}
                   </span>
                 </div>
                 <div className="text-[11px] text-slate-600 space-y-0.5">
                   <p>• <b>Đơn vị vận chuyển:</b> ZeroMall Express (ZMX Logistics)</p>
-                  <p>• <b>Tài xế phụ trách:</b> {trackingData.shipperName} ({trackingData.shipperPhone})</p>
+                  {trackingData.assignments && trackingData.assignments[0] && (
+                    <p>• <b>Tài xế phụ trách:</b> {trackingData.assignments[0].driver?.name} (SĐT: {trackingData.assignments[0].driver?.phone} - Biển số: {trackingData.assignments[0].driver?.vehicleNumber})</p>
+                  )}
+                  {trackingData.currentHub && (
+                    <p>• <b>Kho/Bưu cục hiện tại:</b> {trackingData.currentHub.name} ({trackingData.currentHub.province})</p>
+                  )}
                 </div>
               </div>
 
               {/* Vertical Milestones */}
               <div className="space-y-4 max-h-[260px] overflow-y-auto pr-1">
                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Chi Tiết Lịch Sử Hành Trình</p>
-                {trackingData.logs && trackingData.logs.map((log: any, idx: number) => (
+                {trackingData.trackingLogs && trackingData.trackingLogs.map((log: any, idx: number) => (
                   <div key={log.id} className="flex gap-3 relative text-xs">
-                    {idx !== trackingData.logs.length - 1 && (
+                    {idx !== trackingData.trackingLogs.length - 1 && (
                       <div className="absolute left-2 top-5 bottom-0 w-0.5 bg-slate-200"></div>
                     )}
                     <div className={`w-4 h-4 rounded-full flex items-center justify-center shrink-0 text-[9px] font-bold z-10 ${
-                      idx === 0 ? 'bg-orange-500 text-white shadow-xs' : 'bg-slate-200 text-slate-500'
+                      idx === 0 ? 'bg-emerald-600 text-white shadow-xs' : 'bg-slate-200 text-slate-500'
                     }`}>
                       {idx === 0 ? '●' : '○'}
                     </div>
                     <div className="flex-1 space-y-0.5">
                       <div className="flex justify-between items-baseline">
-                        <span className={`font-bold ${idx === 0 ? 'text-orange-600' : 'text-slate-700'}`}>{log.title}</span>
+                        <span className={`font-bold ${idx === 0 ? 'text-emerald-700' : 'text-slate-700'}`}>{log.title}</span>
                         <span className="text-[10px] text-slate-400">{new Date(log.timestamp).toLocaleString('vi-VN')}</span>
                       </div>
                       <p className="text-slate-500 text-[11px] leading-relaxed font-normal">{log.description}</p>

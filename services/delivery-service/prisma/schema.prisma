@@ -7,38 +7,272 @@ generator client {
   output   = "../src/generated/client"
 }
 
-model DeliveryOrder {
-  id              String   @id @default(uuid())
-  orderId         String   @unique
-  trackingNumber  String   @unique
-  shopId          String?
-  shopName        String?
-  buyerId         String?
-  buyerName       String
-  buyerPhone      String
-  shippingAddress String
-  totalAmount     Float    @default(0)
-  codAmount       Float    @default(0)
-  paymentMethod   String   @default("cod")
-  currentStage    String   @default("PICKING") // PICKING, IN_HUB, IN_TRANSIT, DELIVERING, DELIVERED, FAILED
-  hubName         String?  @default("Kho Tổng Tân Bình SOC")
-  shipperName     String?  @default("Nguyễn Văn Giao (SPX)")
-  shipperPhone    String?  @default("0908123456")
-  proofImage      String?
-  failedReason    String?
-  itemsSummary    String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  logs            DeliveryTrackingLog[]
+// 1. HUB / KHO KHAI THÁC
+model Hub {
+  id          String    @id @default(uuid())
+  code        String    @unique // VD: HCM01, DN01, HN01
+  name        String
+  address     String
+  province    String
+  district    String
+  ward        String?
+  latitude    Float?
+  longitude   Float?
+  type        String    @default("ORIGIN_HUB") // ORIGIN_HUB, DESTINATION_HUB, SORTING_CENTER
+  status      String    @default("ACTIVE")    // ACTIVE, INACTIVE
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  drivers     Driver[]
+  scans       HubScan[]
+  shipments   Shipment[]
 }
 
-model DeliveryTrackingLog {
-  id              String        @id @default(uuid())
-  deliveryOrderId String
-  deliveryOrder   DeliveryOrder @relation(fields: [deliveryOrderId], references: [id], onDelete: Cascade)
-  stage           String
-  title           String
+// 2. TÀI XẾ / SHIPPER
+model Driver {
+  id               String    @id @default(uuid())
+  userId           String?   // Liên kết với user trong auth-service nếu có
+  name             String
+  phone            String
+  vehicleType      String    @default("MOTORBIKE") // MOTORBIKE, VAN, TRUCK
+  vehicleNumber    String
+  hubId            String
+  hub              Hub       @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  operatingArea    String?   // Khu vực phụ trách chi tiết: Phường/Quận
+  assignedDistrict String?   // Quận/Huyện phụ trách
+  assignedProvince String?   // Tỉnh/Thành phố phụ trách
+  status           String    @default("AVAILABLE") // AVAILABLE, BUSY, OFFLINE, SUSPENDED
+  currentLat       Float?
+  currentLng       Float?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  assignments      DeliveryAssignment[]
+  attempts         DeliveryAttempt[]
+}
+
+// 3. ĐỊA CHỈ LẤY HÀNG CỦA SELLER
+model SellerAddress {
+  id          String    @id @default(uuid())
+  sellerId    String
+  name        String    // VD: Kho Biên Hòa, Kho Tân Bình
+  contactName String
+  phone       String
+  address     String
+  province    String
+  district    String
+  ward        String?
+  latitude    Float?
+  longitude   Float?
+  isDefault   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  shipments   Shipment[]
+}
+
+// 4. VẬN ĐƠN (SHIPMENT - ĐỘC LẬP VỚI ORDER)
+model Shipment {
+  id                 String    @id @default(uuid())
+  orderId            String    @unique
+  sellerId           String
+  buyerId            String
+  trackingNumber     String    @unique // Định dạng SPX202608210001
+  
+  pickupAddressId    String?
+  pickupAddress      SellerAddress? @relation(fields: [pickupAddressId], references: [id], onDelete: SetNull)
+  deliveryAddress    String
+  buyerName          String
+  buyerPhone         String
+
+  declaredValue      Float     @default(0)
+  codAmount          Float     @default(0)
+  shippingFee        Float     @default(0)
+
+  carrierId          String    @default("SPX")
+  status             String    @default("CREATED") // CREATED, WAITING_PICKUP, PICKUP_ASSIGNED, PICKING_UP, PICKED_UP, AT_ORIGIN_HUB, SORTING, IN_TRANSIT, AT_DESTINATION_HUB, OUT_FOR_DELIVERY, DELIVERED, DELIVERY_FAILED, RETURNING, RETURNED, CANCELLED, LOST, DAMAGED
+  
+  currentHubId       String?
+  currentHub         Hub?      @relation(fields: [currentHubId], references: [id], onDelete: SetNull)
+
+  pickedUpAt         DateTime?
+  deliveredAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  package            Package?
+  trackingLogs       ShipmentTracking[]
+  hubScans           HubScan[]
+  assignments        DeliveryAssignment[]
+  attempts           DeliveryAttempt[]
+  codTransaction     CodTransaction?
+  returns            Return[]
+  claims             Claim[]
+}
+
+// 5. THÔNG TIN KIỆN HÀNG (PACKAGE)
+model Package {
+  id              String    @id @default(uuid())
+  shipmentId      String    @unique
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  weight          Float     @default(0.5) // kg
+  length          Float     @default(15)  // cm
+  width           Float     @default(10)  // cm
+  height          Float     @default(10)  // cm
+  packageType     String    @default("STANDARD") // STANDARD, BULKY
+  declaredValue   Float     @default(0)
+  fragile         Boolean   @default(false)
+  liquid          Boolean   @default(false)
+  highValue       Boolean   @default(false)
+  specialHandling String?
+  itemsSummary    String?
+}
+
+// 6. PHÂN CÔNG TÀI XẾ (DRIVER ASSIGNMENT)
+model DeliveryAssignment {
+  id          String    @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  driverId    String
+  driver      Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  type        String    @default("PICKUP") // PICKUP, DELIVERY
+  status      String    @default("ASSIGNED") // ASSIGNED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED
+  note        String?
+  assignedAt  DateTime  @default(now())
+  completedAt DateTime?
+}
+
+// 7. LỊCH SỬ HÀNH TRÌNH VẬN ĐƠN (SHIPMENT TRACKING)
+model ShipmentTracking {
+  id          String    @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  status      String
+  hubId       String?
+  driverId    String?
+  latitude    Float?
+  longitude   Float?
+  title       String
+  description String
+  location    String?
+  timestamp   DateTime  @default(now())
+}
+
+// 8. QUÉT MÃ BƯU KIỆN TẠI HUB (HUB SCAN)
+model HubScan {
+  id          String    @id @default(uuid())
+  shipmentId  String
+  shipment    Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  hubId       String
+  hub         Hub       @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  scanType    String    // ARRIVED, SORTED, DEPARTED, LOADED
+  staffId     String?
+  note        String?
+  createdAt   DateTime  @default(now())
+}
+
+// 9. LỊCH SỬ CÁC LẦN GIAO THẤT BẠI (DELIVERY ATTEMPTS)
+model DeliveryAttempt {
+  id            String    @id @default(uuid())
+  shipmentId    String
+  shipment      Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  driverId      String
+  driver        Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  attemptNumber Int       @default(1)
+  status        String    @default("FAILED") // FAILED, RESCHEDULED
+  failureReason String    // Buyer không nghe máy, Sai địa chỉ, Hẹn lại ngày khác...
+  note          String?
+  proofImage    String?
+  createdAt     DateTime  @default(now())
+}
+
+// 10. QUẢN LÝ THU HỘ COD (COD TRANSACTIONS)
+model CodTransaction {
+  id              String    @id @default(uuid())
+  shipmentId      String    @unique
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  orderId         String
+  sellerId        String
+  codAmount       Float     @default(0)
+  collectedAmount Float     @default(0)
+  status          String    @default("PENDING") // PENDING, COLLECTED, SETTLED, REFUNDED, FAILED
+  collectedAt     DateTime?
+  settledAt       DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+// 11. ĐỐI SOÁT SELLER (SETTLEMENT)
+model Settlement {
+  id            String    @id @default(uuid())
+  sellerId      String
+  periodStart   DateTime
+  periodEnd     DateTime
+  totalCod      Float     @default(0)
+  shippingFee   Float     @default(0)
+  platformFee   Float     @default(0)
+  refund        Float     @default(0)
+  adjustment    Float     @default(0)
+  netAmount     Float     @default(0)
+  status        String    @default("PENDING") // PENDING, APPROVED, SETTLED, REJECTED
+  settledAt     DateTime?
+  createdAt     DateTime  @default(now())
+}
+
+// 12. HOÀN HÀNG (RETURNS)
+model Return {
+  id                String    @id @default(uuid())
+  orderId           String
+  shipmentId        String
+  shipment          Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  sellerId          String
+  buyerId           String
+  reason            String
+  type              String    @default("DELIVERY_FAILED") // DELIVERY_FAILED, BUYER_RETURN
+  status            String    @default("RETURNING")       // RETURNING, RETURNED, CANCELLED
+  returnShippingFee Float     @default(0)
+  createdAt         DateTime  @default(now())
+  completedAt       DateTime?
+}
+
+// 13. KHIẾU NẠI & BỒI THƯỜNG (CLAIMS)
+model Claim {
+  id              String    @id @default(uuid())
+  orderId         String
+  shipmentId      String
+  shipment        Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  sellerId        String
+  buyerId         String?
+  claimType       String    // LOST, DAMAGED, MISSING_ITEM, WRONG_ITEM, OTHER
   description     String
-  location        String?
-  timestamp       DateTime      @default(now())
+  requestedAmount Float     @default(0)
+  status          String    @default("OPEN") // OPEN, UNDER_REVIEW, APPROVED, REJECTED, COMPENSATED
+  createdAt       DateTime  @default(now())
+  resolvedAt      DateTime?
+
+  evidences       ClaimEvidence[]
+}
+
+model ClaimEvidence {
+  id          String    @id @default(uuid())
+  claimId     String
+  claim       Claim     @relation(fields: [claimId], references: [id], onDelete: Cascade)
+  fileUrl     String
+  fileType    String    @default("IMAGE") // IMAGE, VIDEO, DOCUMENT
+  description String?
+  createdAt   DateTime  @default(now())
+}
+
+// 14. BẢNG GIÁ VẬN CHUYỂN (SHIPPING RATES)
+model ShippingRate {
+  id                  String    @id @default(uuid())
+  serviceId           String    @default("STANDARD") // STANDARD, EXPRESS, SAME_DAY
+  originProvince      String    // Tỉnh đi
+  destinationProvince String    // Tỉnh đến
+  weightFrom          Float     @default(0)
+  weightTo            Float     @default(2)
+  baseFee             Float     @default(25000)
+  extraFeePerKg       Float     @default(5000)
+  codFeePercent       Float     @default(0)
+  status              String    @default("ACTIVE")
+  createdAt           DateTime  @default(now())
 }
