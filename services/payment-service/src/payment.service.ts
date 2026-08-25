@@ -147,9 +147,7 @@ export class PaymentService implements OnModuleInit {
 
     try {
       if (dto.paymentMethod === 'cod') {
-        // Đối với COD, giữ trạng thái giao dịch PENDING cho đến khi shipper giao hàng và thu tiền
-        // Vẫn cập nhật đơn hàng thành PROCESSING (đang xử lý chuẩn bị giao hàng)
-        await this.updateOrderStatusOnOrderService(dto.orderId, 'PROCESSING');
+        // Đối với COD, giữ trạng thái giao dịch PENDING và đơn hàng PENDING chờ người bán bấm xác nhận đơn hàng
         return txRecord;
       }
 

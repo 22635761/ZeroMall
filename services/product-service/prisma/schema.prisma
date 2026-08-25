@@ -21,6 +21,7 @@ model Product {
   description     String
   price           String   // Can store a simple numeric string like "29990000" or a range like "150.000đ - 200.000đ"
   originalPrice   String?  // Original/old price before discount
+  costPrice       Float?   @default(0) // Giá nhập / giá vốn hiện tại
   stock           Int
   sales           Int      @default(0)
   status          String   // "active" | "hidden"
@@ -39,8 +40,39 @@ model Product {
   isViolated      Boolean  @default(false)
   violationReason String?
   reportsCount    Int      @default(0)
+  priceHistories  PriceHistory[]
+  costHistories   CostPriceHistory[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+model PriceHistory {
+  id            String   @id @default(uuid())
+  productId     String
+  product       Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId        String
+  oldPrice      Float
+  newPrice      Float
+  changeType    String   @default("MANUAL") // "MANUAL" | "PROMOTION" | "IMPORT_ADJUSTMENT"
+  changedBy     String   // Email hoặc tên người thực hiện
+  changedByRole String   @default("SELLER") // "SELLER" | "ADMIN"
+  reason        String?  // Lý do điều chỉnh giá
+  createdAt     DateTime @default(now())
+}
+
+model CostPriceHistory {
+  id          String   @id @default(uuid())
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId      String
+  costPrice   Float    // Giá nhập từng đơn vị (VND)
+  quantity    Int      // Số lượng nhập theo hóa đơn/lô
+  invoiceCode String?  // Mã hóa đơn / phiếu nhập kho
+  supplier    String?  // Nhà cung cấp / Đối tác
+  note        String?  // Ghi chú đợt nhập
+  importedBy  String   // Người thực hiện nhập hàng
+  importDate  DateTime @default(now()) // Ngày lập hóa đơn/nhập hàng
+  createdAt   DateTime @default(now())
 }
 
 model Review {

@@ -57,7 +57,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       case 'PENDING_PAYMENT':
       case 'UNPAID':
         return {
-          label: '📦 Xác Nhận Đơn & Chuẩn Bị Hàng',
+          label: '✅ Xác Nhận Đơn Hàng',
           status: 'PROCESSING',
           className: 'bg-[#ee4d2d] hover:bg-[#d03d20] text-white'
         }
@@ -65,7 +65,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
       case 'PREPARING':
       case 'CONFIRMED':
         return {
-          label: '🚛 Bàn Giao Cho Đơn Vị Vận Chuyển',
+          label: '🚛 Chuẩn Bị Xong & Bàn Giao ĐVVC',
           status: 'SHIPPING',
           className: 'bg-blue-600 hover:bg-blue-700 text-white'
         }
@@ -128,7 +128,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             />
           </div>
 
-          <div className="grid grid-cols-4 gap-2 relative z-10">
+          <div className="grid grid-cols-5 gap-2 relative z-10">
             {STATUS_STEPS.map((step, idx) => {
               const isActive = idx === currentStep
               const isPast = idx < currentStep

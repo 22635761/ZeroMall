@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { CreateProductDto, UpdateProductDto } from './product.dto';
+import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 
 @Controller('products')
@@ -13,6 +13,15 @@ export class ProductController {
   }
 
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---
+
+  @Get('price-analytics')
+  async getPriceAnalytics(
+    @Query('shopId') shopId?: string,
+    @Query('productId') productId?: string,
+    @Query('range') range?: string,
+  ) {
+    return this.productService.getPriceAnalytics(shopId, productId, range || '30d');
+  }
 
   @Post('purchase')
   async purchase(@Body('items') items: { productId: string; quantity: number }[]) {
@@ -74,6 +83,26 @@ export class ProductController {
   }
 
   // --- WILDCARD / DYNAMIC ID ROUTES ---
+
+  @Post(':id/update-price')
+  async updatePrice(@Param('id') id: string, @Body() dto: UpdatePriceDto) {
+    return this.productService.updatePrice(id, dto);
+  }
+
+  @Post(':id/import-batch')
+  async importBatch(@Param('id') id: string, @Body() dto: ImportBatchDto) {
+    return this.productService.importBatch(id, dto);
+  }
+
+  @Get(':id/price-history')
+  async getPriceHistory(@Param('id') id: string) {
+    return this.productService.getPriceHistory(id);
+  }
+
+  @Get(':id/cost-history')
+  async getCostHistory(@Param('id') id: string) {
+    return this.productService.getCostHistory(id);
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {

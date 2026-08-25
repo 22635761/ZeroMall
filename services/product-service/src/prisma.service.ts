@@ -24,7 +24,39 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
 
   private async enforceForeignKeys() {
     try {
-      console.log('Enforcing database foreign key constraints...');
+      console.log('Ensuring tables and database foreign key constraints...');
+
+      // 0. Ensure tables and new columns exist
+      await this.$executeRawUnsafe(`
+        ALTER TABLE product."Product" ADD COLUMN IF NOT EXISTS "costPrice" DOUBLE PRECISION DEFAULT 0;
+
+        CREATE TABLE IF NOT EXISTS product."PriceHistory" (
+          "id" TEXT PRIMARY KEY,
+          "productId" TEXT NOT NULL,
+          "shopId" TEXT NOT NULL,
+          "oldPrice" DOUBLE PRECISION NOT NULL,
+          "newPrice" DOUBLE PRECISION NOT NULL,
+          "changeType" TEXT NOT NULL DEFAULT 'MANUAL',
+          "changedBy" TEXT NOT NULL,
+          "changedByRole" TEXT NOT NULL DEFAULT 'SELLER',
+          "reason" TEXT,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS product."CostPriceHistory" (
+          "id" TEXT PRIMARY KEY,
+          "productId" TEXT NOT NULL,
+          "shopId" TEXT NOT NULL,
+          "costPrice" DOUBLE PRECISION NOT NULL,
+          "quantity" INTEGER NOT NULL,
+          "invoiceCode" TEXT,
+          "supplier" TEXT,
+          "note" TEXT,
+          "importedBy" TEXT NOT NULL,
+          "importDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+      `);
 
       // 1. Clean up orphaned records to prevent foreign key errors
       await this.$executeRawUnsafe(`
@@ -32,6 +64,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         DELETE FROM product."ProductLike" WHERE "userId" NOT IN (SELECT id FROM auth."User");
         DELETE FROM product."ProductLike" WHERE "productId" NOT IN (SELECT id FROM product."Product");
         DELETE FROM product."Review" WHERE "productId" NOT IN (SELECT id FROM product."Product");
+        DELETE FROM product."PriceHistory" WHERE "productId" NOT IN (SELECT id FROM product."Product");
+        DELETE FROM product."CostPriceHistory" WHERE "productId" NOT IN (SELECT id FROM product."Product");
       `);
 
       // 2. Intra-schema Review -> Product
@@ -40,6 +74,22 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         DROP CONSTRAINT IF EXISTS fk_review_product;
         ALTER TABLE product."Review"
         ADD CONSTRAINT fk_review_product
+        FOREIGN KEY ("productId")
+        REFERENCES product."Product"(id)
+        ON DELETE CASCADE;
+
+        ALTER TABLE product."PriceHistory"
+        DROP CONSTRAINT IF EXISTS fk_pricehistory_product;
+        ALTER TABLE product."PriceHistory"
+        ADD CONSTRAINT fk_pricehistory_product
+        FOREIGN KEY ("productId")
+        REFERENCES product."Product"(id)
+        ON DELETE CASCADE;
+
+        ALTER TABLE product."CostPriceHistory"
+        DROP CONSTRAINT IF EXISTS fk_costpricehistory_product;
+        ALTER TABLE product."CostPriceHistory"
+        ADD CONSTRAINT fk_costpricehistory_product
         FOREIGN KEY ("productId")
         REFERENCES product."Product"(id)
         ON DELETE CASCADE;

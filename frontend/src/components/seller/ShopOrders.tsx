@@ -206,6 +206,8 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   // Get status badge colors
   const getStatusBadge = (status: Order['status']) => {
     switch (status) {
+      case 'PENDING':
+        return <span className="bg-amber-50 text-amber-700 border border-amber-200/80 px-2.5 py-1 rounded-full text-[10px] font-bold">⏳ Chờ Xác Nhận</span>
       case 'PENDING_PAYMENT':
         return <span className="bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ thanh toán</span>
       case 'PROCESSING':
@@ -481,9 +483,9 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                         {updatingOrderId === order.id ? (
                           <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                         ) : (
-                          <span>📦</span>
+                          <span>✅</span>
                         )}
-                        Xác nhận đơn & Chuẩn bị hàng
+                        Xác nhận đơn hàng
                       </button>
                     )}
 
@@ -498,7 +500,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                         ) : (
                           <span>🚛</span>
                         )}
-                        Bàn giao cho đơn vị vận chuyển
+                        Chuẩn bị xong & Bàn giao ĐVVC
                       </button>
                     )}
 
