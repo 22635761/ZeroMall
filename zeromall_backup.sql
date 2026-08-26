@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict V54lMnJbbuaLq9AXaKPW1EQN8aURbhDq5Aimjo7YuLMzm2nEDMkWy9VhIBhBJxH
+\restrict jcORg1BAuSxN1AF42LjjFxMQBU0W2HKJcc04fjUTOFNxO0luKhVVAckxfkNiBLv
 
 -- Dumped from database version 15.18
 -- Dumped by pg_dump version 15.18
@@ -784,6 +784,27 @@ CREATE TABLE product."Category" (
 ALTER TABLE product."Category" OWNER TO postgres;
 
 --
+-- Name: CostPriceHistory; Type: TABLE; Schema: product; Owner: postgres
+--
+
+CREATE TABLE product."CostPriceHistory" (
+    id text NOT NULL,
+    "productId" text NOT NULL,
+    "shopId" text NOT NULL,
+    "costPrice" double precision NOT NULL,
+    quantity integer NOT NULL,
+    "invoiceCode" text,
+    supplier text,
+    note text,
+    "importedBy" text NOT NULL,
+    "importDate" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE product."CostPriceHistory" OWNER TO postgres;
+
+--
 -- Name: FlashSale; Type: TABLE; Schema: product; Owner: postgres
 --
 
@@ -797,6 +818,26 @@ CREATE TABLE product."FlashSale" (
 
 
 ALTER TABLE product."FlashSale" OWNER TO postgres;
+
+--
+-- Name: PriceHistory; Type: TABLE; Schema: product; Owner: postgres
+--
+
+CREATE TABLE product."PriceHistory" (
+    id text NOT NULL,
+    "productId" text NOT NULL,
+    "shopId" text NOT NULL,
+    "oldPrice" double precision NOT NULL,
+    "newPrice" double precision NOT NULL,
+    "changeType" text DEFAULT 'MANUAL'::text NOT NULL,
+    "changedBy" text NOT NULL,
+    "changedByRole" text DEFAULT 'SELLER'::text NOT NULL,
+    reason text,
+    "createdAt" timestamp(3) without time zone DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
+
+ALTER TABLE product."PriceHistory" OWNER TO postgres;
 
 --
 -- Name: Product; Type: TABLE; Schema: product; Owner: postgres
@@ -834,7 +875,8 @@ CREATE TABLE product."Product" (
     "isViolated" boolean DEFAULT false NOT NULL,
     "reportsCount" integer DEFAULT 0 NOT NULL,
     "violationReason" text,
-    "categoryId" text
+    "categoryId" text,
+    "costPrice" double precision DEFAULT 0
 );
 
 
@@ -1572,6 +1614,14 @@ c930e93c-7d04-4f3f-9fe1-d02feffda6f1	Sách & VPP	sach-vpp	2026-07-23 11:25:47.06
 
 
 --
+-- Data for Name: CostPriceHistory; Type: TABLE DATA; Schema: product; Owner: postgres
+--
+
+COPY product."CostPriceHistory" (id, "productId", "shopId", "costPrice", quantity, "invoiceCode", supplier, note, "importedBy", "importDate", "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: FlashSale; Type: TABLE DATA; Schema: product; Owner: postgres
 --
 
@@ -1584,24 +1634,32 @@ FS-002	09:00 - 15:00	24	RUNNING	2026-07-23 11:37:05.572
 
 
 --
+-- Data for Name: PriceHistory; Type: TABLE DATA; Schema: product; Owner: postgres
+--
+
+COPY product."PriceHistory" (id, "productId", "shopId", "oldPrice", "newPrice", "changeType", "changedBy", "changedByRole", reason, "createdAt") FROM stdin;
+\.
+
+
+--
 -- Data for Name: Product; Type: TABLE DATA; Schema: product; Owner: postgres
 --
 
-COPY product."Product" (id, "shopId", name, image, category, brand, description, price, stock, sales, status, sku, "variationsText", "hasVariations", "variationGroups", "variationRows", weight, length, width, height, condition, "isPreOrder", "preOrderDays", "createdAt", "updatedAt", images, video, "originalPrice", "isViolated", "reportsCount", "violationReason", "categoryId") FROM stdin;
-7eca41aa-9dff-4051-b617-16cd233a66e8	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Kệ Đồ Nhà Bếp Thông Minh Sơn Tĩnh Điện 3 Tầng	https://images.unsplash.com/photo-1588854337236-6889d631faa8?w=400&q=80	Nhà Cửa	No Brand	Kệ để gia vị, lò vi sóng bằng thép carbon sơn tĩnh điện chống gỉ sét, chịu lực lên đến 50kg, giúp căn bếp luôn ngăn nắp gọn gàng.	420000	30	1	active	SHF-KIT-05	\N	f	[]	[]	3500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.944	2026-06-29 04:38:06.944	\N	\N	600000	f	0	\N	70ddc8c0-1a5a-4be8-80c6-1e932449c812
-502872df-544b-4d08-97f6-f5136d2f36c6	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Bình Giữ Nhiệt Lõi Inox 316 Cao Cấp 1000ml	https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80	Nhà Cửa	Lock&Lock	Bình giữ nhiệt dung tích lớn giữ nóng/lạnh lên đến 24 giờ, chất liệu thép không gỉ 316 y tế siêu an toàn, có quai xách tiện lợi.	350000	70	0	active	THM-LOCK-04	\N	f	[]	[]	600	\N	\N	\N	new	f	7	2026-06-29 04:38:06.942	2026-06-29 04:38:06.942	\N	\N	490000	f	0	\N	70ddc8c0-1a5a-4be8-80c6-1e932449c812
-07dd1cf8-a26e-49a2-a7d0-95abe3ec8388	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Bộ Bát Đĩa Sứ Tráng Men Xanh Cổ Điển Sang Trọng	https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=400&q=80	Nhà Cửa	No Brand	Bộ bát đĩa sứ cao cấp gồm 12 chi tiết tráng men bóng cao cấp, phong cách Bắc Âu sang trọng, chịu nhiệt tốt dùng được trong lò vi sóng.	580000	15	0	active	CER-BLU-03	\N	f	[]	[]	4000	\N	\N	\N	new	f	7	2026-06-29 04:38:06.94	2026-07-22 08:16:43.395	\N	\N	750000	t	42	Hàng giả/nhái thương hiệu, lừa đảo	70ddc8c0-1a5a-4be8-80c6-1e932449c812
-d6b333d1-acc0-4081-97b3-a2a397ffe56b	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Nồi Chiên Không Dầu Điện Tử 6.5L Đa Năng Tiện Lợi	https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=400&q=80	Gia Dụng	Philips	Nồi chiên không dầu dung tích lớn 6.5L, điều khiển điện tử cảm ứng nhạy bén, công nghệ chiên xoáy nhiệt 360 độ hạn chế dầu mỡ bảo vệ sức khỏe.	1850000	20	0	active	AF-PLP-01	\N	f	[]	[]	5500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.935	2026-06-29 04:38:06.935	\N	\N	2500000	f	0	\N	4ff7e1b5-53a6-4525-ba37-8f2129453998
-50809270-b63e-43ff-93b7-913411c073f8	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Giày Sneaker Nam Nữ Thể Thao Da Mềm Cao Cấp	https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80	Giày Dép Nam	Adidas	Giày sneaker thể thao phong cách Hàn Quốc trẻ trung năng động, đế cao su chống trơn trượt êm chân, phù hợp đi học, đi làm, dạo phố.	450000	59	3	active	SNK-WHT-03	\N	f	[]	[]	700	\N	\N	\N	new	f	7	2026-06-29 04:38:06.928	2026-08-12 19:05:45.341	\N	\N	600000	f	0	\N	dec2bbb5-567c-4ab4-8175-0feb65e8bf77
-c01b68c8-330f-484a-b73d-1d65b194f189	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	1	2	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:07.87	2026-08-12 19:20:16.37	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a
-bcba9294-1540-4629-a1f4-21ea531b21d8	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Váy Tay Bồng Dáng Xòe Công Chúa Cực Xinh	https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&q=80	Thời Trang Nữ	No Brand	Váy xòe phong cách tiểu thư cổ điển điệu đà, tay bồng thanh lịch, chất vải voan hàn cao cấp mềm mại hai lớp cực chuẩn phom dáng.	320000	44	1	active	DRS-PNK-02	\N	f	[]	[]	300	\N	\N	\N	new	f	7	2026-06-29 04:38:06.925	2026-08-14 08:39:00.869	\N	\N	450000	f	0	\N	dcb70d3d-bdae-49e6-9bbe-331ab2a10f6d
-aac07fcf-9b55-4ce6-9b2f-2e3d34275e4f	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Áo Khoác Bomber Unisex Cực Ngầu Nỉ Ngoại Dày Dặn	https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80	Thời Trang Nam	No Brand	Áo khoác bomber phong cách đường phố năng động, chất liệu nỉ ngoại cao cấp dày dặn ấm áp, thích hợp đi chơi hay đi học.	250000	97	3	active	BMB-BLK-01	\N	f	[]	[]	500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.922	2026-08-14 08:23:45.155	\N	\N	350000	f	0	\N	9cd1423d-4dee-4998-93bd-4b0c7b968928
-bea80f9c-aab7-4885-90b2-3f962816edda	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	1	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.138	2026-08-14 15:44:05.665	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a
-ed97f21d-2134-40ca-a758-5b6fea1ce201	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Máy Xay Sinh Tố Cầm Tay Sạc Pin Mini Không Dây	https://images.unsplash.com/photo-1578643463396-0997cb5328c1?w=400&q=80	Gia Dụng	Bear	Máy xay sinh tố đa năng sạc pin tiện lợi mang đi làm, đi du lịch. Lưỡi dao inox 304 sắc bén, chất liệu nhựa cao cấp an toàn cho bé.	290000	39	1	active	BL-BEAR-02	\N	f	[]	[]	800	\N	\N	\N	new	f	7	2026-06-29 04:38:06.937	2026-08-14 15:52:24.457	\N	\N	390000	f	0	\N	4ff7e1b5-53a6-4525-ba37-8f2129453998
-b1fc3f48-76b8-4492-bf91-af20167e137e	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Nón Lưỡi Trai Kaki Trơn Phong Cách Hàn Quốc	https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80	Phụ Kiện Nữ	No Brand	Mũ lưỡi trai kaki basic unisex nam nữ đội đều đẹp, phom dáng cứng cáp ôm đầu thoải mái, điều chỉnh size dễ dàng.	75000	149	1	active	CAP-BLK-04	\N	f	[]	[]	100	\N	\N	\N	new	f	7	2026-06-29 04:38:06.931	2026-08-14 15:59:02.694	\N	\N	120000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a
-130c82e3-a2ef-437e-8e77-a6da1ab4af5b	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	0	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.202	2026-08-16 13:05:18.251	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	t	15	Mặt hàng chưa kiểm định y tế	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a
-7d707a15-9b2d-413f-9064-21e60c61ec61	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Balo Thời Trang Học Sinh Sinh Viên Chống Nước	https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80	Túi Ví Nữ	No Brand	Balo thời trang đựng vừa laptop 15.6 inch, chất vải oxford chống thấm nước tốt, nhiều ngăn tiện lợi đi học hay du lịch ngắn ngày.	199000	79	1	active	BP-GRY-05	\N	f	[]	[]	600	\N	\N	\N	new	f	7	2026-06-29 04:38:06.933	2026-08-23 11:48:50.61	\N	\N	280000	f	0	\N	825d4683-d05c-47a4-8cac-3f54890a2d75
-7039c315-059c-4cdb-b53d-24175ee21b11	d9be6bae-681d-4b47-8e4f-aa95eac1ce49	HLE GUMAYUSI FANMEETING SEOUL	https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg	Sức Khỏe & Sắc Đẹp	HLE	bé trai biết làm nũng	200000	8	2	active	\N	\N	f	[]	[]	1	10	8	0.1	new	f	2	2026-08-14 16:09:16.647	2026-08-23 11:48:10.558	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg"]	https://www.youtube.com/watch?v=69ZDBWoj5YM&list=RDl_uzEREOKfo&index=9	200000	f	0	\N	\N
+COPY product."Product" (id, "shopId", name, image, category, brand, description, price, stock, sales, status, sku, "variationsText", "hasVariations", "variationGroups", "variationRows", weight, length, width, height, condition, "isPreOrder", "preOrderDays", "createdAt", "updatedAt", images, video, "originalPrice", "isViolated", "reportsCount", "violationReason", "categoryId", "costPrice") FROM stdin;
+7eca41aa-9dff-4051-b617-16cd233a66e8	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Kệ Đồ Nhà Bếp Thông Minh Sơn Tĩnh Điện 3 Tầng	https://images.unsplash.com/photo-1588854337236-6889d631faa8?w=400&q=80	Nhà Cửa	No Brand	Kệ để gia vị, lò vi sóng bằng thép carbon sơn tĩnh điện chống gỉ sét, chịu lực lên đến 50kg, giúp căn bếp luôn ngăn nắp gọn gàng.	420000	30	1	active	SHF-KIT-05	\N	f	[]	[]	3500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.944	2026-06-29 04:38:06.944	\N	\N	600000	f	0	\N	70ddc8c0-1a5a-4be8-80c6-1e932449c812	0
+502872df-544b-4d08-97f6-f5136d2f36c6	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Bình Giữ Nhiệt Lõi Inox 316 Cao Cấp 1000ml	https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400&q=80	Nhà Cửa	Lock&Lock	Bình giữ nhiệt dung tích lớn giữ nóng/lạnh lên đến 24 giờ, chất liệu thép không gỉ 316 y tế siêu an toàn, có quai xách tiện lợi.	350000	70	0	active	THM-LOCK-04	\N	f	[]	[]	600	\N	\N	\N	new	f	7	2026-06-29 04:38:06.942	2026-06-29 04:38:06.942	\N	\N	490000	f	0	\N	70ddc8c0-1a5a-4be8-80c6-1e932449c812	0
+07dd1cf8-a26e-49a2-a7d0-95abe3ec8388	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Bộ Bát Đĩa Sứ Tráng Men Xanh Cổ Điển Sang Trọng	https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=400&q=80	Nhà Cửa	No Brand	Bộ bát đĩa sứ cao cấp gồm 12 chi tiết tráng men bóng cao cấp, phong cách Bắc Âu sang trọng, chịu nhiệt tốt dùng được trong lò vi sóng.	580000	15	0	active	CER-BLU-03	\N	f	[]	[]	4000	\N	\N	\N	new	f	7	2026-06-29 04:38:06.94	2026-07-22 08:16:43.395	\N	\N	750000	t	42	Hàng giả/nhái thương hiệu, lừa đảo	70ddc8c0-1a5a-4be8-80c6-1e932449c812	0
+d6b333d1-acc0-4081-97b3-a2a397ffe56b	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Nồi Chiên Không Dầu Điện Tử 6.5L Đa Năng Tiện Lợi	https://images.unsplash.com/photo-1621972750749-0fbb1abb7736?w=400&q=80	Gia Dụng	Philips	Nồi chiên không dầu dung tích lớn 6.5L, điều khiển điện tử cảm ứng nhạy bén, công nghệ chiên xoáy nhiệt 360 độ hạn chế dầu mỡ bảo vệ sức khỏe.	1850000	20	0	active	AF-PLP-01	\N	f	[]	[]	5500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.935	2026-06-29 04:38:06.935	\N	\N	2500000	f	0	\N	4ff7e1b5-53a6-4525-ba37-8f2129453998	0
+50809270-b63e-43ff-93b7-913411c073f8	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Giày Sneaker Nam Nữ Thể Thao Da Mềm Cao Cấp	https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80	Giày Dép Nam	Adidas	Giày sneaker thể thao phong cách Hàn Quốc trẻ trung năng động, đế cao su chống trơn trượt êm chân, phù hợp đi học, đi làm, dạo phố.	450000	59	3	active	SNK-WHT-03	\N	f	[]	[]	700	\N	\N	\N	new	f	7	2026-06-29 04:38:06.928	2026-08-12 19:05:45.341	\N	\N	600000	f	0	\N	dec2bbb5-567c-4ab4-8175-0feb65e8bf77	0
+c01b68c8-330f-484a-b73d-1d65b194f189	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	1	2	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:07.87	2026-08-12 19:20:16.37	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
+bcba9294-1540-4629-a1f4-21ea531b21d8	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Váy Tay Bồng Dáng Xòe Công Chúa Cực Xinh	https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=400&q=80	Thời Trang Nữ	No Brand	Váy xòe phong cách tiểu thư cổ điển điệu đà, tay bồng thanh lịch, chất vải voan hàn cao cấp mềm mại hai lớp cực chuẩn phom dáng.	320000	44	1	active	DRS-PNK-02	\N	f	[]	[]	300	\N	\N	\N	new	f	7	2026-06-29 04:38:06.925	2026-08-14 08:39:00.869	\N	\N	450000	f	0	\N	dcb70d3d-bdae-49e6-9bbe-331ab2a10f6d	0
+aac07fcf-9b55-4ce6-9b2f-2e3d34275e4f	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Áo Khoác Bomber Unisex Cực Ngầu Nỉ Ngoại Dày Dặn	https://images.unsplash.com/photo-1551028719-00167b16eac5?w=400&q=80	Thời Trang Nam	No Brand	Áo khoác bomber phong cách đường phố năng động, chất liệu nỉ ngoại cao cấp dày dặn ấm áp, thích hợp đi chơi hay đi học.	250000	97	3	active	BMB-BLK-01	\N	f	[]	[]	500	\N	\N	\N	new	f	7	2026-06-29 04:38:06.922	2026-08-14 08:23:45.155	\N	\N	350000	f	0	\N	9cd1423d-4dee-4998-93bd-4b0c7b968928	0
+bea80f9c-aab7-4885-90b2-3f962816edda	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	1	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.138	2026-08-14 15:44:05.665	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
+ed97f21d-2134-40ca-a758-5b6fea1ce201	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Máy Xay Sinh Tố Cầm Tay Sạc Pin Mini Không Dây	https://images.unsplash.com/photo-1578643463396-0997cb5328c1?w=400&q=80	Gia Dụng	Bear	Máy xay sinh tố đa năng sạc pin tiện lợi mang đi làm, đi du lịch. Lưỡi dao inox 304 sắc bén, chất liệu nhựa cao cấp an toàn cho bé.	290000	39	1	active	BL-BEAR-02	\N	f	[]	[]	800	\N	\N	\N	new	f	7	2026-06-29 04:38:06.937	2026-08-14 15:52:24.457	\N	\N	390000	f	0	\N	4ff7e1b5-53a6-4525-ba37-8f2129453998	0
+b1fc3f48-76b8-4492-bf91-af20167e137e	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Nón Lưỡi Trai Kaki Trơn Phong Cách Hàn Quốc	https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80	Phụ Kiện Nữ	No Brand	Mũ lưỡi trai kaki basic unisex nam nữ đội đều đẹp, phom dáng cứng cáp ôm đầu thoải mái, điều chỉnh size dễ dàng.	75000	149	1	active	CAP-BLK-04	\N	f	[]	[]	100	\N	\N	\N	new	f	7	2026-06-29 04:38:06.931	2026-08-14 15:59:02.694	\N	\N	120000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
+130c82e3-a2ef-437e-8e77-a6da1ab4af5b	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	0	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.202	2026-08-16 13:05:18.251	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	t	15	Mặt hàng chưa kiểm định y tế	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
+7d707a15-9b2d-413f-9064-21e60c61ec61	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Balo Thời Trang Học Sinh Sinh Viên Chống Nước	https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80	Túi Ví Nữ	No Brand	Balo thời trang đựng vừa laptop 15.6 inch, chất vải oxford chống thấm nước tốt, nhiều ngăn tiện lợi đi học hay du lịch ngắn ngày.	199000	79	1	active	BP-GRY-05	\N	f	[]	[]	600	\N	\N	\N	new	f	7	2026-06-29 04:38:06.933	2026-08-23 11:48:50.61	\N	\N	280000	f	0	\N	825d4683-d05c-47a4-8cac-3f54890a2d75	0
+7039c315-059c-4cdb-b53d-24175ee21b11	d9be6bae-681d-4b47-8e4f-aa95eac1ce49	HLE GUMAYUSI FANMEETING SEOUL	https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg	Sức Khỏe & Sắc Đẹp	HLE	bé trai biết làm nũng	200000	8	2	active	\N	\N	f	[]	[]	1	10	8	0.1	new	f	2	2026-08-14 16:09:16.647	2026-08-23 11:48:10.558	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg"]	https://www.youtube.com/watch?v=69ZDBWoj5YM&list=RDl_uzEREOKfo&index=9	200000	f	0	\N	\N	0
 \.
 
 
@@ -1946,11 +2004,27 @@ ALTER TABLE ONLY product."Category"
 
 
 --
+-- Name: CostPriceHistory CostPriceHistory_pkey; Type: CONSTRAINT; Schema: product; Owner: postgres
+--
+
+ALTER TABLE ONLY product."CostPriceHistory"
+    ADD CONSTRAINT "CostPriceHistory_pkey" PRIMARY KEY (id);
+
+
+--
 -- Name: FlashSale FlashSale_pkey; Type: CONSTRAINT; Schema: product; Owner: postgres
 --
 
 ALTER TABLE ONLY product."FlashSale"
     ADD CONSTRAINT "FlashSale_pkey" PRIMARY KEY (id);
+
+
+--
+-- Name: PriceHistory PriceHistory_pkey; Type: CONSTRAINT; Schema: product; Owner: postgres
+--
+
+ALTER TABLE ONLY product."PriceHistory"
+    ADD CONSTRAINT "PriceHistory_pkey" PRIMARY KEY (id);
 
 
 --
@@ -2281,6 +2355,22 @@ ALTER TABLE ONLY product."Product"
 
 
 --
+-- Name: CostPriceHistory fk_costpricehistory_product; Type: FK CONSTRAINT; Schema: product; Owner: postgres
+--
+
+ALTER TABLE ONLY product."CostPriceHistory"
+    ADD CONSTRAINT fk_costpricehistory_product FOREIGN KEY ("productId") REFERENCES product."Product"(id) ON DELETE CASCADE;
+
+
+--
+-- Name: PriceHistory fk_pricehistory_product; Type: FK CONSTRAINT; Schema: product; Owner: postgres
+--
+
+ALTER TABLE ONLY product."PriceHistory"
+    ADD CONSTRAINT fk_pricehistory_product FOREIGN KEY ("productId") REFERENCES product."Product"(id) ON DELETE CASCADE;
+
+
+--
 -- Name: Product fk_product_shop; Type: FK CONSTRAINT; Schema: product; Owner: postgres
 --
 
@@ -2316,5 +2406,5 @@ ALTER TABLE ONLY product."Review"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict V54lMnJbbuaLq9AXaKPW1EQN8aURbhDq5Aimjo7YuLMzm2nEDMkWy9VhIBhBJxH
+\unrestrict jcORg1BAuSxN1AF42LjjFxMQBU0W2HKJcc04fjUTOFNxO0luKhVVAckxfkNiBLv
 
