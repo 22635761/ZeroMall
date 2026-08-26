@@ -15,6 +15,7 @@ import { ShopBankAccounts } from '../../components/seller/ShopBankAccounts'
 import { SellerChatManager } from '../../components/seller/SellerChatManager'
 import { ShopReviews } from '../../components/seller/ShopReviews'
 import { ShopLogisticsManager } from '../../components/seller/ShopLogisticsManager'
+import PriceManagement from '../../components/seller/PriceManagement'
 import { NotificationPopover } from '../../components/common/NotificationPopover'
 import { orderService } from '../../services/order.service'
 
@@ -267,6 +268,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       icon: '📦',
       subMenus: [
         { id: 'all-products', title: 'Tất Cả Sản Phẩm' },
+        { id: 'price-history', title: 'Quản Lý Giá & Biến Động' },
         { id: 'add-product', title: 'Thêm Sản Phẩm' }
       ]
     },
@@ -458,6 +460,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
                 }}
               />
             )
+          ) : activeMenu === 'products' && activeSubMenu === 'price-history' ? (
+            <PriceManagement user={user} shopDetails={shopDetails} />
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-vouchers' ? (
             <ShopVouchers user={user} />
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-flashsale' ? (

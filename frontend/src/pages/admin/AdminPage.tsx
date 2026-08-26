@@ -10,6 +10,7 @@ import { CsStaffTab } from '../../components/admin/CsStaffTab'
 import { SystemReportsTab } from '../../components/admin/SystemReportsTab'
 import { CommissionSettingTab } from '../../components/admin/CommissionSettingTab'
 import { AuditLogsTab } from '../../components/admin/AuditLogsTab'
+import AdminPriceAnalyticsTab from '../../components/admin/AdminPriceAnalyticsTab'
 
 interface AdminPageProps {
   user: any
@@ -47,6 +48,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'reports': return 'SYSTEM_REPORTS';
       case 'commission-setting': return 'COMMISSION_SETTING';
       case 'audit-logs': return 'AUDIT_LOGS';
+      case 'price-analytics': return 'PRICE_ANALYTICS';
       default: return null;
     }
   }
@@ -63,12 +65,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'SYSTEM_REPORTS': return 'reports';
       case 'COMMISSION_SETTING': return 'commission-setting';
       case 'AUDIT_LOGS': return 'audit-logs';
+      case 'PRICE_ANALYTICS': return 'price-analytics';
       default: return 'users';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING'
+    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -239,6 +242,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'FLASH_SALE', label: 'Quản lý Flash Sale', icon: '⚡' },
     { id: 'MANAGE_CS_STAFF', label: 'Nhân viên Platform CS', icon: '🎧' },
     { id: 'SYSTEM_REPORTS', label: 'Báo cáo hệ thống', icon: '📊' },
+    { id: 'PRICE_ANALYTICS', label: 'Biến động & Giá vốn', icon: '📈' },
     { id: 'COMMISSION_SETTING', label: 'Chiết khấu sàn', icon: '⚙️' },
     { id: 'AUDIT_LOGS', label: 'Lịch sử thao tác', icon: '📜' },
   ]
@@ -359,6 +363,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           {activePortalTab === 'SYSTEM_REPORTS' && (
             <SystemReportsTab allOrders={allOrders} users={users} commissionRate={commissionRate} />
+          )}
+
+          {activePortalTab === 'PRICE_ANALYTICS' && (
+            <AdminPriceAnalyticsTab />
           )}
 
           {activePortalTab === 'COMMISSION_SETTING' && (

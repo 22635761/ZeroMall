@@ -114,7 +114,7 @@ export class OrderService implements OnModuleInit {
           totalAmount: dto.totalAmount,
           shippingFee: dto.shippingFee,
           paymentMethod: dto.paymentMethod,
-          status: dto.paymentMethod === 'cod' ? 'PROCESSING' : 'PENDING_PAYMENT',
+          status: dto.paymentMethod === 'cod' ? 'PENDING' : 'PENDING_PAYMENT',
           shopDiscountAmount: dto.shopDiscountAmount || 0,
           platformDiscountAmount: dto.platformDiscountAmount || 0,
           shopVoucherCode: dto.shopVoucherCode || null,
@@ -143,7 +143,7 @@ export class OrderService implements OnModuleInit {
       return newOrder;
     });
 
-    // Nếu đơn hàng COD (status = PROCESSING ngay từ đầu), cập nhật ngay số lượng đã bán (sales) và kho (stock)
+    // Nếu đơn hàng thanh toán online hoặc đã ở trạng thái PROCESSING, cập nhật ngay số lượng đã bán và kho
     if (order.status === 'PROCESSING') {
       this.notifyProductPurchase(order.items);
     }

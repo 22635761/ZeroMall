@@ -1,6 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateProductDto, UpdateProductDto } from './product.dto';
+import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 
 @Injectable()
@@ -74,7 +74,7 @@ export class ProductService {
     const variationRowsStr = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
     const categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
 
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: {
         shopId: String(dto.shopId),
         name: String(dto.name || 'Sản phẩm mới'),
@@ -86,6 +86,7 @@ export class ProductService {
         description: dto.description ? String(dto.description) : String(dto.name || 'Mô tả sản phẩm'),
         price: String(dto.price || '0'),
         originalPrice: dto.originalPrice ? String(dto.originalPrice) : null,
+        costPrice: dto.costPrice != null ? Number(dto.costPrice) : (parseFloat(String(dto.price || '0')) * 0.7 || 0),
         stock: typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0,
         sales: typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0,
         status: dto.status ? String(dto.status) : 'active',
@@ -103,6 +104,40 @@ export class ProductService {
         preOrderDays: dto.preOrderDays != null ? String(dto.preOrderDays) : '7',
       },
     });
+
+    const parsedPrice = parseFloat(String(dto.price || '0')) || 0;
+    if (parsedPrice > 0) {
+      await this.prisma.priceHistory.create({
+        data: {
+          productId: product.id,
+          shopId: product.shopId,
+          oldPrice: parsedPrice,
+          newPrice: parsedPrice,
+          changeType: 'INITIAL',
+          changedBy: 'Hệ thống / Khởi tạo',
+          changedByRole: 'SELLER',
+          reason: 'Khởi tạo giá niêm yết ban đầu khi tạo sản phẩm',
+        },
+      }).catch((e) => console.error('Failed to create initial price history:', e));
+    }
+
+    const initialCost = dto.costPrice != null ? Number(dto.costPrice) : (parsedPrice * 0.7);
+    if (product.stock > 0 && initialCost > 0) {
+      await this.prisma.costPriceHistory.create({
+        data: {
+          productId: product.id,
+          shopId: product.shopId,
+          costPrice: initialCost,
+          quantity: product.stock,
+          invoiceCode: `NK-INIT-${Date.now().toString().slice(-6)}`,
+          supplier: 'Lô hàng ban đầu',
+          note: 'Ghi nhận giá nhập khởi tạo theo tồn kho ban đầu',
+          importedBy: 'Chủ cửa hàng',
+        },
+      }).catch((e) => console.error('Failed to create initial cost history:', e));
+    }
+
+    return product;
   }
 
   async purchase(items: { productId: string; quantity: number }[]) {
@@ -147,11 +182,35 @@ export class ProductService {
     if (dto.condition !== undefined) updateData.condition = String(dto.condition);
     if (dto.isPreOrder !== undefined) updateData.isPreOrder = Boolean(dto.isPreOrder);
     if (dto.preOrderDays !== undefined) updateData.preOrderDays = dto.preOrderDays != null ? String(dto.preOrderDays) : '7';
+    if (dto.costPrice !== undefined) updateData.costPrice = dto.costPrice != null ? Number(dto.costPrice) : null;
 
-    return this.prisma.product.update({
+    const currentProduct = await this.findOne(id);
+    const updatedProduct = await this.prisma.product.update({
       where: { id },
       data: updateData,
     });
+
+    // Tự động ghi lại lịch sử nếu giá bán thay đổi qua form sửa sản phẩm
+    if (dto.price !== undefined) {
+      const oldPrice = parseFloat(currentProduct.price) || 0;
+      const newPrice = parseFloat(String(dto.price)) || 0;
+      if (oldPrice !== newPrice && !isNaN(newPrice)) {
+        await this.prisma.priceHistory.create({
+          data: {
+            productId: currentProduct.id,
+            shopId: currentProduct.shopId,
+            oldPrice: oldPrice,
+            newPrice: newPrice,
+            changeType: 'MANUAL',
+            changedBy: 'Người bán',
+            changedByRole: 'SELLER',
+            reason: 'Cập nhật giá từ trang quản lý sản phẩm',
+          },
+        }).catch(err => console.error('Lỗi lưu PriceHistory khi cập nhật sản phẩm:', err));
+      }
+    }
+
+    return updatedProduct;
   }
 
   async toggleStatus(id: string) {
@@ -424,5 +483,347 @@ export class ProductService {
       productName: productMap.get(r.productId)?.name || 'Sản phẩm',
       productImage: productMap.get(r.productId)?.image || '',
     }));
+  }
+
+  // ============================================================
+  // QUẢN LÝ GIÁ VÀ BIẾN ĐỘNG GIÁ
+  // ============================================================
+
+  async updatePrice(id: string, dto: UpdatePriceDto) {
+    const product = await this.findOne(id);
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    // Phân quyền: Seller chỉ được sửa sản phẩm của chính shop mình
+    if (dto.shopId && dto.changedByRole !== 'ADMIN' && product.shopId !== dto.shopId) {
+      throw new ForbiddenException('Bạn chỉ có quyền cập nhật giá cho sản phẩm thuộc Shop mình quản lý!');
+    }
+
+    const oldPrice = parseFloat(product.price) || 0;
+    const newPrice = Number(dto.newPrice);
+    if (isNaN(newPrice) || newPrice < 0) {
+      throw new Error('Giá mới không hợp lệ');
+    }
+
+    const updateData: any = {
+      price: String(newPrice),
+    };
+    if (dto.originalPrice !== undefined && dto.originalPrice !== null) {
+      updateData.originalPrice = String(dto.originalPrice);
+    }
+
+    const updatedProduct = await this.prisma.product.update({
+      where: { id },
+      data: updateData,
+    });
+
+    // Tuyệt đối không xóa lịch sử; lưu giá cũ, giá mới, thời gian, người thay đổi
+    const priceHistory = await this.prisma.priceHistory.create({
+      data: {
+        productId: product.id,
+        shopId: product.shopId,
+        oldPrice: oldPrice,
+        newPrice: newPrice,
+        changeType: 'MANUAL',
+        changedBy: dto.changedBy || 'Người bán',
+        changedByRole: dto.changedByRole || 'SELLER',
+        reason: dto.reason || 'Cập nhật giá bán sản phẩm',
+      },
+    });
+
+    return {
+      success: true,
+      product: updatedProduct,
+      priceHistory,
+    };
+  }
+
+  async importBatch(id: string, dto: ImportBatchDto) {
+    const product = await this.findOne(id);
+    if (!product) {
+      throw new NotFoundException('Sản phẩm không tồn tại');
+    }
+
+    // Phân quyền: Seller chỉ được nhập hàng cho sản phẩm của shop mình
+    if (dto.shopId && dto.importedBy && product.shopId !== dto.shopId && !dto.importedBy.toLowerCase().includes('admin')) {
+      throw new ForbiddenException('Bạn chỉ có quyền nhập hàng cho sản phẩm thuộc Shop mình quản lý!');
+    }
+
+    const costPrice = Number(dto.costPrice);
+    const quantity = Number(dto.quantity);
+    if (isNaN(costPrice) || costPrice < 0 || isNaN(quantity) || quantity <= 0) {
+      throw new Error('Giá nhập và số lượng nhập phải lớn hơn 0');
+    }
+
+    const importDate = dto.importDate ? new Date(dto.importDate) : new Date();
+
+    const costHistory = await this.prisma.costPriceHistory.create({
+      data: {
+        productId: product.id,
+        shopId: product.shopId,
+        costPrice: costPrice,
+        quantity: quantity,
+        invoiceCode: dto.invoiceCode || `HD-NK-${Date.now().toString().slice(-6)}`,
+        supplier: dto.supplier || 'Nhà cung cấp',
+        note: dto.note || 'Nhập hàng vào kho',
+        importedBy: dto.importedBy || 'Quản lý kho',
+        importDate: importDate,
+      },
+    });
+
+    // Cập nhật giá vốn hiện tại và cộng dồn số lượng tồn kho
+    const updatedProduct = await this.prisma.product.update({
+      where: { id },
+      data: {
+        costPrice: costPrice,
+        stock: { increment: quantity },
+      },
+    });
+
+    return {
+      success: true,
+      product: updatedProduct,
+      costHistory,
+    };
+  }
+
+  async getPriceHistory(productId: string) {
+    await this.findOne(productId);
+    return this.prisma.priceHistory.findMany({
+      where: { productId },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async getCostHistory(productId: string) {
+    await this.findOne(productId);
+    return this.prisma.costPriceHistory.findMany({
+      where: { productId },
+      orderBy: { importDate: 'desc' },
+    });
+  }
+
+  async getPriceAnalytics(shopId?: string, productId?: string, range: string = '30d') {
+    let whereProduct: any = {};
+    if (productId) whereProduct.id = productId;
+    if (shopId) whereProduct.shopId = shopId;
+
+    const products = await this.prisma.product.findMany({
+      where: Object.keys(whereProduct).length > 0 ? whereProduct : undefined,
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        price: true,
+        originalPrice: true,
+        costPrice: true,
+        stock: true,
+        sales: true,
+        category: true,
+        shopId: true,
+        createdAt: true,
+      },
+    });
+
+    if (products.length === 0) {
+      return {
+        products: [],
+        timeline: [],
+        priceHistories: [],
+        costHistories: [],
+        summary: {
+          currentSellingPrice: 0,
+          currentCostPrice: 0,
+          profitMargin: 0,
+          marginPercentage: 0,
+          totalImportedQuantity: 0,
+          totalPriceChangesCount: 0,
+          totalBatchesCount: 0,
+        },
+      };
+    }
+
+    const targetProductIds = products.map((p) => p.id);
+
+    // Xử lý khoảng thời gian
+    let startDate: Date | undefined = undefined;
+    const now = new Date();
+    if (range === '7d') {
+      startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    } else if (range === '30d') {
+      startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    } else if (range === '90d') {
+      startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+    } else if (range === '1y') {
+      startDate = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+    }
+
+    const priceWhere: any = {
+      productId: { in: targetProductIds },
+    };
+    const costWhere: any = {
+      productId: { in: targetProductIds },
+    };
+    if (startDate) {
+      priceWhere.createdAt = { gte: startDate };
+      costWhere.importDate = { gte: startDate };
+    }
+
+    const [priceHistories, costHistories] = await Promise.all([
+      this.prisma.priceHistory.findMany({
+        where: priceWhere,
+        orderBy: { createdAt: 'asc' },
+      }),
+      this.prisma.costPriceHistory.findMany({
+        where: costWhere,
+        orderBy: { importDate: 'asc' },
+      }),
+    ]);
+
+    // Lập bản đồ sản phẩm để gán tên và thông tin
+    const productMap = new Map(products.map((p) => [p.id, p]));
+
+    // Tạo các mốc thời gian tổng hợp cho biểu đồ
+    const timelineMap = new Map<string, any>();
+
+    // 1. Ghi nhận các điểm thay đổi giá bán
+    for (const ph of priceHistories) {
+      const dateStr = ph.createdAt.toISOString().slice(0, 10);
+      const prod = productMap.get(ph.productId);
+      const existing = timelineMap.get(dateStr) || {
+        date: dateStr,
+        timestamp: ph.createdAt.getTime(),
+        sellingPrice: ph.newPrice,
+        costPrice: prod?.costPrice || (ph.newPrice * 0.7),
+        events: [],
+      };
+      existing.sellingPrice = ph.newPrice;
+      existing.timestamp = ph.createdAt.getTime();
+      existing.events.push({
+        type: 'PRICE_CHANGE',
+        oldPrice: ph.oldPrice,
+        newPrice: ph.newPrice,
+        changedBy: ph.changedBy,
+        reason: ph.reason,
+        productName: prod?.name,
+        time: ph.createdAt,
+      });
+      timelineMap.set(dateStr, existing);
+    }
+
+    // 2. Ghi nhận các điểm hóa đơn giá nhập
+    for (const ch of costHistories) {
+      const dateStr = ch.importDate.toISOString().slice(0, 10);
+      const prod = productMap.get(ch.productId);
+      const curSelling = prod ? parseFloat(prod.price) || 0 : 0;
+      const existing = timelineMap.get(dateStr) || {
+        date: dateStr,
+        timestamp: ch.importDate.getTime(),
+        sellingPrice: curSelling,
+        costPrice: ch.costPrice,
+        events: [],
+      };
+      existing.costPrice = ch.costPrice;
+      existing.events.push({
+        type: 'COST_IMPORT',
+        costPrice: ch.costPrice,
+        quantity: ch.quantity,
+        invoiceCode: ch.invoiceCode,
+        supplier: ch.supplier,
+        importedBy: ch.importedBy,
+        note: ch.note,
+        productName: prod?.name,
+        time: ch.importDate,
+      });
+      timelineMap.set(dateStr, existing);
+    }
+
+    // Nếu là xem 1 sản phẩm cụ thể và chưa có nhiều điểm, đảm bảo có điểm khởi tạo & điểm hiện tại
+    if (productId && products.length === 1) {
+      const prod = products[0];
+      const curSelling = parseFloat(prod.price) || 0;
+      const curCost = prod.costPrice || (curSelling * 0.7);
+      const todayStr = now.toISOString().slice(0, 10);
+      if (!timelineMap.has(todayStr)) {
+        timelineMap.set(todayStr, {
+          date: todayStr,
+          timestamp: now.getTime(),
+          sellingPrice: curSelling,
+          costPrice: curCost,
+          events: [],
+        });
+      }
+      const createdStr = prod.createdAt.toISOString().slice(0, 10);
+      if (!timelineMap.has(createdStr)) {
+        timelineMap.set(createdStr, {
+          date: createdStr,
+          timestamp: prod.createdAt.getTime(),
+          sellingPrice: curSelling,
+          costPrice: curCost,
+          events: [],
+        });
+      }
+    }
+
+    // Sắp xếp timeline theo thứ tự thời gian tăng dần
+    const timeline = Array.from(timelineMap.values())
+      .sort((a, b) => a.timestamp - b.timestamp)
+      .map((item) => {
+        const profitMargin = item.sellingPrice - item.costPrice;
+        const marginPercentage = item.sellingPrice > 0 ? (profitMargin / item.sellingPrice) * 100 : 0;
+        return {
+          ...item,
+          profitMargin,
+          marginPercentage: Number(marginPercentage.toFixed(2)),
+        };
+      });
+
+    // Tính toán số liệu tổng kết KPI
+    let currentSellingPrice = 0;
+    let currentCostPrice = 0;
+    if (productId && products.length === 1) {
+      currentSellingPrice = parseFloat(products[0].price) || 0;
+      currentCostPrice = products[0].costPrice || 0;
+    } else {
+      currentSellingPrice = products.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) / (products.length || 1);
+      currentCostPrice = products.reduce((sum, p) => sum + (p.costPrice || 0), 0) / (products.length || 1);
+    }
+    const profitMargin = currentSellingPrice - currentCostPrice;
+    const marginPercentage = currentSellingPrice > 0 ? (profitMargin / currentSellingPrice) * 100 : 0;
+    const totalImportedQuantity = costHistories.reduce((sum, c) => sum + c.quantity, 0);
+
+    const selectedProd = products.find(p => p.id === productId) || products[0];
+
+    return {
+      product: selectedProd ? {
+        id: selectedProd.id,
+        name: selectedProd.name,
+        currentSellingPrice: parseFloat(selectedProd.price) || 0,
+        currentCostPrice: selectedProd.costPrice || 0,
+      } : null,
+      products,
+      timeline,
+      chartData: timeline,
+      priceHistories: priceHistories.slice().reverse(),
+      costHistories: costHistories.slice().reverse(),
+      metrics: {
+        currentSellingPrice: Math.round(currentSellingPrice),
+        currentCostPrice: Math.round(currentCostPrice),
+        marginAmount: Math.round(profitMargin),
+        marginPercent: Number(marginPercentage.toFixed(2)),
+        totalPriceChanges: priceHistories.length,
+        totalBatches: costHistories.length,
+      },
+      summary: {
+        currentSellingPrice: Math.round(currentSellingPrice),
+        currentCostPrice: Math.round(currentCostPrice),
+        profitMargin: Math.round(profitMargin),
+        marginPercentage: Number(marginPercentage.toFixed(2)),
+        totalImportedQuantity,
+        totalPriceChangesCount: priceHistories.length,
+        totalBatchesCount: costHistories.length,
+      },
+    };
   }
 }

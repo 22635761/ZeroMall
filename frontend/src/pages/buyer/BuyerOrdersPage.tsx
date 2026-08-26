@@ -118,6 +118,8 @@ export const BuyerOrdersPage: React.FC<BuyerOrdersPageProps> = ({ user, onBackTo
 
   const getStatusLabel = (status: string) => {
     switch (status) {
+      case 'PENDING':
+        return { label: 'Chờ Người Bán Xác Nhận', color: 'text-amber-600 bg-amber-50 border-amber-100' }
       case 'PENDING_PAYMENT':
         return { label: 'Chờ Thanh Toán', color: 'text-amber-600 bg-amber-50 border-amber-100' }
       case 'PROCESSING':
