@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { UsersTab } from '../../components/admin/UsersTab'
 import { ShopsTab } from '../../components/admin/ShopsTab'
 import { CategoriesTab } from '../../components/admin/CategoriesTab'
-import { ViolationsTab } from '../../components/admin/ViolationsTab'
+import { ProductModerationTab } from '../../components/admin/ProductModerationTab'
 import { PlatformVouchersTab } from '../../components/admin/PlatformVouchersTab'
 import { FlashSaleTab } from '../../components/admin/FlashSaleTab'
 import { CsStaffTab } from '../../components/admin/CsStaffTab'
@@ -26,7 +26,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [shops, setShops] = useState<any[]>([])
   const [users, setUsers] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
-  const [violations, setViolations] = useState<any[]>([])
   const [platformVouchers, setPlatformVouchers] = useState<any[]>([])
   const [flashSales, setFlashSales] = useState<any[]>([])
   const [csStaff, setCsStaff] = useState<any[]>([])
@@ -123,15 +122,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   }
 
-  const fetchViolations = async () => {
-    try {
-      const res = await fetch('http://localhost:8000/products/violations')
-      if (res.ok) setViolations(await res.json())
-    } catch (err) {
-      console.error(err)
-    }
-  }
-
   const fetchVouchers = async () => {
     try {
       const res = await fetch('http://localhost:8000/discounts?shopId=PLATFORM')
@@ -199,8 +189,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       fetchUsers()
     } else if (activePortalTab === 'CATEGORIES') {
       fetchCategories()
-    } else if (activePortalTab === 'VIOLATIONS') {
-      fetchViolations()
     } else if (activePortalTab === 'PLATFORM_VOUCHERS') {
       fetchVouchers()
     } else if (activePortalTab === 'FLASH_SALE') {
@@ -237,7 +225,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'USERS', label: 'Quản lý User', icon: '👥' },
     { id: 'MANAGE_SHOPS', label: 'Quản lý & Khóa Shop', icon: '🏪' },
     { id: 'CATEGORIES', label: 'Quản lý danh mục', icon: '🗂️' },
-    { id: 'VIOLATIONS', label: 'Sản phẩm vi phạm', icon: '🚫' },
+    { id: 'VIOLATIONS', label: 'Quản lý & Kiểm duyệt SP', icon: '📦' },
     { id: 'PLATFORM_VOUCHERS', label: 'Voucher toàn sàn', icon: '🎟️' },
     { id: 'FLASH_SALE', label: 'Quản lý Flash Sale', icon: '⚡' },
     { id: 'MANAGE_CS_STAFF', label: 'Nhân viên Platform CS', icon: '🎧' },
@@ -346,7 +334,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           )}
 
           {activePortalTab === 'VIOLATIONS' && (
-            <ViolationsTab violations={violations} fetchViolations={fetchViolations} triggerAuditLog={triggerAuditLog} />
+            <ProductModerationTab triggerAuditLog={triggerAuditLog} />
           )}
 
           {activePortalTab === 'PLATFORM_VOUCHERS' && (

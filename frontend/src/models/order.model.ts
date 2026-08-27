@@ -19,7 +19,13 @@ export interface Order {
   totalAmount: number
   shippingFee: number
   paymentMethod: string
-  status: string // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
+  status: string // "PENDING" | "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "DELIVERED" | "COMPLETED" | "CANCELLED"
+  shopDiscountAmount?: number
+  platformDiscountAmount?: number
+  shopVoucherCode?: string | null
+  platformVoucherCode?: string | null
+  appliedVoucherIds?: string | null
+  commissionRate?: number
   ghnDistrictId?: number
   ghnWardCode?: string
   ghnOrderCode?: string

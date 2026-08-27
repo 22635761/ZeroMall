@@ -1,20 +1,44 @@
 import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { orderService } from '../../services/order.service'
 import type { Order } from '../../models/order.model'
 import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
 import { ReviewModal } from '../../components/buyer/ReviewModal'
 import type { ReviewSubmitData } from '../../components/buyer/ReviewModal'
 import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
+import { BuyerOrderDetail } from '../../components/buyer/BuyerOrderDetail'
 
 interface UserPurchaseTabProps {
   user: any
 }
 
 export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
+  const { orderId: routeOrderId } = useParams<{ orderId?: string }>()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState('ALL') // ALL, PENDING, SHIPPING, COMPLETED, CANCELLED
+  const [activeTab, setActiveTab] = useState(() => searchParams.get('type') || 'ALL')
   const [searchQuery, setSearchQuery] = useState('')
+  const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null)
+
+  // Sync routeOrderId with selectedOrderForDetail
+  useEffect(() => {
+    if (routeOrderId && orders.length > 0) {
+      const found = orders.find(o => o.id === routeOrderId)
+      if (found) {
+        setSelectedOrderForDetail(found)
+      } else {
+        // Fetch single order if not in list
+        orderService.fetchOrderById(routeOrderId).then(o => {
+          if (o) setSelectedOrderForDetail(o)
+        }).catch(() => {})
+      }
+    } else if (!routeOrderId) {
+      setSelectedOrderForDetail(null)
+    }
+  }, [routeOrderId, orders])
 
   // Refund wizard states
   const [showRefundModal, setShowRefundModal] = useState(false)
@@ -424,9 +448,152 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     return idMatch || itemMatch
   })
 
-  // Format currency
   const formatMoney = (amount: number) => {
     return amount.toLocaleString('vi-VN') + 'đ'
+  }
+
+  const handleConfirmReceived = async (order: Order) => {
+    if (window.confirm('Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn từ Shop?')) {
+      try {
+        await orderService.updateOrderStatus(order.id, 'COMPLETED')
+        alert('Cảm ơn bạn đã xác nhận! Đơn hàng đã hoàn tất. Vui lòng đánh giá sản phẩm.')
+        fetchOrders()
+        if (selectedOrderForDetail?.id === order.id) {
+          setSelectedOrderForDetail({ ...selectedOrderForDetail, status: 'COMPLETED' })
+        }
+      } catch (err: any) {
+        alert('Lỗi khi xác nhận nhận hàng: ' + err.message)
+      }
+    }
+  }
+
+  const handleOpenRefund = (order: Order) => {
+    handleRequestRefundClick(order)
+  }
+
+  const getShopeeTypeNumber = (status: string) => {
+    switch (status) {
+      case 'PENDING':
+      case 'PENDING_PAYMENT':
+        return '1'
+      case 'PROCESSING':
+      case 'PREPARING':
+        return '2'
+      case 'SHIPPING':
+      case 'IN_TRANSIT':
+      case 'DELIVERING':
+        return '3'
+      case 'DELIVERED':
+        return '4'
+      case 'COMPLETED':
+        return '6'
+      case 'CANCELLED':
+        return '7'
+      case 'REFUND_PENDING':
+      case 'RETURN_PENDING':
+      case 'RETURN_SHIPPED':
+      case 'REFUNDED':
+        return '8'
+      default:
+        return '6'
+    }
+  }
+
+  if (selectedOrderForDetail) {
+    const firstItem = selectedOrderForDetail.items?.[0]
+    const targetShopId = firstItem?.shopId || 'zeromall-official'
+    const shopName = shopsInfo[targetShopId] || (firstItem as any)?.shopName || 'ZeroMall Official Store'
+
+    return (
+      <>
+        <BuyerOrderDetail
+          order={selectedOrderForDetail}
+          onBack={() => {
+            setSelectedOrderForDetail(null)
+            navigate('/user/purchase')
+          }}
+          onOpenReview={(order) => {
+            setSelectedOrderForReview(order)
+            setShowReviewModal(true)
+          }}
+          onCancelOrder={(order) => handleOpenCancelModal(order)}
+          onRePaySepay={(order) => handleRePaySepay(order)}
+          onConfirmReceived={(order) => handleConfirmReceived(order)}
+          onOpenRefund={(order) => handleOpenRefund(order)}
+          isRated={ratedOrders.has(selectedOrderForDetail.id)}
+          shopName={shopName}
+        />
+
+        {/* Review Modal */}
+        {selectedOrderForReview && (
+          <ReviewModal
+            isOpen={showReviewModal}
+            onClose={() => setShowReviewModal(false)}
+            order={selectedOrderForReview}
+            onSubmit={handleReviewSubmit}
+            user={user}
+          />
+        )}
+
+        {/* Cancel Modal */}
+        {showCancelModal && selectedOrderForCancel && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4 animate-in fade-in">
+            <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl overflow-hidden text-left">
+              <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">❌</span>
+                  <h3 className="font-black text-slate-900">Xác Nhận Hủy Đơn Hàng</h3>
+                </div>
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold flex items-center justify-center cursor-pointer"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <p className="text-slate-600">
+                  Bạn có chắc chắn muốn hủy đơn hàng <strong>#{selectedOrderForCancel.id}</strong>?
+                </p>
+
+                <div className="space-y-1.5">
+                  <label className="font-bold text-slate-700">Lý do hủy đơn:</label>
+                  <select
+                    value={cancelReason}
+                    onChange={(e) => setCancelReason(e.target.value)}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                  >
+                    <option value="Muốn thay đổi địa chỉ nhận hàng">Muốn thay đổi địa chỉ nhận hàng</option>
+                    <option value="Muốn thay đổi mã giảm giá/voucher">Muốn thay đổi mã giảm giá/voucher</option>
+                    <option value="Muốn đổi phương thức thanh toán">Muốn đổi phương thức thanh toán</option>
+                    <option value="Đổi ý không muốn mua nữa">Đổi ý không muốn mua nữa</option>
+                    <option value="Tìm thấy giá rẻ hơn ở nơi khác">Tìm thấy giá rẻ hơn ở nơi khác</option>
+                    <option value="Khác">Lý do khác</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  onClick={() => setShowCancelModal(false)}
+                  className="px-4 py-2 text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                >
+                  Đóng
+                </button>
+                <button
+                  onClick={handleCancelOrderSubmit}
+                  disabled={isCancelling}
+                  className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer disabled:opacity-50"
+                >
+                  {isCancelling ? 'Đang xử lý...' : 'Xác Nhận Hủy'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+    )
   }
 
   return (
@@ -538,8 +705,15 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                 );
               })()}
 
-              {/* Order Items List */}
-              <div className="space-y-3">
+              {/* Order Items List - Bấm vào xem chi tiết đơn hàng */}
+              <div 
+                onClick={() => {
+                  setSelectedOrderForDetail(order)
+                  navigate(`/user/purchase/order/${order.id}?type=${getShopeeTypeNumber(order.status)}`)
+                }}
+                className="space-y-3 cursor-pointer hover:bg-slate-50/70 p-2 -mx-2 rounded-lg transition group"
+                title="Bấm để xem chi tiết đơn hàng"
+              >
                 {order.items.map((item: any) => (
                   <div key={item.id} className="flex gap-3 text-xs">
                     <img 
@@ -548,7 +722,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                       className="w-[70px] h-[70px] border border-slate-200 rounded-sm object-cover shrink-0"
                     />
                     <div className="flex-1 min-w-0 space-y-1">
-                      <h4 className="font-semibold text-slate-800 line-clamp-1">{item.name || item.productName}</h4>
+                      <h4 className="font-semibold text-slate-800 line-clamp-1 hover:text-[#ee4d2d] transition">{item.name || item.productName}</h4>
                       {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
                         <p className="text-[10px] text-slate-400 font-medium mt-0.5">
                           Phân loại hàng: <span className="font-semibold text-slate-600">{item.variant}</span>

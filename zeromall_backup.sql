@@ -2,7 +2,7 @@
 -- PostgreSQL database dump
 --
 
-\restrict jcORg1BAuSxN1AF42LjjFxMQBU0W2HKJcc04fjUTOFNxO0luKhVVAckxfkNiBLv
+\restrict Hohg6AhLs27gxwuFaHBgEONmqQ2TbGJ4UD3P2X8YRKG6Y3goEY2w5CMsKB5u0VJ
 
 -- Dumped from database version 15.18
 -- Dumped by pg_dump version 15.18
@@ -926,6 +926,7 @@ d1a3364b-37b7-4972-8522-cd447359992d	2026-07-23 11:39:06.211	admin@zeromall.com	
 1e47a643-2b64-45e1-b604-20095e7004d1	2026-07-24 10:56:22.213	admin@zeromall.com	Thay đổi mức chiết khấu sàn thành 10%
 cd00344f-4f80-4505-a12a-5355f7f6ac7c	2026-07-25 02:23:46.426	cskh_1@gmail.com	Phê duyệt yêu cầu rút tiền mã #51ff79b8-b051-4d4a-864d-7ac114680ee4
 a8fd309a-35c8-4b56-8e52-e31306163372	2026-08-14 15:56:53.179	admin@zeromall.com	Mở khóa cửa hàng "Shop good HLE"
+9a68cf30-ca88-46ad-aefa-fb3f14b6936a	2026-08-26 07:10:46.796	admin@zeromall.com	[ADMIN MODERATION] Bỏ qua cảnh báo vi phạm cho sản phẩm cuong (ID: 130c82e3-a2ef-437e-8e77-a6da1ab4af5b)
 \.
 
 
@@ -991,8 +992,8 @@ ae01366f-1d90-41da-9d9e-37e0b525f0cd	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	d9be6b
 47286368-549f-48bf-bf57-34b362927a9e	5c64ac2d-0123-43c0-86bf-b9495528c27d	zeromall-official	Cuộc trò chuyện mới được khởi tạo 👋	2026-08-14 07:35:05.781	0	0	2026-08-14 07:35:05.783	2026-08-16 12:42:25.466
 30a0a116-9c82-43da-8102-28aafa958692	880a2880-43c0-4506-b25a-86dc34299f7b	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Cuộc trò chuyện mới được khởi tạo 👋	2026-08-14 15:43:56.303	0	0	2026-08-14 15:43:56.305	2026-08-16 12:42:43.814
 a5fdb195-5e64-4fa7-b059-f2a67b730546	3150f691-6e58-47c7-ad4c-acbd52f027c5	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	kfkremvg	2026-08-14 15:41:02.827	0	0	2026-08-12 19:06:35.006	2026-08-16 12:42:44.482
-c5b0cf91-7931-4f5b-b6d9-00d89b4c151c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	hi	2026-08-16 11:45:45.668	0	0	2026-08-16 11:15:38.791	2026-08-23 12:33:08.366
 b41b364a-9815-4419-8baf-8cb5a2db285a	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	1	2026-08-16 11:42:49.006	0	2	2026-08-16 11:12:40.036	2026-08-16 11:42:49.007
+c5b0cf91-7931-4f5b-b6d9-00d89b4c151c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	hi	2026-08-16 11:45:45.668	0	0	2026-08-16 11:15:38.791	2026-08-26 08:56:16.211
 731e5ff5-c53f-41f2-a8a9-b7b1e702dc27	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	zeromall-official	1	2026-08-16 11:42:50.794	0	3	2026-08-16 01:52:05.596	2026-08-16 11:42:50.794
 \.
 
@@ -1112,6 +1113,9 @@ hub-hn-01	HN01	Kho Trung Chuyển Mê Linh SOC	Khu Công Nghiệp Quang Minh	Hà
 
 COPY delivery."HubScan" (id, "shipmentId", "hubId", "scanType", "staffId", note, "createdAt") FROM stdin;
 020180b2-2177-43d3-964a-05a4e798ec76	95d0d3b7-3825-464f-9cb4-a3923a233df5	hub-hcm-01	AT_ORIGIN_HUB	\N	\N	2026-08-21 16:07:03.973
+3ebc0594-37ed-46e9-9155-afae2306e722	95d0d3b7-3825-464f-9cb4-a3923a233df5	hub-hcm-01	AT_ORIGIN_HUB	\N	\N	2026-08-26 09:41:58.955
+a51aacba-153b-484f-bbfc-85c1cff8dda0	95d0d3b7-3825-464f-9cb4-a3923a233df5	hub-hcm-01	AT_ORIGIN_HUB	\N	\N	2026-08-26 09:42:57.132
+ea01bd21-9f2b-41a8-93ab-d155111e68bc	95d0d3b7-3825-464f-9cb4-a3923a233df5	hub-hcm-01	IN_TRANSIT	\N	\N	2026-08-26 09:43:44.756
 \.
 
 
@@ -1196,9 +1200,9 @@ b3dbe83e-d8ff-4c73-9e8f-5bc4dcf7305e	26081602571961548	d9be6bae-681d-4b47-8e4f-a
 a9b157d2-b499-48f8-9630-711b52f731c7	260717060050	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	ZMX2607172059	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	4700	0	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-07-17 06:00:50.241	2026-07-17 06:00:50.241
 9f7c1701-38e8-4724-aa28-60b974b97cf6	260630113938	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	ZMX2606304262	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	487700	487700	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-06-30 11:39:38.796	2026-06-30 11:39:38.796
 aff4ed4a-5d1d-4d28-91d7-30dd4c395409	260629061107	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	3150f691-6e58-47c7-ad4c-acbd52f027c5	ZMX2606298304	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	487700	0	25000	ZMX	OUT_FOR_DELIVERY	hub-hcm-01	\N	\N	2026-06-29 06:11:07.962	2026-08-21 15:52:04.78
-95d0d3b7-3825-464f-9cb4-a3923a233df5	260717055720	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	ZMX2607175882	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	4700	0	25000	ZMX	AT_ORIGIN_HUB	hub-hcm-01	2026-08-21 16:03:20.73	\N	2026-07-17 05:57:20.525	2026-08-21 16:07:03.964
 56a0ba85-7207-45ff-924a-38504685b7f8	260717055639	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	ZMX2607178865	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	39700	0	25000	ZMX	PICKED_UP	hub-hcm-01	2026-08-23 11:06:03.742	\N	2026-07-17 05:56:39.131	2026-08-23 11:06:03.748
 686f6a7d-702d-454e-a648-cc198efff031	26081219054531939	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	3150f691-6e58-47c7-ad4c-acbd52f027c5	ZMX2608128386	addr-shop-fashion	151 Nguyễn Kim, Phường 7, Quận 10, Hồ Chí Minh, Phường 7, Quận 10, Hồ Chí Minh	minhanh	0344461922	450000	450000	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-08-12 19:05:45.329	2026-08-12 19:05:45.329
+95d0d3b7-3825-464f-9cb4-a3923a233df5	260717055720	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	ZMX2607175882	addr-shop-fashion	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	Vũ quốc cường	(+84) 964 579 875	4700	0	25000	ZMX	IN_TRANSIT	hub-hcm-01	2026-08-21 16:03:20.73	\N	2026-07-17 05:57:20.525	2026-08-26 09:43:44.751
 6963ca7b-efef-4c35-a1f7-a96ef7252d4b	26081219040078621	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	3150f691-6e58-47c7-ad4c-acbd52f027c5	ZMX2608125741	addr-shop-fashion	151 Nguyễn Kim, Phường 7, Quận 10, Hồ Chí Minh, Phường 7, Quận 10, Hồ Chí Minh	minhanh	0344461922	250000	0	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-08-12 19:04:00.797	2026-08-12 19:04:00.797
 3ce0a0fc-f266-4161-9f63-044b795e5d44	26081219201633973	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	3150f691-6e58-47c7-ad4c-acbd52f027c5	ZMX2608122053	addr-shop-fashion	151 Nguyễn Kim, Phường 7, Quận 10, Hồ Chí Minh, Phường 7, Quận 10, Hồ Chí Minh	minhanh	0344461922	18500	18500	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-08-12 19:20:16.354	2026-08-12 19:20:16.354
 edd8f689-0329-48d6-906c-f0b7349d3b9e	26081218460363381	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	3150f691-6e58-47c7-ad4c-acbd52f027c5	ZMX2608128411	addr-shop-fashion	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	minhanh	0344461922	2000	2000	25000	ZMX	DELIVERED	hub-hcm-01	\N	\N	2026-08-12 18:46:03.711	2026-08-12 18:46:03.711
@@ -1258,6 +1262,9 @@ a1dc7f35-1e0a-4ac6-b2c8-b2f8209c7b08	56a0ba85-7207-45ff-924a-38504685b7f8	PICKIN
 78526dff-0688-4a47-abdb-19474575de2c	56a0ba85-7207-45ff-924a-38504685b7f8	PICKED_UP	hub-hcm-01	\N	\N	\N	Tài xế đã lấy hàng thành công	Kiện hàng đã được tài xế tiếp nhận từ người bán và đang trên đường nhập kho xuất phát.	Kho người bán	2026-08-23 11:06:03.748
 4f16a99b-8b80-4da4-b239-d3a1f5979231	3f223856-b214-4732-9cf3-b9256ed74e85	REASSIGNING	\N	\N	\N	\N	Đang điều phối lại tài xế	Tài xế Nguyễn Văn Giao (SPX 01) bận, hệ thống SPX đang tự động điều phối tài xế khác.	\N	2026-08-23 11:29:00.373
 c3137c4b-8cc3-4a93-b9d6-10cfd344123b	8e1c93a2-e180-4ef7-9be0-5c36e7fa3dd3	CREATED	\N	\N	\N	\N	Người bán đã tạo đơn vận chuyển	Vận đơn ZMX2608236199 được khởi tạo thành công. Hệ thống ZeroMall Express (ZMX) đang chờ phân công tài xế lấy hàng.	Kênh Người Bán ZeroMall	2026-08-23 11:49:23.906
+23830b3c-3152-4950-9c06-a47454e1b6fc	95d0d3b7-3825-464f-9cb4-a3923a233df5	AT_ORIGIN_HUB	hub-hcm-01	\N	\N	\N	Đơn hàng đã đến kho xuất phát	Bưu kiện đã nhập kho Kho Tổng Tân Bình SOC. Đang chuẩn bị quét mã vạch và phân loại.	Kho Tổng Tân Bình SOC	2026-08-26 09:41:58.949
+14b1df39-694b-4ad6-91c8-366824f4f58f	95d0d3b7-3825-464f-9cb4-a3923a233df5	AT_ORIGIN_HUB	hub-hcm-01	\N	\N	\N	Đơn hàng đã đến kho xuất phát	Bưu kiện đã nhập kho Kho Tổng Tân Bình SOC. Đang chuẩn bị quét mã vạch và phân loại.	Kho Tổng Tân Bình SOC	2026-08-26 09:42:57.125
+7aba7a57-1107-407e-9cf8-69fa6037c85b	95d0d3b7-3825-464f-9cb4-a3923a233df5	IN_TRANSIT	hub-hcm-01	\N	\N	\N	Đang luân chuyển giữa các Hub	Bưu kiện đã rời kho xuất phát và đang trên xe tải trung chuyển đến Bưu cục phát hàng địa phương.	Xe trung chuyển SPX	2026-08-26 09:43:44.751
 \.
 
 
@@ -1349,6 +1356,7 @@ bc49b023-a2e3-44db-876c-27e7c1b24c78	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	⚙️
 57190dfa-1103-4f2c-920c-8430b32ea4d8	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	⚙️ Đơn hàng được cập nhật	Đơn hàng #26082311 của bạn đã chuyển sang trạng thái: Đang xử lý.	ORDER	f	{"action": "VIEW_ORDER", "status": "PROCESSING", "orderId": "26082311485056556"}	2026-08-23 11:48:50.611	2026-08-23 11:48:50.611
 54f8c66b-bb1c-42df-b82d-ed7e880a5e79	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	🚚 Đơn hàng được cập nhật	Đơn hàng #26082311 của bạn đã chuyển sang trạng thái: Đang giao hàng.	ORDER	f	{"action": "VIEW_ORDER", "status": "SHIPPING", "orderId": "26082311485056556"}	2026-08-23 11:49:14.486	2026-08-23 11:49:14.486
 f41c3c51-2c58-4f13-89a6-54d3e49e61ab	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	📦 Đơn hàng được cập nhật	Đơn hàng #26082311 của bạn đã chuyển sang trạng thái: SHIPPED.	ORDER	f	{"action": "VIEW_ORDER", "status": "SHIPPED", "orderId": "26082311485056556"}	2026-08-23 11:49:23.923	2026-08-23 11:49:23.923
+25b6745c-c08f-44c5-9f1a-b27843df65f7	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	📦 Đơn hàng được cập nhật	Đơn hàng #26071705 của bạn đã chuyển sang trạng thái: SHIPPED.	ORDER	f	{"action": "VIEW_ORDER", "status": "SHIPPED", "orderId": "260717055720"}	2026-08-26 09:43:44.848	2026-08-26 09:43:44.848
 \.
 
 
@@ -1376,8 +1384,8 @@ COPY "order"."Order" (id, "buyerId", "buyerEmail", "buyerName", "buyerPhone", "s
 26081408234506930	3150f691-6e58-47c7-ad4c-acbd52f027c5	buyer.nh@zeromall.com	minhanh	0344461922	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	241500	16500	zeropay	COMPLETED	2026-08-14 08:23:45.082	2026-08-14 08:29:09.792	1452	GHN-VN-975045629	21007	\N	\N	\N	\N	0	25000	\N	DISCOUNT10	\N	5
 26081407384657547	3150f691-6e58-47c7-ad4c-acbd52f027c5	buyer.nh@zeromall.com	minhanh	0344461922	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	216500	16500	zeropay	COMPLETED	2026-08-14 07:38:46.666	2026-08-14 08:13:02.508	1452	GHN-VN-560834385	21007	\N	\N	\N	\N	0	50000	\N	DISCOUNT50K	\N	5
 26081415440545296	880a2880-43c0-4506-b25a-86dc34299f7b	minhanh@zeromall.com	minhanh	0344461922	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	2000	0	zeropay	REFUNDED	2026-08-14 15:44:05.515	2026-08-14 15:50:35.475	1452	GHN-VN-487424201	21007	m , ,m,ml	minhanh@zeromall.com	[Chưa nhận hàng hoặc nhận thiếu hàng] Lý do: Chưa nhận được hàng sau thời gian dài	\N	0	0	\N	FREESHIP	\N	5
-260717055720	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	vqc141@gmail.com	Vũ quốc cường	(+84) 964 579 875	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	4700	2700	sepay	SHIPPED	2026-07-17 05:57:20.525	2026-08-21 16:03:20.772	\N	\N	\N	\N	\N	\N	\N	0	0	\N	\N	\N	5
 260717055639	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	vqc141@gmail.com	Vũ quốc cường	(+84) 964 579 875	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	39700	37700	sepay	SHIPPED	2026-07-17 05:56:39.131	2026-08-23 11:06:03.789	\N	\N	\N	\N	\N	\N	\N	0	0	\N	\N	\N	5
+260717055720	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	vqc141@gmail.com	Vũ quốc cường	(+84) 964 579 875	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	4700	2700	sepay	SHIPPED	2026-07-17 05:57:20.525	2026-08-26 09:43:44.81	\N	\N	\N	\N	\N	\N	\N	0	0	\N	\N	\N	5
 26081415522442674	880a2880-43c0-4506-b25a-86dc34299f7b	minhanh@zeromall.com	minhanh	0344461922	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	256500	16500	cod	PROCESSING	2026-08-14 15:52:24.44	2026-08-14 15:52:24.474	1452	\N	21007	\N	\N	\N	\N	0	50000	\N	DISCOUNT50K	\N	5
 26081415590264558	880a2880-43c0-4506-b25a-86dc34299f7b	minhanh@zeromall.com	minhanh	0344461922	Bến xe Nhật Tảo, Đường Nhật Tảo, phường 7, Quận 10, Sài Gòn, Phường 7, Quận 10, Hồ Chí Minh	91500	16500	zeropay	COMPLETED	2026-08-14 15:59:02.658	2026-08-14 16:01:21.666	1452	GHN-VN-697013339	21007	\N	\N	\N	\N	0	0	\N	\N	\N	5
 26081602571961548	f1ba7a53-b5cd-48b9-a270-6ad7f40001f1	vqc141@gmail.com	Vũ quốc cường	(+84) 964 579 875	Số 9d, Đường Trần Công An, Khu Phố 6, Tân Phong, Biên Hòa, Tỉnh Đồng Nai	237700	37700	cod	PROCESSING	2026-08-16 02:57:19.664	2026-08-16 02:57:19.71	\N	\N	\N	\N	\N	\N	\N	0	0	\N	\N	\N	5
@@ -1657,8 +1665,8 @@ aac07fcf-9b55-4ce6-9b2f-2e3d34275e4f	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Áo Kh
 bea80f9c-aab7-4885-90b2-3f962816edda	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	1	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.138	2026-08-14 15:44:05.665	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
 ed97f21d-2134-40ca-a758-5b6fea1ce201	f6a2e22d-1654-48cb-a55b-7ac58e0fa78a	Máy Xay Sinh Tố Cầm Tay Sạc Pin Mini Không Dây	https://images.unsplash.com/photo-1578643463396-0997cb5328c1?w=400&q=80	Gia Dụng	Bear	Máy xay sinh tố đa năng sạc pin tiện lợi mang đi làm, đi du lịch. Lưỡi dao inox 304 sắc bén, chất liệu nhựa cao cấp an toàn cho bé.	290000	39	1	active	BL-BEAR-02	\N	f	[]	[]	800	\N	\N	\N	new	f	7	2026-06-29 04:38:06.937	2026-08-14 15:52:24.457	\N	\N	390000	f	0	\N	4ff7e1b5-53a6-4525-ba37-8f2129453998	0
 b1fc3f48-76b8-4492-bf91-af20167e137e	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Nón Lưỡi Trai Kaki Trơn Phong Cách Hàn Quốc	https://images.unsplash.com/photo-1588850561407-ed78c282e89b?w=400&q=80	Phụ Kiện Nữ	No Brand	Mũ lưỡi trai kaki basic unisex nam nữ đội đều đẹp, phom dáng cứng cáp ôm đầu thoải mái, điều chỉnh size dễ dàng.	75000	149	1	active	CAP-BLK-04	\N	f	[]	[]	100	\N	\N	\N	new	f	7	2026-06-29 04:38:06.931	2026-08-14 15:59:02.694	\N	\N	120000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
-130c82e3-a2ef-437e-8e77-a6da1ab4af5b	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	0	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.202	2026-08-16 13:05:18.251	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	t	15	Mặt hàng chưa kiểm định y tế	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
 7d707a15-9b2d-413f-9064-21e60c61ec61	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	Balo Thời Trang Học Sinh Sinh Viên Chống Nước	https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&q=80	Túi Ví Nữ	No Brand	Balo thời trang đựng vừa laptop 15.6 inch, chất vải oxford chống thấm nước tốt, nhiều ngăn tiện lợi đi học hay du lịch ngắn ngày.	199000	79	1	active	BP-GRY-05	\N	f	[]	[]	600	\N	\N	\N	new	f	7	2026-06-29 04:38:06.933	2026-08-23 11:48:50.61	\N	\N	280000	f	0	\N	825d4683-d05c-47a4-8cac-3f54890a2d75	0
+130c82e3-a2ef-437e-8e77-a6da1ab4af5b	6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c	cuong	https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg	Phụ Kiện Nữ	2	2	2000	0	3	active			f	[{"name":"Màu sắc","options":[]}]	[]	2	2	2	2	new	f	7	2026-07-17 05:56:09.202	2026-08-26 07:10:46.773	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1784267742/zeromall/products/qq3md30ockv8wdtvkvka.jpg"]		20000	f	0	\N	fdf7905e-c3bd-4fe7-b979-5f0c2acc4f8a	0
 7039c315-059c-4cdb-b53d-24175ee21b11	d9be6bae-681d-4b47-8e4f-aa95eac1ce49	HLE GUMAYUSI FANMEETING SEOUL	https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg	Sức Khỏe & Sắc Đẹp	HLE	bé trai biết làm nũng	200000	8	2	active	\N	\N	f	[]	[]	1	10	8	0.1	new	f	2	2026-08-14 16:09:16.647	2026-08-23 11:48:10.558	["https://res.cloudinary.com/dxkfusgxs/image/upload/v1786723668/vko8e4q8yqblfv2fsev7.jpg"]	https://www.youtube.com/watch?v=69ZDBWoj5YM&list=RDl_uzEREOKfo&index=9	200000	f	0	\N	\N	0
 \.
 
@@ -2406,5 +2414,5 @@ ALTER TABLE ONLY product."Review"
 -- PostgreSQL database dump complete
 --
 
-\unrestrict jcORg1BAuSxN1AF42LjjFxMQBU0W2HKJcc04fjUTOFNxO0luKhVVAckxfkNiBLv
+\unrestrict Hohg6AhLs27gxwuFaHBgEONmqQ2TbGJ4UD3P2X8YRKG6Y3goEY2w5CMsKB5u0VJ
 

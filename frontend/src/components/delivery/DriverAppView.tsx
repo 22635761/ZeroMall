@@ -95,6 +95,13 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
     s.status === 'PICKED_UP'
   )
 
+  // Đơn hàng đang nằm trong kho bưu cục phát chờ tài xế quét xuất kho nhận hàng
+  const readyAtHubTasks = shipments.filter((s) =>
+    s.status === 'AT_DESTINATION_HUB' && 
+    (!s.assignments?.some((a) => a.type === 'DELIVERY' && a.status === 'ASSIGNED') ||
+     s.assignments?.some((a) => a.driver?.phone === driverProfile?.phone || a.driver?.phone === currentUser.phoneNumber || (driverProfile?.id && (a as any).driverId === driverProfile.id)))
+  )
+
   const deliveryTasks = myShipments.filter((s) =>
     s.status === 'OUT_FOR_DELIVERY' && s.assignments?.some((a) => a.type === 'DELIVERY' && a.status === 'ASSIGNED')
   )
@@ -102,6 +109,10 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   const completedTasks = myShipments.filter((s) =>
     ['DELIVERED', 'COMPLETED'].includes(s.status)
   )
+
+  // Scanner Input State for Driver picking up from Hub
+  const [dispatchBarcode, setDispatchBarcode] = useState('')
+  const [scanStatusMsg, setScanStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Tổng tiền COD tài xế đang giữ từ các đơn đã giao thành công
   const codInWallet = completedTasks.reduce((sum, s) => sum + (s.codAmount || 0), 0)
@@ -435,67 +446,195 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
             </div>
           )}
 
-          {/* TAB 3: TUYẾN PHÁT HÀNG TẬN TAY (DELIVERY) */}
+          {/* TAB 3: TUYẾN PHÁT HÀNG TẬN TAY (DELIVERY) & QUÉT XUẤT KHO */}
           {activeTab === 'DELIVERY' && (
-            <div className="space-y-3">
-              {deliveryTasks.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 space-y-2">
-                  <span className="text-4xl">🛵</span>
-                  <p className="text-xs font-bold">Không có đơn đang phát</p>
-                </div>
-              ) : (
-                deliveryTasks.map((s) => (
-                  <div key={s.id} className="bg-white border border-slate-200 rounded-2xl p-4 space-y-3 shadow-xs">
-                    <div className="flex justify-between items-center text-xs">
-                      <span className="font-mono font-bold text-emerald-700">{s.trackingNumber}</span>
-                      <span className="px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-bold rounded-md animate-pulse">
-                        Đang giao khách
-                      </span>
-                    </div>
-
-                    <div className="space-y-1 text-xs">
-                      <p className="font-bold text-slate-900 text-sm">{s.buyerName} - {s.buyerPhone}</p>
-                      <p className="text-slate-600 text-xs leading-relaxed">📍 {s.deliveryAddress}</p>
-                      <div className="p-2 bg-emerald-50 rounded-xl text-xs font-bold text-emerald-800 flex justify-between">
-                        <span>Thu Tiền COD:</span>
-                        <span>{formatMoney(s.codAmount)}</span>
-                      </div>
-                    </div>
-
-                    {/* Action buttons: Gọi khách, Maps dẫn đường, Giao thành công, Báo thất bại */}
-                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                      <a
-                        href={`tel:${s.buyerPhone}`}
-                        className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1"
-                      >
-                        📞 Gọi Khách
-                      </a>
-                      <a
-                        href={`https://maps.google.com/?q=${encodeURIComponent(s.deliveryAddress)}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1"
-                      >
-                        🗺️ Dẫn Đường
-                      </a>
-                      <button
-                        onClick={() => onUpdateStatus(s.id, 'DELIVERED')}
-                        disabled={actionLoading}
-                        className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs transition cursor-pointer shadow-md"
-                      >
-                        ✅ Xác Nhận Giao Thành Công & Thu COD
-                      </button>
-                      <button
-                        onClick={() => setFailModalShipment(s)}
-                        disabled={actionLoading}
-                        className="col-span-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl text-xs transition cursor-pointer border border-rose-200"
-                      >
-                        ❌ Báo Giao Thất Bại (Hẹn lại / Không nghe máy)
-                      </button>
+            <div className="space-y-4">
+              
+              {/* KHỐI 1: QUÉT MÃ / NHẬN KIỆN HÀNG TẠI BƯU CỤC PHÁT TRƯỚC KHI ĐI GIAO */}
+              <div className="bg-slate-900 text-white p-4 rounded-2xl space-y-3 shadow-md border border-slate-800">
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🏢</span>
+                    <div>
+                      <h4 className="font-black text-xs text-white">Xuất Kho Bưu Cục Đi Giao</h4>
+                      <p className="text-[10px] text-emerald-400 font-medium">Bưu cục: {driverProfile?.hub?.name || 'Bưu Cục Phụ Trách'}</p>
                     </div>
                   </div>
-                ))
-              )}
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-black">
+                    {readyAtHubTasks.length} Đơn Trong Kho
+                  </span>
+                </div>
+
+                {/* Form Quét Barcode trên app tài xế */}
+                <form
+                  onSubmit={async (e) => {
+                    e.preventDefault()
+                    if (!dispatchBarcode.trim()) return
+                    const code = dispatchBarcode.trim().toUpperCase()
+                    const target = shipments.find(s => s.trackingNumber.toUpperCase() === code || s.orderId.toUpperCase() === code)
+                    
+                    if (!target) {
+                      setScanStatusMsg({ type: 'error', text: `❌ Không tìm thấy mã [${code}] trong hệ thống` })
+                      setDispatchBarcode('')
+                      return
+                    }
+
+                    try {
+                      // Gán tài xế & Chuyển trạng thái sang OUT_FOR_DELIVERY
+                      await fetch(`http://localhost:8000/delivery/shipments/${target.id}/assign`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          driverId: driverProfile?.id || 'driver-02',
+                          type: 'DELIVERY',
+                        }),
+                      })
+
+                      await onUpdateStatus(target.id, 'OUT_FOR_DELIVERY')
+                      setScanStatusMsg({ type: 'success', text: `🛵 Đã quét xuất kho thành công: ${target.trackingNumber}` })
+                      setDispatchBarcode('')
+                      onRefresh()
+                    } catch (err: any) {
+                      setScanStatusMsg({ type: 'error', text: `Lỗi: ${err.message}` })
+                    }
+                  }}
+                  className="flex gap-2 pt-1"
+                >
+                  <input
+                    type="text"
+                    value={dispatchBarcode}
+                    onChange={(e) => setDispatchBarcode(e.target.value)}
+                    placeholder="Quét Barcode hoặc nhập mã ZMX..."
+                    className="flex-1 px-3 py-2 bg-slate-800 border border-slate-700 rounded-xl text-xs font-mono text-white placeholder-slate-400 focus:outline-none focus:border-emerald-500"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition cursor-pointer shrink-0"
+                  >
+                    ⚡ Nhận Hàng
+                  </button>
+                </form>
+
+                {scanStatusMsg && (
+                  <div className={`p-2 rounded-lg text-[11px] font-bold ${
+                    scanStatusMsg.type === 'success' ? 'bg-emerald-950 border border-emerald-500/50 text-emerald-300' : 'bg-rose-950 border border-rose-500/50 text-rose-300'
+                  }`}>
+                    {scanStatusMsg.text}
+                  </div>
+                )}
+
+                {/* Danh sách các đơn đang nằm trong kho bưu cục phát có thể nhận nhanh */}
+                {readyAtHubTasks.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800 space-y-1.5">
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Đơn hàng sẵn sàng xuất kho:</span>
+                    <div className="max-h-32 overflow-y-auto space-y-1.5 pr-1">
+                      {readyAtHubTasks.map((s) => (
+                        <div key={s.id} className="p-2 bg-slate-800/80 rounded-xl flex justify-between items-center text-xs border border-slate-700">
+                          <div>
+                            <p className="font-mono font-bold text-emerald-400">{s.trackingNumber}</p>
+                            <p className="text-[10px] text-slate-300 truncate max-w-[180px]">{s.deliveryAddress}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await fetch(`http://localhost:8000/delivery/shipments/${s.id}/assign`, {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    driverId: driverProfile?.id || 'driver-02',
+                                    type: 'DELIVERY',
+                                  }),
+                                })
+                                await onUpdateStatus(s.id, 'OUT_FOR_DELIVERY')
+                                onRefresh()
+                              } catch (e: any) {
+                                alert('Lỗi: ' + e.message)
+                              }
+                            }}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-[10px] font-bold cursor-pointer"
+                          >
+                            + Lấy Ra Giao
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* KHỐI 2: DANH SÁCH NHIỆM VỤ GIAO ĐẾN KHÁCH HÀNG (ĐÃ CẦM TRÊN XE ĐI GIAO) */}
+              <div className="space-y-3">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span className="flex items-center gap-1.5">
+                    <span>🛵</span> Nhiệm Vụ: Giao Đến Khách Hàng ({deliveryTasks.length})
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-medium">Đang trên tuyến giao</span>
+                </div>
+
+                {deliveryTasks.length === 0 ? (
+                  <div className="py-8 bg-slate-50 border border-slate-200/80 rounded-2xl text-center text-slate-400 space-y-1.5 p-4">
+                    <span className="text-3xl block">📦</span>
+                    <p className="text-xs font-bold text-slate-700">Chưa có đơn hàng nào trên xe</p>
+                    <p className="text-[11px] text-slate-500">
+                      Hãy đến <b>{driverProfile?.hub?.name || 'Bưu Cục'}</b> và quét mã hoặc bấm nút <b>"+ Lấy Ra Giao"</b> ở phía trên để bắt đầu ca phát hàng.
+                    </p>
+                  </div>
+                ) : (
+                  deliveryTasks.map((s) => (
+                    <div key={s.id} className="bg-white border-2 border-emerald-500/80 rounded-2xl p-4 space-y-3 shadow-xs">
+                      <div className="flex justify-between items-center text-xs">
+                        <span className="font-mono font-bold text-emerald-700">{s.trackingNumber}</span>
+                        <span className="px-2 py-0.5 bg-orange-50 text-orange-700 text-[10px] font-bold rounded-md animate-pulse">
+                          Đang giao khách
+                        </span>
+                      </div>
+
+                      <div className="space-y-1 text-xs">
+                        <p className="font-bold text-slate-900 text-sm">{s.buyerName} - {s.buyerPhone}</p>
+                        <p className="text-slate-600 text-xs leading-relaxed">📍 {s.deliveryAddress}</p>
+                        <div className="p-2 bg-emerald-50 rounded-xl text-xs font-bold text-emerald-800 flex justify-between">
+                          <span>Thu Tiền COD:</span>
+                          <span>{formatMoney(s.codAmount)}</span>
+                        </div>
+                      </div>
+
+                      {/* Action buttons: Gọi khách, Maps dẫn đường, Giao thành công, Báo thất bại */}
+                      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                        <a
+                          href={`tel:${s.buyerPhone}`}
+                          className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1"
+                        >
+                          📞 Gọi Khách
+                        </a>
+                        <a
+                          href={`https://maps.google.com/?q=${encodeURIComponent(s.deliveryAddress)}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1"
+                        >
+                          🗺️ Dẫn Đường
+                        </a>
+                        <button
+                          onClick={() => onUpdateStatus(s.id, 'DELIVERED')}
+                          disabled={actionLoading}
+                          className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black rounded-xl text-xs transition cursor-pointer shadow-md"
+                        >
+                          ✅ Xác Nhận Giao Thành Công & Thu COD
+                        </button>
+                        <button
+                          onClick={() => setFailModalShipment(s)}
+                          disabled={actionLoading}
+                          className="col-span-2 py-2 bg-rose-50 hover:bg-rose-100 text-rose-600 font-bold rounded-xl text-xs transition cursor-pointer border border-rose-200"
+                        >
+                          ❌ Báo Giao Thất Bại (Hẹn lại / Không nghe máy)
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
             </div>
           )}
 

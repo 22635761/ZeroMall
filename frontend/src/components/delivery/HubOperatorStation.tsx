@@ -55,11 +55,38 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
 
   const currentHub = hubs.find((h) => h.id === selectedHubId) || hubs[0]
 
-  // Phân loại danh sách theo trạng thái kho
+  // Helper xác định đơn hàng thuộc Bưu Cục Phát nào dựa trên địa chỉ người nhận
+  const isDestinedForCurrentHub = (s: Shipment, hub: Hub | undefined) => {
+    if (!hub) return true
+    const addr = (s.deliveryAddress || '').toLowerCase()
+    const hubProv = (hub.province || '').toLowerCase()
+    const hubDist = (hub.district || '').toLowerCase()
+    const hubCode = (hub.code || '').toLowerCase()
+
+    if (hubCode === 'dn01' || hubProv.includes('đồng nai') || hubDist.includes('biên hòa')) {
+      return addr.includes('đồng nai') || addr.includes('biên hòa')
+    }
+    if (hubCode === 'hn01' || hubProv.includes('hà nội') || hubDist.includes('mê linh')) {
+      return addr.includes('hà nội') || addr.includes('mê linh')
+    }
+    if (hubCode === 'hcm01' || hubProv.includes('hồ chí minh') || hubDist.includes('tân bình')) {
+      return addr.includes('hồ chí minh') || addr.includes('hcm') || addr.includes('sài gòn') || (!addr.includes('đồng nai') && !addr.includes('hà nội'))
+    }
+    return false
+  }
+
+  // Phân loại danh sách theo trạng thái kho & ĐÚNG BƯU CỤC
+  // 1. Nhận từ Shipper: Các đơn gom về kho gốc hiện tại
   const pickupInboundList = shipments.filter((s) => s.status === 'PICKED_UP')
-  const sortingList = shipments.filter((s) => ['AT_ORIGIN_HUB', 'SORTING'].includes(s.status))
-  const inTransitList = shipments.filter((s) => s.status === 'IN_TRANSIT')
-  const destinationList = shipments.filter((s) => s.status === 'AT_DESTINATION_HUB')
+  
+  // 2. Phân loại & Xuất xe: Các đơn đang nằm tại kho hiện tại chờ xuất xe
+  const sortingList = shipments.filter((s) => ['AT_ORIGIN_HUB', 'SORTING'].includes(s.status) && (s.currentHubId === currentHub?.id || !s.currentHubId))
+  
+  // 3. Tiếp nhận xe tải đến: Chỉ hiện các đơn ĐANG TRÊN XE TẢI (IN_TRANSIT) HƯỚNG VỀ BƯU CỤC ĐÍCH HIỆN TẠI
+  const inTransitList = shipments.filter((s) => s.status === 'IN_TRANSIT' && isDestinedForCurrentHub(s, currentHub))
+  
+  // 4. Chia tuyến Shipper giao: Các đơn đã nằm tại bưu cục đích hiện tại
+  const destinationList = shipments.filter((s) => s.status === 'AT_DESTINATION_HUB' && isDestinedForCurrentHub(s, currentHub))
 
   const handleScanSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

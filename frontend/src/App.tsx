@@ -237,6 +237,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
             <Route path="account/password" element={<UserPasswordTab user={user} />} />
             <Route path="account/payment" element={<UserBankAccountsTab user={user} />} />
             <Route path="purchase" element={<UserPurchaseTab user={user} />} />
+            <Route path="purchase/order/:orderId" element={<UserPurchaseTab user={user} />} />
             <Route path="voucher" element={<UserVoucherTab user={user} />} />
             <Route path="wallet" element={<UserWalletTab user={user} />} />
           </Route>

@@ -13,6 +13,10 @@ export const orderService = {
     return apiRequest<Order[]>(`/orders/buyer/${buyerId}`);
   },
 
+  async fetchOrderById(orderId: string): Promise<Order> {
+    return apiRequest<Order>(`/orders/${orderId}`);
+  },
+
   async fetchSellerOrders(shopId: string, token: string): Promise<Order[]> {
     return apiRequest<Order[]>(`/orders/seller/${shopId}`, {
       headers: {

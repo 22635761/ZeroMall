@@ -162,6 +162,7 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
     }).addTo(map)
 
     // Hàm tạo Marker có Chữ & Màu sắc rõ ràng (Badge Label)
+    // Hàm tạo Marker có Chữ & Màu sắc rõ ràng (Badge Label)
     const createLabeledMarker = (emoji: string, title: string, subtitle: string, colorClass: string, isCurrent = false) => {
       return L.divIcon({
         className: 'custom-labeled-marker',
@@ -170,20 +171,20 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
             <!-- Label Tag Trên Đầu Marker -->
             <div class="px-2.5 py-1 rounded-xl shadow-lg border text-[11px] font-black whitespace-nowrap mb-1.5 flex items-center gap-1.5 ${
               isCurrent 
-                ? 'bg-emerald-600 border-emerald-400 text-white animate-bounce' 
+                ? 'bg-[#ee4d2d] border-red-300 text-white animate-bounce ring-4 ring-orange-200' 
                 : 'bg-white/95 border-slate-300 text-slate-800 backdrop-blur-xs'
             }">
               <span>${emoji}</span>
               <div class="flex flex-col text-left leading-tight">
                 <span>${title}</span>
-                <span class="text-[9px] ${isCurrent ? 'text-emerald-100 font-normal' : 'text-slate-400 font-normal'}">${subtitle}</span>
+                <span class="text-[9px] ${isCurrent ? 'text-orange-100 font-bold' : 'text-slate-400 font-normal'}">${subtitle}</span>
               </div>
             </div>
 
             <!-- Pin Icon -->
             <div class="relative flex items-center justify-center">
-              ${isCurrent ? '<span class="absolute w-8 h-8 rounded-full bg-emerald-400 animate-ping opacity-75"></span>' : ''}
-              <div class="w-7 h-7 rounded-full ${colorClass} text-white flex items-center justify-center shadow-md border-2 border-white text-xs font-black z-10">
+              ${isCurrent ? '<span class="absolute w-10 h-10 rounded-full bg-orange-400 animate-ping opacity-75"></span>' : ''}
+              <div class="w-8 h-8 rounded-full ${colorClass} text-white flex items-center justify-center shadow-lg border-2 border-white text-sm font-black z-10">
                 ${emoji}
               </div>
             </div>
@@ -196,32 +197,82 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
 
     // 📍 1. Ghim ĐIỂM GỬI (Kho Người Bán)
     L.marker(originCoords, {
-      icon: createLabeledMarker('🏪', `Kho Gửi: ${pickupDistrict}`, `Kho người bán (${pickupProvince})`, 'bg-sky-600', status === 'AT_ORIGIN_HUB' || status === 'SORTING'),
+      icon: createLabeledMarker('🏪', `Kho Gửi: ${pickupDistrict}`, `Kho người bán (${pickupProvince})`, 'bg-sky-600', false),
     }).addTo(map).bindPopup(`<b>🏪 Nơi Gửi:</b> Kho Người Bán ZeroMall<br><span style="font-size:11px;color:#666;">${rawPickupAddress || `${pickupDistrict}, ${pickupProvince}`}</span>`)
 
     // 📍 2. Ghim BƯU CỤC ĐÍCH (nếu đơn hàng khác tỉnh cần luân chuyển qua Hub)
     if (!isSameDistrict) {
       L.marker(destHubCoords, {
-        icon: createLabeledMarker('🏢', `Bưu Cục: ${destHubName}`, `Trạm Giao Nhận ${destProvince}`, 'bg-indigo-600', status === 'AT_DESTINATION_HUB'),
+        icon: createLabeledMarker('🏢', `Bưu Cục: ${destHubName}`, `Trạm Giao Nhận ${destProvince}`, 'bg-indigo-600', false),
       }).addTo(map).bindPopup(`<b>🏢 Bưu Cục Phát:</b> ${destHubName}<br><span style="font-size:11px;color:#666;">${destDistrict}, ${destProvince}</span>`)
     }
 
     // 📍 3. Ghim ĐIỂM NHẬN (Nhà Người Mua)
     L.marker(destCoords, {
-      icon: createLabeledMarker('🏠', `Điểm Nhận: ${trackingData.buyerName || 'Người Nhận'}`, `${destDistrict}, ${destProvince}`, 'bg-rose-600', status === 'DELIVERED'),
+      icon: createLabeledMarker('🏠', `Điểm Nhận: ${trackingData.buyerName || 'Người Nhận'}`, `${destDistrict}, ${destProvince}`, 'bg-rose-600', false),
     }).addTo(map).bindPopup(`<b>🏠 Nơi Nhận:</b> ${trackingData.buyerName || 'Khách hàng'}<br><span style="font-size:11px;color:#666;">${trackingData.deliveryAddress}</span>`)
 
-    // 📍 4. Ghim VỊ TRÍ ĐƠN HÀNG ĐANG DI CHUYỂN (Xe tải hoặc Shipper)
-    if (status === 'IN_TRANSIT') {
-      L.marker(currentCoords, {
-        icon: createLabeledMarker('🚛', 'Xe Tải Linehaul ZMX', 'Đang Chạy Trên Tuyến Liên Tỉnh', 'bg-amber-600', true),
-      }).addTo(map).bindPopup(`<b>🚛 Xe Tải Trung Chuyển Tuyến Linehaul:</b><br><span style="font-size:11px;color:#d97706;font-weight:bold;">Đang vận chuyển từ Kho ${pickupDistrict} -> ${destHubName}</span>`)
+    // 📍 4. ⭐ GHIM ICON VỊ TRÍ ĐƠN HÀNG ĐANG NẰM Ở ĐÂU HIỆN TẠI (PACKAGE LIVE PIN) ⭐
+    let liveIconEmoji = '📦'
+    let liveTitle = 'Vị Trí Đơn Hàng'
+    let liveSub = 'Đang đóng gói tại Shop'
+    let liveBgColor = 'bg-[#ee4d2d]'
+
+    if (status === 'CREATED' || status === 'WAITING_PICKUP') {
+      liveIconEmoji = '📦'
+      liveTitle = 'Đơn Hàng Đang Tại Shop'
+      liveSub = `Chờ Shipper đến lấy (${pickupDistrict})`
+      liveBgColor = 'bg-amber-600'
+    } else if (status === 'PICKUP_ASSIGNED' || status === 'PICKING_UP') {
+      const driverName = trackingData.assignments?.[0]?.driver?.name || 'Shipper ZMX'
+      liveIconEmoji = '🛵'
+      liveTitle = `Shipper: ${driverName}`
+      liveSub = 'Đang đến Shop lấy hàng'
+      liveBgColor = 'bg-orange-600'
+    } else if (status === 'PICKED_UP') {
+      liveIconEmoji = '📦'
+      liveTitle = 'Đã Lấy Hàng'
+      liveSub = 'Shipper đang chuyển về bưu cục'
+      liveBgColor = 'bg-blue-600'
+    } else if (status === 'AT_ORIGIN_HUB' || status === 'SORTING') {
+      liveIconEmoji = '🏢'
+      liveTitle = 'Đang Tại Bưu Cục Xuất Phát'
+      liveSub = `Đang phân loại tại Kho ${pickupDistrict}`
+      liveBgColor = 'bg-indigo-600'
+    } else if (status === 'IN_TRANSIT') {
+      liveIconEmoji = '🚛'
+      liveTitle = 'Đang Vận Chuyển Liên Tỉnh'
+      liveSub = `Xe tải đang chạy đến ${destHubName}`
+      liveBgColor = 'bg-amber-600'
+    } else if (status === 'AT_DESTINATION_HUB') {
+      liveIconEmoji = '🏢'
+      liveTitle = `Đã Tới ${destHubName}`
+      liveSub = 'Đang chia tuyến cho Shipper giao'
+      liveBgColor = 'bg-indigo-600'
     } else if (status === 'OUT_FOR_DELIVERY') {
       const driverName = trackingData.assignments?.[0]?.driver?.name || 'Shipper ZMX'
-      L.marker(currentCoords, {
-        icon: createLabeledMarker('🛵', `Shipper: ${driverName}`, 'Đang Giao Đến Nhà Bạn', 'bg-emerald-600', true),
-      }).addTo(map).bindPopup(`<b>🛵 Tài xế ${driverName}:</b><br><span style="font-size:11px;color:#059669;font-weight:bold;">Đang di chuyển giao tận nhà (${destDistrict})</span>`)
+      liveIconEmoji = '🛵'
+      liveTitle = `Shipper: ${driverName}`
+      liveSub = `Đang giao hàng đến bạn (${destDistrict})`
+      liveBgColor = 'bg-emerald-600'
+    } else if (status === 'DELIVERED') {
+      liveIconEmoji = '🎁'
+      liveTitle = 'Đã Giao Thành Công'
+      liveSub = 'Đã nhận tại địa chỉ của bạn'
+      liveBgColor = 'bg-emerald-600'
     }
+
+    // Ghim Marker Live Package
+    L.marker(currentCoords, {
+      icon: createLabeledMarker(liveIconEmoji, `📍 ${liveTitle}`, liveSub, liveBgColor, true),
+      zIndexOffset: 1000,
+    }).addTo(map).bindPopup(`
+      <div style="font-size:12px;padding:2px;">
+        <b style="color:#ee4d2d;">📍 VỊ TRÍ HIỆN TẠI CỦA ĐƠN HÀNG:</b><br>
+        <span style="font-weight:bold;color:#1e293b;">${liveTitle}</span><br>
+        <span style="color:#64748b;font-size:11px;">${liveSub}</span>
+      </div>
+    `)
 
     // 5. Vẽ đường nối Tuyến Hành Trình (Polyline)
     const routePoints: [number, number][] = isSameDistrict ? [originCoords, destCoords] : [originCoords, destHubCoords, destCoords]
@@ -293,7 +344,9 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
         </div>
 
         {/* Chú Thích Bản Đồ Dưới Góc Phải */}
-        <div className="absolute bottom-2.5 right-2.5 z-20 bg-slate-900/85 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-3 shadow-md border border-slate-700">
+        <div className="absolute bottom-2.5 right-2.5 z-20 bg-slate-900/90 backdrop-blur-md text-white px-3 py-1.5 rounded-xl text-[10px] font-bold flex items-center gap-2.5 shadow-md border border-slate-700">
+          <span className="flex items-center gap-1 text-orange-400"><span>📍</span> Đơn Hàng</span>
+          <span className="text-slate-600">|</span>
           <span className="flex items-center gap-1"><span>🏪</span> Kho Gửi</span>
           <span className="flex items-center gap-1"><span>🏢</span> Bưu Cục</span>
           <span className="flex items-center gap-1"><span>🛵</span> Shipper</span>
