@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface DeliveryAuthFormProps {
   onAuthSuccess: (user: any, token: string) => void
@@ -20,7 +21,7 @@ export const DeliveryAuthForm: React.FC<DeliveryAuthFormProps> = ({
     setError(null)
 
     try {
-      const response = await fetch('http://localhost:8000/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface AuthModalProps {
   isOpen: boolean
@@ -61,7 +62,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         }
 
     try {
-      const response = await fetch(`http://localhost:8000/auth/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/auth/${endpoint}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

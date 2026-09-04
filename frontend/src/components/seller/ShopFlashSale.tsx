@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ShopFlashSaleProps {
   user: any
@@ -43,7 +44,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
 
   useEffect(() => {
     if (user?.shopId) {
-      fetch(`http://localhost:8000/products?shopId=${user.shopId}`)
+      fetch(`${API_BASE_URL}/products?shopId=${user.shopId}`)
         .then(res => res.json())
         .then(data => { if (Array.isArray(data)) setProducts(data) })
         .catch(err => console.error(err))
@@ -53,7 +54,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
   const syncProductPrice = async (productId: string, newFlashPrice: string, currentPrice: string | number) => {
     if (!productId || !newFlashPrice || productId.startsWith('demo-')) return
     try {
-      await fetch(`http://localhost:8000/products/${productId}`, {
+      await fetch(`${API_BASE_URL}/products/${productId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,7 +122,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
     // Restore original price
     if (item.productId && !item.productId.startsWith('demo-')) {
       try {
-        await fetch(`http://localhost:8000/products/${item.productId}`, {
+        await fetch(`${API_BASE_URL}/products/${item.productId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ price: String(item.originalPrice), originalPrice: null })

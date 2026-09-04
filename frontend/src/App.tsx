@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE_URL } from './config/api.config'
 import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
 import { Header } from './components/buyer/Header'
 import type { CartItem } from './models/cart.model'
@@ -414,7 +415,7 @@ function App() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch('http://localhost:8000/products')
+      const response = await fetch(`${API_BASE_URL}/products`)
       if (!response.ok) throw new Error('Failed to fetch products')
 
       const raw = await response.json()

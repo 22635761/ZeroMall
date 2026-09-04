@@ -260,13 +260,27 @@ export class ProductService {
       select: { id: true },
     });
     const productIds = products.map((p) => p.id);
-    const totalReviews = await this.prisma.review.count({
-      where: { productId: { in: productIds } },
-    });
+
+    let totalReviews = 0;
+    let averageRating = 0;
+
+    if (productIds.length > 0) {
+      const reviews = await this.prisma.review.findMany({
+        where: { productId: { in: productIds } },
+        select: { rating: true },
+      });
+      totalReviews = reviews.length;
+      if (totalReviews > 0) {
+        averageRating = parseFloat(
+          (reviews.reduce((acc, r) => acc + r.rating, 0) / totalReviews).toFixed(1)
+        );
+      }
+    }
 
     return {
       totalProducts,
       totalReviews,
+      averageRating,
     };
   }
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { BuyerWithdrawForm } from '../../components/buyer/BuyerWithdrawForm'
 
 interface UserWalletTabProps {
@@ -46,9 +47,9 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
     if (!silent) setIsLoading(true)
     try {
       const [balanceRes, txRes, configRes] = await Promise.all([
-        fetch(`http://localhost:8000/payments/wallet/${user.id}`),
-        fetch(`http://localhost:8000/payments/wallet/${user.id}/transactions`),
-        fetch('http://localhost:8000/payments/sepay-config'),
+        fetch(`${API_BASE_URL}/payments/wallet/${user.id}`),
+        fetch(`${API_BASE_URL}/payments/wallet/${user.id}/transactions`),
+        fetch(`${API_BASE_URL}/payments/sepay-config`),
       ])
       if (balanceRes.ok) setWallet(await balanceRes.json())
       if (txRes.ok) setTransactions(await txRes.json())
@@ -70,7 +71,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
     if (showDepositModal && activeTxId) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/payments/wallet/tx/${activeTxId}/status`)
+          const res = await fetch(`${API_BASE_URL}/payments/wallet/tx/${activeTxId}/status`)
           if (res.ok) {
             const data = await res.json()
             if (data.status === 'SUCCESS') {
@@ -103,7 +104,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
     setIsCreatingTx(true)
     try {
       const memo = `ZMWALLET${userShortId}`
-      const res = await fetch('http://localhost:8000/payments/wallet/deposit-pending', {
+      const res = await fetch(`${API_BASE_URL}/payments/wallet/deposit-pending`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ buyerId: user.id, amount, memo }),
@@ -129,7 +130,7 @@ export const UserWalletTab: React.FC<UserWalletTabProps> = ({ user }) => {
   const handleCloseDepositModal = async () => {
     if (activeTxId) {
       try {
-        await fetch(`http://localhost:8000/payments/wallet/tx/${activeTxId}`, {
+        await fetch(`${API_BASE_URL}/payments/wallet/tx/${activeTxId}`, {
           method: 'DELETE',
         })
       } catch (e) {

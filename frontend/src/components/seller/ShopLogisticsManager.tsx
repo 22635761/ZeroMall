@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { LiveMapTracking } from '../delivery/LiveMapTracking'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface Shipment {
   id: string
@@ -32,27 +33,49 @@ interface Settlement {
 
 interface ShopLogisticsManagerProps {
   user: any
+  shopDetails?: any
   activeSubMenu?: string
 }
 
-export const ShopLogisticsManager: React.FC<ShopLogisticsManagerProps> = ({ user, activeSubMenu }) => {
+export const ShopLogisticsManager: React.FC<ShopLogisticsManagerProps> = ({ user, shopDetails, activeSubMenu }) => {
   const [shipments, setShipments] = useState<Shipment[]>([])
   const [settlements, setSettlements] = useState<Settlement[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
   const [generatingSettlement, setGeneratingSettlement] = useState(false)
 
+  const currentShopId = shopDetails?.id || user?.shopId
+
   const fetchData = async () => {
+    if (!currentShopId) {
+      setShipments([])
+      setSettlements([])
+      setLoading(false)
+      return
+    }
+
     setLoading(true)
     try {
       const [shipRes, setRes] = await Promise.all([
-        fetch(`http://localhost:8000/delivery/shipments`),
-        fetch(`http://localhost:8000/delivery/settlements?sellerId=${user?.shopId || 'seller-default'}`),
+        fetch(`${API_BASE_URL}/delivery/shipments?sellerId=${encodeURIComponent(currentShopId)}`),
+        fetch(`${API_BASE_URL}/delivery/settlements?sellerId=${encodeURIComponent(currentShopId)}`),
       ])
-      if (shipRes.ok) setShipments(await shipRes.json())
-      if (setRes.ok) setSettlements(await setRes.json())
+      if (shipRes.ok) {
+        const data = await shipRes.json()
+        setShipments(Array.isArray(data) ? data : [])
+      } else {
+        setShipments([])
+      }
+      if (setRes.ok) {
+        const data = await setRes.json()
+        setSettlements(Array.isArray(data) ? data : [])
+      } else {
+        setSettlements([])
+      }
     } catch (e) {
-      console.error(e)
+      console.error('Error fetching shop logistics data:', e)
+      setShipments([])
+      setSettlements([])
     } finally {
       setLoading(false)
     }
@@ -60,16 +83,20 @@ export const ShopLogisticsManager: React.FC<ShopLogisticsManagerProps> = ({ user
 
   useEffect(() => {
     fetchData()
-  }, [user?.shopId])
+  }, [currentShopId])
 
   const handleGenerateSettlement = async () => {
+    if (!currentShopId) {
+      alert('Không tìm thấy thông tin cửa hàng!')
+      return
+    }
     setGeneratingSettlement(true)
     try {
-      const res = await fetch(`http://localhost:8000/delivery/settlements/generate`, {
+      const res = await fetch(`${API_BASE_URL}/delivery/settlements/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          sellerId: user?.shopId || 'seller-default',
+          sellerId: currentShopId,
         }),
       })
       if (res.ok) {

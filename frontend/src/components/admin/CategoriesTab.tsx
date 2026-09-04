@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface CategoriesTabProps {
   categories: any[]
@@ -25,7 +26,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({ categories, fetchC
             onClick={async () => {
               if (!newCategoryName.trim()) return
               try {
-                const res = await fetch('http://localhost:8000/products/categories', {
+                const res = await fetch(`${API_BASE_URL}/products/categories`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ name: newCategoryName })
@@ -70,7 +71,7 @@ export const CategoriesTab: React.FC<CategoriesTabProps> = ({ categories, fetchC
                     onClick={async () => {
                       if (window.confirm(`Xóa danh mục "${c.name}"?`)) {
                         try {
-                          const res = await fetch(`http://localhost:8000/products/categories/${c.id}`, {
+                          const res = await fetch(`${API_BASE_URL}/products/categories/${c.id}`, {
                             method: 'DELETE'
                           })
                           if (res.ok) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface TrackingLog {
   id: string
@@ -22,7 +23,8 @@ interface Shipment {
   shippingFee: number
   status: string
   createdAt: string
-  currentHub?: { name: string; code: string }
+  currentHubId?: string
+  currentHub?: { id?: string; name: string; code: string }
   package?: {
     weight: number
     itemsSummary?: string
@@ -45,7 +47,8 @@ interface Driver {
   vehicleNumber: string
   vehicleType: string
   status: string
-  hub?: { name: string }
+  hubId?: string
+  hub?: { id?: string; name: string; code?: string }
 }
 
 interface Hub {
@@ -59,7 +62,7 @@ interface Hub {
 }
 
 import { DeliveryAuthForm } from '../../components/delivery/DeliveryAuthForm'
-import { DriverAppView } from '../../components/delivery/DriverAppView'
+import { DriverAppView } from '../../components/delivery/driver/DriverAppView'
 import { HubOperatorStation } from '../../components/delivery/HubOperatorStation'
 import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
 
@@ -125,9 +128,9 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     setLoading(true)
     try {
       const [shipmentsRes, driversRes, hubsRes] = await Promise.all([
-        fetch('http://localhost:8000/delivery/shipments'),
-        fetch('http://localhost:8000/delivery/drivers'),
-        fetch('http://localhost:8000/delivery/hubs'),
+        fetch(`${API_BASE_URL}/delivery/shipments`),
+        fetch(`${API_BASE_URL}/delivery/drivers`),
+        fetch(`${API_BASE_URL}/delivery/hubs`),
       ])
 
       if (shipmentsRes.ok) setShipments(await shipmentsRes.json())
@@ -147,7 +150,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   const handleUpdateStatus = async (shipmentId: string, status: string, failureReason?: string) => {
     setActionLoading(true)
     try {
-      const res = await fetch(`http://localhost:8000/delivery/shipments/${shipmentId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/delivery/shipments/${shipmentId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -176,7 +179,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     if (!assignModalShipment || !selectedDriverId) return
     setActionLoading(true)
     try {
-      const res = await fetch(`http://localhost:8000/delivery/shipments/${assignModalShipment.id}/assign`, {
+      const res = await fetch(`${API_BASE_URL}/delivery/shipments/${assignModalShipment.id}/assign`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -209,9 +212,19 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   // Tìm Driver profile tương ứng trong CSDL
   const currentDriver = drivers.find((d) => (d as any).userId === currentUser.id || d.phone === currentUser.phoneNumber)
 
-  // Bộ lọc dữ liệu theo Tab & Vai trò (DRIVER chỉ thấy đơn của mình, OPERATOR/ADMIN thấy toàn sàn)
+  // Bộ lọc dữ liệu theo Tab & Vai trò (DRIVER chỉ thấy đơn của mình và các đơn tại Hub của mình, OPERATOR/ADMIN thấy toàn sàn)
   const roleBaseShipments = isDriver
-    ? shipments.filter((s) => s.assignments?.some((a) => a.driver?.phone === currentUser.phoneNumber || (currentDriver && a.driver?.phone === currentDriver.phone)))
+    ? shipments.filter((s) => 
+        // 1. Đơn đã gán cho tài xế này
+        s.assignments?.some((a) => 
+          a.driver?.phone === currentUser.phoneNumber || 
+          (currentDriver && (a.driver?.phone === currentDriver.phone || (a as any).driverId === currentDriver.id))
+        ) ||
+        // 2. Đơn tại bưu cục đích của tài xế này (chờ quét nhận đi giao)
+        (currentDriver && ['AT_DESTINATION_HUB', 'IN_TRANSIT'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId)) ||
+        // 3. Đơn cần lấy hàng thuộc bưu cục của tài xế này
+        (currentDriver && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId))
+      )
     : shipments
 
   const filteredShipments = roleBaseShipments.filter((s) => {

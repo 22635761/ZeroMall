@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface PlatformVouchersTabProps {
   platformVouchers: any[]
@@ -63,7 +64,7 @@ export const PlatformVouchersTab: React.FC<PlatformVouchersTabProps> = ({
                 return
               }
               try {
-                const res = await fetch('http://localhost:8000/discounts?shopId=PLATFORM', {
+                const res = await fetch(`${API_BASE_URL}/discounts?shopId=PLATFORM`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -122,7 +123,7 @@ export const PlatformVouchersTab: React.FC<PlatformVouchersTabProps> = ({
                     onClick={async () => {
                       if (window.confirm(`Xóa voucher "${v.code}"?`)) {
                         try {
-                          const res = await fetch(`http://localhost:8000/discounts/${v.id}`, {
+                          const res = await fetch(`${API_BASE_URL}/discounts/${v.id}`, {
                             method: 'DELETE'
                           })
                           if (res.ok) {

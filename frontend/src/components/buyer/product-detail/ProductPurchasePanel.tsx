@@ -16,6 +16,7 @@ interface ProductPurchasePanelProps {
   stockAvailable: number
   handleAddToCartClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onBuyNow: (product: any, quantity: number, variant: string) => void
+  user?: any
 }
 
 export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
@@ -33,7 +34,8 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
   handleIncrease,
   stockAvailable,
   handleAddToCartClick,
-  onBuyNow
+  onBuyNow,
+  user
 }) => {
   return (
     <div className="flex-1 flex flex-col justify-between space-y-5">
@@ -132,11 +134,13 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
             </div>
             <div className="flex gap-4 text-slate-500 pl-7">
               <span className="w-16">Vận chuyển tới</span>
-              <span className="font-semibold text-slate-700">Quận Ba Đình, Hà Nội</span>
+              <span className="font-semibold text-slate-700">
+                {user?.deliveryAddress || user?.address || 'Chọn địa chỉ nhận hàng'}
+              </span>
             </div>
             <div className="flex gap-4 text-slate-500 pl-7">
               <span className="w-16">Phí vận chuyển</span>
-              <span className="font-semibold text-slate-700">0đ - 15.000đ</span>
+              <span className="font-semibold text-slate-700">16.500đ - 32.000đ</span>
             </div>
           </div>
         </div>

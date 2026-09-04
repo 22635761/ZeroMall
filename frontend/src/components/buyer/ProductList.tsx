@@ -133,7 +133,7 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                         <span>Đã bán {p.sold >= 1000 ? `${(p.sold / 1000).toFixed(1)}k` : p.sold}</span>
                       </div>
                       <div className="text-[9px] text-slate-400 text-right font-semibold">
-                        {p.id.includes('-1') || p.id.includes('-3') || p.id.includes('-5') ? 'Hà Nội' : 'TP. Hồ Chí Minh'}
+                        {p.location || 'Toàn quốc'}
                       </div>
                     </div>
                   </div>

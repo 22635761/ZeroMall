@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { orderService } from '../../services/order.service'
 import type { Order } from '../../models/order.model'
@@ -84,7 +85,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     setTrackingLoading(true)
     setShowTrackingModal(true)
     try {
-      const res = await fetch(`http://localhost:8000/delivery/tracking/${orderId}`)
+      const res = await fetch(`${API_BASE_URL}/delivery/tracking/${orderId}`)
       if (res.ok) {
         const data = await res.json()
         setTrackingData(data)
@@ -141,7 +142,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
       for (const shopId of uniqueShopIds) {
         if (shopId && !shopsInfo[shopId]) {
           try {
-            const res = await fetch(`http://localhost:8000/auth/shops/${shopId}`)
+            const res = await fetch(`${API_BASE_URL}/auth/shops/${shopId}`)
             if (res.ok) {
               const data = await res.json()
               if (data.name) {
@@ -271,7 +272,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     if (showRePayModal && rePayOrder) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/payments/status/${rePayOrder.id}`)
+          const res = await fetch(`${API_BASE_URL}/payments/status/${rePayOrder.id}`)
           if (res.ok) {
             const data = await res.json()
             if (data.status === 'SUCCESS') {
@@ -289,7 +290,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
   const handleRePaySepay = async (order: Order) => {
     try {
-      const configRes = await fetch('http://localhost:8000/payments/sepay-config')
+      const configRes = await fetch(`${API_BASE_URL}/payments/sepay-config`)
       if (!configRes.ok) throw new Error('Không lấy được config')
       const config = await configRes.json()
       const memo = `ZM${order.id.substring(0, 8).toUpperCase()}`
@@ -350,7 +351,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
     // Gửi đánh giá sản phẩm lên database qua API
     for (const item of order.items) {
-      await fetch(`http://localhost:8000/products/${item.productId}/reviews`, {
+      await fetch(`${API_BASE_URL}/products/${item.productId}/reviews`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -365,7 +366,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     }
 
     // Giải ngân Escrow sớm cho Shop & Ví Sàn thu chiết khấu vì khách đã đánh giá
-    await fetch(`http://localhost:8000/payments/escrow/${order.id}/release`, {
+    await fetch(`${API_BASE_URL}/payments/escrow/${order.id}/release`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     })

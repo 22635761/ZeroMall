@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import type { BankAccount } from './BuyerBankAccounts'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface WithdrawRequest {
   id: string
@@ -59,7 +60,7 @@ export const BuyerWithdrawForm: React.FC<BuyerWithdrawFormProps> = ({
   // Fetch withdraw history
   const fetchWithdrawRequests = async () => {
     try {
-      const res = await fetch(`http://localhost:8000/payments/withdraw?shopId=${userId}`)
+      const res = await fetch(`${API_BASE_URL}/payments/withdraw?shopId=${userId}`)
       if (res.ok) {
         const data = await res.json()
         setWithdrawRequests(data)
@@ -96,7 +97,7 @@ export const BuyerWithdrawForm: React.FC<BuyerWithdrawFormProps> = ({
 
     setIsSubmitting(true)
     try {
-      const res = await fetch('http://localhost:8000/payments/withdraw', {
+      const res = await fetch(`${API_BASE_URL}/payments/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

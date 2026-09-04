@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../../config/api.config'
 
 const toSlug = (str: string) => {
   if (!str) return ''
@@ -63,7 +64,7 @@ export const Categories: React.FC<CategoriesProps> = ({ selectedCategory, onSele
   ])
 
   useEffect(() => {
-    fetch('http://localhost:8000/products/categories')
+    fetch(`${API_BASE_URL}/products/categories`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data) && data.length > 0) {

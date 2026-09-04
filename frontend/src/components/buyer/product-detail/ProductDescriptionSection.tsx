@@ -2,9 +2,25 @@ import React from 'react'
 
 interface ProductDescriptionSectionProps {
   product: any
+  shopDetails?: any
 }
 
-export const ProductDescriptionSection: React.FC<ProductDescriptionSectionProps> = ({ product }) => {
+export const ProductDescriptionSection: React.FC<ProductDescriptionSectionProps> = ({ product, shopDetails }) => {
+  const getOriginLocation = () => {
+    if (!shopDetails?.pickupAddress) return 'Chưa cập nhật địa chỉ kho'
+    try {
+      const pickup = typeof shopDetails.pickupAddress === 'string'
+        ? JSON.parse(shopDetails.pickupAddress)
+        : shopDetails.pickupAddress
+      
+      const parts = [pickup.ward, pickup.district, pickup.province].filter(Boolean)
+      if (parts.length > 0) return parts.join(', ')
+      return pickup.detailAddress || pickup.province || 'Chưa cập nhật địa chỉ kho'
+    } catch {
+      return typeof shopDetails.pickupAddress === 'string' ? shopDetails.pickupAddress : 'Chưa cập nhật địa chỉ kho'
+    }
+  }
+
   return (
     <div className="space-y-5">
       {/* Attributes Table */}
@@ -15,7 +31,7 @@ export const ProductDescriptionSection: React.FC<ProductDescriptionSectionProps>
         <div className="space-y-3.5 text-xs text-slate-500 pt-1">
           <div className="flex">
             <span className="w-32 shrink-0 font-medium">Danh Mục</span>
-            <span className="text-slate-800">{product.category}</span>
+            <span className="text-slate-800">{product.category || 'Khác'}</span>
           </div>
           <div className="flex">
             <span className="w-32 shrink-0 font-medium">Thương hiệu</span>
@@ -23,11 +39,11 @@ export const ProductDescriptionSection: React.FC<ProductDescriptionSectionProps>
           </div>
           <div className="flex">
             <span className="w-32 shrink-0 font-medium">Hạn bảo hành</span>
-            <span className="text-slate-800">12 tháng</span>
+            <span className="text-slate-800">{product.warranty || 'Theo chính sách nhà sản xuất'}</span>
           </div>
           <div className="flex">
             <span className="w-32 shrink-0 font-medium">Gửi từ</span>
-            <span className="text-slate-800">Quận Ba Đình, Hà Nội</span>
+            <span className="text-slate-800 font-semibold">{getOriginLocation()}</span>
           </div>
         </div>
       </div>
@@ -44,3 +60,4 @@ export const ProductDescriptionSection: React.FC<ProductDescriptionSectionProps>
     </div>
   )
 }
+

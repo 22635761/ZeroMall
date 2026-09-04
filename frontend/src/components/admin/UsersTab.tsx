@@ -1,4 +1,5 @@
 import React from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface UsersTabProps {
   users: any[]
@@ -50,7 +51,7 @@ export const UsersTab: React.FC<UsersTabProps> = ({ users, fetchUsers, triggerAu
                       onClick={async () => {
                         const newStatus = u.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE'
                         try {
-                          const res = await fetch(`http://localhost:8000/auth/users/${u.id}/status`, {
+                          const res = await fetch(`${API_BASE_URL}/auth/users/${u.id}/status`, {
                             method: 'PUT',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ status: newStatus })

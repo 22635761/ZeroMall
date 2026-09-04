@@ -1,4 +1,5 @@
 import React from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ViolationsTabProps {
   violations: any[]
@@ -40,7 +41,7 @@ export const ViolationsTab: React.FC<ViolationsTabProps> = ({ violations, fetchV
                       onClick={async () => {
                         if (window.confirm('Bỏ qua tất cả cảnh báo vi phạm của sản phẩm này?')) {
                           try {
-                            const res = await fetch(`http://localhost:8000/products/violations/${p.id}`, {
+                            const res = await fetch(`${API_BASE_URL}/products/violations/${p.id}`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ isViolated: false })
@@ -63,7 +64,7 @@ export const ViolationsTab: React.FC<ViolationsTabProps> = ({ violations, fetchV
                       onClick={async () => {
                         if (window.confirm('Gỡ bỏ vĩnh viễn sản phẩm này khỏi hệ thống ZeroMall?')) {
                           try {
-                            const res = await fetch(`http://localhost:8000/products/${p.id}`, {
+                            const res = await fetch(`${API_BASE_URL}/products/${p.id}`, {
                               method: 'DELETE'
                             })
                             if (res.ok) {

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ShopReviewsProps {
   user: any
@@ -18,7 +19,7 @@ export const ShopReviews: React.FC<ShopReviewsProps> = ({ user, shopId }) => {
     if (!effectiveShopId) return
     setLoading(true)
     try {
-      const res = await fetch(`http://localhost:8000/products/shop/${effectiveShopId}/reviews`)
+      const res = await fetch(`${API_BASE_URL}/products/shop/${effectiveShopId}/reviews`)
       if (res.ok) {
         const data = await res.json()
         setReviews(data)

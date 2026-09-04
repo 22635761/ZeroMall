@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useSearchParams } from 'react-router-dom'
 import { CsShopsTab } from '../../components/cs-support/CsShopsTab'
 import { CsWithdrawalsTab } from '../../components/cs-support/CsWithdrawalsTab'
@@ -68,7 +69,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
 
   const triggerAuditLog = async (action: string) => {
     try {
-      await fetch('http://localhost:8000/auth/audit-logs', {
+      await fetch(`${API_BASE_URL}/auth/audit-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: user?.email || 'Unknown CS', action })
@@ -82,8 +83,8 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     setLoading(true)
     try {
       const url = statusFilter === 'ALL' 
-        ? `http://localhost:8000/auth/shops`
-        : `http://localhost:8000/auth/shops?status=${statusFilter}`
+        ? `${API_BASE_URL}/auth/shops`
+        : `${API_BASE_URL}/auth/shops?status=${statusFilter}`
       const response = await fetch(url)
       if (!response.ok) throw new Error('Không thể tải danh sách cửa hàng')
       const data = await response.json()
@@ -99,9 +100,9 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     setWithdrawLoading(true)
     try {
       const [withdrawRes, shopsRes, usersRes] = await Promise.all([
-        fetch('http://localhost:8000/payments/withdraw/pending'),
-        fetch('http://localhost:8000/auth/shops'),
-        fetch('http://localhost:8000/auth/users'),
+        fetch(`${API_BASE_URL}/payments/withdraw/pending`),
+        fetch(`${API_BASE_URL}/auth/shops`),
+        fetch(`${API_BASE_URL}/auth/users`),
       ])
       if (!withdrawRes.ok) throw new Error('Không thể tải danh sách rút tiền')
       const withdrawalsData = await withdrawRes.json()
@@ -147,10 +148,10 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     }
   }
 
-  const fetchDisputes = async () => {
-    setDisputesLoading(true)
+  const fetchDisputedOrders = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/orders')
+      const response = await fetch(`${API_BASE_URL}/orders`)
       if (!response.ok) throw new Error('Không thể tải danh sách tranh chấp')
       const data = await response.json()
       const disputedOrders = data.filter((o: any) => o.status === 'RETURN_DISPUTED' || o.status === 'RETURN_PENDING')
@@ -172,35 +173,40 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     if (!window.confirm(`Bạn phán quyết CHẤP NHẬN HOÀN TIỀN ${Number(order.totalAmount).toLocaleString('vi-VN')}đ cho Người mua?\nNguồn hoàn trả: ${destLabel}`)) return
     setActionLoadingId(order.id)
     try {
-      await fetch(`http://localhost:8000/payments/escrow/${order.id}/cancel`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      })
-
-      const updateRes = await fetch(`http://localhost:8000/orders/${order.id}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'REFUNDED' })
-      })
-      if (!updateRes.ok) throw new Error('Không thể cập nhật trạng thái đơn hàng')
-
-      const refundRes = await fetch('http://localhost:8000/payments/refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: order.id,
-          buyerId: order.buyerId,
-          amount: order.totalAmount,
-          destination: dest
+      // 1. Nếu đơn đã thanh toán online, hủy Escrow trước
+      if (order.paymentMethod !== 'cod' && order.paymentStatus === 'PAID') {
+        await fetch(`${API_BASE_URL}/payments/escrow/${order.id}/cancel`, {
+          method: 'POST'
         })
+      }
+
+      // 2. Cập nhật trạng thái đơn thành CANCELLED
+      await fetch(`${API_BASE_URL}/orders/${order.id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'CANCELLED' })
       })
-      if (!refundRes.ok) {
-        console.error('Không thể hoàn tiền cho người mua')
+
+      // 3. Gọi API hoàn tiền về ví cho người mua
+      if (order.paymentMethod !== 'cod' && order.paymentStatus === 'PAID') {
+        const refundRes = await fetch(`${API_BASE_URL}/payments/refund`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: order.id,
+            buyerId: order.buyerId,
+            amount: order.totalAmount,
+            destination: dest
+          })
+        })
+        if (!refundRes.ok) {
+          console.error('Không thể hoàn tiền cho người mua')
+        }
       }
 
       await triggerAuditLog(`Chấp nhận hoàn tiền đơn hàng ${order.id} về [${destLabel}], đã hủy Escrow`)
       alert(`Đã phán quyết hoàn tiền thành công về [${destLabel}] cho Người mua!`)
-      fetchDisputes()
+      fetchDisputedOrders()
     } catch (e: any) {
       alert('Lỗi: ' + e.message)
     } finally {
@@ -212,12 +218,13 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     if (!window.confirm('Bạn từ chối yêu cầu của Người mua và phán quyết giải ngân tiền hàng cho Người bán?')) return
     setActionLoadingId(order.id)
     try {
-      await fetch(`http://localhost:8000/payments/escrow/${order.id}/release`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      // 1. Release tiền cho Shop
+      await fetch(`${API_BASE_URL}/payments/escrow/${order.id}/release`, {
+        method: 'POST'
       })
 
-      const updateRes = await fetch(`http://localhost:8000/orders/${order.id}/status`, {
+      // 2. Chuyển trạng thái đơn thành COMPLETED
+      const updateRes = await fetch(`${API_BASE_URL}/orders/${order.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'COMPLETED' })
@@ -226,7 +233,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
 
       await triggerAuditLog(`Từ chối yêu cầu trả hàng của đơn hàng ${order.id}. Đã giải ngân Escrow cho Người bán.`)
       alert('Đã bác bỏ khiếu nại! Tiền đơn hàng đã được giải ngân cho Người bán.')
-      fetchDisputes()
+      fetchDisputedOrders()
     } catch (e: any) {
       alert('Lỗi: ' + e.message)
     } finally {
@@ -234,10 +241,10 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     }
   }
 
-  const fetchAllOrders = async () => {
-    setAllOrdersLoading(true)
+  const fetchReportedOrders = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/orders')
+      const response = await fetch(`${API_BASE_URL}/orders`)
       if (!response.ok) throw new Error('Không thể tải danh sách đơn hàng')
       const data = await response.json()
       setAllOrders(data)
@@ -254,9 +261,9 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     } else if (activePortalTab === 'WITHDRAWALS') {
       fetchWithdrawals()
     } else if (activePortalTab === 'DISPUTES') {
-      fetchDisputes()
+      fetchDisputedOrders()
     } else if (activePortalTab === 'ORDERS') {
-      fetchAllOrders()
+      fetchReportedOrders()
     }
   }, [statusFilter, activePortalTab])
 
@@ -277,7 +284,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
   const handleApprove = async (shopId: string, status: string) => {
     setActionLoadingId(shopId)
     try {
-      const response = await fetch(`http://localhost:8000/auth/shops/${shopId}/approve`, {
+      const response = await fetch(`${API_BASE_URL}/auth/shops/${shopId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })
@@ -298,7 +305,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
   const handleApproveWithdrawal = async (reqId: string, status: string) => {
     setActionLoadingId(reqId)
     try {
-      const response = await fetch(`http://localhost:8000/payments/withdraw/${reqId}/approve`, {
+      const response = await fetch(`${API_BASE_URL}/payments/withdraw/${reqId}/approve`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status })

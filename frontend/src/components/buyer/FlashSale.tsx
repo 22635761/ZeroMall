@@ -17,6 +17,7 @@ export interface Product {
   category?: string
   brand?: string
   shopId?: string
+  location?: string
 }
 
 interface FlashSaleProps {

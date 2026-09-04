@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ShopVoucher {
   id: string
@@ -59,7 +60,7 @@ export const ShopVouchers: React.FC<ShopVouchersProps> = ({ user }) => {
   const loadVouchers = async () => {
     if (!shopId) return
     try {
-      const response = await fetch(`http://localhost:8000/discounts?shopId=${shopId}`)
+      const response = await fetch(`${API_BASE_URL}/discounts?shopId=${shopId}`)
       if (!response.ok) throw new Error('Không thể tải danh sách mã giảm giá')
       const data = await response.json()
       setVouchers(data)
@@ -134,7 +135,7 @@ export const ShopVouchers: React.FC<ShopVouchersProps> = ({ user }) => {
         endDate: new Date(endDate).toISOString()
       }
 
-      const response = await fetch(`http://localhost:8000/discounts?shopId=${shopId}`, {
+      const response = await fetch(`${API_BASE_URL}/discounts?shopId=${shopId}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -166,7 +167,7 @@ export const ShopVouchers: React.FC<ShopVouchersProps> = ({ user }) => {
   const handleDeleteVoucher = async (id: string) => {
     if (window.confirm('Bạn có chắc chắn muốn xóa mã giảm giá này không?')) {
       try {
-        const response = await fetch(`http://localhost:8000/discounts/${id}`, {
+        const response = await fetch(`${API_BASE_URL}/discounts/${id}`, {
           method: 'DELETE'
         })
         if (!response.ok) throw new Error('Không thể xóa mã giảm giá')

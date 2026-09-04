@@ -1,4 +1,5 @@
 import { apiRequest } from './api.service';
+import { API_BASE_URL } from '../config/api.config';
 import { io, Socket } from 'socket.io-client';
 
 export interface NotificationItem {
@@ -56,7 +57,7 @@ export function connectNotificationSocket(
   if (!userId) return null;
 
   if (!socket) {
-    socket = io('http://localhost:8000/notifications', {
+    socket = io(`${API_BASE_URL}/notifications`, {
       transports: ['websocket', 'polling'],
       autoConnect: true,
     });

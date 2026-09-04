@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useSearchParams } from 'react-router-dom'
 import { SellerAuthForm } from '../../components/seller/SellerAuthForm'
 import { ShopApprovalStatus } from '../../components/seller/ShopApprovalStatus'
@@ -66,7 +67,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     }
     setShopLoading(true)
     try {
-      const response = await fetch(`http://localhost:8000/auth/shops/${user.shopId}`)
+      const response = await fetch(`${API_BASE_URL}/auth/shops/${user.shopId}`)
       if (!response.ok) throw new Error('Không thể tải thông tin cửa hàng')
       const data = await response.json()
       setShopDetails(data)
@@ -85,7 +86,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     if (!user?.shopId) return
     setProductsLoading(true)
     try {
-      const response = await fetch(`http://localhost:8000/products?shopId=${user.shopId}`)
+      const response = await fetch(`${API_BASE_URL}/products?shopId=${user.shopId}`)
       if (!response.ok) throw new Error('Không thể tải danh sách sản phẩm')
       const data = await response.json()
       
@@ -151,8 +152,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
     try {
       const isEdit = !!editingProduct
       const url = isEdit 
-        ? `http://localhost:8000/products/${editingProduct.id}`
-        : `http://localhost:8000/products`
+        ? `${API_BASE_URL}/products/${editingProduct.id}`
+        : `${API_BASE_URL}/products`
       const method = isEdit ? 'PUT' : 'POST'
       
       const payload = {
@@ -208,7 +209,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
 
   const handleProductDelete = async (productId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/products/${productId}`, {
+      const response = await fetch(`${API_BASE_URL}/products/${productId}`, {
         method: 'DELETE'
       })
       if (!response.ok) throw new Error('Không thể xóa sản phẩm')
@@ -220,7 +221,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
 
   const handleProductToggleStatus = async (productId: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/products/${productId}/toggle-status`, {
+      const response = await fetch(`${API_BASE_URL}/products/${productId}/toggle-status`, {
         method: 'PUT'
       })
       if (!response.ok) throw new Error('Không thể cập nhật trạng thái sản phẩm')
@@ -467,7 +468,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-flashsale' ? (
             <ShopFlashSale user={user} />
           ) : activeMenu === 'logistics' ? (
-            <ShopLogisticsManager user={user} activeSubMenu={activeSubMenu} />
+            <ShopLogisticsManager user={user} shopDetails={shopDetails} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'orders' ? (
             <ShopOrders user={user} token={token || ''} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'finance' && activeSubMenu === 'revenue' ? (

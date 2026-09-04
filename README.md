@@ -144,27 +144,54 @@ docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.
 
 ### 🌐 Địa Chỉ Truy Cập Dịch Vụ
 
-- **Sàn Mua Sắm ZeroMall (Buyer & Seller)**: http://localhost:3000 hoặc http://zeromall.local:3000
-- **Cổng Giao Vận ZMX (Driver / Hub Station / Operator)**: http://delivery.zeromall.local:3000
-- **Kong API Gateway**: http://localhost:8000
-- **pgAdmin (Quản lý CSDL)**: http://localhost:5050 (Email: `admin@zeromall.com`, Mật khẩu: `admin`)
+Hệ thống hỗ trợ cả hai phương thức truy cập: **truy cập theo Path** (mặc định qua `localhost:3000`) và **truy cập theo Subdomain** (cần cấu hình file `hosts` trỏ về `127.0.0.1`):
+
+| Phân hệ / Cổng dịch vụ | Truy cập qua Path (Mặc định) | Truy cập qua Subdomain (Cần map hosts) | Vai trò / Ghi chú truy cập |
+| :--- | :--- | :--- | :--- |
+| **🛍️ Sàn Mua Sắm ZeroMall (Buyer)** | [http://localhost:3000](http://localhost:3000) | [http://zeromall.local:3000](http://zeromall.local:3000) | Dành cho người mua hàng duyệt sản phẩm, giỏ hàng, đặt hàng & thanh toán |
+| **🏬 Kênh Người Bán (Seller Centre)** | [http://localhost:3000/seller](http://localhost:3000/seller) | [http://seller.zeromall.local:3000](http://seller.zeromall.local:3000) | Quản lý kho, đăng bán sản phẩm, theo dõi vận đơn ZMX, ví doanh thu Shop |
+| **👑 Cổng Quản Trị Hệ Thống (Admin Portal)** | [http://localhost:3000/admin](http://localhost:3000/admin) | [http://admin.zeromall.local:3000](http://admin.zeromall.local:3000) | Đăng nhập tài khoản vai trò **`ADMIN`** (Báo cáo GMV, duyệt sản phẩm, quản trị user/shop) |
+| **🎧 Cổng Chăm Sóc Khách Hàng (CS Portal / CSKH)** | [http://localhost:3000/admin](http://localhost:3000/admin) | [http://admin.zeromall.local:3000](http://admin.zeromall.local:3000) | Đăng nhập tài khoản vai trò **`PLATFORM_SUPPORT`** (Tự động vào giao diện CSKH: Duyệt shop, duyệt rút tiền ví, giải quyết khiếu nại) |
+| **🚚 Cổng Giao Vận ZMX Logistics (Driver & Hub)** | [http://localhost:3000/delivery](http://localhost:3000/delivery) | [http://delivery.zeromall.local:3000](http://delivery.zeromall.local:3000) | Dành cho **Tài xế giao hàng (Driver)**, **Nhân viên Bưu cục (Hub Operator)** và **Điều phối viên** |
+| **🚪 Kong API Gateway** | [http://localhost:8000](http://localhost:8000) | — | Cổng định tuyến API tập trung cho toàn bộ Microservices |
+| **🗄️ pgAdmin (Quản trị CSDL)** | [http://localhost:5050](http://localhost:5050) | — | Email: `admin@zeromall.com` \| Mật khẩu: `admin` |
+
+> [!TIP]
+> **Cấu hình Local Domains (Tùy chọn)**: Thêm dòng sau vào file `/etc/hosts` (macOS/Linux) hoặc `C:\Windows\System32\drivers\etc\hosts` (Windows):
+> ```text
+> 127.0.0.1 zeromall.local seller.zeromall.local admin.zeromall.local delivery.zeromall.local
+> ```
 
 ---
 
 ## 🔑 5. Danh Sách Tài Khoản Thử Nghiệm
 
-Mật khẩu mặc định cho tất cả tài khoản: **`123456`**
+Mật khẩu mặc định cho **tất cả tài khoản**: **`123456`**
 
-| Email tài khoản | Vai trò (Role) | Chức năng / Phạm vi quản lý |
-| :--- | :--- | :--- |
-| `buyer.nh@zeromall.com` | BUYER | Người mua hàng, ví ZeroPay sẵn 5.000.000đ |
-| `seller1@zeromall.com` | SHOP_OWNER | Cửa hàng "ZeroMall Fashion Hub" (Kho: Biên Hòa, Đồng Nai) |
-| `seller2@zeromall.com` | SHOP_OWNER | Cửa hàng "ZeroMall Home & Kitchen" (Kho: Phú Nhuận, TP.HCM) |
-| `hub_hcm@zeromall.com` | HUB_OPERATOR | Trưởng Kho Tổng Tân Bình SOC (TP.HCM) |
-| `hub_bienhoa@zeromall.com` | HUB_OPERATOR | Trưởng Bưu Cục Biên Hòa Hub (Đồng Nai) |
-| `hub_melinh@zeromall.com` | HUB_OPERATOR | Trưởng Kho Mê Linh SOC (Hà Nội) |
-| `shipper1@zeromall.com` | DRIVER | Tài xế Nguyễn Văn Giao (Tuyến: Tân Bình / TP.HCM) |
-| `shipper2@zeromall.com` | DRIVER | Tài xế Trần Đình Phát (Tuyến: Biên Hòa / Đồng Nai) |
-| `operator@zeromall.com` | LOGISTICS_OPERATOR | Điều phối viên & Quản trị logistics toàn sàn |
-| `admin@zeromall.com` | ADMIN | Quản trị viên hệ thống toàn diện |
-| `cskh_1@gmail.com` | PLATFORM_SUPPORT | Nhân viên CSKH & Hỗ trợ khiếu nại |
+### 1. Quản Trị Hệ Thống & CSKH (Đăng nhập tại `/admin`)
+| Email | Vai trò (Role) | Cổng đăng nhập | Mô tả & Thẩm quyền |
+| :--- | :--- | :--- | :--- |
+| `admin@zeromall.com` | `ADMIN` | `/admin` | Quản trị viên tối cao: Toàn quyền báo cáo GMV, duyệt sản phẩm, cấu hình chiết khấu, quản lý người dùng |
+| `cskh_1@gmail.com` | `PLATFORM_SUPPORT` | `/admin` | Nhân viên CSKH: Duyệt đơn đăng ký Shop mới, phê duyệt lệnh rút tiền ví của Buyer/Seller, xử lý khiếu nại |
+
+### 2. Kênh Người Bán (Đăng nhập tại `/seller`)
+| Email | Vai trò (Role) | Cổng đăng nhập | Gian hàng đại diện |
+| :--- | :--- | :--- | :--- |
+| `seller1@zeromall.com` | `SHOP_OWNER` | `/seller` | **ZeroMall Fashion Hub** (Kho lấy hàng: Biên Hòa, Đồng Nai) |
+| `seller2@zeromall.com` | `SHOP_OWNER` | `/seller` | **ZeroMall Home & Kitchen** (Kho lấy hàng: Phú Nhuận, TP.HCM) |
+
+### 3. Cổng Giao Vận ZMX Express (Đăng nhập tại `/delivery`)
+| Email | Vai trò (Role) | Phân hệ giao diện | Địa bàn / Bưu cục phụ trách |
+| :--- | :--- | :--- | :--- |
+| `shipper1@zeromall.com` | `DRIVER` | 🛵 App Shipper Mobile | Tài xế Nguyễn Văn Giao — Tuyến Tân Bình / TP.HCM |
+| `shipper2@zeromall.com` | `DRIVER` | 🛵 App Shipper Mobile | Tài xế Trần Đình Phát — Tuyến Biên Hòa / Đồng Nai |
+| `hub_hcm@zeromall.com` | `HUB_OPERATOR` | 🏢 Máy quét Barcode Bưu Cục | Trưởng Kho Tổng Tân Bình SOC (TP.HCM) |
+| `hub_bienhoa@zeromall.com` | `HUB_OPERATOR` | 🏢 Máy quét Barcode Bưu Cục | Trưởng Bưu Cục Biên Hòa Hub (Đồng Nai) |
+| `hub_melinh@zeromall.com` | `HUB_OPERATOR` | 🏢 Máy quét Barcode Bưu Cục | Trưởng Kho Mê Linh SOC (Hà Nội) |
+| `operator@zeromall.com` | `LOGISTICS_OPERATOR` | 📊 Trung tâm điều phối | Điều phối viên mạng lưới logistics & Đối soát COD toàn sàn |
+
+### 4. Người Mua Hàng (Đăng nhập tại `/`)
+| Email | Vai trò (Role) | Cổng đăng nhập | Thông tin ví & Tài khoản |
+| :--- | :--- | :--- | :--- |
+| `buyer.nh@zeromall.com` | `BUYER` | Trang chủ `/` | Người mua mẫu — Sẵn số dư ví **ZeroPay 5.000.000đ** để test thanh toán trực tuyến |
+

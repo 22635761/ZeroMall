@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { AddCsStaffModal } from './AddCsStaffModal'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface CsStaffTabProps {
   csStaff: any[]
@@ -64,7 +65,7 @@ export const CsStaffTab: React.FC<CsStaffTabProps> = ({ csStaff, fetchCsStaff, t
                     onClick={async () => {
                       const newStatus = cs.status === 'ACTIVE' ? 'BLOCKED' : 'ACTIVE'
                       try {
-                        const res = await fetch(`http://localhost:8000/auth/users/${cs.id}/status`, {
+                        const res = await fetch(`${API_BASE_URL}/auth/users/${cs.id}/status`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ status: newStatus })

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import type { Order } from '../../models/order.model'
 import { orderService } from '../../services/order.service'
 import { formatOrderId } from '../../utils/orderUtils'
@@ -65,7 +66,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       
       // 2. Gọi API hoàn tiền cho khách nếu thanh toán online (không phải cod)
       if (order.paymentMethod !== 'cod') {
-        const res = await fetch('http://localhost:8000/payments/refund', {
+        const res = await fetch(`${API_BASE_URL}/payments/refund`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -127,18 +128,22 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       if (newStatus === 'SHIPPING' && order) {
         try {
           const itemsSummary = order.items?.map((i: any) => `${i.name || i.productName} x${i.quantity}`).join(', ')
-          const delRes = await fetch('http://localhost:8000/delivery/create', {
+          const delRes = await fetch(`${API_BASE_URL}/delivery/create`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               orderId: order.id,
-              shopId: order.items[0]?.shopId || shopId,
+              sellerId: order.items[0]?.shopId || (order as any).shopId || shopId,
+              shopId: order.items[0]?.shopId || (order as any).shopId || shopId,
               shopName: user?.shopName || 'Cửa hàng ZeroMall',
               buyerId: order.buyerId,
               buyerName: order.buyerName,
               buyerPhone: order.buyerPhone,
+              deliveryAddress: order.shippingAddress,
               shippingAddress: order.shippingAddress,
-              totalAmount: order.totalAmount,
+              codAmount: order.paymentMethod === 'cod' ? order.totalAmount : 0,
+              declaredValue: order.totalAmount,
+              shippingFee: order.shippingFee || 25000,
               paymentMethod: order.paymentMethod,
               itemsSummary,
             }),
@@ -147,6 +152,9 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
             const delData = await delRes.json()
             ghnOrderCode = delData.trackingNumber
             alert(`🚚 Đã chuyển đơn sang ZeroMall Express (ZMX) thành công!\nMã vận đơn: ${ghnOrderCode}\nTài xế ZMX sẽ sớm đến lấy hàng.`)
+          } else {
+            const errJson = await delRes.json().catch(() => ({}))
+            console.error('Delivery create returned error:', errJson)
           }
         } catch (delErr) {
           console.error('Failed to create delivery order on ZMX:', delErr)

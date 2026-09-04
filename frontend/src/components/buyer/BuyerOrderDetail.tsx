@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import type { Order } from '../../models/order.model'
 import { formatOrderId } from '../../utils/orderUtils'
 import { LiveMapTracking } from '../delivery/LiveMapTracking'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface BuyerOrderDetailProps {
   order: Order
@@ -48,7 +49,7 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
     const fetchTracking = async () => {
       setLoadingTracking(true)
       try {
-        const res = await fetch(`http://localhost:8000/delivery/tracking/${order.id}`)
+        const res = await fetch(`${API_BASE_URL}/delivery/tracking/${order.id}`)
         if (res.ok && isMounted) {
           const data = await res.json()
           setTrackingData(data)

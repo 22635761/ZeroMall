@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface FlashSaleTabProps {
   flashSales: any[]
@@ -50,7 +51,7 @@ export const FlashSaleTab: React.FC<FlashSaleTabProps> = ({ flashSales, fetchFla
     e.preventDefault()
     if (!newTimeSlot.trim()) return
     try {
-      const res = await fetch('http://localhost:8000/products/flash-sales', {
+      const res = await fetch(`${API_BASE_URL}/products/flash-sales`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timeSlot: newTimeSlot })
@@ -121,7 +122,7 @@ export const FlashSaleTab: React.FC<FlashSaleTabProps> = ({ flashSales, fetchFla
                         onChange={async (e) => {
                           const newStatus = e.target.value
                           try {
-                            const res = await fetch(`http://localhost:8000/products/flash-sales/${slot.id}/status`, {
+                            const res = await fetch(`${API_BASE_URL}/products/flash-sales/${slot.id}/status`, {
                               method: 'PUT',
                               headers: { 'Content-Type': 'application/json' },
                               body: JSON.stringify({ status: newStatus })

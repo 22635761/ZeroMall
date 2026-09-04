@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import type { CartItem } from '../../models/cart.model'
 import { CartStepView } from '../../components/buyer/CartStepView'
 import { CheckoutStepView } from '../../components/buyer/CheckoutStepView'
@@ -212,7 +213,7 @@ export const CartPage: React.FC<CartPageProps> = ({
     if (showSepayModal && activeOrderId) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/payments/status/${activeOrderId}`)
+          const res = await fetch(`${API_BASE_URL}/payments/status/${activeOrderId}`)
           if (res.ok) {
             const data = await res.json()
             if (data.status === 'SUCCESS') {
@@ -222,13 +223,12 @@ export const CartPage: React.FC<CartPageProps> = ({
               // Cập nhật voucher đã dùng
               try {
                 const appliedVoucherIds = Object.values(selectedShopVouchers).filter(Boolean)
-                if (appliedVoucherIds.length > 0) {
-                  await fetch('http://localhost:8000/discounts/use', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ voucherIds: appliedVoucherIds })
-                  })
-                }
+                // Mark discount as used again via API
+                await fetch(`${API_BASE_URL}/discounts/use`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ voucherIds: appliedVoucherIds })
+                })
               } catch (e) {
                 console.error(e)
               }
@@ -285,14 +285,23 @@ export const CartPage: React.FC<CartPageProps> = ({
       for (const shopId of uniqueShopIds) {
         if (shopId && !shopsInfo[shopId]) {
           try {
-            const res = await fetch(`http://localhost:8000/auth/shops/${shopId}`)
+            const res = await fetch(`${API_BASE_URL}/auth/shops/${shopId}`)
             if (res.ok) {
               const data = await res.json()
+              let pickupGhnDistrictId = 3695 // default fallback
+              try {
+                if (data.pickupAddress) {
+                  const pickup = typeof data.pickupAddress === 'string' ? JSON.parse(data.pickupAddress) : data.pickupAddress
+                  if (pickup.ghnDistrictId) pickupGhnDistrictId = pickup.ghnDistrictId
+                }
+              } catch (e) { /* ignore parse errors */ }
+
               setShopsInfo(prev => ({
                 ...prev,
                 [shopId]: {
                   name: data.name || `Cửa hàng ${shopId.substring(0, 8)}`,
-                  shippingSettings: data.shippingSettings ? JSON.parse(data.shippingSettings) : null
+                  shippingSettings: data.shippingSettings ? JSON.parse(data.shippingSettings) : null,
+                  ghnDistrictId: pickupGhnDistrictId
                 }
               }))
             }
@@ -317,7 +326,7 @@ export const CartPage: React.FC<CartPageProps> = ({
       for (const shopId of uniqueShopIds) {
         if (shopId) {
           try {
-            const res = await fetch(`http://localhost:8000/discounts/active?shopId=${shopId}`)
+            const res = await fetch(`${API_BASE_URL}/discounts/active?shopId=${shopId}`)
             if (res.ok) {
               const data = await res.json()
               fetchedVouchers = [...fetchedVouchers, ...data]
@@ -413,6 +422,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         
         let totalFee = 0
         for (const _shopId of uniqueSelectedShops) {
+          const shopGhnDistrictId = shopsInfo[_shopId]?.ghnDistrictId || 3695
           const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
             method: 'POST',
             headers: {
@@ -421,7 +431,7 @@ export const CartPage: React.FC<CartPageProps> = ({
               'ShopId': String(ghnShopId)
             },
             body: JSON.stringify({
-              from_district_id: 3695, // Thủ Đức
+              from_district_id: shopGhnDistrictId, // Dynamic per shop
               to_district_id: activeAddress.ghnDistrictId,
               to_ward_code: activeAddress.ghnWardCode,
               height: 15,
@@ -529,7 +539,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         items: orderItems
       }
 
-      const response = await fetch('http://localhost:8000/orders', {
+      const response = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
@@ -540,36 +550,35 @@ export const CartPage: React.FC<CartPageProps> = ({
       }
 
       const orderJson = await response.json()
-      const orderId = orderJson.id
+      const orders = Array.isArray(orderJson) ? orderJson : [orderJson]
 
-      // Gọi API thực hiện thanh toán
-      const paymentResponse = await fetch('http://localhost:8000/payments/charge', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId,
-          buyerId: user?.id || 'guest-buyer-id',
-          amount: grandTotal,
-          paymentMethod
+      // Gọi API thanh toán cho TỪNG đơn hàng (1 đơn / 1 shop)
+      for (const ord of orders) {
+        const paymentResponse = await fetch(`${API_BASE_URL}/payments/charge`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: ord.id,
+            buyerId: user?.id || 'guest-buyer-id',
+            amount: ord.totalAmount,
+            paymentMethod
+          })
         })
-      })
 
-      if (!paymentResponse.ok) {
-        const errJson = await paymentResponse.json()
-        throw new Error(errJson.message || 'Thanh toán thất bại. Vui lòng kiểm tra lại số dư ví!')
+        if (!paymentResponse.ok) {
+          const errJson = await paymentResponse.json()
+          throw new Error(errJson.message || 'Thanh toán thất bại. Vui lòng kiểm tra lại số dư ví!')
+        }
       }
 
       try {
         const appliedVoucherIds = Object.values(selectedShopVouchers).filter(Boolean)
         if (appliedVoucherIds.length > 0) {
-          const res = await fetch('http://localhost:8000/discounts/use', {
+          await fetch(`${API_BASE_URL}/discounts/use`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ voucherIds: appliedVoucherIds })
           })
-          if (!res.ok) {
-            console.error('Failed to record voucher usage on backend')
-          }
         }
       } catch (e) {
         console.error('Error updating shop voucher usage on checkout:', e)
@@ -578,16 +587,17 @@ export const CartPage: React.FC<CartPageProps> = ({
 
       if (paymentMethod === 'sepay') {
         try {
-          const configRes = await fetch('http://localhost:8000/payments/sepay-config')
+          const configRes = await fetch(`${API_BASE_URL}/payments/sepay-config`)
           if (configRes.ok) {
             const config = await configRes.json()
-            const memo = `ZM${orderId.substring(0, 8).toUpperCase()}`
+            const firstOrderId = orders[0].id
+            const memo = `ZM${firstOrderId.substring(0, 8).toUpperCase()}`
             const qr = `https://img.vietqr.io/image/${config.bankId}-${config.bankAcc}-compact2.jpg?amount=${grandTotal}&addInfo=${memo}&accountName=${encodeURIComponent(config.bankName)}`
             
             setSepayMemo(memo)
             setSepayQrUrl(qr)
             setSepayBankInfo(config)
-            setActiveOrderId(orderId)
+            setActiveOrderId(firstOrderId)
             setShowSepayModal(true)
           } else {
             throw new Error('Không thể tải cấu hình chuyển khoản ngân hàng.')

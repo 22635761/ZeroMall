@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { API_BASE_URL } from '../../config/api.config';
 
 interface ProductItem {
   id: string;
@@ -89,7 +90,7 @@ export default function AdminPriceAnalyticsTab() {
 
   const fetchAllProducts = async () => {
     try {
-      const res = await fetch('http://localhost:8000/products');
+      const res = await fetch(`${API_BASE_URL}/products`);
       if (res.ok) {
         const data = await res.json();
         const list = Array.isArray(data) ? data : data.data || [];
@@ -106,7 +107,7 @@ export default function AdminPriceAnalyticsTab() {
   const fetchAnalytics = async (prodId: string, range: string) => {
     setLoading(true);
     try {
-      const res = await fetch(`http://localhost:8000/products/price-analytics?productId=${prodId}&range=${range}`);
+      const res = await fetch(`${API_BASE_URL}/products/price-analytics?productId=${prodId}&range=${range}`);
       if (res.ok) {
         const data = await res.json();
         setAnalytics({

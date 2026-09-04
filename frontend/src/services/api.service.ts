@@ -1,4 +1,5 @@
-export const API_BASE_URL = 'http://localhost:8000';
+import { API_BASE_URL } from '../config/api.config';
+export { API_BASE_URL };
 
 export async function apiRequest<T = any>(
   path: string,

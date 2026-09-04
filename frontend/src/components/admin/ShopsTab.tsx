@@ -1,4 +1,5 @@
 import React from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ShopsTabProps {
   shops: any[]
@@ -35,7 +36,9 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                     s.status === 'BLOCKED' ? 'bg-rose-50 text-rose-650' : 'bg-amber-50 text-amber-655'
                   }`}>
                     {s.status === 'APPROVED' ? 'Đang hoạt động' : 
-                     s.status === 'BLOCKED' ? 'Đang bị Khóa' : s.status}
+                     s.status === 'BLOCKED' ? 'Đang bị Khóa' :
+                     s.status === 'PENDING_APPROVAL' ? 'Chờ phê duyệt' :
+                     s.status === 'REJECTED' ? 'Bị từ chối' : s.status}
                   </span>
                 </td>
                 <td className="py-3.5 text-center">
@@ -43,7 +46,7 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                     onClick={async () => {
                       const newStatus = s.status === 'APPROVED' ? 'BLOCKED' : 'APPROVED'
                       try {
-                        const res = await fetch(`http://localhost:8000/auth/shops/${s.id}/approve`, {
+                        const res = await fetch(`${API_BASE_URL}/auth/shops/${s.id}/approve`, {
                           method: 'PUT',
                           headers: { 'Content-Type': 'application/json' },
                           body: JSON.stringify({ status: newStatus })

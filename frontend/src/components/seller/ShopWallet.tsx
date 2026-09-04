@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { getLinkedBankAccounts, type LinkedBankAccount } from './ShopBankAccounts'
 
 interface ShopWalletProps {
@@ -59,21 +60,21 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user, onNavigateToBankAc
     setIsLoading(true)
     try {
       // 1. Fetch wallet balance (using shopId as the buyerId key for shop wallet)
-      const balanceRes = await fetch(`http://localhost:8000/payments/wallet/${shopId}`)
+      const balanceRes = await fetch(`${API_BASE_URL}/payments/wallet/${shopId}`)
       if (balanceRes.ok) {
         const data = await balanceRes.json()
         setWallet(data)
       }
 
       // 2. Fetch transactions
-      const txRes = await fetch(`http://localhost:8000/payments/wallet/${shopId}/transactions`)
+      const txRes = await fetch(`${API_BASE_URL}/payments/wallet/${shopId}/transactions`)
       if (txRes.ok) {
         const data = await txRes.json()
         setTransactions(data)
       }
 
       // 3. Fetch withdrawal requests
-      const withdrawRes = await fetch(`http://localhost:8000/payments/withdraw?shopId=${shopId}`)
+      const withdrawRes = await fetch(`${API_BASE_URL}/payments/withdraw?shopId=${shopId}`)
       if (withdrawRes.ok) {
         const data = await withdrawRes.json()
         setWithdrawRequests(data)
@@ -129,7 +130,7 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user, onNavigateToBankAc
     }
 
     try {
-      const res = await fetch('http://localhost:8000/payments/withdraw', {
+      const res = await fetch(`${API_BASE_URL}/payments/withdraw`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

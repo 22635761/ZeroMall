@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { orderService } from '../../services/order.service'
 import type { Order } from '../../models/order.model'
 
@@ -32,7 +33,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token }) => {
       try {
         const [ordersData, commRes] = await Promise.all([
           orderService.fetchSellerOrders(shopId, token),
-          fetch('http://localhost:8000/payments/commission-rate').then(res => res.json()).catch(() => ({ commissionRate: 5 }))
+          fetch(`${API_BASE_URL}/payments/commission-rate`).then(res => res.json()).catch(() => ({ commissionRate: 5 }))
         ])
         setOrders(ordersData || [])
         if (commRes && typeof commRes.commissionRate === 'number') {

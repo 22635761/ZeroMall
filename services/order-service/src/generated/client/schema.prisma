@@ -18,6 +18,8 @@ model Order {
   shippingFee            Float
   paymentMethod          String // "cod" | "zeropay" | "card" | "gpay" | "napas"
   status                 String      @default("PENDING_PAYMENT") // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
+  shopId                 String? // Shop sở hữu đơn hàng (1 Order = 1 Shop)
+  checkoutGroupId        String? // Nhóm các đơn cùng 1 lần checkout
   shopDiscountAmount     Float       @default(0)
   platformDiscountAmount Float       @default(0)
   shopVoucherCode        String?
@@ -30,6 +32,7 @@ model Order {
   refundDescription      String?
   refundEmail            String?
   refundProofImages      String?
+  commissionRate         Float       @default(5) // Tỷ lệ chiết khấu bảo lưu tại thời điểm đặt hàng
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
   items                  OrderItem[]

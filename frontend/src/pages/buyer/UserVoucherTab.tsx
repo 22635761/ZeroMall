@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useNavigate } from 'react-router-dom'
 
 interface UserVoucherTabProps {
@@ -47,7 +48,7 @@ export const UserVoucherTab: React.FC<UserVoucherTabProps> = () => {
   const fetchActiveVouchers = async () => {
     setIsLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/discounts/all-active')
+      const res = await fetch(`${API_BASE_URL}/discounts/all-active`)
       if (res.ok) {
         const data = await res.json()
         setVouchers(data)

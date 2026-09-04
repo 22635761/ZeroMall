@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ProfileModalProps {
   isOpen: boolean
@@ -13,7 +14,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose, use
   useEffect(() => {
     if (isOpen && user && user.shopId) {
       setLoadingShop(true)
-      fetch(`http://localhost:8000/auth/shops/${user.shopId}`)
+      fetch(`${API_BASE_URL}/auth/shops/${user.shopId}`)
         .then((res) => {
           if (res.ok) return res.json()
           throw new Error('Not found')

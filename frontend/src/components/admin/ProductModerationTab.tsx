@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface ProductModerationTabProps {
   triggerAuditLog: (action: string) => Promise<void>
@@ -33,9 +34,9 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
     setLoading(true)
     try {
       const [resProd, resCat, resShops] = await Promise.all([
-        fetch('http://localhost:8000/products'),
-        fetch('http://localhost:8000/products/categories'),
-        fetch('http://localhost:8000/auth/shops'),
+        fetch(`${API_BASE_URL}/products`),
+        fetch(`${API_BASE_URL}/products/categories`),
+        fetch(`${API_BASE_URL}/auth/shops`),
       ])
       if (resProd.ok) {
         const prodData = await resProd.json()
@@ -104,7 +105,7 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
     if (!deleteModalProduct) return
     setIsDeleting(true)
     try {
-      const res = await fetch(`http://localhost:8000/products/${deleteModalProduct.id}`, {
+      const res = await fetch(`${API_BASE_URL}/products/${deleteModalProduct.id}`, {
         method: 'DELETE',
       })
 
@@ -135,7 +136,7 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
     if (!window.confirm(confirmText)) return
 
     try {
-      const res = await fetch(`http://localhost:8000/products/${product.id}/toggle-status`, {
+      const res = await fetch(`${API_BASE_URL}/products/${product.id}/toggle-status`, {
         method: 'PUT',
       })
       if (res.ok) {
@@ -153,7 +154,7 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
   const handleDismissViolation = async (product: any) => {
     if (!window.confirm(`Xác nhận sản phẩm "${product.name}" hợp lệ và xóa sạch cảnh báo báo cáo vi phạm?`)) return
     try {
-      const res = await fetch(`http://localhost:8000/products/violations/${product.id}`, {
+      const res = await fetch(`${API_BASE_URL}/products/violations/${product.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isViolated: false }),
@@ -173,7 +174,7 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
     if (!stockEditProduct) return
     setIsUpdatingStock(true)
     try {
-      const res = await fetch(`http://localhost:8000/products/${stockEditProduct.id}`, {
+      const res = await fetch(`${API_BASE_URL}/products/${stockEditProduct.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

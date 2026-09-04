@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { toSlug } from '../../utils/slug'
 
@@ -68,30 +69,22 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
     const fetchShopInfo = async () => {
       try {
         // Fetch Shop Info
-        const shopRes = await fetch(`http://localhost:8000/auth/shops/${targetShopId}`)
+        const shopRes = await fetch(`${API_BASE_URL}/auth/shops/${targetShopId}`)
         if (shopRes.ok) {
           const sData = await shopRes.json()
           if (isMounted) {
             setShopDetails(sData)
-            setFollowersCount(sData.followers || 1280)
+            setFollowersCount(sData.followers ?? 0)
           }
         } else {
-          // Fallback mock shop info
           if (isMounted) {
-            setShopDetails({
-              id: targetShopId,
-              name: 'ZeroMall Fashion Hub Store',
-              responseRate: 99,
-              responseTime: 'trong vài phút',
-              createdAt: '2024-01-15T00:00:00.000Z',
-              followers: 1420
-            })
-            setFollowersCount(1420)
+            setShopDetails(null)
+            setFollowersCount(0)
           }
         }
 
         // Fetch Shop Products
-        const prodRes = await fetch(`http://localhost:8000/products?shopId=${targetShopId}`)
+        const prodRes = await fetch(`${API_BASE_URL}/products?shopId=${targetShopId}`)
         if (prodRes.ok) {
           const pData = await prodRes.json()
           if (isMounted && Array.isArray(pData)) {
@@ -129,7 +122,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
         }
 
         // Fetch Shop Stats
-        const statsRes = await fetch(`http://localhost:8000/products/shops/${targetShopId}/stats`)
+        const statsRes = await fetch(`${API_BASE_URL}/products/shops/${targetShopId}/stats`)
         if (statsRes.ok && isMounted) {
           const statsData = await statsRes.json()
           setShopStats(statsData)
@@ -137,7 +130,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
 
         // Fetch Real Shop Vouchers from discount-service CSDL
         try {
-          const voucherRes = await fetch(`http://localhost:8000/discounts/active?shopId=${targetShopId}`)
+          const voucherRes = await fetch(`${API_BASE_URL}/discounts/active?shopId=${targetShopId}`)
           if (voucherRes.ok && isMounted) {
             const vData = await voucherRes.json()
             if (Array.isArray(vData)) {
@@ -148,13 +141,18 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
           console.warn('Could not fetch shop vouchers:', ve)
         }
 
-        // Fetch Follow Status
-        if (user?.id) {
-          const followRes = await fetch(`http://localhost:8000/auth/shops/${targetShopId}/follow-status?userId=${user.id}`)
+        // Fetch Follow Status & Real Follower Count
+        try {
+          const followRes = await fetch(`${API_BASE_URL}/auth/shops/${targetShopId}/follow-status?userId=${user?.id || ''}`)
           if (followRes.ok && isMounted) {
             const fData = await followRes.json()
-            setIsFollowing(fData.isFollowing)
+            setIsFollowing(!!fData.isFollowing)
+            if (typeof fData.count === 'number') {
+              setFollowersCount(fData.count)
+            }
           }
+        } catch (fe) {
+          console.warn('Could not fetch follow status:', fe)
         }
       } catch (err) {
         console.error('Error fetching shop detail page data:', err)
@@ -177,7 +175,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
     }
 
     try {
-      const res = await fetch(`http://localhost:8000/auth/shops/${targetShopId}/follow`, {
+      const res = await fetch(`${API_BASE_URL}/auth/shops/${targetShopId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -239,14 +237,27 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
 
   // Format Helper
   const formatJoinTime = (dateStr?: string) => {
-    if (!dateStr) return '2 năm trước'
+    if (!dateStr) return 'Mới tham gia'
     const diffDays = Math.floor((Date.now() - new Date(dateStr).getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays <= 0) return 'Hôm nay'
     if (diffDays < 30) return `${diffDays} ngày trước`
     if (diffDays < 365) return `${Math.floor(diffDays / 30)} tháng trước`
     return `${(diffDays / 365).toFixed(1)} năm trước`
   }
 
 
+
+  const shopProvince = useMemo(() => {
+    if (!shopDetails?.pickupAddress) return ''
+    try {
+      const pickup = typeof shopDetails.pickupAddress === 'string'
+        ? JSON.parse(shopDetails.pickupAddress)
+        : shopDetails.pickupAddress
+      return pickup.province || ''
+    } catch {
+      return ''
+    }
+  }, [shopDetails?.pickupAddress])
 
   const handleClaimVoucher = (vId: string) => {
     setClaimedVouchers(prev => ({ ...prev, [vId]: true }))
@@ -287,8 +298,18 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                   <span>{(shopDetails?.name || 'Z').charAt(0).toUpperCase()}</span>
                 )}
               </div>
-              <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-rose-600 text-white text-[9px] font-black rounded-full uppercase tracking-wider shadow-xs whitespace-nowrap">
-                Yêu Thích+
+              <span className={`absolute -bottom-1 left-1/2 -translate-x-1/2 px-2 py-0.5 text-white text-[9px] font-black rounded-full uppercase tracking-wider shadow-xs whitespace-nowrap ${
+                (shopStats?.totalReviews ?? 0) >= 10 && (shopStats?.averageRating ?? 0) >= 4.5
+                  ? 'bg-rose-600'
+                  : (shopStats?.totalReviews ?? 0) === 0
+                  ? 'bg-emerald-700'
+                  : 'bg-emerald-600'
+              }`}>
+                {(shopStats?.totalReviews ?? 0) >= 10 && (shopStats?.averageRating ?? 0) >= 4.5
+                  ? 'Yêu Thích+'
+                  : (shopStats?.totalReviews ?? 0) === 0
+                  ? 'Shop Mới'
+                  : 'Chính Hãng'}
               </span>
             </div>
 
@@ -298,7 +319,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
               </h1>
               <p className="text-[11px] text-emerald-300 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span>Online 5 phút trước</span>
+                <span>Đang hoạt động</span>
                 <span className="text-white/40">•</span>
                 <span className="text-slate-300 font-semibold">Chính hãng 100%</span>
               </p>
@@ -334,11 +355,11 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
             </div>
           </div>
 
-          {/* Shop Statistics Grid */}
+          {/* Shop Statistics Grid (100% Dynamic from Database) */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-xs w-full lg:w-auto">
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">📦 Sản Phẩm</span>
-              <p className="text-base font-black text-emerald-400">{shopProducts.length || 12}</p>
+              <p className="text-base font-black text-emerald-400">{shopStats?.totalProducts ?? shopProducts.length}</p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
@@ -351,18 +372,27 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">⭐ Đánh Giá</span>
               <p className="text-base font-black text-yellow-300">
-                {shopStats?.averageRating || 4.9} <span className="text-[10px] font-medium text-slate-300">({shopStats?.totalReviews || 486})</span>
+                {(shopStats?.totalReviews ?? 0) > 0 ? (
+                  <>
+                    {shopStats.averageRating || '5.0'}{' '}
+                    <span className="text-[10px] font-medium text-slate-300">({shopStats.totalReviews})</span>
+                  </>
+                ) : (
+                  <span className="text-xs font-semibold text-slate-300">Chưa có đánh giá</span>
+                )}
               </p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">💬 Tỉ Lệ Phản Hồi</span>
-              <p className="text-base font-black text-emerald-400">{shopDetails?.responseRate || 99}%</p>
+              <p className="text-base font-black text-emerald-400">
+                {shopDetails?.responseRate != null ? `${shopDetails.responseRate}%` : 'Chưa có dữ liệu'}
+              </p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
               <span className="text-[10px] text-slate-400 uppercase font-bold tracking-wider">⏱️ Thời Gian Phản Hồi</span>
-              <p className="text-xs font-bold text-slate-200 mt-1">{shopDetails?.responseTime || 'trong vài phút'}</p>
+              <p className="text-xs font-bold text-slate-200 mt-1">{shopDetails?.responseTime || 'Trong vài giờ'}</p>
             </div>
 
             <div className="bg-white/5 border border-white/10 rounded-2xl p-3.5 space-y-0.5">
@@ -455,14 +485,26 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
             <div className="space-y-3 bg-slate-50 border border-slate-100 p-4 rounded-2xl">
               <h4 className="font-extrabold text-slate-800 text-xs uppercase text-emerald-700">📌 Thông tin liên hệ</h4>
               <p><span className="font-bold text-slate-500">Tên gian hàng:</span> {shopDetails?.name}</p>
-              <p><span className="font-bold text-slate-500">Email:</span> {shopDetails?.email || 'seller@zeromall.com'}</p>
-              <p><span className="font-bold text-slate-500">Số điện thoại:</span> {shopDetails?.phoneNumber || '0964579675'}</p>
+              <p><span className="font-bold text-slate-500">Email:</span> {shopDetails?.email || 'Chưa cập nhật'}</p>
+              <p><span className="font-bold text-slate-500">Số điện thoại:</span> {shopDetails?.phoneNumber || 'Chưa cập nhật'}</p>
               <p><span className="font-bold text-slate-500">Trạng thái xác minh:</span> <span className="text-emerald-600 font-extrabold">Đã xác minh chính hãng</span></p>
             </div>
 
             <div className="space-y-3 bg-slate-50 border border-slate-100 p-4 rounded-2xl">
               <h4 className="font-extrabold text-slate-800 text-xs uppercase text-emerald-700">🚚 Chính sách vận chuyển & Kho</h4>
-              <p><span className="font-bold text-slate-500">Địa chỉ kho lấy hàng:</span> {shopDetails?.pickupAddress ? JSON.parse(shopDetails.pickupAddress).detailAddress || 'Hà Nội' : 'Hà Nội'}</p>
+              <p>
+                <span className="font-bold text-slate-500">Địa chỉ kho lấy hàng:</span>{' '}
+                {(() => {
+                  if (!shopDetails?.pickupAddress) return 'Chưa cập nhật địa chỉ kho'
+                  try {
+                    const p = typeof shopDetails.pickupAddress === 'string' ? JSON.parse(shopDetails.pickupAddress) : shopDetails.pickupAddress
+                    const addr = [p.detailAddress, p.ward, p.district, p.province].filter(Boolean).join(', ')
+                    return addr || 'Chưa cập nhật địa chỉ kho'
+                  } catch {
+                    return typeof shopDetails.pickupAddress === 'string' ? shopDetails.pickupAddress : 'Chưa cập nhật địa chỉ kho'
+                  }
+                })()}
+              </p>
               <p><span className="font-bold text-slate-500">Đơn vị vận chuyển:</span> Giao Hàng Nhanh (GHN), Hỏa Tốc</p>
               <p><span className="font-bold text-slate-500">Thời gian chuẩn bị hàng:</span> Trong 24 giờ</p>
             </div>
@@ -663,7 +705,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                           <span>Đã bán {soldVal >= 1000 ? `${(soldVal / 1000).toFixed(1)}k` : soldVal}</span>
                         </div>
                         <div className="text-[9px] text-slate-400 text-right font-semibold">
-                          {p.id.includes('-1') || p.id.includes('-3') || p.id.includes('-5') ? 'Hà Nội' : 'TP. Hồ Chí Minh'}
+                          {shopProvince || 'Chính hãng'}
                         </div>
                       </div>
                     </div>

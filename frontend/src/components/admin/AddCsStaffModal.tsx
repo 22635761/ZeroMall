@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface AddCsStaffModalProps {
   isOpen: boolean
@@ -42,7 +43,7 @@ export const AddCsStaffModal: React.FC<AddCsStaffModalProps> = ({
 
     setIsSubmitting(true)
     try {
-      const res = await fetch('http://localhost:8000/auth/cs-staff', {
+      const res = await fetch(`${API_BASE_URL}/auth/cs-staff`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, password })

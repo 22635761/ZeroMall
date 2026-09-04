@@ -1,7 +1,13 @@
-import { Inject, Injectable, NotFoundException, OnModuleInit } from '@nestjs/common';
+import {
+  Inject,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ClientKafka } from '@nestjs/microservices';
 import { PrismaService } from './prisma.service';
 import { CreateOrderDto, UpdateOrderStatusDto } from './order.dto';
+import { randomInt, randomUUID } from 'crypto';
 
 @Injectable()
 export class OrderService implements OnModuleInit {
@@ -22,14 +28,17 @@ export class OrderService implements OnModuleInit {
 
   private startAutoCancelScanner() {
     // Quét mỗi 5 phút một lần
-    setInterval(async () => {
-      try {
-        await this.cancelOverdueOrders();
-      } catch (err) {
-        console.error('[AutoCancel] Error scanning overdue orders:', err);
-      }
-    }, 5 * 60 * 1000);
-    
+    setInterval(
+      async () => {
+        try {
+          await this.cancelOverdueOrders();
+        } catch (err) {
+          console.error('[AutoCancel] Error scanning overdue orders:', err);
+        }
+      },
+      5 * 60 * 1000,
+    );
+
     // Chạy kiểm tra ban đầu sau 10 giây
     setTimeout(async () => {
       try {
@@ -44,7 +53,9 @@ export class OrderService implements OnModuleInit {
     const oneDayAgo = new Date();
     oneDayAgo.setDate(oneDayAgo.getDate() - 1);
 
-    console.log(`[AutoCancel] Scanning for PENDING_PAYMENT orders created before: ${oneDayAgo.toISOString()}`);
+    console.log(
+      `[AutoCancel] Scanning for PENDING_PAYMENT orders created before: ${oneDayAgo.toISOString()}`,
+    );
 
     const overdueOrders = await this.prisma.order.findMany({
       where: {
@@ -59,7 +70,9 @@ export class OrderService implements OnModuleInit {
       return;
     }
 
-    console.log(`[AutoCancel] Found ${overdueOrders.length} overdue orders. Proceeding to cancel...`);
+    console.log(
+      `[AutoCancel] Found ${overdueOrders.length} overdue orders. Proceeding to cancel...`,
+    );
 
     for (const order of overdueOrders) {
       await this.prisma.order.update({
@@ -82,17 +95,19 @@ export class OrderService implements OnModuleInit {
     const min = String(now.getMinutes()).padStart(2, '0');
     const ss = String(now.getSeconds()).padStart(2, '0');
     const ms = String(now.getMilliseconds()).padStart(3, '0'); // Miligiây (000-999)
-    const rand = Math.floor(10 + Math.random() * 90); // 2 số ngẫu nhiên (10-99)
+    const rand = randomInt(100000, 999999);
     return `${yy}${mm}${dd}${hh}${min}${ss}${ms}${rand}`;
   }
 
   async createOrder(dto: CreateOrderDto) {
-    const customOrderId = this.generateNumericOrderId();
+    const checkoutGroupId = randomUUID();
 
     // Lấy tỉ lệ chiết khấu hiện tại từ payment-service và bảo lưu vào đơn hàng
     let commissionRate = 5;
     try {
-      const cfgRes = await fetch('http://payment-service:3005/payments/system-config/commission_rate');
+      const cfgRes = await fetch(
+        'http://payment-service:3005/payments/system-config/commission_rate',
+      );
       if (cfgRes.ok) {
         const cfgData = await cfgRes.json();
         commissionRate = parseFloat(cfgData.value) || 5;
@@ -101,83 +116,138 @@ export class OrderService implements OnModuleInit {
       console.warn('[Order] Could not fetch commission rate, using default 5%');
     }
 
-    const order = await this.prisma.$transaction(async (tx) => {
-      // Create the order with pure numeric ID (e.g. 260723849102)
-      const newOrder = await tx.order.create({
-        data: {
-          id: customOrderId,
-          buyerId: dto.buyerId,
-          buyerEmail: dto.buyerEmail,
-          buyerName: dto.buyerName,
-          buyerPhone: dto.buyerPhone,
-          shippingAddress: dto.shippingAddress,
-          totalAmount: dto.totalAmount,
-          shippingFee: dto.shippingFee,
-          paymentMethod: dto.paymentMethod,
-          status: dto.paymentMethod === 'cod' ? 'PENDING' : 'PENDING_PAYMENT',
-          shopDiscountAmount: dto.shopDiscountAmount || 0,
-          platformDiscountAmount: dto.platformDiscountAmount || 0,
-          shopVoucherCode: dto.shopVoucherCode || null,
-          platformVoucherCode: dto.platformVoucherCode || null,
-          appliedVoucherIds: dto.appliedVoucherIds || null,
-          ghnDistrictId: dto.ghnDistrictId || null,
-          ghnWardCode: dto.ghnWardCode || null,
-          commissionRate: commissionRate,
-          items: {
-            create: dto.items.map((item) => ({
-              productId: item.productId,
-              shopId: item.shopId,
-              name: item.name,
-              image: item.image,
-              variant: item.variant || null,
-              price: item.price,
-              quantity: item.quantity,
-            })),
+    // Group items by shopId
+    const itemsByShop: Record<string, typeof dto.items> = {};
+    let totalItemsValue = 0;
+
+    for (const item of dto.items) {
+      if (!itemsByShop[item.shopId]) {
+        itemsByShop[item.shopId] = [];
+      }
+      itemsByShop[item.shopId].push(item);
+      totalItemsValue += item.price * item.quantity;
+    }
+
+    const shopIds = Object.keys(itemsByShop);
+    const shopCount = shopIds.length;
+    const createdOrders: any[] = [];
+
+    // Create a separate order per shop
+    for (const shopId of shopIds) {
+      const customOrderId = this.generateNumericOrderId();
+      const shopItems = itemsByShop[shopId];
+      const shopSubtotal = shopItems.reduce(
+        (sum, item) => sum + item.price * item.quantity,
+        0,
+      );
+
+      const ratio =
+        totalItemsValue > 0 ? shopSubtotal / totalItemsValue : 1 / shopCount;
+      const allocatedShippingFee = Math.round(dto.shippingFee * ratio);
+      const allocatedPlatformDiscount = Math.round(
+        (dto.platformDiscountAmount || 0) * ratio,
+      );
+      const allocatedShopDiscount = Math.round(
+        (dto.shopDiscountAmount || 0) / shopCount,
+      );
+
+      const totalAmount =
+        shopSubtotal +
+        allocatedShippingFee -
+        allocatedPlatformDiscount -
+        allocatedShopDiscount;
+
+      const order = await this.prisma.$transaction(async (tx) => {
+        return await tx.order.create({
+          data: {
+            id: customOrderId,
+            shopId: shopId,
+            checkoutGroupId: checkoutGroupId,
+            buyerId: dto.buyerId,
+            buyerEmail: dto.buyerEmail,
+            buyerName: dto.buyerName,
+            buyerPhone: dto.buyerPhone,
+            shippingAddress: dto.shippingAddress,
+            totalAmount: totalAmount,
+            shippingFee: allocatedShippingFee,
+            paymentMethod: dto.paymentMethod,
+            status: dto.paymentMethod === 'cod' ? 'PENDING' : 'PENDING_PAYMENT',
+            shopDiscountAmount: allocatedShopDiscount,
+            platformDiscountAmount: allocatedPlatformDiscount,
+            shopVoucherCode: dto.shopVoucherCode || null,
+            platformVoucherCode: dto.platformVoucherCode || null,
+            appliedVoucherIds: dto.appliedVoucherIds || null,
+            ghnDistrictId: dto.ghnDistrictId || null,
+            ghnWardCode: dto.ghnWardCode || null,
+            commissionRate: commissionRate,
+            items: {
+              create: shopItems.map((item) => ({
+                productId: item.productId,
+                shopId: item.shopId,
+                name: item.name,
+                image: item.image,
+                variant: item.variant || null,
+                price: item.price,
+                quantity: item.quantity,
+              })),
+            },
           },
-        },
-        include: {
-          items: true,
-        },
+          include: {
+            items: true,
+          },
+        });
       });
 
-      return newOrder;
-    });
+      createdOrders.push(order);
 
-    // Nếu đơn hàng thanh toán online hoặc đã ở trạng thái PROCESSING, cập nhật ngay số lượng đã bán và kho
-    if (order.status === 'PROCESSING') {
-      this.notifyProductPurchase(order.items);
+      // Nếu đơn hàng thanh toán online hoặc đã ở trạng thái PROCESSING, cập nhật ngay số lượng đã bán và kho
+      if (order.status === 'PROCESSING') {
+        this.notifyProductPurchase(order.items);
+      }
+
+      // Bắn sự kiện order.created sang Kafka bất đồng bộ sau khi lưu DB thành công
+      try {
+        this.kafkaClient.emit(
+          'order.created',
+          JSON.stringify({
+            orderId: order.id,
+            shopId: order.shopId,
+            checkoutGroupId: order.checkoutGroupId,
+            buyerId: order.buyerId,
+            buyerEmail: order.buyerEmail,
+            buyerName: order.buyerName,
+            buyerPhone: order.buyerPhone,
+            shippingAddress: order.shippingAddress,
+            totalAmount: order.totalAmount,
+            shippingFee: order.shippingFee,
+            paymentMethod: order.paymentMethod,
+            status: order.status,
+            items: order.items,
+            createdAt: order.createdAt,
+          }),
+        );
+        console.log(
+          `[Kafka] Published order.created event for order ${order.id}`,
+        );
+      } catch (e) {
+        console.error('[Kafka] Failed to publish order.created event:', e);
+      }
     }
 
-    // Bắn sự kiện order.created sang Kafka bất đồng bộ sau khi lưu DB thành công
-    try {
-      this.kafkaClient.emit('order.created', JSON.stringify({
-        orderId: order.id,
-        buyerId: order.buyerId,
-        buyerEmail: order.buyerEmail,
-        buyerName: order.buyerName,
-        buyerPhone: order.buyerPhone,
-        shippingAddress: order.shippingAddress,
-        totalAmount: order.totalAmount,
-        shippingFee: order.shippingFee,
-        paymentMethod: order.paymentMethod,
-        status: order.status,
-        items: order.items,
-        createdAt: order.createdAt,
-      }));
-      console.log(`[Kafka] Published order.created event for order ${order.id}`);
-    } catch (e) {
-      console.error('[Kafka] Failed to publish order.created event:', e);
-    }
-
-    return order;
+    return createdOrders;
   }
 
-  private async notifyProductPurchase(items: { productId: string; quantity: number }[]) {
+  private async notifyProductPurchase(
+    items: { productId: string; quantity: number }[],
+  ) {
     if (!items || items.length === 0) return;
     try {
-      const productServiceUrl = process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
+      const productServiceUrl =
+        process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
       const url = `${productServiceUrl}/products/purchase`;
-      console.log(`[OrderService] Notifying product-service of purchase for ${items.length} items at ${url}`);
+      console.log(
+        `[OrderService] Notifying product-service of purchase for ${items.length} items at ${url}`,
+      );
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -189,12 +259,20 @@ export class OrderService implements OnModuleInit {
         }),
       });
       if (res.ok) {
-        console.log('[OrderService] Product sales and stock updated successfully');
+        console.log(
+          '[OrderService] Product sales and stock updated successfully',
+        );
       } else {
-        console.error('[OrderService] Product service returned error:', res.status);
+        console.error(
+          '[OrderService] Product service returned error:',
+          res.status,
+        );
       }
     } catch (err) {
-      console.error('[OrderService] Error calling product-service purchase endpoint:', err);
+      console.error(
+        '[OrderService] Error calling product-service purchase endpoint:',
+        err,
+      );
     }
   }
 
@@ -213,18 +291,10 @@ export class OrderService implements OnModuleInit {
   async getOrdersBySeller(shopId: string) {
     return this.prisma.order.findMany({
       where: {
-        items: {
-          some: {
-            shopId: shopId,
-          },
-        },
+        shopId: shopId,
       },
       include: {
-        items: {
-          where: {
-            shopId: shopId,
-          },
-        },
+        items: true,
       },
       orderBy: {
         createdAt: 'desc',
@@ -268,8 +338,17 @@ export class OrderService implements OnModuleInit {
       },
     });
 
-    const isPaidStatus = ['PROCESSING', 'CONFIRMED', 'SHIPPED', 'DELIVERED', 'COMPLETED', 'SUCCESS'].includes(dto.status);
-    const wasUnpaidStatus = ['PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(exists.status);
+    const isPaidStatus = [
+      'PROCESSING',
+      'CONFIRMED',
+      'SHIPPED',
+      'DELIVERED',
+      'COMPLETED',
+      'SUCCESS',
+    ].includes(dto.status);
+    const wasUnpaidStatus = ['PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(
+      exists.status,
+    );
 
     if (isPaidStatus && wasUnpaidStatus) {
       this.notifyProductPurchase(exists.items);
@@ -281,9 +360,13 @@ export class OrderService implements OnModuleInit {
       }
 
       // Nếu đơn hàng đã được thanh toán (hoặc thanh toán qua Ví/Sepay và ở trạng thái PROCESSING/PENDING_PAYMENT), hoàn tiền về Ví ZeroPay cho khách
-      if (exists.paymentMethod === 'zeropay' || (exists.paymentMethod === 'sepay' && exists.status === 'PROCESSING')) {
+      if (
+        exists.paymentMethod === 'zeropay' ||
+        (exists.paymentMethod === 'sepay' && exists.status === 'PROCESSING')
+      ) {
         try {
-          const paymentServiceUrl = process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3005';
+          const paymentServiceUrl =
+            process.env.PAYMENT_SERVICE_URL || 'http://payment-service:3005';
           await fetch(`${paymentServiceUrl}/payments/refund`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -293,30 +376,43 @@ export class OrderService implements OnModuleInit {
               amount: exists.totalAmount,
             }),
           });
-          console.log(`[OrderService] Automatically refunded ${exists.totalAmount}đ to wallet of buyer ${exists.buyerId} for cancelled order ${exists.id}`);
+          console.log(
+            `[OrderService] Automatically refunded ${exists.totalAmount}đ to wallet of buyer ${exists.buyerId} for cancelled order ${exists.id}`,
+          );
         } catch (e) {
-          console.error('[OrderService] Error auto-refunding buyer on order cancellation:', e);
+          console.error(
+            '[OrderService] Error auto-refunding buyer on order cancellation:',
+            e,
+          );
         }
       }
     }
 
     // Bắn sự kiện order.updated sang Kafka để gửi thông báo Realtime cho Khách hàng
     try {
-      this.kafkaClient.emit('order.updated', JSON.stringify({
-        orderId: updatedOrder.id,
-        buyerId: updatedOrder.buyerId,
-        buyerName: updatedOrder.buyerName,
-        status: updatedOrder.status,
-        previousStatus: exists.status,
-        items: updatedOrder.items,
-        updatedAt: updatedOrder.updatedAt,
-      }));
-      console.log(`[Kafka] Published order.updated event for order ${updatedOrder.id} with status ${updatedOrder.status}`);
+      this.kafkaClient.emit(
+        'order.updated',
+        JSON.stringify({
+          orderId: updatedOrder.id,
+          buyerId: updatedOrder.buyerId,
+          buyerName: updatedOrder.buyerName,
+          status: updatedOrder.status,
+          previousStatus: exists.status,
+          items: updatedOrder.items,
+          updatedAt: updatedOrder.updatedAt,
+        }),
+      );
+      console.log(
+        `[Kafka] Published order.updated event for order ${updatedOrder.id} with status ${updatedOrder.status}`,
+      );
     } catch (e) {
       console.error('[Kafka] Failed to publish order.updated event:', e);
     }
 
-    if ((dto.status === 'DELIVERED' || dto.status === 'COMPLETED') && exists.status !== dto.status) {
+    if (
+      (dto.status === 'DELIVERED' || dto.status === 'COMPLETED') &&
+      exists.status !== dto.status
+    ) {
       try {
         // Nhóm các item theo shopId và tính tiền Escrow chuẩn: Subtotal - ShopVoucherDiscount
         const shopItemsMap: Record<string, typeof exists.items> = {};
@@ -326,11 +422,18 @@ export class OrderService implements OnModuleInit {
         }
 
         const shopCount = Object.keys(shopItemsMap).length;
-        const shopDiscountPerShop = shopCount > 0 ? (exists.shopDiscountAmount || 0) / shopCount : 0;
+        const shopDiscountPerShop =
+          shopCount > 0 ? (exists.shopDiscountAmount || 0) / shopCount : 0;
 
         for (const [shopId, items] of Object.entries(shopItemsMap)) {
-          const shopSubtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-          const shopEscrowAmount = Math.max(0, shopSubtotal - shopDiscountPerShop);
+          const shopSubtotal = items.reduce(
+            (sum, i) => sum + i.price * i.quantity,
+            0,
+          );
+          const shopEscrowAmount = Math.max(
+            0,
+            shopSubtotal - shopDiscountPerShop,
+          );
 
           await fetch('http://payment-service:3005/payments/escrow', {
             method: 'POST',
@@ -342,16 +445,23 @@ export class OrderService implements OnModuleInit {
               commissionRate: (exists as any).commissionRate ?? 5,
             }),
           });
-          console.log(`[Order] Escrow created for shop ${shopId} order ${exists.id}: ${shopEscrowAmount}đ (subtotal ${shopSubtotal}đ - shopDiscount ${shopDiscountPerShop}đ)`);
+          console.log(
+            `[Order] Escrow created for shop ${shopId} order ${exists.id}: ${shopEscrowAmount}đ (subtotal ${shopSubtotal}đ - shopDiscount ${shopDiscountPerShop}đ)`,
+          );
         }
 
         // Nếu chuyển sang COMPLETED (khách bấm Đã Nhận Hàng hoặc Đánh Giá SP), giải ngân ngay lập tức vào Ví Shop!
         if (dto.status === 'COMPLETED') {
-          await fetch(`http://payment-service:3005/payments/escrow/${exists.id}/release`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-          });
-          console.log(`[Order] Escrow released immediately for COMPLETED order ${exists.id}`);
+          await fetch(
+            `http://payment-service:3005/payments/escrow/${exists.id}/release`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+            },
+          );
+          console.log(
+            `[Order] Escrow released immediately for COMPLETED order ${exists.id}`,
+          );
         }
       } catch (err) {
         console.error('[Order] Error managing escrow for order:', err);
@@ -368,12 +478,18 @@ export class OrderService implements OnModuleInit {
       try {
         voucherIds = JSON.parse(appliedVoucherIdsJson);
       } catch {
-        voucherIds = appliedVoucherIdsJson.split(',').map((s) => s.trim()).filter(Boolean);
+        voucherIds = appliedVoucherIdsJson
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
       }
       if (voucherIds.length === 0) return;
 
-      const discountServiceUrl = process.env.DISCOUNT_SERVICE_URL || 'http://discount-service:3003';
-      console.log(`[OrderService] Rolling back voucher usage for ${voucherIds.length} vouchers`);
+      const discountServiceUrl =
+        process.env.DISCOUNT_SERVICE_URL || 'http://discount-service:3003';
+      console.log(
+        `[OrderService] Rolling back voucher usage for ${voucherIds.length} vouchers`,
+      );
       await fetch(`${discountServiceUrl}/discounts/rollback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface CsWithdrawalsTabProps {
   withdrawLoading: boolean
@@ -57,7 +58,7 @@ export const CsWithdrawalsTab: React.FC<CsWithdrawalsTabProps> = ({
     if (payoutQrTarget && payoutQrTarget.id) {
       intervalId = setInterval(async () => {
         try {
-          const res = await fetch(`http://localhost:8000/payments/withdraw/${payoutQrTarget.id}/detail`)
+          const res = await fetch(`${API_BASE_URL}/payments/withdraw/${payoutQrTarget.id}/detail`)
           if (res.ok) {
             const data = await res.json()
             if (data && data.status === 'APPROVED') {

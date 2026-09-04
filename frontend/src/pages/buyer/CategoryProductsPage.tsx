@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 
 interface Product {
@@ -18,6 +19,7 @@ interface Product {
   stock?: number
   brand?: string
   shopId?: string
+  location?: string
 }
 
 const CATEGORY_ICONS: Record<string, string> = {
@@ -69,8 +71,8 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
 
   // 1. Fetch categories
   useEffect(() => {
-    fetch('http://localhost:8000/products/categories')
-      .then(res => res.json())
+    fetch(`${API_BASE_URL}/products/categories`)
+      .then((res) => res.json())
       .then(data => {
         if (Array.isArray(data)) setCategories(data)
       })
@@ -85,7 +87,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
     }
 
     setLoading(true)
-    fetch('http://localhost:8000/products')
+    fetch(`${API_BASE_URL}/products`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {
@@ -391,7 +393,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                       <span>Đã bán {soldVal >= 1000 ? `${(soldVal / 1000).toFixed(1)}k` : soldVal}</span>
                     </div>
                     <div className="text-[9px] text-slate-400 text-right font-semibold">
-                      {p.id.includes('-1') || p.id.includes('-3') || p.id.includes('-5') ? 'Hà Nội' : 'TP. Hồ Chí Minh'}
+                      {p.location || 'Toàn quốc'}
                     </div>
                   </div>
                 </div>

@@ -9,6 +9,7 @@ import {
 } from '../../services/chat.service';
 import type { ChatConversation, ChatMessage } from '../../services/chat.service';
 import type { Socket } from 'socket.io-client';
+import { API_BASE_URL } from '../../config/api.config';
 
 interface ShopeeChatWindowProps {
   user: any;
@@ -65,7 +66,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
     if (!isOpen) return;
 
     // Fetch all approved shops
-    fetch('http://localhost:8000/auth/shops')
+    fetch(`${API_BASE_URL}/auth/shops`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {
@@ -85,7 +86,7 @@ export const ShopeeChatWindow: React.FC<ShopeeChatWindowProps> = ({
       .catch(() => {});
 
     // Fetch users info
-    fetch('http://localhost:8000/auth/users')
+    fetch(`${API_BASE_URL}/auth/users`)
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) {

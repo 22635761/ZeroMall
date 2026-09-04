@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface Shipment {
   id: string
@@ -115,7 +116,7 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
         setScanMessage({ type: 'success', text: `🏢 Đã nhập bưu cục phát: ${targetShipment.trackingNumber}` })
       } else if (stationTab === 'DISPATCH_LASTMILE') {
         // Tự động tìm Shipper thuộc khu vực bưu cục phát
-        await fetch(`http://localhost:8000/delivery/shipments/${targetShipment.id}/auto-dispatch`, {
+        await fetch(`${API_BASE_URL}/delivery/shipments/${targetShipment.id}/auto-dispatch`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ type: 'DELIVERY' }),
@@ -340,7 +341,7 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
                     {stationTab === 'DISPATCH_LASTMILE' && (
                       <button
                         onClick={async () => {
-                          await fetch(`http://localhost:8000/delivery/shipments/${s.id}/auto-dispatch`, {
+                          await fetch(`${API_BASE_URL}/delivery/shipments/${s.id}/auto-dispatch`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ type: 'DELIVERY' }),

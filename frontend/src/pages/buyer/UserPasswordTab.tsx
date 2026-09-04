@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface UserPasswordTabProps {
   user: any
@@ -28,7 +29,7 @@ export const UserPasswordTab: React.FC<UserPasswordTabProps> = ({ user }) => {
     setLoading(true)
     try {
       const token = localStorage.getItem('zm_token') || ''
-      const res = await fetch(`http://localhost:8000/auth/users/${user?.id}/password`, {
+      const res = await fetch(`${API_BASE_URL}/auth/users/${user?.id}/password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

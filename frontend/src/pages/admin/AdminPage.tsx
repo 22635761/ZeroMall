@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useSearchParams } from 'react-router-dom'
 import { UsersTab } from '../../components/admin/UsersTab'
 import { ShopsTab } from '../../components/admin/ShopsTab'
@@ -32,6 +33,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [auditLogs, setAuditLogs] = useState<any[]>([])
   const [allOrders, setAllOrders] = useState<any[]>([])
   const [commissionRate, setCommissionRate] = useState<number>(5)
+  const [_loading, setLoading] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
 
   const getTabFromParam = (param: string | null): any => {
@@ -83,7 +85,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const triggerAuditLog = async (action: string) => {
     try {
-      await fetch('http://localhost:8000/auth/audit-logs', {
+      await fetch(`${API_BASE_URL}/auth/audit-logs`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user: user?.email || 'Unknown Admin', action })
@@ -95,7 +97,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const fetchShops = async () => {
     try {
-      const response = await fetch(`http://localhost:8000/auth/shops`)
+      const response = await fetch(`${API_BASE_URL}/auth/shops`)
       if (!response.ok) throw new Error('Không thể tải danh sách cửa hàng')
       const data = await response.json()
       setShops(data)
@@ -106,7 +108,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const fetchUsers = async () => {
     try {
-      const res = await fetch('http://localhost:8000/auth/users')
+      const res = await fetch(`${API_BASE_URL}/auth/users`)
       if (res.ok) setUsers(await res.json())
     } catch (err) {
       console.error(err)
@@ -114,26 +116,34 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   }
 
   const fetchCategories = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/products/categories')
-      if (res.ok) setCategories(await res.json())
+      const res = await fetch(`${API_BASE_URL}/products/categories`)
+      const data = await res.json()
+      setCategories(data)
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const fetchVouchers = async () => {
+  const loadVouchers = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/discounts?shopId=PLATFORM')
-      if (res.ok) setPlatformVouchers(await res.json())
+      const res = await fetch(`${API_BASE_URL}/discounts?shopId=PLATFORM`)
+      const data = await res.json()
+      setPlatformVouchers(data)
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
   const fetchFlashSales = async () => {
     try {
-      const res = await fetch('http://localhost:8000/products/flash-sales')
+      const res = await fetch(`${API_BASE_URL}/products/flash-sales`)
       if (res.ok) setFlashSales(await res.json())
     } catch (err) {
       console.error(err)
@@ -142,25 +152,30 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
   const fetchCsStaff = async () => {
     try {
-      const res = await fetch('http://localhost:8000/auth/cs-staff')
+      const res = await fetch(`${API_BASE_URL}/auth/cs-staff`)
       if (res.ok) setCsStaff(await res.json())
     } catch (err) {
       console.error(err)
     }
   }
 
-  const fetchAuditLogs = async () => {
+  const loadAuditLogs = async () => {
+    setLoading(true)
     try {
-      const res = await fetch('http://localhost:8000/auth/audit-logs')
-      if (res.ok) setAuditLogs(await res.json())
+      const res = await fetch(`${API_BASE_URL}/auth/audit-logs`)
+      const data = await res.json()
+      setAuditLogs(data)
     } catch (err) {
       console.error(err)
+    } finally {
+      setLoading(false)
     }
   }
 
-  const fetchAllOrders = async () => {
+  const loadRevenue = async () => {
+    setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/orders')
+      const response = await fetch(`${API_BASE_URL}/orders`)
       if (response.ok) {
         const data = await response.json()
         setAllOrders(data)
@@ -170,9 +185,9 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     }
   }
 
-  const fetchCommissionRate = async () => {
+  const loadCommissionRate = async () => {
     try {
-      const res = await fetch('http://localhost:8000/payments/commission-rate')
+      const res = await fetch(`${API_BASE_URL}/payments/commission-rate`)
       if (res.ok) {
         const data = await res.json()
         setCommissionRate(data.rate)
@@ -190,20 +205,20 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     } else if (activePortalTab === 'CATEGORIES') {
       fetchCategories()
     } else if (activePortalTab === 'PLATFORM_VOUCHERS') {
-      fetchVouchers()
+      loadVouchers()
     } else if (activePortalTab === 'FLASH_SALE') {
       fetchFlashSales()
     } else if (activePortalTab === 'MANAGE_CS_STAFF') {
       fetchCsStaff()
     } else if (activePortalTab === 'AUDIT_LOGS') {
-      fetchAuditLogs()
+      loadAuditLogs()
     } else if (activePortalTab === 'SYSTEM_REPORTS') {
       fetchShops()
       fetchUsers()
-      fetchAllOrders()
-      fetchCommissionRate()
+      loadRevenue()
+      loadCommissionRate()
     } else if (activePortalTab === 'COMMISSION_SETTING') {
-      fetchCommissionRate()
+      loadCommissionRate()
     }
   }, [activePortalTab])
 
@@ -338,7 +353,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           )}
 
           {activePortalTab === 'PLATFORM_VOUCHERS' && (
-            <PlatformVouchersTab platformVouchers={platformVouchers} fetchVouchers={fetchVouchers} triggerAuditLog={triggerAuditLog} />
+            <PlatformVouchersTab platformVouchers={platformVouchers} fetchVouchers={loadVouchers} triggerAuditLog={triggerAuditLog} />
           )}
 
           {activePortalTab === 'FLASH_SALE' && (

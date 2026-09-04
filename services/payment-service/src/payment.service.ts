@@ -716,7 +716,7 @@ export class PaymentService implements OnModuleInit {
   async createEscrow(orderId: string, shopId: string, amount: number, customCommissionRate?: number) {
     // Idempotency check: Đã có escrow cho đơn này chưa?
     const existing = await this.prisma.escrowTransaction.findUnique({
-      where: { orderId }
+      where: { orderId_shopId: { orderId, shopId } }
     });
     if (existing) {
       console.log(`[Escrow] Escrow for order ${orderId} already exists (status: ${existing.status}). Skip.`);
@@ -763,7 +763,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async releaseEscrow(orderId: string) {
-    let escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    let escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
     if (!escrow) {
       console.log(`[Escrow] Escrow record not found for order ${orderId}, attempting auto-creation...`);
       try {
@@ -795,7 +795,7 @@ export class PaymentService implements OnModuleInit {
     return await this.prisma.$transaction(async (tx) => {
       // 1. Cập nhật trạng thái escrow
       await tx.escrowTransaction.update({
-        where: { orderId },
+        where: { id: escrow.id },
         data: { status: 'RELEASED' }
       });
 
@@ -848,7 +848,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async cancelEscrow(orderId: string) {
-    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    const escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
     if (!escrow) {
       console.log(`[Escrow] No escrow found for order ${orderId}. Nothing to cancel.`);
       return { success: true, skipped: true };
@@ -861,7 +861,7 @@ export class PaymentService implements OnModuleInit {
     return await this.prisma.$transaction(async (tx) => {
       // Cập nhật escrow sang CANCELLED
       await tx.escrowTransaction.update({
-        where: { orderId },
+        where: { id: escrow.id },
         data: { status: 'CANCELLED' }
       });
 
@@ -880,7 +880,7 @@ export class PaymentService implements OnModuleInit {
   }
 
   async getEscrowStatus(orderId: string) {
-    const escrow = await this.prisma.escrowTransaction.findUnique({ where: { orderId } });
+    const escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
     return escrow || null;
   }
 }

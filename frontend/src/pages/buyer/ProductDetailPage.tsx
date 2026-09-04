@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { useParams } from 'react-router-dom'
 import type { Product } from '../../components/buyer/FlashSale'
 import { ProductGallery } from '../../components/buyer/product-detail/ProductGallery'
@@ -33,7 +34,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       if (!id) return
       setLoadingProduct(true)
       try {
-        const response = await fetch(`http://localhost:8000/products/${id}`)
+        const response = await fetch(`${API_BASE_URL}/products/${id}`)
         if (response.ok) {
           const p = await response.json()
           
@@ -163,7 +164,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     if (!product) return
     setIsLoadingReviews(true)
     try {
-      const response = await fetch(`http://localhost:8000/products/${product.id}/reviews`)
+      const response = await fetch(`${API_BASE_URL}/products/${product.id}/reviews`)
       if (!response.ok) throw new Error('Failed to fetch reviews')
       const data = await response.json()
       setReviews(data)
@@ -179,25 +180,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setIsLoadingShop(true)
     
     try {
-      const shopRes = await fetch(`http://localhost:8000/auth/shops/${product.shopId}`)
+      const shopRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}`)
       if (shopRes.ok) {
         const shopData = await shopRes.json()
         setShopDetails(shopData)
       } else {
-        throw new Error('Shop not found in DB')
+        setShopDetails(null)
       }
     } catch (e) {
       console.error('Error fetching shop details:', e)
-      setShopDetails({
-        name: 'ZeroMall Official Store',
-        responseRate: 98,
-        responseTime: 'trong vài giờ',
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 365 * 3).toISOString()
-      })
+      setShopDetails(null)
     }
 
     try {
-      const statsRes = await fetch(`http://localhost:8000/products/shops/${product.shopId}/stats`)
+      const statsRes = await fetch(`${API_BASE_URL}/products/shops/${product.shopId}/stats`)
       if (statsRes.ok) {
         const statsData = await statsRes.json()
         setShopStats(statsData)
@@ -213,7 +209,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
 
     try {
-      const followRes = await fetch(`http://localhost:8000/auth/shops/${product.shopId}/follow-status?userId=${user?.id || ''}`)
+      const followRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/follow-status?userId=${user?.id || ''}`)
       if (followRes.ok) {
         const followData = await followRes.json()
         setFollowersCount(followData.count)
@@ -233,7 +229,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const fetchProductLikes = async () => {
     if (!product) return
     try {
-      const res = await fetch(`http://localhost:8000/products/${product.id}/likes?userId=${user?.id || ''}`)
+      const res = await fetch(`${API_BASE_URL}/products/${product.id}/likes?userId=${user?.id || ''}`)
       if (res.ok) {
         const data = await res.json()
         setLikeCount(data.count)
@@ -267,7 +263,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1))
 
     try {
-      const res = await fetch(`http://localhost:8000/products/${product.id}/likes`, {
+      const res = await fetch(`${API_BASE_URL}/products/${product.id}/likes`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -294,7 +290,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setFollowersCount(prev => newFollowState ? prev + 1 : Math.max(0, prev - 1))
 
     try {
-      const res = await fetch(`http://localhost:8000/auth/shops/${product.shopId}/follow`, {
+      const res = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/follow`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id })
@@ -322,7 +318,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     setReviewSuccessMsg('')
 
     try {
-      const response = await fetch(`http://localhost:8000/products/${product.id}/reviews`, {
+      const response = await fetch(`${API_BASE_URL}/products/${product.id}/reviews`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -497,6 +493,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           stockAvailable={stockAvailable}
           handleAddToCartClick={handleAddToCartClick}
           onBuyNow={onBuyNow}
+          user={user}
         />
       </div>
 
@@ -517,7 +514,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       {/* 4. Product Details & Description Section */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-5 mt-5">
         <div className="lg:col-span-3 space-y-5">
-          <ProductDescriptionSection product={product} />
+          <ProductDescriptionSection product={product} shopDetails={shopDetails} />
 
           <ProductReviewsSection
             user={user}

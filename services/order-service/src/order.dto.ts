@@ -25,6 +25,8 @@ export class CreateOrderDto {
   ghnDistrictId?: number;
   ghnWardCode?: string;
   items: CreateOrderItemDto[];
+  shopId?: string;
+  checkoutGroupId?: string;
 }
 
 export class UpdateOrderStatusDto {

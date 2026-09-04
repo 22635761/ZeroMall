@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import type { CartItem } from '../../models/cart.model'
 import type { ShippingAddress } from '../../models/address.model'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface CheckoutStepViewProps {
   addresses: ShippingAddress[]
@@ -83,7 +84,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
     const fetchWalletBalance = async () => {
       const buyerId = user?.id || 'guest-buyer-id'
       try {
-        const res = await fetch(`http://localhost:8000/payments/wallet/${buyerId}`)
+        const res = await fetch(`${API_BASE_URL}/payments/wallet/${buyerId}`)
         if (res.ok) {
           const data = await res.json()
           setWalletBalance(data.balance)

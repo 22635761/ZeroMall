@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type FormEvent } from 'react';
+import { API_BASE_URL } from '../../config/api.config';
 
 interface PriceManagementProps {
   user: any;
@@ -116,8 +117,8 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
   const fetchProducts = async () => {
     try {
       const url = effectiveShopId
-        ? `http://localhost:8000/products?shopId=${effectiveShopId}`
-        : 'http://localhost:8000/products';
+        ? `${API_BASE_URL}/products?shopId=${effectiveShopId}`
+        : `${API_BASE_URL}/products`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -136,7 +137,7 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
     setLoading(true);
     try {
       const shopParam = effectiveShopId ? `&shopId=${effectiveShopId}` : '';
-      const res = await fetch(`http://localhost:8000/products/price-analytics?productId=${prodId}&range=${range}${shopParam}`);
+      const res = await fetch(`${API_BASE_URL}/products/price-analytics?productId=${prodId}&range=${range}${shopParam}`);
       if (res.ok) {
         const data = await res.json();
         setAnalytics({
@@ -175,7 +176,7 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
 
     setUpdatingPrice(true);
     try {
-      const res = await fetch(`http://localhost:8000/products/${selectedProductId}/update-price`, {
+      const res = await fetch(`${API_BASE_URL}/products/${selectedProductId}/update-price`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -213,7 +214,7 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
 
     setImportingBatch(true);
     try {
-      const res = await fetch(`http://localhost:8000/products/${selectedProductId}/import-batch`, {
+      const res = await fetch(`${API_BASE_URL}/products/${selectedProductId}/import-batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

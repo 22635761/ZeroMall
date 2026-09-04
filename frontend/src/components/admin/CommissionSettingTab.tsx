@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 
 interface CommissionSettingTabProps {
   commissionRate: number
@@ -32,7 +33,7 @@ export const CommissionSettingTab: React.FC<CommissionSettingTabProps> = ({
     const val = parseFloat(tempCommissionRate)
     setIsSaving(true)
     try {
-      const res = await fetch('http://localhost:8000/payments/commission-rate', {
+      const res = await fetch(`${API_BASE_URL}/payments/commission-rate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rate: val })
