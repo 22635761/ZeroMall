@@ -208,6 +208,18 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
             }
           />
           <Route
+            path="/checkout"
+            element={
+              <CartPage
+                cart={cart}
+                user={user}
+                onUpdateQuantity={handleUpdateCartQuantity}
+                onRemoveItem={handleRemoveCartItem}
+                onBackToHome={() => navigate('/')}
+              />
+            }
+          />
+          <Route
             path="/orders"
             element={
               <BuyerOrdersPage
@@ -420,18 +432,14 @@ function App() {
 
       const raw = await response.json()
       const formatted = raw.map((p: any) => {
-        let flashPriceStr = p.price.toLocaleString('vi-VN') + 'đ'
+        const sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
+        let flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
         let originalPriceStr = ''
-        if (p.price) {
-          let originalPriceVal = p.price * 1.25
-          if (originalPriceVal > 1000000) {
-            originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
-          } else if (originalPriceVal > 100000) {
-            originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
-          } else {
-            originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
-          }
-          originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+        const rawOrigNum = p.originalPrice ? parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) : 0
+        if (rawOrigNum > 0) {
+          originalPriceStr = rawOrigNum.toLocaleString('vi-VN') + 'đ'
+        } else {
+          originalPriceStr = flashPriceStr
         }
 
         let variants: string[] = []
@@ -474,6 +482,23 @@ function App() {
         }
       })
       setDbProducts(formatted)
+
+      // Sync existing cart items with freshly fetched DB products to ensure accurate originalPrice
+      setCart(prev => prev.map(cartItem => {
+        const found = formatted.find((p: any) => p.id === cartItem.product.id)
+        if (found) {
+          return {
+            ...cartItem,
+            product: {
+              ...cartItem.product,
+              originalPrice: found.originalPrice,
+              flashPrice: found.flashPrice,
+              price: found.flashPrice
+            }
+          }
+        }
+        return cartItem
+      }))
 
     } catch (err) {
       console.error('Error fetching db products:', err)
@@ -609,8 +634,9 @@ function App() {
         return [...prev, { product, quantity, selectedVariant: variant }]
       }
     })
-    localStorage.setItem('zm_checkout_step', 'cart')
-    window.location.href = '/cart'
+    const targetKey = `${product.id}#${variant || 'default'}`
+    localStorage.setItem('zm_selected_keys', JSON.stringify([targetKey]))
+    window.location.href = '/checkout'
   }
 
   const handleUpdateCartQuantity = (productId: string, variant: string, quantity: number) => {

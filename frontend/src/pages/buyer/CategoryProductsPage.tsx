@@ -97,9 +97,9 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
               if (typeof val === 'number') return val
               return parseInt(String(val).replace(/\D/g, ''), 10) || 0
             }
-            const origNum = parseNum(p.originalPrice || p.price)
+            const origNum = parseNum(p.originalPrice)
             const priceNum = parseNum(p.price)
-            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : (priceNum > 0 ? (priceNum * 1.2).toLocaleString('vi-VN') + 'đ' : '0đ')
+            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : priceNum.toLocaleString('vi-VN') + 'đ'
             const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
 
             return {

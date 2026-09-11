@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../../config/api.config'
 
 // Child components
@@ -9,6 +9,7 @@ import { DriverScanTab } from './DriverScanTab'
 import { DriverWalletTab } from './DriverWalletTab'
 import { DriverAccountTab } from './DriverAccountTab'
 import { DriverDeliveryFailModal } from './DriverDeliveryFailModal'
+import { DriverCheckInModal } from './DriverCheckInModal'
 
 // Re-export Shipment type for external consumers
 export type { Shipment } from './DriverOrdersTab'
@@ -32,6 +33,9 @@ export interface DriverAppViewProps {
       contactName?: string
       phone?: string
       address?: string
+      ward?: string
+      district?: string
+      province?: string
     }
     codAmount: number
     status: string
@@ -52,7 +56,7 @@ export interface DriverAppViewProps {
     trackingLogs: Array<{ status: string; title: string; description: string; timestamp: string }>
   }>
   onRefresh: () => void
-  onUpdateStatus: (shipmentId: string, status: string, failureReason?: string) => Promise<void>
+  onUpdateStatus: (shipmentId: string, status: string, failureReason?: string, proofImage?: string) => Promise<void>
   actionLoading: boolean
   onLogout: () => void
   onBackToHome?: () => void
@@ -78,24 +82,77 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // ── Navigation state ──
   const [activeTab, setActiveTab] = useState<TabKey>('HOME')
 
-  // ── Online / Offline toggle ──
-  const [driverState, setDriverState] = useState<'ONLINE' | 'OFFLINE'>(() =>
-    driverProfile?.status === 'OFFLINE' ? 'OFFLINE' : 'ONLINE'
-  )
+  // ── Online / Offline state & Attendance ──
+  const [driverState, setDriverState] = useState<'ONLINE' | 'OFFLINE'>('OFFLINE')
+  const [showCheckInModal, setShowCheckInModal] = useState(false)
+  const [attendanceToday, setAttendanceToday] = useState<any>(null)
 
-  const toggleOnlineStatus = async () => {
-    const next = driverState === 'ONLINE' ? 'OFFLINE' : 'ONLINE'
-    setDriverState(next)
-    if (driverProfile?.id) {
-      try {
-        await fetch(`${API_BASE_URL}/delivery/drivers/${driverProfile.id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: next === 'ONLINE' ? 'AVAILABLE' : 'OFFLINE' }),
-        })
-      } catch (e) {
-        console.error(e)
+  // Kiểm tra trạng thái điểm danh hôm nay từ backend
+  const fetchAttendance = async () => {
+    if (!driverProfile?.id) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery/drivers/${driverProfile.id}/attendance-today`)
+      if (res.ok) {
+        const data = await res.json()
+        setAttendanceToday(data.attendance)
+        setDriverState(data.isCheckedIn ? 'ONLINE' : 'OFFLINE')
       }
+    } catch (e) {
+      console.error('Fetch attendance error:', e)
+    }
+  }
+
+  useEffect(() => {
+    fetchAttendance()
+  }, [driverProfile?.id])
+
+  const toggleOnlineStatus = () => {
+    if (driverState === 'OFFLINE') {
+      setShowCheckInModal(true)
+    } else {
+      handleCheckOut()
+    }
+  }
+
+  // Kết thúc ca làm việc
+  const handleCheckOut = async () => {
+    if (!driverProfile?.id) return
+    if (!window.confirm('Bạn có chắc chắn muốn kết thúc ca làm việc hôm nay? Trạng thái sẽ chuyển về OFFLINE (Tạm nghỉ).')) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery/drivers/${driverProfile.id}/check-out`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        setDriverState('OFFLINE')
+        setAttendanceToday(null)
+        onRefresh()
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // Điểm danh thành công
+  const handleCheckInSuccess = (data: any) => {
+    setDriverState('ONLINE')
+    setAttendanceToday(data.attendance)
+    onRefresh()
+  }
+
+  // Quét thủ công hàng đợi bưu cục
+  const handleDrainQueue = async () => {
+    if (!driverProfile?.id) return
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery/drivers/${driverProfile.id}/drain-queue`, {
+        method: 'POST',
+      })
+      if (res.ok) {
+        const data = await res.json()
+        alert(`Đã kiểm tra hàng đợi bưu cục: Đã phân công ${data.length || 0} đơn mới cho bạn.`)
+        onRefresh()
+      }
+    } catch (e) {
+      console.error(e)
     }
   }
 
@@ -117,10 +174,10 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
     ['WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
   )
 
-  // Đơn đã quét xuất kho, đang trên xe đi giao (Last-Mile)
+  // Đơn giao hàng Last-Mile: Chờ lấy tại Hub (DELIVERY_ASSIGNED) hoặc Đang trên xe đi giao (OUT_FOR_DELIVERY)
   const deliveryTasks = myShipments.filter(
     (s) =>
-      s.status === 'OUT_FOR_DELIVERY' &&
+      ['DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY'].includes(s.status) &&
       s.assignments?.some((a) => a.type === 'DELIVERY' && ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status))
   )
 
@@ -134,8 +191,8 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // Ước tính thu nhập (15.000đ / cuốc giao)
   const driverEarnings = completedTasks.length * 15000
 
-  // Badge cho tab Đơn Hàng
-  const ordersBadge = pickupTasks.length + deliveryTasks.length
+  // Badge cho tab Đơn Hàng: Khi Offline thì ẩn badge (0) theo chuẩn SPX
+  const ordersBadge = driverState === 'OFFLINE' ? 0 : (pickupTasks.length + deliveryTasks.length)
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 font-sans selection:bg-emerald-600 selection:text-white">
@@ -149,9 +206,9 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
               🛵
             </div>
             <div>
-              <h3 className="font-bold text-sm leading-tight">{currentUser?.name || 'Tài Xế ZMX'}</h3>
-              <p className="text-[10px] text-emerald-100 font-medium">
-                {driverProfile?.vehicleNumber || ''} • {driverProfile?.hub?.name || ''}
+              <h2 className="font-bold text-sm leading-tight">{currentUser?.name || 'Tài Xế'}</h2>
+              <p className="text-[11px] text-emerald-100 font-mono">
+                {driverProfile?.vehicleNumber} • {driverProfile?.hub?.name || 'Khai Thác'}
               </p>
             </div>
           </div>
@@ -159,16 +216,16 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
             {onBackToHome && (
               <button
                 onClick={onBackToHome}
-                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-xs transition cursor-pointer"
-                title="Về sàn mua sắm"
+                title="Về Trang Chủ Sàn ZeroMall"
+                className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition cursor-pointer text-sm"
               >
                 🛍️
               </button>
             )}
             <button
               onClick={onRefresh}
-              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center text-xs transition cursor-pointer"
-              title="Làm mới"
+              title="Làm Mới Dữ Liệu"
+              className="w-8 h-8 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition cursor-pointer text-sm"
             >
               🔄
             </button>
@@ -188,6 +245,10 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
               codInWallet={codInWallet}
               onToggleOnline={toggleOnlineStatus}
               driverState={driverState}
+              onOpenCheckIn={() => setShowCheckInModal(true)}
+              onCheckOut={handleCheckOut}
+              attendanceToday={attendanceToday}
+              onDrainQueue={handleDrainQueue}
             />
           )}
 
@@ -198,6 +259,8 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
               onUpdateStatus={onUpdateStatus}
               actionLoading={actionLoading}
               onShowFailModal={(s) => setFailModal({ id: s.id, trackingNumber: s.trackingNumber })}
+              isOnline={driverState === 'ONLINE'}
+              onOpenCheckIn={() => setShowCheckInModal(true)}
             />
           )}
 
@@ -259,6 +322,15 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
             setFailModal(null)
           }}
           actionLoading={actionLoading}
+        />
+      )}
+
+      {/* ── Modal: Điểm Danh Ca Sáng (Check-in Camera & GPS) ── */}
+      {showCheckInModal && (
+        <DriverCheckInModal
+          driverProfile={driverProfile}
+          onClose={() => setShowCheckInModal(false)}
+          onSuccess={handleCheckInSuccess}
         />
       )}
     </div>

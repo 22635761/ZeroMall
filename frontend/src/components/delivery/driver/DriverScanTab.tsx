@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import { API_BASE_URL } from '../../../config/api.config'
+import { BarcodeCameraScanner } from '../BarcodeCameraScanner'
 
 /**
  * Interface cho đơn vận chuyển
@@ -58,6 +59,7 @@ export const DriverScanTab: React.FC<DriverScanTabProps> = ({
   const [scanStatusMsg, setScanStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [scanHistory, setScanHistory] = useState<ScanHistoryItem[]>([])
   const [isLocalProcessing, setIsLocalProcessing] = useState(false)
+  const [isCameraOpen, setIsCameraOpen] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
   /**
@@ -75,10 +77,8 @@ export const DriverScanTab: React.FC<DriverScanTabProps> = ({
   /**
    * Xử lý quét barcode và tự động nhận diện ngữ cảnh đơn hàng
    */
-  const handleScanSubmit = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault()
-
-    const rawCode = barcodeInput.trim()
+  const processBarcode = async (rawCodeToProcess: string) => {
+    const rawCode = rawCodeToProcess.trim()
     if (!rawCode) return
 
     const normalizedCode = rawCode.toLowerCase()
@@ -115,6 +115,17 @@ export const DriverScanTab: React.FC<DriverScanTabProps> = ({
     try {
       // Tự động phân loại luồng dựa theo trạng thái đơn hàng
       switch (matchedShipment.status) {
+        case 'DELIVERY_ASSIGNED': {
+          // Kiện hàng đã được bưu cục phân tuyến cho Shipper -> Shipper quét barcode tại Hub để xác nhận lên xe máy xuất kho
+          await onUpdateStatus(matchedShipment.id, 'OUT_FOR_DELIVERY')
+          const successMsg = `🛵 Đã quét nhận tại Bưu Cục & Xuất Kho Lên Xe Máy: ${matchedShipment.trackingNumber}`
+          setScanStatusMsg({ type: 'success', text: successMsg })
+          addToHistory(matchedShipment.trackingNumber, successMsg, true)
+          setBarcodeInput('')
+          onRefresh()
+          break
+        }
+
         case 'IN_TRANSIT':
         case 'AT_DESTINATION_HUB': {
           // Gán tài xế nhận đơn giao từ bưu cục đến khách
@@ -206,22 +217,56 @@ export const DriverScanTab: React.FC<DriverScanTabProps> = ({
     }
   }
 
+  const handleScanSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
+    await processBarcode(barcodeInput)
+  }
+
   const isLoading = actionLoading || isLocalProcessing
 
   return (
     <div className="max-w-md mx-auto space-y-4 pb-8">
       {/* Header khu vực quét mã */}
       <div className="bg-emerald-900 text-white p-5 rounded-2xl shadow-md">
-        <div className="flex items-center space-x-3">
-          <span className="text-3xl">📷</span>
-          <div>
-            <h2 className="text-xl font-bold tracking-wide">Quét Mã Vận Đơn</h2>
-            <p className="text-emerald-200 text-xs mt-0.5">
-              {currentUser?.name ? `Tài xế: ${currentUser.name} • ` : ''}Quét barcode để tự động nhận diện
-            </p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <span className="text-3xl">📷</span>
+            <div>
+              <h2 className="text-xl font-bold tracking-wide">Quét Mã Vận Đơn</h2>
+              <p className="text-emerald-200 text-xs mt-0.5">
+                {currentUser?.name ? `Tài xế: ${currentUser.name} • ` : ''}Quét barcode để tự động nhận diện
+              </p>
+            </div>
           </div>
+
+          <button
+            type="button"
+            onClick={() => setIsCameraOpen((prev) => !prev)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition flex items-center gap-1.5 cursor-pointer shadow-sm border shrink-0 ${
+              isCameraOpen
+                ? 'bg-rose-500/20 text-rose-300 border-rose-400/40 hover:bg-rose-500/30'
+                : 'bg-emerald-700/80 text-white border-emerald-500 hover:bg-emerald-600'
+            }`}
+          >
+            <span>{isCameraOpen ? '✕' : '📹'}</span>
+            <span>{isCameraOpen ? 'Tắt Cam' : 'Bật Cam'}</span>
+          </button>
         </div>
       </div>
+
+      {/* Live Camera Scanner Viewfinder */}
+      {isCameraOpen && (
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+          <BarcodeCameraScanner
+            isInline
+            onScanSuccess={(code) => {
+              setBarcodeInput(code)
+              processBarcode(code)
+            }}
+            onClose={() => setIsCameraOpen(false)}
+          />
+        </div>
+      )}
 
       {/* Form nhập & quét barcode */}
       <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">

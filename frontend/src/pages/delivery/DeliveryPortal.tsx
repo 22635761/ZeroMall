@@ -18,6 +18,16 @@ interface Shipment {
   buyerName: string
   buyerPhone: string
   deliveryAddress: string
+  pickupAddress?: {
+    id?: string
+    name?: string
+    contactName?: string
+    phone?: string
+    address?: string
+    ward?: string
+    district?: string
+    province?: string
+  }
   declaredValue: number
   codAmount: number
   shippingFee: number
@@ -147,7 +157,21 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     fetchAllData()
   }, [])
 
-  const handleUpdateStatus = async (shipmentId: string, status: string, failureReason?: string) => {
+  const handleUpdateStatus = async (
+    shipmentId: string,
+    status: string,
+    failureReason?: string,
+    proofImage?: string,
+    hubId?: string,
+    note?: string,
+    linehaulData?: {
+      truckNumber?: string
+      truckDriver?: string
+      truckDriverPhone?: string
+      sealNumber?: string
+      targetHubId?: string
+    }
+  ) => {
     setActionLoading(true)
     try {
       const res = await fetch(`${API_BASE_URL}/delivery/shipments/${shipmentId}/status`, {
@@ -156,6 +180,10 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
         body: JSON.stringify({
           status,
           failureReason,
+          proofImage,
+          hubId,
+          note,
+          ...(linehaulData || {}),
         }),
       })
       if (res.ok) {
@@ -221,7 +249,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
           (currentDriver && (a.driver?.phone === currentDriver.phone || (a as any).driverId === currentDriver.id))
         ) ||
         // 2. Đơn tại bưu cục đích của tài xế này (chờ quét nhận đi giao)
-        (currentDriver && ['AT_DESTINATION_HUB', 'IN_TRANSIT'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId)) ||
+        (currentDriver && ['AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED', 'IN_TRANSIT'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId)) ||
         // 3. Đơn cần lấy hàng thuộc bưu cục của tài xế này
         (currentDriver && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId))
       )
@@ -242,7 +270,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
       return ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
     }
     if (activeTab === 'HUB') {
-      return ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB'].includes(s.status)
+      return ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED'].includes(s.status)
     }
     if (activeTab === 'DELIVERY') {
       return ['OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'RETURNING'].includes(s.status)
@@ -257,7 +285,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   const stats = {
     total: shipments.length,
     pickup: shipments.filter((s) => ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED'].includes(s.status)).length,
-    hub: shipments.filter((s) => ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB'].includes(s.status)).length,
+    hub: shipments.filter((s) => ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED'].includes(s.status)).length,
     delivering: shipments.filter((s) => s.status === 'OUT_FOR_DELIVERY').length,
     delivered: shipments.filter((s) => s.status === 'DELIVERED').length,
     failed: shipments.filter((s) => s.status === 'DELIVERY_FAILED' || s.status === 'RETURNING').length,
@@ -284,9 +312,10 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   // 2. NẾU LÀ NHÂN VIÊN KHO (HUB_OPERATOR) -> HIỂN THỊ TRẠM PHÂN LOẠI & MÁY QUÉT CỦA BƯU CỤC ĐÓ
   if (currentUser.role === 'HUB_OPERATOR') {
     // Tự động tìm Hub phù hợp theo email/tên nhân viên
-    const assignedHub = currentUser.email.includes('bienhoa')
+    const email = (currentUser?.email || '').toLowerCase()
+    const assignedHub = email.includes('bienhoa')
       ? hubs.find((h) => h.code === 'DN01') || hubs[0]
-      : currentUser.email.includes('melinh')
+      : email.includes('melinh')
       ? hubs.find((h) => h.code === 'HN01') || hubs[0]
       : hubs.find((h) => h.code === 'HCM01') || hubs[0]
 
@@ -308,7 +337,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                   </span>
                 </div>
                 <p className="text-[11px] text-slate-400 font-medium">
-                  Nhân viên kho: <b>{currentUser.name}</b> ({currentUser.email})
+                  Nhân viên kho: <b>{currentUser?.name || currentUser?.email || 'Nhân viên'}</b> ({currentUser?.email || ''})
                 </p>
               </div>
             </div>
@@ -333,11 +362,15 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
         <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
           <HubOperatorStation
             currentUser={currentUser}
-            hubs={assignedHub ? [assignedHub, ...hubs.filter(h => h.id !== assignedHub.id)] : hubs}
+            hubs={hubs}
+            drivers={drivers}
             shipments={shipments}
             onRefresh={fetchAllData}
-            onUpdateStatus={handleUpdateStatus}
+            onUpdateStatus={(shipmentId, status, failureReason, hubId, note, linehaulData) =>
+              handleUpdateStatus(shipmentId, status, failureReason, undefined, hubId, note, linehaulData)
+            }
             actionLoading={actionLoading}
+            assignedHubId={assignedHub?.id}
           />
         </main>
 
@@ -511,9 +544,12 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
             <HubOperatorStation
               currentUser={currentUser}
               hubs={hubs}
+              drivers={drivers}
               shipments={shipments}
               onRefresh={fetchAllData}
-              onUpdateStatus={handleUpdateStatus}
+              onUpdateStatus={(shipmentId, status, failureReason, hubId, note, linehaulData) =>
+                handleUpdateStatus(shipmentId, status, failureReason, undefined, hubId, note, linehaulData)
+              }
               actionLoading={actionLoading}
             />
           ) : activeTab === 'HUBS_DRIVERS' ? (
@@ -645,6 +681,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                               {s.status === 'SORTING' && 'Đang Phân Loại'}
                               {s.status === 'IN_TRANSIT' && 'Đang Trung Chuyển'}
                               {s.status === 'AT_DESTINATION_HUB' && 'Đã Đến Kho Phát'}
+                              {s.status === 'DELIVERY_ASSIGNED' && 'Chờ Shipper Nhận'}
                               {s.status === 'OUT_FOR_DELIVERY' && 'Đang Giao Hàng'}
                               {s.status === 'DELIVERED' && 'Giao Thành Công'}
                               {s.status === 'DELIVERY_FAILED' && 'Giao Thất Bại'}
@@ -727,13 +764,13 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                               </button>
                             )}
 
-                            {/* Gán tài xế giao */}
-                            {s.status === 'AT_DESTINATION_HUB' && (
+                            {/* Gán / đổi tài xế giao */}
+                            {(s.status === 'AT_DESTINATION_HUB' || s.status === 'DELIVERY_ASSIGNED') && (
                               <button
                                 onClick={() => { setAssignModalShipment(s); setAssignType('DELIVERY'); setSelectedDriverId(drivers[1]?.id || drivers[0]?.id || ''); }}
-                                className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
+                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
                               >
-                                Gán Shipper Giao
+                                {s.status === 'DELIVERY_ASSIGNED' ? 'Đổi Tuyến Giao' : 'Gán Shipper Giao'}
                               </button>
                             )}
 

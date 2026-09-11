@@ -49,6 +49,7 @@ model Driver {
 
   assignments      DeliveryAssignment[]
   attempts         DeliveryAttempt[]
+  attendances      DriverAttendance[]
 }
 
 // 3. ĐỊA CHỈ LẤY HÀNG CỦA SELLER
@@ -138,6 +139,7 @@ model DeliveryAssignment {
   type        String    @default("PICKUP") // PICKUP, DELIVERY
   status      String    @default("ASSIGNED") // ASSIGNED, ACCEPTED, IN_PROGRESS, COMPLETED, CANCELLED
   note        String?
+  proofImage  String?
   assignedAt  DateTime  @default(now())
   completedAt DateTime?
 }
@@ -155,6 +157,7 @@ model ShipmentTracking {
   title       String
   description String
   location    String?
+  proofImage  String?
   timestamp   DateTime  @default(now())
 }
 
@@ -276,3 +279,21 @@ model ShippingRate {
   status              String    @default("ACTIVE")
   createdAt           DateTime  @default(now())
 }
+
+// 15. ĐIỂM DANH CA LÀM VIỆC (DRIVER SHIFT ATTENDANCE)
+model DriverAttendance {
+  id            String    @id @default(uuid())
+  driverId      String
+  driver        Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
+  hubId         String
+  checkInAt     DateTime  @default(now())
+  checkOutAt    DateTime?
+  faceImage     String?   // Base64 hoặc link ảnh selfie xác thực khuôn mặt
+  latitude      Float?
+  longitude     Float?
+  distanceToHub Float?    // Khoảng cách tới Hub (mét)
+  status        String    @default("CHECKED_IN") // CHECKED_IN, CHECKED_OUT
+  note          String?
+  createdAt     DateTime  @default(now())
+}
+

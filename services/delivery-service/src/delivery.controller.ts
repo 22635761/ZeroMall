@@ -64,6 +64,11 @@ export class DeliveryController {
       note?: string;
       failureReason?: string;
       proofImage?: string;
+      truckNumber?: string;
+      truckDriver?: string;
+      truckDriverPhone?: string;
+      sealNumber?: string;
+      targetHubId?: string;
     }
   ) {
     return this.deliveryService.updateStatus(id, body);
@@ -93,6 +98,33 @@ export class DeliveryController {
     @Body() body: { status: string; lat?: number; lng?: number }
   ) {
     return this.deliveryService.updateDriverStatus(id, body.status, body.lat, body.lng);
+  }
+
+  // 7.1. Điểm Danh Ca Làm Việc (Check-in ca)
+  @Post('drivers/:id/check-in')
+  async checkInDriverShift(
+    @Param('id') id: string,
+    @Body() body: { faceImage?: string; lat?: number; lng?: number; note?: string }
+  ) {
+    return this.deliveryService.checkInDriverShift(id, body);
+  }
+
+  // 7.2. Kết Thúc Ca Làm Việc (Check-out ca)
+  @Post('drivers/:id/check-out')
+  async checkOutDriverShift(@Param('id') id: string) {
+    return this.deliveryService.checkOutDriverShift(id);
+  }
+
+  // 7.3. Kiểm tra trạng thái Điểm Danh hôm nay
+  @Get('drivers/:id/attendance-today')
+  async getDriverAttendanceToday(@Param('id') id: string) {
+    return this.deliveryService.getDriverAttendanceToday(id);
+  }
+
+  // 7.4. Quét gán đơn từ Hàng Đợi Bưu Cục
+  @Post('drivers/:id/drain-queue')
+  async drainDriverQueue(@Param('id') id: string) {
+    return this.deliveryService.dispatchPendingHubQueue(id);
   }
 
   // 7.1. Nộp Tiền COD Cuối Ngày Về Bưu Cục

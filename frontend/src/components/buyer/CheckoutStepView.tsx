@@ -17,7 +17,6 @@ interface CheckoutStepViewProps {
   shopMessages: Record<string, string>
   setShopMessages: React.Dispatch<React.SetStateAction<Record<string, string>>>
   setSelectedShopVouchers: React.Dispatch<React.SetStateAction<Record<string, string>>>
-  activeShopVoucherModalId: string | null
   setActiveShopVoucherModalId: (id: string | null) => void
   selectedVoucher: 'none' | 'freeship' | 'discount10' | 'discount50k'
   setSelectedVoucher: (v: 'none' | 'freeship' | 'discount10' | 'discount50k') => void
@@ -26,6 +25,7 @@ interface CheckoutStepViewProps {
   itemsTotal: number
   insuranceTotal: number
   finalShippingFee: number
+  shopShippingFees: Record<string, number>
   voucherDiscount: number
   shopVoucherDiscountTotal: number
   grandTotal: number
@@ -36,7 +36,6 @@ interface CheckoutStepViewProps {
   parsePrice: (priceVal: any) => number
   formatPrice: (value: number) => string
   getShopVoucherDiscount: (shopId: string, shopItemsTotal: number) => number
-  showVoucherModal: boolean
   setShowVoucherModal: (show: boolean) => void
   user: any
 }
@@ -55,7 +54,6 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
   shopMessages,
   setShopMessages,
   setSelectedShopVouchers,
-  activeShopVoucherModalId,
   setActiveShopVoucherModalId,
   selectedVoucher,
   setSelectedVoucher,
@@ -64,6 +62,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
   itemsTotal,
   insuranceTotal,
   finalShippingFee,
+  shopShippingFees,
   voucherDiscount,
   shopVoucherDiscountTotal,
   grandTotal,
@@ -74,7 +73,6 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
   parsePrice,
   formatPrice,
   getShopVoucherDiscount,
-  showVoucherModal,
   setShowVoucherModal,
   user
 }) => {
@@ -95,31 +93,32 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
     }
     fetchWalletBalance()
   }, [user])
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 pb-28 text-slate-800">
       
       {/* Left Column: Details (8 cols) */}
       <div className="lg:col-span-8 space-y-5">
         
-        {/* Address block with Red-Blue striped border */}
+        {/* Address block with ZeroMall emerald-teal striped border */}
         <div className="bg-white rounded-2xl border border-slate-200/50 shadow-3xs overflow-hidden">
           <div 
             className="h-1.5 w-full"
             style={{
-              backgroundImage: 'repeating-linear-gradient(-45deg, #ee4d2d 0, #ee4d2d 10px, transparent 10px, transparent 20px, #4d8ee9 20px, #4d8ee9 30px, transparent 30px, transparent 40px)',
+              backgroundImage: 'repeating-linear-gradient(-45deg, #059669 0, #059669 10px, transparent 10px, transparent 20px, #0d9488 20px, #0d9488 30px, transparent 30px, transparent 40px)',
               backgroundSize: '80px 6px'
             }}
           />
           <div className="p-6 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-bold text-[#ee4d2d] text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
+              <h3 className="font-bold text-emerald-600 text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
                 <span>📍</span> Địa Chỉ Nhận Hàng
               </h3>
               <button
                 onClick={() => {
                   setShowAddressModal(true)
                 }}
-                className="text-sm text-sky-655 hover:text-sky-500 hover:underline font-bold cursor-pointer transition duration-150"
+                className="text-sm text-emerald-600 hover:text-emerald-500 hover:underline font-bold cursor-pointer transition duration-150"
               >
                 {addresses.length === 0 ? 'Thêm Địa Chỉ' : 'Thay Đổi'}
               </button>
@@ -138,13 +137,21 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                   {addressDetails}
                 </div>
                 {activeAddress?.isDefault && (
-                  <span className="border border-[#ee4d2d] text-[#ee4d2d] text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide shrink-0 w-fit">
+                  <span className="border border-emerald-600 text-emerald-600 text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wide shrink-0 w-fit">
                     Mặc Định
                   </span>
                 )}
               </div>
             )}
           </div>
+        </div>
+
+        {/* Sản phẩm header row */}
+        <div className="hidden lg:grid grid-cols-12 gap-4 text-[10px] text-slate-400 font-bold uppercase tracking-wider px-6">
+          <div className="col-span-6">Sản phẩm</div>
+          <div className="col-span-2 text-center">Đơn giá</div>
+          <div className="col-span-2 text-center">Số lượng</div>
+          <div className="col-span-2 text-right">Thành tiền</div>
         </div>
 
         {/* Items grouped by Shop */}
@@ -154,8 +161,28 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
           const shopInfo = shopsInfo[shopId]
           const shopName = shopInfo?.name || (shopId.startsWith('Shop') ? shopId : `Shop ${shopId.substring(0, 8)}`)
           
-          const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice) * item.quantity, 0)
+          const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice || item.product.price || 0) * item.quantity, 0)
           const shopVoucherDiscount = getShopVoucherDiscount(shopId, shopItemsTotal)
+          const shopShipFee = shopShippingFees[shopId] || 37700
+          const shopSubtotal = shopItemsTotal + shopShipFee - shopVoucherDiscount
+
+          // Parse shop pickup address for display
+          let shopPickupLocation = ''
+          try {
+            if (shopInfo?.pickupAddress) {
+              const pickup = typeof shopInfo.pickupAddress === 'string' ? JSON.parse(shopInfo.pickupAddress) : shopInfo.pickupAddress
+              if (typeof pickup === 'object' && pickup !== null) {
+                const parts = [pickup.ward || pickup.wardName, pickup.district || pickup.districtName, pickup.province || pickup.provinceName || pickup.city].filter(Boolean)
+                shopPickupLocation = parts.join(', ') || pickup.address || pickup.detailAddress || ''
+              } else if (typeof pickup === 'string') {
+                shopPickupLocation = pickup
+              }
+            }
+          } catch {
+            if (typeof shopInfo?.pickupAddress === 'string') {
+              shopPickupLocation = shopInfo.pickupAddress
+            }
+          }
           
           return (
             <div key={shopId} className="bg-white rounded-2xl border border-slate-200/50 shadow-3xs overflow-hidden">
@@ -166,7 +193,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                   <span className="text-lg">🏪</span>
                   <a 
                     href={`/shop/${shopId}`} 
-                    className="font-bold text-slate-800 hover:text-[#ee4d2d] transition text-sm sm:text-base cursor-pointer flex items-center gap-1"
+                    className="font-bold text-slate-800 hover:text-emerald-600 transition text-sm sm:text-base cursor-pointer flex items-center gap-1"
                   >
                     <span>{shopName}</span>
                     <span className="text-xs text-slate-400">›</span>
@@ -188,21 +215,21 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               {/* Shop Items List */}
               <div className="divide-y divide-slate-100">
                 {shopItems.map((item, idx) => {
-                  const itemTotal = parsePrice(item.product.flashPrice) * item.quantity
+                  const unitPrice = parsePrice(item.product.flashPrice || item.product.price || 0)
+                  const itemTotal = unitPrice * item.quantity
                   
                   return (
-                    <div key={idx} className="p-6 space-y-4">
-                      
-                      {/* Item info row */}
-                      <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between">
-                        <div className="flex gap-4 items-center min-w-0 flex-1">
+                    <div key={idx} className="px-6 py-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+                        {/* Product Info */}
+                        <div className="col-span-6 flex gap-4 items-center min-w-0">
                           <img
                             src={item.product.image}
                             alt={item.product.name}
                             className="w-16 h-16 object-cover border border-slate-200/60 rounded-xl shrink-0 shadow-3xs"
                           />
                           <div className="min-w-0 flex-1 text-left space-y-1">
-                            <h4 className="font-semibold text-slate-855 text-sm sm:text-base leading-snug">
+                            <h4 className="font-semibold text-slate-800 text-sm leading-snug truncate">
                               {item.product.name}
                             </h4>
                             {item.selectedVariant && (
@@ -213,28 +240,38 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between sm:justify-end gap-8 text-sm shrink-0 pl-20 sm:pl-0">
-                          <div className="text-slate-500 font-medium">
-                            {item.product.flashPrice} <span className="text-xs text-slate-400 font-bold ml-1">x{item.quantity}</span>
-                          </div>
-                          <div className="font-bold text-slate-850 text-right min-w-[90px] text-base">
-                            {formatPrice(itemTotal)}
-                          </div>
+                        {/* Unit Price */}
+                        <div className="col-span-2 flex lg:justify-center text-sm">
+                          <span className="lg:hidden text-slate-400 font-bold mr-2">Đơn giá:</span>
+                          <span className="text-slate-600 font-medium">
+                            {item.product.flashPrice || formatPrice(unitPrice)}
+                          </span>
+                        </div>
+
+                        {/* Quantity */}
+                        <div className="col-span-2 flex lg:justify-center text-sm">
+                          <span className="lg:hidden text-slate-400 font-bold mr-2">Số lượng:</span>
+                          <span className="text-slate-700 font-bold">x{item.quantity}</span>
+                        </div>
+
+                        {/* Subtotal */}
+                        <div className="col-span-2 flex lg:justify-end text-sm">
+                          <span className="lg:hidden text-slate-400 font-bold mr-2">Thành tiền:</span>
+                          <span className="font-bold text-slate-800">{formatPrice(itemTotal)}</span>
                         </div>
                       </div>
-
                     </div>
                   )
                 })}
               </div>
 
               {/* Shop Voucher Selector Row */}
-              <div className="px-6 py-4 border-t border-slate-100 bg-[#fafafa]/50 flex items-center justify-between text-sm font-semibold text-slate-700">
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30 flex items-center justify-between text-sm font-semibold text-slate-700">
                 <div className="flex items-center gap-2.5">
                   <span className="text-rose-500 text-lg">🎟️</span>
                   <span className="font-bold text-slate-800 text-xs sm:text-sm">Voucher của Shop:</span>
                   {selectedShopVouchers[shopId] && (
-                    <span className="text-xs bg-red-50 text-[#ee4d2d] border border-red-200 px-2.5 py-0.5 rounded-sm font-bold font-mono">
+                    <span className="text-xs bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-0.5 rounded-sm font-bold font-mono">
                       {allShopVouchers.find(v => v.id === selectedShopVouchers[shopId])?.code} (-{formatPrice(shopVoucherDiscount)})
                     </span>
                   )}
@@ -244,7 +281,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setSelectedShopVouchers(prev => ({ ...prev, [shopId]: '' }))}
-                      className="text-xs sm:text-sm text-slate-505 hover:text-red-500 transition cursor-pointer font-bold"
+                      className="text-xs sm:text-sm text-slate-500 hover:text-red-500 transition cursor-pointer font-bold"
                     >
                       Xóa
                     </button>
@@ -253,24 +290,59 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                   <button
                     type="button"
                     onClick={() => setActiveShopVoucherModalId(shopId)}
-                    className="text-xs sm:text-sm text-sky-600 hover:text-sky-555 font-bold cursor-pointer transition"
+                    className="text-xs sm:text-sm text-emerald-600 hover:text-emerald-500 font-bold cursor-pointer transition"
                   >
                     {selectedShopVouchers[shopId] ? 'Thay Đổi' : 'Chọn Voucher'}
                   </button>
                 </div>
               </div>
 
-              {/* Shop Shipping & Note Footer */}
-              <div className="px-6 py-5 border-t border-slate-100 bg-[#fafafa]/30 flex flex-col md:flex-row gap-5 justify-between items-stretch md:items-center text-sm">
+              {/* Shop Shipping Fee Row - PER SHOP (Shopee style) */}
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
+                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center text-sm">
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg">🚚</span>
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-slate-700 text-xs sm:text-sm">Phương thức vận chuyển:</span>
+                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded">
+                          Nhanh
+                        </span>
+                      </div>
+                      {shopPickupLocation && (
+                        <p className="text-[10px] text-slate-400 font-medium">
+                          Gửi từ: {shopPickupLocation}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-slate-800">
+                      {formatPrice(shopShipFee)}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Shop Note + Shop Subtotal Footer */}
+              <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/20 flex flex-col md:flex-row gap-4 justify-between items-stretch md:items-center text-sm">
                 <div className="flex-1 flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-                  <span className="font-bold text-slate-655 whitespace-nowrap text-xs sm:text-sm">Lời nhắn:</span>
+                  <span className="font-bold text-slate-600 whitespace-nowrap text-xs sm:text-sm">Lời nhắn:</span>
                   <input
                     type="text"
                     placeholder="Lưu ý cho Người bán..."
                     value={shopMessages[shopId] || ''}
                     onChange={(e) => setShopMessages(prev => ({ ...prev, [shopId]: e.target.value }))}
-                    className="border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:ring-1 focus:ring-[#ee4d2d] focus:outline-none w-full max-w-md bg-white font-semibold text-slate-700 placeholder:text-slate-400 placeholder:font-normal"
+                    className="border border-slate-200 rounded-lg px-3.5 py-2 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none w-full max-w-md bg-white font-semibold text-slate-700 placeholder:text-slate-400 placeholder:font-normal"
                   />
+                </div>
+                <div className="text-right shrink-0">
+                  <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                    Tổng số tiền ({shopItems.reduce((sum, i) => sum + i.quantity, 0)} sản phẩm):
+                  </div>
+                  <span className="text-base font-black text-emerald-600">
+                    {formatPrice(shopSubtotal)}
+                  </span>
                 </div>
               </div>
 
@@ -282,7 +354,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
         <div className="bg-white rounded-2xl border border-slate-200/50 p-6 shadow-3xs space-y-5">
           <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
             <span className="text-xl">💳</span>
-            <h3 className="font-black text-slate-805 text-sm sm:text-base uppercase tracking-wider">Phương Thức Thanh Toán</h3>
+            <h3 className="font-black text-slate-800 text-sm sm:text-base uppercase tracking-wider">Phương Thức Thanh Toán</h3>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 max-w-xl">
@@ -296,7 +368,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                 onClick={() => setPaymentMethod(method.id as any)}
                 className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-1.5 cursor-pointer transition select-none ${
                   paymentMethod === method.id 
-                    ? 'border-[#ee4d2d] bg-[#feeee9]/25 text-[#ee4d2d] font-bold shadow-3xs' 
+                    ? 'border-emerald-600 bg-emerald-50/40 text-emerald-700 font-bold shadow-3xs' 
                     : 'border-slate-200 hover:border-slate-300 text-slate-500 font-semibold'
                 }`}
               >
@@ -325,7 +397,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               {selectedVoucher !== 'none' && (
                 <button 
                   onClick={() => setSelectedVoucher('none')}
-                  className="text-[#ee4d2d] hover:underline normal-case cursor-pointer font-bold"
+                  className="text-emerald-600 hover:underline normal-case cursor-pointer font-bold"
                 >
                   Xóa
                 </button>
@@ -334,7 +406,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
             
             <div 
               onClick={() => setShowVoucherModal(true)}
-              className="flex justify-between items-center p-3.5 border border-dashed border-[#ee4d2d]/60 bg-[#feeee9]/10 rounded-xl cursor-pointer hover:bg-[#feeee9]/20 transition"
+              className="flex justify-between items-center p-3.5 border border-dashed border-emerald-400/60 bg-emerald-50/20 rounded-xl cursor-pointer hover:bg-emerald-50/40 transition"
             >
               <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
                 <span>🎁</span>
@@ -345,14 +417,14 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                   {selectedVoucher === 'none' && 'Chọn hoặc nhập mã giảm giá'}
                 </span>
               </div>
-              <span className="text-sky-600 hover:text-sky-505 font-bold text-xs">
+              <span className="text-emerald-600 hover:text-emerald-500 font-bold text-xs">
                 {selectedVoucher !== 'none' ? 'Thay Đổi' : 'Chọn Mã'}
               </span>
             </div>
           </div>
 
           {/* Invoice Line-Items */}
-          <div className="space-y-4 text-xs font-bold text-slate-655">
+          <div className="space-y-4 text-xs font-bold text-slate-600">
             <div className="flex justify-between items-center">
               <span className="text-slate-400 font-semibold">Tạm tính:</span>
               <span className="text-slate-800 text-sm">{formatPrice(itemsTotal)}</span>
@@ -363,13 +435,32 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                 <span className="text-slate-800 text-sm">{formatPrice(insuranceTotal)}</span>
               </div>
             )}
-            <div className="flex justify-between items-center">
-              <span className="text-slate-400 font-semibold">Phí vận chuyển:</span>
-              <span className="text-slate-800 text-sm">{formatPrice(finalShippingFee)}</span>
+            
+            {/* Per-shop shipping breakdown */}
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <span className="text-slate-400 font-semibold">Phí vận chuyển:</span>
+                <span className="text-slate-800 text-sm">{formatPrice(finalShippingFee)}</span>
+              </div>
+              {uniqueSelectedShops.length > 1 && (
+                <div className="pl-3 space-y-1.5 border-l-2 border-slate-100 ml-1">
+                  {uniqueSelectedShops.map(shopId => {
+                    const shopInfo = shopsInfo[shopId]
+                    const shopName = shopInfo?.name || `Shop ${shopId.substring(0, 6)}`
+                    const shopFee = shopShippingFees[shopId] || 37700
+                    return (
+                      <div key={shopId} className="flex justify-between items-center text-[10px] text-slate-400">
+                        <span className="truncate max-w-[140px]" title={shopName}>🏪 {shopName}</span>
+                        <span className="font-semibold text-slate-500">{formatPrice(shopFee)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
             
             {voucherDiscount > 0 && (
-              <div className="flex justify-between items-center text-[#ee4d2d] bg-[#feeee9]/25 px-2.5 py-1.5 rounded border border-dashed border-[#ee4d2d]/30">
+              <div className="flex justify-between items-center text-emerald-700 bg-emerald-50/40 px-2.5 py-1.5 rounded border border-dashed border-emerald-300/50">
                 <span>ZeroMall Voucher:</span>
                 <span>-{formatPrice(voucherDiscount)}</span>
               </div>
@@ -384,7 +475,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
 
             <div className="border-t border-slate-100 pt-4.5 mt-4.5 flex justify-between items-center">
               <span className="text-slate-800 text-sm sm:text-base font-extrabold uppercase">Tổng thanh toán:</span>
-              <span className="text-[#ee4d2d] text-2xl font-black tracking-tight">{formatPrice(grandTotal)}</span>
+              <span className="text-emerald-600 text-2xl font-black tracking-tight">{formatPrice(grandTotal)}</span>
             </div>
           </div>
 
@@ -393,7 +484,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
             <button
               onClick={handlePlaceOrder}
               disabled={selectedCartItems.length === 0 || isPlacingOrder}
-              className="w-full py-3.5 bg-[#ee4d2d] hover:bg-[#f05d40] disabled:bg-slate-200 disabled:text-slate-400 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition duration-200 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition duration-200 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isPlacingOrder ? (
                 <>
@@ -416,208 +507,6 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
 
         </div>
       </div>
-
-      {/* Voucher Selection Modal (rendered inline within Checkout view) */}
-      {showVoucherModal && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs text-slate-800 animate-in fade-in duration-200">
-          <div className="bg-[#f8fafc] border border-slate-200/60 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[80vh] text-left">
-            <div className="bg-white p-4.5 border-b border-slate-100 flex justify-between items-center shrink-0">
-              <h3 className="font-bold text-sm text-[#ee4d2d] flex items-center gap-1.5">
-                <span>🎟️</span> Chọn ZeroMall Voucher
-              </h3>
-              <button 
-                onClick={() => setShowVoucherModal(false)}
-                className="text-slate-400 hover:text-slate-655 font-bold text-lg cursor-pointer animate-in rotate-in duration-100"
-              >
-                ✕
-              </button>
-            </div>
-            
-            <div className="p-4.5 overflow-y-auto space-y-3.5 flex-1 bg-slate-50/20">
-              {/* Option 1: Freeship */}
-              <div 
-                onClick={() => {
-                  setSelectedVoucher(selectedVoucher === 'freeship' ? 'none' : 'freeship')
-                  setShowVoucherModal(false)
-                }}
-                className={`p-4 border rounded-xl flex items-start gap-3 cursor-pointer transition ${
-                  selectedVoucher === 'freeship'
-                    ? 'border-[#ee4d2d] bg-[#feeee9]/20 shadow-3xs'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <span className="text-2xl mt-0.5">🚚</span>
-                <div className="text-left text-xs font-semibold">
-                  <p className="font-extrabold text-slate-805">Miễn Phí Vận Chuyển Extra</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Giảm tối đa 35.000đ phí giao hàng</p>
-                </div>
-              </div>
-
-              {/* Option 2: Discount 10% */}
-              <div 
-                onClick={() => {
-                  setSelectedVoucher(selectedVoucher === 'discount10' ? 'none' : 'discount10')
-                  setShowVoucherModal(false)
-                }}
-                className={`p-4 border rounded-xl flex items-start gap-3 cursor-pointer transition ${
-                  selectedVoucher === 'discount10'
-                    ? 'border-[#ee4d2d] bg-[#feeee9]/20 shadow-3xs'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <span className="text-2xl mt-0.5">🏷️</span>
-                <div className="text-left text-xs font-semibold">
-                  <p className="font-extrabold text-slate-805">Voucher giảm 10%</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Áp dụng trực tiếp vào tổng hóa đơn</p>
-                </div>
-              </div>
-
-              {/* Option 3: Discount 50k */}
-              <div 
-                onClick={() => {
-                  setSelectedVoucher(selectedVoucher === 'discount50k' ? 'none' : 'discount50k')
-                  setShowVoucherModal(false)
-                }}
-                className={`p-4 border rounded-xl flex items-start gap-3 cursor-pointer transition ${
-                  selectedVoucher === 'discount50k'
-                    ? 'border-[#ee4d2d] bg-[#feeee9]/20 shadow-3xs'
-                    : 'border-slate-200 hover:border-slate-300 bg-white'
-                }`}
-              >
-                <span className="text-2xl mt-0.5">🔥</span>
-                <div className="text-left text-xs font-semibold">
-                  <p className="font-extrabold text-slate-805">Voucher giảm 50.000đ</p>
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">Đơn hàng tối thiểu 300.000đ</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-4.5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
-              <button
-                onClick={() => setShowVoucherModal(false)}
-                className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer bg-white border border-slate-200"
-              >
-                Đóng
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Shop Voucher Selector Modal (Popup) */}
-      {activeShopVoucherModalId && (() => {
-        const shopId = activeShopVoucherModalId
-        const shopInfo = shopsInfo[shopId]
-        const shopName = shopInfo?.name || `Cửa hàng ${shopId.substring(0, 8)}`
-        const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
-        const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice) * item.quantity, 0)
-        
-        // Load saved voucher IDs from user wallet
-        let savedVoucherIds: string[] = []
-        try {
-          const stored = localStorage.getItem('zm_saved_vouchers')
-          if (stored) savedVoucherIds = JSON.parse(stored)
-        } catch (e) {
-          console.error(e)
-        }
-
-        const shopVouchers = allShopVouchers.filter(v => v.shopId === shopId && savedVoucherIds.includes(v.id))
-        const selectedVoucherId = selectedShopVouchers[shopId]
-        
-        return (
-          <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs text-slate-850 animate-in fade-in duration-200">
-            <div className="bg-[#f8fafc] border border-slate-200/60 rounded-2xl max-w-md w-full overflow-hidden shadow-2xl relative flex flex-col max-h-[80vh] text-left">
-              <div className="bg-white p-4.5 border-b border-slate-100 flex justify-between items-center shrink-0">
-                <h3 className="font-bold text-sm text-[#ee4d2d] flex items-center gap-1.5">
-                  <span>🎟️</span> Voucher từ {shopName}
-                </h3>
-                <button 
-                  onClick={() => setActiveShopVoucherModalId(null)}
-                  className="text-slate-405 hover:text-slate-655 font-bold text-lg cursor-pointer"
-                >
-                  ✕
-                </button>
-              </div>
-              
-              <div className="p-4.5 overflow-y-auto space-y-3 flex-1 bg-slate-50/15">
-                {shopVouchers.length === 0 ? (
-                  <div className="text-center py-10 text-slate-400 text-xs font-semibold leading-relaxed space-y-2">
-                    <p>Bạn chưa lưu Voucher nào của Shop này vào ví.</p>
-                    <p className="text-[10px] text-slate-400 font-normal">Vui lòng truy cập trang cá nhân của bạn, mở <span className="font-bold text-[#ee4d2d]">Kho Voucher</span> để xem và lưu mã giảm giá trước khi thanh toán!</p>
-                  </div>
-                ) : (
-                  shopVouchers.map((voucher: any) => {
-                    const isSelected = selectedVoucherId === voucher.id
-                    const isMinSpendMet = shopItemsTotal >= voucher.minSpend
-                    
-                    return (
-                      <div
-                        key={voucher.id}
-                        onClick={() => {
-                          if (isMinSpendMet) {
-                            setSelectedShopVouchers(prev => ({
-                              ...prev,
-                              [shopId]: isSelected ? '' : voucher.id
-                            }))
-                            setActiveShopVoucherModalId(null)
-                          }
-                        }}
-                        className={`p-4 border rounded-xl flex items-start justify-between gap-3 transition cursor-pointer relative ${
-                          isSelected 
-                            ? 'border-[#ee4d2d] bg-[#feeee9]/20 shadow-3xs' 
-                            : isMinSpendMet 
-                              ? 'border-slate-200 hover:border-slate-300 bg-white' 
-                              : 'border-slate-100 bg-slate-100/50 opacity-60 cursor-not-allowed'
-                        }`}
-                      >
-                        <div className="flex gap-3">
-                          <span className="text-2xl mt-0.5">🏷️</span>
-                          <div className="text-left text-xs font-semibold">
-                            <p className="font-extrabold text-slate-805">Mã: {voucher.code}</p>
-                            <p className="text-[10px] text-slate-500 font-bold mt-1">
-                              Giảm {voucher.type === 'percentage' ? `${voucher.value}%` : formatPrice(voucher.value)}
-                              {voucher.maxDiscount && ` (Tối đa ${formatPrice(voucher.maxDiscount)})`}
-                            </p>
-                            <p className="text-[9px] text-slate-400 font-medium mt-0.5">
-                              Đơn tối thiểu: {formatPrice(voucher.minSpend)}
-                            </p>
-                            {!isMinSpendMet && (
-                              <p className="text-[9px] text-[#ee4d2d] font-bold mt-1">
-                                Chưa đủ điều kiện tối thiểu (còn thiếu {formatPrice(voucher.minSpend - shopItemsTotal)})
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {isMinSpendMet && (
-                          <div className="flex items-center justify-center shrink-0">
-                            <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition ${
-                              isSelected 
-                                ? 'bg-[#ee4d2d] border-[#ee4d2d] text-white' 
-                                : 'border-slate-300 bg-white'
-                            }`}>
-                              {isSelected && <span className="text-[10px] font-bold">✓</span>}
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )
-                  })
-                )}
-              </div>
-              
-              <div className="p-4.5 bg-slate-50 border-t border-slate-100 flex justify-end shrink-0">
-                <button
-                  onClick={() => setActiveShopVoucherModalId(null)}
-                  className="px-5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl text-xs font-bold cursor-pointer bg-white border border-slate-200"
-                >
-                  Đóng
-                </button>
-              </div>
-            </div>
-          </div>
-        )
-      })()}
 
     </div>
   )

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Inject,
   Injectable,
   NotFoundException,
@@ -64,6 +65,9 @@ export class OrderService implements OnModuleInit {
           lt: oneDayAgo,
         },
       },
+      include: {
+        items: true,
+      },
     });
 
     if (overdueOrders.length === 0) {
@@ -82,7 +86,10 @@ export class OrderService implements OnModuleInit {
       if (order.appliedVoucherIds) {
         this.rollbackVouchers(order.appliedVoucherIds);
       }
-      console.log(`[AutoCancel] Cancelled overdue order: ${order.id}`);
+      if (order.items && order.items.length > 0) {
+        await this.rollbackProductStock(order.items);
+      }
+      console.log(`[AutoCancel] Cancelled overdue order and restored stock: ${order.id}`);
     }
   }
 
@@ -131,123 +138,134 @@ export class OrderService implements OnModuleInit {
     const shopIds = Object.keys(itemsByShop);
     const shopCount = shopIds.length;
     const createdOrders: any[] = [];
+    
+    // Chuẩn Shopee: Trừ/Tạm giữ tồn kho ngay khi bấm đặt hàng
+    // Nếu bất kỳ sản phẩm nào không đủ kho, notifyProductPurchase sẽ ném lỗi BadRequestException
+    await this.notifyProductPurchase(dto.items);
 
-    // Create a separate order per shop
-    for (const shopId of shopIds) {
-      const customOrderId = this.generateNumericOrderId();
-      const shopItems = itemsByShop[shopId];
-      const shopSubtotal = shopItems.reduce(
-        (sum, item) => sum + item.price * item.quantity,
-        0,
-      );
+    try {
+      // Create a separate order per shop
+      for (const shopId of shopIds) {
+        const customOrderId = this.generateNumericOrderId();
+        const shopItems = itemsByShop[shopId];
+        const shopSubtotal = shopItems.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0,
+        );
 
-      const ratio =
-        totalItemsValue > 0 ? shopSubtotal / totalItemsValue : 1 / shopCount;
-      const allocatedShippingFee = Math.round(dto.shippingFee * ratio);
-      const allocatedPlatformDiscount = Math.round(
-        (dto.platformDiscountAmount || 0) * ratio,
-      );
-      const allocatedShopDiscount = Math.round(
-        (dto.shopDiscountAmount || 0) / shopCount,
-      );
+        const ratio =
+          totalItemsValue > 0 ? shopSubtotal / totalItemsValue : 1 / shopCount;
+        const allocatedShippingFee =
+          dto.shopShippingFees && dto.shopShippingFees[shopId] !== undefined
+            ? dto.shopShippingFees[shopId]
+            : Math.round(dto.shippingFee * ratio);
+        const allocatedPlatformDiscount = Math.round(
+          (dto.platformDiscountAmount || 0) * ratio,
+        );
+        const allocatedShopDiscount =
+          dto.shopDiscounts && dto.shopDiscounts[shopId] !== undefined
+            ? dto.shopDiscounts[shopId]
+            : Math.round((dto.shopDiscountAmount || 0) / shopCount);
 
-      const totalAmount =
-        shopSubtotal +
-        allocatedShippingFee -
-        allocatedPlatformDiscount -
-        allocatedShopDiscount;
+        const totalAmount =
+          shopSubtotal +
+          allocatedShippingFee -
+          allocatedPlatformDiscount -
+          allocatedShopDiscount;
 
-      const order = await this.prisma.$transaction(async (tx) => {
-        return await tx.order.create({
-          data: {
-            id: customOrderId,
-            shopId: shopId,
-            checkoutGroupId: checkoutGroupId,
-            buyerId: dto.buyerId,
-            buyerEmail: dto.buyerEmail,
-            buyerName: dto.buyerName,
-            buyerPhone: dto.buyerPhone,
-            shippingAddress: dto.shippingAddress,
-            totalAmount: totalAmount,
-            shippingFee: allocatedShippingFee,
-            paymentMethod: dto.paymentMethod,
-            status: dto.paymentMethod === 'cod' ? 'PENDING' : 'PENDING_PAYMENT',
-            shopDiscountAmount: allocatedShopDiscount,
-            platformDiscountAmount: allocatedPlatformDiscount,
-            shopVoucherCode: dto.shopVoucherCode || null,
-            platformVoucherCode: dto.platformVoucherCode || null,
-            appliedVoucherIds: dto.appliedVoucherIds || null,
-            ghnDistrictId: dto.ghnDistrictId || null,
-            ghnWardCode: dto.ghnWardCode || null,
-            commissionRate: commissionRate,
-            items: {
-              create: shopItems.map((item) => ({
-                productId: item.productId,
-                shopId: item.shopId,
-                name: item.name,
-                image: item.image,
-                variant: item.variant || null,
-                price: item.price,
-                quantity: item.quantity,
-              })),
+        const order = await this.prisma.$transaction(async (tx) => {
+          return await tx.order.create({
+            data: {
+              id: customOrderId,
+              shopId: shopId,
+              checkoutGroupId: checkoutGroupId,
+              buyerId: dto.buyerId,
+              buyerEmail: dto.buyerEmail,
+              buyerName: dto.buyerName,
+              buyerPhone: dto.buyerPhone,
+              shippingAddress: dto.shippingAddress,
+              totalAmount: totalAmount,
+              shippingFee: allocatedShippingFee,
+              paymentMethod: dto.paymentMethod,
+              status: dto.paymentMethod === 'cod' ? 'PENDING' : 'PENDING_PAYMENT',
+              shopDiscountAmount: allocatedShopDiscount,
+              platformDiscountAmount: allocatedPlatformDiscount,
+              shopVoucherCode: dto.shopVoucherCode || null,
+              platformVoucherCode: dto.platformVoucherCode || null,
+              appliedVoucherIds: dto.appliedVoucherIds || null,
+              ghnDistrictId: dto.ghnDistrictId || null,
+              ghnWardCode: dto.ghnWardCode || null,
+              commissionRate: commissionRate,
+              items: {
+                create: shopItems.map((item) => ({
+                  productId: item.productId,
+                  shopId: item.shopId,
+                  name: item.name,
+                  image: item.image,
+                  variant: item.variant || null,
+                  price: item.price,
+                  quantity: item.quantity,
+                })),
+              },
             },
-          },
-          include: {
-            items: true,
-          },
+            include: {
+              items: true,
+            },
+          });
         });
-      });
 
-      createdOrders.push(order);
+        createdOrders.push(order);
 
-      // Nếu đơn hàng thanh toán online hoặc đã ở trạng thái PROCESSING, cập nhật ngay số lượng đã bán và kho
-      if (order.status === 'PROCESSING') {
-        this.notifyProductPurchase(order.items);
+        // Bắn sự kiện order.created sang Kafka bất đồng bộ sau khi lưu DB thành công
+        try {
+          this.kafkaClient.emit(
+            'order.created',
+            JSON.stringify({
+              orderId: order.id,
+              shopId: order.shopId,
+              checkoutGroupId: order.checkoutGroupId,
+              buyerId: order.buyerId,
+              buyerEmail: order.buyerEmail,
+              buyerName: order.buyerName,
+              buyerPhone: order.buyerPhone,
+              shippingAddress: order.shippingAddress,
+              totalAmount: order.totalAmount,
+              shippingFee: order.shippingFee,
+              paymentMethod: order.paymentMethod,
+              status: order.status,
+              items: order.items,
+              createdAt: order.createdAt,
+            }),
+          );
+          console.log(
+            `[Kafka] Published order.created event for order ${order.id}`,
+          );
+        } catch (e) {
+          console.error('[Kafka] Failed to publish order.created event:', e);
+        }
       }
-
-      // Bắn sự kiện order.created sang Kafka bất đồng bộ sau khi lưu DB thành công
-      try {
-        this.kafkaClient.emit(
-          'order.created',
-          JSON.stringify({
-            orderId: order.id,
-            shopId: order.shopId,
-            checkoutGroupId: order.checkoutGroupId,
-            buyerId: order.buyerId,
-            buyerEmail: order.buyerEmail,
-            buyerName: order.buyerName,
-            buyerPhone: order.buyerPhone,
-            shippingAddress: order.shippingAddress,
-            totalAmount: order.totalAmount,
-            shippingFee: order.shippingFee,
-            paymentMethod: order.paymentMethod,
-            status: order.status,
-            items: order.items,
-            createdAt: order.createdAt,
-          }),
-        );
-        console.log(
-          `[Kafka] Published order.created event for order ${order.id}`,
-        );
-      } catch (e) {
-        console.error('[Kafka] Failed to publish order.created event:', e);
-      }
+      return createdOrders;
+    } catch (orderError) {
+      console.error(
+        '[OrderService] Order creation failed after stock deduction. Rolling back stock...',
+        orderError,
+      );
+      await this.rollbackProductStock(dto.items);
+      throw orderError;
     }
-
-    return createdOrders;
   }
 
   private async notifyProductPurchase(
     items: { productId: string; quantity: number }[],
   ) {
     if (!items || items.length === 0) return;
+    const productServiceUrl =
+      process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
+    const url = `${productServiceUrl}/products/purchase`;
+    console.log(
+      `[OrderService] Notifying product-service of purchase for ${items.length} items at ${url}`,
+    );
     try {
-      const productServiceUrl =
-        process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
-      const url = `${productServiceUrl}/products/purchase`;
-      console.log(
-        `[OrderService] Notifying product-service of purchase for ${items.length} items at ${url}`,
-      );
       const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -263,14 +281,54 @@ export class OrderService implements OnModuleInit {
           '[OrderService] Product sales and stock updated successfully',
         );
       } else {
-        console.error(
-          '[OrderService] Product service returned error:',
-          res.status,
+        const errData = await res.json().catch(() => ({}));
+        throw new BadRequestException(
+          errData.message || 'Không thể trừ tồn kho sản phẩm (có thể đã hết hàng)',
         );
+      }
+    } catch (err: any) {
+      console.error(
+        '[OrderService] Error calling product-service purchase endpoint:',
+        err,
+      );
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      throw new BadRequestException(
+        err.message || 'Lỗi khi kiểm tra và trừ tồn kho sản phẩm',
+      );
+    }
+  }
+
+  private async rollbackProductStock(
+    items: { productId: string; quantity: number }[],
+  ) {
+    if (!items || items.length === 0) return;
+    try {
+      const productServiceUrl =
+        process.env.PRODUCT_SERVICE_URL || 'http://product-service:3002';
+      const url = `${productServiceUrl}/products/restock`;
+      console.log(
+        `[OrderService] Notifying product-service to RESTOCK for ${items.length} items at ${url}`,
+      );
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        }),
+      });
+      if (res.ok) {
+        console.log('[OrderService] Product stock successfully restored');
+      } else {
+        console.error('[OrderService] Product service restock error:', res.status);
       }
     } catch (err) {
       console.error(
-        '[OrderService] Error calling product-service purchase endpoint:',
+        '[OrderService] Error calling product-service restock endpoint:',
         err,
       );
     }
@@ -338,25 +396,14 @@ export class OrderService implements OnModuleInit {
       },
     });
 
-    const isPaidStatus = [
-      'PROCESSING',
-      'CONFIRMED',
-      'SHIPPED',
-      'DELIVERED',
-      'COMPLETED',
-      'SUCCESS',
-    ].includes(dto.status);
-    const wasUnpaidStatus = ['PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(
-      exists.status,
-    );
-
-    if (isPaidStatus && wasUnpaidStatus) {
-      this.notifyProductPurchase(exists.items);
-    }
-
+    // Stock is reserved/deducted upon order creation (Shopee standard)
+    // When order is CANCELLED, restore product stock & rollback vouchers
     if (dto.status === 'CANCELLED' && exists.status !== 'CANCELLED') {
       if (exists.appliedVoucherIds) {
         this.rollbackVouchers(exists.appliedVoucherIds);
+      }
+      if (exists.items && exists.items.length > 0) {
+        await this.rollbackProductStock(exists.items);
       }
 
       // Nếu đơn hàng đã được thanh toán (hoặc thanh toán qua Ví/Sepay và ở trạng thái PROCESSING/PENDING_PAYMENT), hoàn tiền về Ví ZeroPay cho khách
@@ -385,6 +432,13 @@ export class OrderService implements OnModuleInit {
             e,
           );
         }
+      }
+    }
+
+    // Khi đơn hàng được xác nhận Trả hàng / Hoàn về Shop thành công, hoàn lại tồn kho cho Shop
+    if (dto.status === 'RETURNED' && exists.status !== 'RETURNED') {
+      if (exists.items && exists.items.length > 0) {
+        await this.rollbackProductStock(exists.items);
       }
     }
 

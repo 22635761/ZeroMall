@@ -27,6 +27,8 @@ export class CreateOrderDto {
   items: CreateOrderItemDto[];
   shopId?: string;
   checkoutGroupId?: string;
+  shopShippingFees?: Record<string, number>;
+  shopDiscounts?: Record<string, number>;
 }
 
 export class UpdateOrderStatusDto {

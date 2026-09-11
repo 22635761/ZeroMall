@@ -90,12 +90,16 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         </div>
 
         {/* Price Segment */}
-        <div className="bg-[#fafafa] p-5 rounded-xl flex items-center gap-5 flex-wrap">
-          <span className="text-slate-400 line-through text-sm">{product.originalPrice}</span>
-          <span className="text-3xl font-black text-[#ee4d2d]">{product.flashPrice}</span>
-          <span className="bg-[#ee4d2d]/10 text-[#ee4d2d] text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide">
-            {discountPct}% GIẢM
-          </span>
+        <div className="bg-slate-50 p-5 rounded-xl flex items-center gap-5 flex-wrap">
+          {discountPct > 0 && product.originalPrice && product.originalPrice !== product.flashPrice && (
+            <span className="text-slate-400 line-through text-sm">{product.originalPrice}</span>
+          )}
+          <span className="text-3xl font-black text-emerald-600">{product.flashPrice}</span>
+          {discountPct > 0 && (
+            <span className="bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide">
+              {discountPct}% GIẢM
+            </span>
+          )}
         </div>
 
         {/* Shop Coupons / Vouchers */}

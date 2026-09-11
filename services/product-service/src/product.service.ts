@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
@@ -141,17 +141,52 @@ export class ProductService {
   }
 
   async purchase(items: { productId: string; quantity: number }[]) {
-    return this.prisma.$transaction(
-      items.map((item) =>
-        this.prisma.product.update({
+    return this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const prod = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { id: true, name: true, stock: true },
+        });
+        if (!prod) {
+          throw new BadRequestException(`Sản phẩm không tồn tại (ID: ${item.productId})`);
+        }
+        if (prod.stock < item.quantity) {
+          throw new BadRequestException(
+            `Sản phẩm "${prod.name}" không đủ số lượng trong kho (Còn: ${prod.stock}, Yêu cầu: ${item.quantity})`,
+          );
+        }
+        await tx.product.update({
           where: { id: item.productId },
           data: {
             stock: { decrement: item.quantity },
             sales: { increment: item.quantity },
           },
-        }),
-      ),
-    );
+        });
+      }
+      return { success: true };
+    });
+  }
+
+  async restock(items: { productId: string; quantity: number }[]) {
+    return this.prisma.$transaction(async (tx) => {
+      for (const item of items) {
+        const prod = await tx.product.findUnique({
+          where: { id: item.productId },
+          select: { id: true, sales: true },
+        });
+        if (prod) {
+          const newSalesDecrement = Math.min(prod.sales, item.quantity);
+          await tx.product.update({
+            where: { id: item.productId },
+            data: {
+              stock: { increment: item.quantity },
+              sales: { decrement: newSalesDecrement },
+            },
+          });
+        }
+      }
+      return { success: true };
+    });
   }
 
   async update(id: string, dto: UpdateProductDto) {

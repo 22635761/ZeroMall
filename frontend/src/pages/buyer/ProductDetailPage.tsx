@@ -38,18 +38,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         if (response.ok) {
           const p = await response.json()
           
-          let flashPriceStr = p.price.toLocaleString('vi-VN') + 'đ'
+          const sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
+          let flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
           let originalPriceStr = ''
-          if (p.price) {
-            let originalPriceVal = p.price * 1.25
-            if (originalPriceVal > 1000000) {
-              originalPriceVal = Math.round(originalPriceVal / 100000) * 100000
-            } else if (originalPriceVal > 100000) {
-              originalPriceVal = Math.round(originalPriceVal / 10000) * 10000
-            } else {
-              originalPriceVal = Math.round(originalPriceVal / 1000) * 1000
-            }
-            originalPriceStr = originalPriceVal.toLocaleString('vi-VN') + 'đ'
+          const rawOrigNum = p.originalPrice ? parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) : 0
+          if (rawOrigNum > 0) {
+            originalPriceStr = rawOrigNum.toLocaleString('vi-VN') + 'đ'
+          } else {
+            originalPriceStr = flashPriceStr
           }
 
           let variants: string[] = []
@@ -399,7 +395,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     return true
   })
 
-  const discountPct = 20
+  const parseNumPrice = (val: any) => {
+    if (!val) return 0
+    return parseFloat(String(val).replace(/[^0-9]/g, '')) || 0
+  }
+  const origPriceVal = parseNumPrice(product?.originalPrice)
+  const flashPriceVal = parseNumPrice(product?.flashPrice)
+  const discountPct = origPriceVal > flashPriceVal && origPriceVal > 0 
+    ? Math.round(((origPriceVal - flashPriceVal) / origPriceVal) * 100) 
+    : 0
 
   const formatCount = (num: any) => {
     if (!num || isNaN(num)) return '0'

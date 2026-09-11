@@ -28,6 +28,11 @@ export class ProductController {
     return this.productService.purchase(items);
   }
 
+  @Post('restock')
+  async restock(@Body('items') items: { productId: string; quantity: number }[]) {
+    return this.productService.restock(items);
+  }
+
   @Get('shops/:shopId/stats')
   async getShopStats(@Param('shopId') shopId: string) {
     return this.productService.getShopStats(shopId);

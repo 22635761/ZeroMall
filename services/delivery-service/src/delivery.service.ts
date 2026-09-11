@@ -77,9 +77,9 @@ export class DeliveryService {
                   name: shopData.name || 'Kho người bán',
                   contactName: parsed.fullName || shopData.name || 'Chủ Shop',
                   phone: parsed.phoneNumber || shopData.phoneNumber || '0900000000',
-                  address: parsed.detailAddress || parsed.address || 'Hồ Chí Minh',
-                  province: parsed.province || 'Hồ Chí Minh',
-                  district: parsed.district || 'Tân Bình',
+                  address: parsed.detailAddress || parsed.address || '',
+                  province: parsed.province || '',
+                  district: parsed.district || '',
                   ward: parsed.ward || '',
                   latitude: parsed.coordinates?.lat || null,
                   longitude: parsed.coordinates?.lng || null,
@@ -112,23 +112,23 @@ export class DeliveryService {
     const rand = Math.floor(1000 + Math.random() * 9000);
     const trackingNumber = `ZMX${yy}${mm}${dd}${rand}`;
 
-    // Tìm Hub gốc tương ứng với địa chỉ lấy hàng của Shop
+    // Tìm Hub gốc tương ứng với địa chỉ lấy hàng của Shop (dynamic matching theo province từ DB)
     let originHub: any = null;
     if (pickupAddressId) {
       const pAddr = await this.prisma.sellerAddress.findUnique({ where: { id: pickupAddressId } });
-      if (pAddr) {
-        const prov = (pAddr.province || '').toLowerCase();
-        if (prov.includes('đồng nai') || prov.includes('biên hòa')) {
-          originHub = await this.prisma.hub.findFirst({ where: { code: 'DN01', status: 'ACTIVE' } });
-        } else if (prov.includes('hà nội') || prov.includes('mê linh')) {
-          originHub = await this.prisma.hub.findFirst({ where: { code: 'HN01', status: 'ACTIVE' } });
-        }
+      if (pAddr && pAddr.province) {
+        const sellerProvince = pAddr.province.toLowerCase();
+        // Tìm Hub có province khớp với province của SellerAddress
+        const allHubs = await this.prisma.hub.findMany({ where: { status: 'ACTIVE' } });
+        originHub = allHubs.find((h) => {
+          const hubProvince = (h.province || '').toLowerCase();
+          return hubProvince && (hubProvince.includes(sellerProvince) || sellerProvince.includes(hubProvince));
+        });
       }
     }
     if (!originHub) {
-      originHub = await this.prisma.hub.findFirst({
-        where: { code: 'HCM01', status: 'ACTIVE' },
-      }) || await this.prisma.hub.findFirst({ where: { status: 'ACTIVE' } });
+      // Fallback: chọn Hub active đầu tiên (không ưu tiên HCM cố định)
+      originHub = await this.prisma.hub.findFirst({ where: { status: 'ACTIVE' } });
     }
 
     const shipment = await this.prisma.$transaction(async (tx) => {
@@ -225,7 +225,7 @@ export class DeliveryService {
       ];
     }
 
-    return this.prisma.shipment.findMany({
+    const shipments = await this.prisma.shipment.findMany({
       where,
       include: {
         package: true,
@@ -242,6 +242,58 @@ export class DeliveryService {
       },
       orderBy: { createdAt: 'desc' },
     });
+
+    // Tự động phân tích và gắn địa chỉ kho thực tế của Shop nếu shipment chưa được link pickupAddress
+    for (const s of shipments) {
+      if (!s.pickupAddress && s.sellerId) {
+        let sellerAddr = await this.prisma.sellerAddress.findFirst({
+          where: { sellerId: s.sellerId },
+        });
+
+        if (!sellerAddr) {
+          try {
+            const authUrl = process.env.AUTH_SERVICE_URL || 'http://auth-service:3001';
+            const shopRes = await fetch(`${authUrl}/auth/shops/${s.sellerId}`);
+            if (shopRes.ok) {
+              const shopData = await shopRes.json();
+              if (shopData.pickupAddress) {
+                const parsed = typeof shopData.pickupAddress === 'string'
+                  ? JSON.parse(shopData.pickupAddress)
+                  : shopData.pickupAddress;
+
+                sellerAddr = await this.prisma.sellerAddress.create({
+                  data: {
+                    sellerId: s.sellerId,
+                    name: shopData.name || 'Kho người bán',
+                    contactName: parsed.fullName || shopData.name || 'Chủ Shop',
+                    phone: parsed.phoneNumber || shopData.phoneNumber || '0900000000',
+                    address: parsed.detailAddress || parsed.address || '',
+                    province: parsed.province || '',
+                    district: parsed.district || '',
+                    ward: parsed.ward || '',
+                    latitude: parsed.coordinates?.lat || null,
+                    longitude: parsed.coordinates?.lng || null,
+                    isDefault: true,
+                  },
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('[SPX-Logistics] Could not auto-sync shop address in getShipments:', e);
+          }
+        }
+
+        if (sellerAddr) {
+          (s as any).pickupAddress = sellerAddr;
+          this.prisma.shipment.update({
+            where: { id: s.id },
+            data: { pickupAddressId: sellerAddr.id },
+          }).catch(() => {});
+        }
+      }
+    }
+
+    return shipments;
   }
 
   // 3. Tra cứu timeline vận đơn theo orderId hoặc trackingNumber (cho Buyer & Seller)
@@ -308,29 +360,41 @@ export class DeliveryService {
 
     if (!shipment) throw new NotFoundException('Không tìm thấy Vận đơn');
 
-    // Phân tích địa chỉ để tìm Driver phù hợp (100% từ dữ liệu thực tế)
-    let targetAddress = type === 'PICKUP'
-      ? (shipment.pickupAddress?.address || '')
-      : (shipment.deliveryAddress || '');
+    // Trích xuất thông tin địa lý có cấu trúc từ pickupAddress (SellerAddress) hoặc deliveryAddress
+    // Ưu tiên dùng province/district có cấu trúc thay vì match chuỗi address thô
+    let targetProvince = '';
+    let targetDistrict = '';
+    let targetFullAddress = '';
 
-    if (!targetAddress) {
-      targetAddress = shipment.currentHub?.address || shipment.deliveryAddress || 'Hồ Chí Minh';
+    if (type === 'PICKUP' && shipment.pickupAddress) {
+      targetProvince = shipment.pickupAddress.province || '';
+      targetDistrict = shipment.pickupAddress.district || '';
+      // Ghép đầy đủ các trường có cấu trúc để tăng khả năng match
+      targetFullAddress = [
+        shipment.pickupAddress.address,
+        shipment.pickupAddress.ward,
+        shipment.pickupAddress.district,
+        shipment.pickupAddress.province,
+      ].filter(Boolean).join(', ');
+    } else {
+      targetFullAddress = shipment.deliveryAddress || '';
     }
 
-    const lowerAddr = targetAddress.toLowerCase();
+    // Nếu không có thông tin gì, log cảnh báo
+    if (!targetProvince && !targetFullAddress) {
+      console.warn(`[SPX-Logistics] autoDispatch: Shipment ${shipmentId} has no address info for ${type}`);
+    }
 
-    // Tìm Driver khả dụng (ưu tiên AVAILABLE, ONLINE, cho phép BUSY nếu cần)
-    let allDrivers = await this.prisma.driver.findMany({
+    const lowerProvince = targetProvince.toLowerCase();
+    const lowerDistrict = targetDistrict.toLowerCase();
+    const lowerFullAddr = targetFullAddress.toLowerCase();
+
+    // Tìm Driver khả dụng: CHỈ CHỌN TÀI XẾ ĐANG ONLINE / AVAILABLE (ĐÃ ĐIỂM DANH VÀO CA)
+    // Tuyệt đối không chọn tài xế OFFLINE hoặc chưa vào ca làm việc
+    const allDrivers = await this.prisma.driver.findMany({
       where: { status: { in: ['AVAILABLE', 'ONLINE'] } },
       include: { hub: true },
     });
-
-    if (allDrivers.length === 0) {
-      allDrivers = await this.prisma.driver.findMany({
-        where: { status: { notIn: ['OFFLINE', 'SUSPENDED'] } },
-        include: { hub: true },
-      });
-    }
 
     // 4.1.1. Kiểm tra Hạn Mức COD của Tài Xế (COD Cap: Tối đa 10.000.000đ từ các đơn chưa đối soát)
     const activeDrivers = await Promise.all(
@@ -347,37 +411,89 @@ export class DeliveryService {
       })
     );
 
-    let matchedDriver: any = activeDrivers.find((d) => {
-      if (d.isBlocked) return false;
-      if (d.assignedDistrict && lowerAddr.includes(d.assignedDistrict.toLowerCase())) return true;
-      if (d.assignedProvince && lowerAddr.includes(d.assignedProvince.toLowerCase())) return true;
-      if (d.operatingArea) {
-        const areas = d.operatingArea.toLowerCase().split(',');
-        if (areas.some((a) => lowerAddr.includes(a.trim()))) return true;
-      }
-      return false;
-    });
+    // === MATCHING STRATEGY ===
+    // Priority 1: Khớp chính xác theo province (dữ liệu có cấu trúc từ SellerAddress)
+    // Priority 2: Khớp theo district
+    // Priority 3: Khớp theo chuỗi địa chỉ đầy đủ (fullAddress text search)
+    // Priority 4: Khớp theo Hub cùng tỉnh/thành
 
-    // Fallback: nếu không khớp chính xác, chọn tài xế thuộc Hub gần nhất (không bị khóa COD)
-    if (!matchedDriver && activeDrivers.filter((d) => !d.isBlocked).length > 0) {
-      const eligible = activeDrivers.filter((d) => !d.isBlocked);
-      if (lowerAddr.includes('đồng nai') || lowerAddr.includes('biên hòa')) {
-        matchedDriver = eligible.find((d) => d.hub?.code === 'DN01') || eligible[0];
-      } else if (lowerAddr.includes('hà nội') || lowerAddr.includes('mê linh')) {
-        matchedDriver = eligible.find((d) => d.hub?.code === 'HN01') || eligible[0];
-      } else {
-        matchedDriver = eligible.find((d) => d.hub?.code === 'HCM01') || eligible[0];
+    let matchedDriver: any = null;
+
+    const eligible = activeDrivers.filter((d) => !d.isBlocked);
+    if (eligible.length > 0) {
+      // Priority 1: Khớp province có cấu trúc (chính xác nhất)
+      if (lowerProvince) {
+        matchedDriver = eligible.find((d) => {
+          const driverProvince = (d.assignedProvince || '').toLowerCase();
+          const hubProvince = (d.hub?.province || '').toLowerCase();
+          return (driverProvince && lowerProvince.includes(driverProvince)) ||
+                 (driverProvince && driverProvince.includes(lowerProvince)) ||
+                 (hubProvince && lowerProvince.includes(hubProvince)) ||
+                 (hubProvince && hubProvince.includes(lowerProvince));
+        });
+      }
+
+      // Priority 2: Khớp district có cấu trúc
+      if (!matchedDriver && lowerDistrict) {
+        matchedDriver = eligible.find((d) => {
+          const driverDistrict = (d.assignedDistrict || '').toLowerCase();
+          return driverDistrict && (lowerDistrict.includes(driverDistrict) || driverDistrict.includes(lowerDistrict));
+        });
+      }
+
+      // Priority 3: Text search trên fullAddress (bao gồm cả ward, district, province đã ghép)
+      if (!matchedDriver && lowerFullAddr) {
+        matchedDriver = eligible.find((d) => {
+          if (d.assignedProvince && lowerFullAddr.includes(d.assignedProvince.toLowerCase())) return true;
+          if (d.assignedDistrict && lowerFullAddr.includes(d.assignedDistrict.toLowerCase())) return true;
+          if (d.hub?.province && lowerFullAddr.includes(d.hub.province.toLowerCase())) return true;
+          if (d.operatingArea) {
+            const areas = d.operatingArea.toLowerCase().split(',');
+            if (areas.some((a) => lowerFullAddr.includes(a.trim()))) return true;
+          }
+          return false;
+        });
+      }
+
+      // Priority 4: Khớp Hub cùng tỉnh/thành
+      if (!matchedDriver && lowerProvince) {
+        matchedDriver = eligible.find((d) => {
+          const hubProvince = (d.hub?.province || '').toLowerCase();
+          return hubProvince && hubProvince === lowerProvince;
+        });
       }
     }
 
-    if (!matchedDriver && allDrivers.length > 0) {
-      // Cho phép chọn tài xế đầu tiên nếu tất cả đều chạm ngưỡng
-      matchedDriver = allDrivers[0];
-    }
-
+    // NẾU KHÔNG CÓ TÀI XẾ ONLINE PHÙ HỢP TRONG KHU VỰC:
+    // Tuyệt đối KHÔNG gán cho tài xế OFFLINE! Đơn hàng được đưa vào Hàng Đợi Bưu Cục (WAITING_PICKUP)
     if (!matchedDriver) {
-      throw new BadRequestException('Hiện tại không có tài xế khả dụng trong hệ thống.');
+      console.log(`[SPX-Logistics] autoDispatch: Không có tài xế ONLINE trong khu vực (tỉnh="${targetProvince}"). Đơn hàng ${shipment.trackingNumber} đưa vào Hàng Đợi Bưu Cục.`);
+
+      await this.prisma.shipment.update({
+        where: { id: shipmentId },
+        data: { status: 'WAITING_PICKUP' },
+      });
+
+      const hubName = shipment.currentHub?.name || 'Bưu cục khu vực';
+      await this.prisma.shipmentTracking.create({
+        data: {
+          shipmentId,
+          status: 'WAITING_PICKUP',
+          title: 'Đang trong Hàng Đợi Bưu Cục',
+          description: `Đơn hàng đang chờ tại ${hubName}. Hiện chưa có tài xế trong ca làm việc tại khu vực này. Hệ thống sẽ tự động gán ngay khi tài xế điểm danh vào ca.`,
+          location: hubName,
+        },
+      });
+
+      return {
+        success: true,
+        queued: true,
+        status: 'WAITING_PICKUP',
+        message: `Đơn hàng đã được lưu vào Hàng Đợi Bưu Cục (${hubName}), chờ tài xế điểm danh vào ca.`,
+      };
     }
+
+    console.log(`[SPX-Logistics] autoDispatch: Matched driver ${matchedDriver.name} (${matchedDriver.id}) for ${type} shipment ${shipmentId} | Target: province="${targetProvince}", district="${targetDistrict}" | Driver: assignedProvince="${matchedDriver.assignedProvince}", hub="${matchedDriver.hub?.name}"`);
 
     return this.assignDriver(shipmentId, matchedDriver.id, type);
   }
@@ -428,11 +544,11 @@ export class DeliveryService {
       throw new NotFoundException('Không tìm thấy Vận đơn hoặc Tài xế');
     }
 
-    const nextStatus = type === 'PICKUP' ? 'PICKUP_ASSIGNED' : 'OUT_FOR_DELIVERY';
-    const title = type === 'PICKUP' ? 'Đã điều phối tài xế lấy hàng' : 'Đã phân công tài xế giao hàng';
+    const nextStatus = type === 'PICKUP' ? 'PICKUP_ASSIGNED' : 'DELIVERY_ASSIGNED';
+    const title = type === 'PICKUP' ? 'Đã điều phối tài xế lấy hàng' : 'Đã phân công Shipper giao hàng';
     const desc = type === 'PICKUP'
       ? `Tài xế ${driver.name} (SĐT: ${driver.phone} - Xe: ${driver.vehicleNumber} - Tuyến: ${driver.operatingArea || 'Khu vực phụ trách'}) đang trên đường đến địa chỉ người bán để lấy kiện hàng.`
-      : `Tài xế ${driver.name} (SĐT: ${driver.phone} - Xe: ${driver.vehicleNumber}) đang tiến hành giao hàng đến địa chỉ người nhận.`;
+      : `Bưu cục ${driver.hub?.name || ''} đã phân tuyến cho Shipper ${driver.name} (SĐT: ${driver.phone} - Xe: ${driver.vehicleNumber} - Tuyến: ${driver.operatingArea || 'Khu vực phụ trách'}). Bưu kiện đang ở kệ phân tuyến tại bưu cục, chờ Shipper quét nhận lên xe.`;
 
     const result = await this.prisma.$transaction(async (tx) => {
       await tx.deliveryAssignment.create({
@@ -478,6 +594,11 @@ export class DeliveryService {
     note?: string;
     failureReason?: string;
     proofImage?: string;
+    truckNumber?: string;
+    truckDriver?: string;
+    truckDriverPhone?: string;
+    sealNumber?: string;
+    targetHubId?: string;
   }) {
     const shipment = await this.prisma.shipment.findUnique({
       where: { id: shipmentId },
@@ -507,17 +628,28 @@ export class DeliveryService {
         desc = `Bưu kiện đang được máy phân loại tự động điều hướng sang tuyến xe tải liên tỉnh.`;
         break;
       case 'IN_TRANSIT':
-        title = 'Đang luân chuyển giữa các Hub';
-        desc = `Bưu kiện đã rời kho xuất phát và đang trên xe tải trung chuyển đến Bưu cục phát hàng địa phương.`;
-        location = 'Xe trung chuyển SPX';
+        title = 'Đang vận chuyển liên tỉnh (Xe tải trung chuyển)';
+        if (dto.truckNumber) {
+          const sealPart = dto.sealNumber ? ` • Niêm phong Seal: [${dto.sealNumber}]` : '';
+          const driverPart = dto.truckDriver ? ` • Bác tài: ${dto.truckDriver}${dto.truckDriverPhone ? ` (${dto.truckDriverPhone})` : ''}` : '';
+          desc = `Bưu kiện đã được xếp lên Xe tải Linehaul [${dto.truckNumber}]${driverPart}${sealPart}. Xe đang vận chuyển trên tuyến liên tỉnh đến bưu cục phát.`;
+          location = `Xe tải ${dto.truckNumber}`;
+        } else {
+          desc = dto.note || `Bưu kiện đã rời kho xuất phát và đang trên xe tải trung chuyển đến Bưu cục phát hàng địa phương.`;
+          location = 'Xe trung chuyển SPX';
+        }
         break;
       case 'AT_DESTINATION_HUB':
         title = 'Đã đến bưu cục phát hàng địa phương';
         desc = `Bưu kiện đã đến bưu cục khu vực người nhận và sẵn sàng phân chia tuyến phát cho shipper.`;
         break;
+      case 'DELIVERY_ASSIGNED':
+        title = 'Đã phân công Shipper giao hàng';
+        desc = `Bưu kiện đã được phân tuyến cho Shipper phụ trách tại bưu cục. Bưu kiện đang chờ Shipper quét nhận lên xe để xuất kho đi phát.`;
+        break;
       case 'OUT_FOR_DELIVERY':
-        title = 'Shipper đang giao hàng đến bạn';
-        desc = `Shipper đang di chuyển đến địa chỉ của bạn. Vui lòng chú ý điện thoại.`;
+        title = 'Shipper đã quét xuất kho & đang giao đến bạn';
+        desc = `Shipper đã nhận bưu kiện rời bưu cục và đang di chuyển đến địa chỉ của bạn. Vui lòng chú ý điện thoại.`;
         break;
       case 'DELIVERED':
         title = 'Giao hàng thành công';
@@ -561,6 +693,7 @@ export class DeliveryService {
               title,
               description: desc,
               location,
+              proofImage: dto.proofImage || null,
             },
           },
         },
@@ -571,6 +704,23 @@ export class DeliveryService {
         },
       });
 
+      // Nếu là Lấy Hàng Thành Công (PICKED_UP) -> Hoàn thành DeliveryAssignment và lưu proofImage
+      if (dto.status === 'PICKED_UP') {
+        const pickupAssignment = await tx.deliveryAssignment.findFirst({
+          where: { shipmentId, type: 'PICKUP', status: { in: ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'] } },
+        });
+        if (pickupAssignment) {
+          await tx.deliveryAssignment.update({
+            where: { id: pickupAssignment.id },
+            data: {
+              status: 'COMPLETED',
+              completedAt: new Date(),
+              proofImage: dto.proofImage || null,
+            },
+          });
+        }
+      }
+
       // 2. Nếu quét tại Hub -> ghi HubScan
       if (['AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB'].includes(dto.status) && (dto.hubId || shipment.currentHubId)) {
         await tx.hubScan.create({
@@ -578,7 +728,7 @@ export class DeliveryService {
             shipmentId,
             hubId: (dto.hubId || shipment.currentHubId)!,
             scanType: dto.status,
-            note: dto.note,
+            note: dto.note || (dto.truckNumber ? `Xuất xe Linehaul: [${dto.truckNumber}] • Bác tài: ${dto.truckDriver || 'N/A'} • Seal: ${dto.sealNumber || 'N/A'}` : undefined),
           },
         });
       }
@@ -680,6 +830,197 @@ export class DeliveryService {
       },
       include: { hub: true },
     });
+  }
+
+  // Helper tính khoảng cách Haversine (mét) giữa 2 tọa độ GPS
+  private calculateDistanceMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371e3; // Bán kính Trái Đất (mét)
+    const phi1 = (lat1 * Math.PI) / 180;
+    const phi2 = (lat2 * Math.PI) / 180;
+    const deltaPhi = ((lat2 - lat1) * Math.PI) / 180;
+    const deltaLambda = ((lon2 - lon1) * Math.PI) / 180;
+
+    const a =
+      Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+      Math.cos(phi1) * Math.cos(phi2) * Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+    return Math.round(R * c);
+  }
+
+  // 7.2. Tự động quét hàng đợi gom đơn của Hub khi Tài Xế Điểm Danh vào ca
+  async dispatchPendingHubQueue(driverId: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: { hub: true },
+    });
+    if (!driver || driver.status === 'OFFLINE') return [];
+
+    // Tìm các đơn hàng WAITING_PICKUP hoặc CREATED chưa có tài xế phân công trong cùng bưu cục hoặc cùng tỉnh
+    const pendingShipments = await this.prisma.shipment.findMany({
+      where: {
+        status: { in: ['WAITING_PICKUP', 'CREATED'] },
+        assignments: { none: { status: { in: ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'] } } },
+        OR: [
+          { currentHubId: driver.hubId },
+          driver.assignedProvince ? {
+            pickupAddress: {
+              province: { contains: driver.assignedProvince, mode: 'insensitive' },
+            },
+          } : {},
+        ],
+      },
+      include: { pickupAddress: true, currentHub: true },
+      take: 15, // Gán tối đa 15 đơn cùng đợt gom
+    });
+
+    console.log(`[SPX-Logistics] dispatchPendingHubQueue: Tìm thấy ${pendingShipments.length} đơn đang chờ cho tài xế ${driver.name}`);
+
+    const dispatched: any[] = [];
+    for (const s of pendingShipments) {
+      try {
+        const assignment = await this.assignDriver(s.id, driver.id, 'PICKUP');
+        dispatched.push(assignment);
+      } catch (err) {
+        console.error(`[SPX-Logistics] Không thể gán đơn ${s.trackingNumber} cho tài xế ${driver.name}:`, err);
+      }
+    }
+
+    return dispatched;
+  }
+
+  // 7.3. Điểm danh ca làm việc (Check-in ca sáng / vào ca)
+  async checkInDriverShift(driverId: string, dto: { faceImage?: string; lat?: number; lng?: number; note?: string }) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: { hub: true },
+    });
+
+    if (!driver) throw new NotFoundException('Không tìm thấy tài xế');
+
+    // Bắt buộc ảnh khuôn mặt chụp trực tiếp từ Camera (không chấp nhận ảnh tải lên từ thư viện)
+    if (!dto.faceImage || typeof dto.faceImage !== 'string' || !dto.faceImage.startsWith('data:image')) {
+      throw new BadRequestException('Quy định SPX: Bắt buộc chụp ảnh nhận diện khuôn mặt trực tiếp từ Camera tại Bưu cục. Không được phép tải ảnh từ thư viện hoặc để trống.');
+    }
+
+    let distanceToHub: number | null = null;
+    let isWithinHub = true;
+
+    if (driver.hub?.latitude && driver.hub?.longitude && dto.lat && dto.lng) {
+      distanceToHub = this.calculateDistanceMeters(
+        dto.lat,
+        dto.lng,
+        driver.hub.latitude,
+        driver.hub.longitude
+      );
+      // Bán kính hợp lệ tại Bưu cục: trong vòng 1000m (hoặc chấp nhận nếu GPS mô phỏng)
+      if (distanceToHub > 1000) {
+        isWithinHub = false;
+      }
+    }
+
+    // Tạo bản ghi điểm danh
+    const attendance = await this.prisma.driverAttendance.create({
+      data: {
+        driverId,
+        hubId: driver.hubId,
+        faceImage: dto.faceImage || null,
+        latitude: dto.lat || driver.hub?.latitude || null,
+        longitude: dto.lng || driver.hub?.longitude || null,
+        distanceToHub: distanceToHub,
+        status: 'CHECKED_IN',
+        note: dto.note || (isWithinHub ? 'Điểm danh tại Bưu cục thành công' : `Điểm danh ngoài phạm vi Hub (${distanceToHub}m)`),
+      },
+    });
+
+    // Cập nhật trạng thái tài xế sang AVAILABLE (ONLINE)
+    await this.prisma.driver.update({
+      where: { id: driverId },
+      data: {
+        status: 'AVAILABLE',
+        currentLat: dto.lat || driver.hub?.latitude || null,
+        currentLng: dto.lng || driver.hub?.longitude || null,
+      },
+    });
+
+    console.log(`[SPX-Logistics] Tài xế ${driver.name} đã điểm danh vào ca làm việc tại Hub: ${driver.hub?.name}`);
+
+    // Tự động quét và điều phối các đơn trong hàng đợi của Hub cho tài xế vừa vào ca
+    const assignedQueue = await this.dispatchPendingHubQueue(driverId);
+
+    return {
+      success: true,
+      attendance,
+      driver: {
+        id: driver.id,
+        name: driver.name,
+        status: 'AVAILABLE',
+        hub: driver.hub,
+      },
+      assignedOrdersCount: assignedQueue.length,
+      message: `Điểm danh ca làm việc thành công. Đã tự động phân công ${assignedQueue.length} đơn hàng đang chờ trong khu vực.`,
+    };
+  }
+
+  // 7.4. Kết thúc ca làm việc (Check-out ca)
+  async checkOutDriverShift(driverId: string) {
+    const driver = await this.prisma.driver.findUnique({ where: { id: driverId } });
+    if (!driver) throw new NotFoundException('Không tìm thấy tài xế');
+
+    // Cập nhật bản ghi điểm danh gần nhất
+    const latestAttendance = await this.prisma.driverAttendance.findFirst({
+      where: { driverId, status: 'CHECKED_IN' },
+      orderBy: { checkInAt: 'desc' },
+    });
+
+    if (latestAttendance) {
+      await this.prisma.driverAttendance.update({
+        where: { id: latestAttendance.id },
+        data: {
+          checkOutAt: new Date(),
+          status: 'CHECKED_OUT',
+        },
+      });
+    }
+
+    // Chuyển trạng thái tài xế sang OFFLINE
+    await this.prisma.driver.update({
+      where: { id: driverId },
+      data: { status: 'OFFLINE' },
+    });
+
+    console.log(`[SPX-Logistics] Tài xế ${driver.name} đã kết thúc ca làm việc (OFFLINE).`);
+
+    return {
+      success: true,
+      status: 'OFFLINE',
+      message: 'Đã kết thúc ca làm việc. Chúc bạn một ngày tốt lành!',
+    };
+  }
+
+  // 7.5. Lấy trạng thái điểm danh hôm nay của tài xế
+  async getDriverAttendanceToday(driverId: string) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const attendance = await this.prisma.driverAttendance.findFirst({
+      where: {
+        driverId,
+        checkInAt: { gte: today },
+      },
+      orderBy: { checkInAt: 'desc' },
+    });
+
+    const driver = await this.prisma.driver.findUnique({
+      where: { id: driverId },
+      include: { hub: true },
+    });
+
+    return {
+      isCheckedIn: attendance?.status === 'CHECKED_IN' && driver?.status !== 'OFFLINE',
+      attendance,
+      driver,
+    };
   }
 
   // Shipper Chấp nhận đơn / Từ chối đơn

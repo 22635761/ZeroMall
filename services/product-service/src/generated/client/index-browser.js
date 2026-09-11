@@ -133,6 +133,7 @@ exports.Prisma.ProductScalarFieldEnum = {
   description: 'description',
   price: 'price',
   originalPrice: 'originalPrice',
+  costPrice: 'costPrice',
   stock: 'stock',
   sales: 'sales',
   status: 'status',
@@ -153,6 +154,33 @@ exports.Prisma.ProductScalarFieldEnum = {
   reportsCount: 'reportsCount',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PriceHistoryScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  shopId: 'shopId',
+  oldPrice: 'oldPrice',
+  newPrice: 'newPrice',
+  changeType: 'changeType',
+  changedBy: 'changedBy',
+  changedByRole: 'changedByRole',
+  reason: 'reason',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.CostPriceHistoryScalarFieldEnum = {
+  id: 'id',
+  productId: 'productId',
+  shopId: 'shopId',
+  costPrice: 'costPrice',
+  quantity: 'quantity',
+  invoiceCode: 'invoiceCode',
+  supplier: 'supplier',
+  note: 'note',
+  importedBy: 'importedBy',
+  importDate: 'importDate',
+  createdAt: 'createdAt'
 };
 
 exports.Prisma.ReviewScalarFieldEnum = {
@@ -208,6 +236,8 @@ exports.Prisma.NullsOrder = {
 
 exports.Prisma.ModelName = {
   Product: 'Product',
+  PriceHistory: 'PriceHistory',
+  CostPriceHistory: 'CostPriceHistory',
   Review: 'Review',
   ProductLike: 'ProductLike',
   Category: 'Category',

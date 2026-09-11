@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../config/api.config'
 import type { CartItem } from '../../models/cart.model'
 import { CartStepView } from '../../components/buyer/CartStepView'
 import { CheckoutStepView } from '../../components/buyer/CheckoutStepView'
 import { AddressModal } from '../../components/buyer/AddressModal'
 import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
+import { ShopVoucherModal } from '../../components/buyer/ShopVoucherModal'
+import { PlatformVoucherModal } from '../../components/buyer/PlatformVoucherModal'
 import type { ShippingAddress } from '../../models/address.model'
 import { DEFAULT_ADDRESSES } from '../../models/address.model'
 
@@ -109,15 +112,43 @@ export const CartPage: React.FC<CartPageProps> = ({
   onRemoveItem,
   onBackToHome
 }) => {
-  // Flow step: 'cart' | 'checkout' | 'success'
-  const [step, setStep] = useState<'cart' | 'checkout' | 'success'>(() => {
-    const saved = localStorage.getItem('zm_checkout_step')
-    return (saved as 'cart' | 'checkout' | 'success') || 'cart'
-  })
+  const location = useLocation()
+  const navigate = useNavigate()
 
-  // Persist checkout step to localStorage
+  // Flow step: derived from URL pathname
+  const getStepFromPath = (path: string): 'cart' | 'checkout' | 'success' => {
+    if (path === '/checkout') return 'checkout'
+    const saved = localStorage.getItem('zm_checkout_step')
+    if (saved === 'success' && path === '/cart') return 'success'
+    return 'cart'
+  }
+
+  const [step, setStepInternal] = useState<'cart' | 'checkout' | 'success'>(() => getStepFromPath(location.pathname))
+
+  // Sync step when URL changes
   useEffect(() => {
-    localStorage.setItem('zm_checkout_step', step)
+    const newStep = getStepFromPath(location.pathname)
+    setStepInternal(newStep)
+  }, [location.pathname])
+
+  // Custom setStep that also navigates
+  const setStep = (newStep: 'cart' | 'checkout' | 'success') => {
+    setStepInternal(newStep)
+    if (newStep === 'checkout') {
+      navigate('/checkout', { replace: false })
+    } else if (newStep === 'cart') {
+      navigate('/cart', { replace: false })
+    } else if (newStep === 'success') {
+      localStorage.setItem('zm_checkout_step', 'success')
+      // Stay on current URL for success screen
+    }
+  }
+
+  // Clear success state when leaving
+  useEffect(() => {
+    if (step !== 'success') {
+      localStorage.removeItem('zm_checkout_step')
+    }
   }, [step])
 
   // Selected items state: store keys of selected items: "productId#variant"
@@ -186,7 +217,7 @@ export const CartPage: React.FC<CartPageProps> = ({
   // Vouchers and payment
   const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
   const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'cod' | 'sepay'>('cod')
-  const [dynamicShippingFee, setDynamicShippingFee] = useState<number>(0)
+  const [shopShippingFees, setShopShippingFees] = useState<Record<string, number>>({})
   
   // Shop Vouchers State
   const [allShopVouchers, setAllShopVouchers] = useState<any[]>([])
@@ -301,7 +332,8 @@ export const CartPage: React.FC<CartPageProps> = ({
                 [shopId]: {
                   name: data.name || `Cửa hàng ${shopId.substring(0, 8)}`,
                   shippingSettings: data.shippingSettings ? JSON.parse(data.shippingSettings) : null,
-                  ghnDistrictId: pickupGhnDistrictId
+                  ghnDistrictId: pickupGhnDistrictId,
+                  pickupAddress: data.pickupAddress
                 }
               }))
             }
@@ -317,32 +349,24 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }, [cart])
 
-  // Load active shop vouchers from backend API
+  // Load active shop and platform vouchers from backend API
   useEffect(() => {
     const fetchActiveVouchers = async () => {
-      const uniqueShopIds = Array.from(new Set(cart.map(item => item.product.shopId).filter(Boolean)))
-      let fetchedVouchers: any[] = []
-      
-      for (const shopId of uniqueShopIds) {
-        if (shopId) {
-          try {
-            const res = await fetch(`${API_BASE_URL}/discounts/active?shopId=${shopId}`)
-            if (res.ok) {
-              const data = await res.json()
-              fetchedVouchers = [...fetchedVouchers, ...data]
-            }
-          } catch (err) {
-            console.error('Error fetching active vouchers:', err)
-          }
+      try {
+        const res = await fetch(`${API_BASE_URL}/discounts/all-active`)
+        if (res.ok) {
+          const data = await res.json()
+          setAllShopVouchers(data)
         }
+      } catch (err) {
+        console.error('Error fetching active vouchers:', err)
       }
-      setAllShopVouchers(fetchedVouchers)
     }
     
-    if (cart.length > 0 && (step === 'checkout' || step === 'cart')) {
+    if (cart.length > 0) {
       fetchActiveVouchers()
     }
-  }, [cart, step])
+  }, [cart])
 
   // Group items by shopId
   const groupedItems = cart.reduce((groups, item) => {
@@ -406,13 +430,18 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   // Base shipping fee: calculated via GHN Production API, fallback to 37.700đ per shop
   const uniqueSelectedShops = Array.from(new Set(selectedCartItems.map(item => item.product.shopId).filter(Boolean))) as string[]
-  const baseShippingFee = dynamicShippingFee || uniqueSelectedShops.length * 37700
+  
+  // Derive total shipping fee from per-shop fees
+  const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 37700), 0)
+  const baseShippingFee = dynamicShippingTotal
 
-  // Gọi API GHN tính phí ship động
+  // Gọi API GHN tính phí ship động cho từng shop
   useEffect(() => {
     const calculateGHNShipping = async () => {
       if (!activeAddress || !activeAddress.ghnDistrictId || !activeAddress.ghnWardCode || selectedCartItems.length === 0) {
-        setDynamicShippingFee(uniqueSelectedShops.length * 37700)
+        const fallbackFees: Record<string, number> = {}
+        uniqueSelectedShops.forEach(shopId => { fallbackFees[shopId] = 37700 })
+        setShopShippingFees(fallbackFees)
         return
       }
 
@@ -420,39 +449,45 @@ export const CartPage: React.FC<CartPageProps> = ({
         const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476'
         const ghnShopId = parseInt(import.meta.env.VITE_GHN_SHOP_ID || '6350257', 10)
         
-        let totalFee = 0
+        const newFees: Record<string, number> = {}
         for (const _shopId of uniqueSelectedShops) {
           const shopGhnDistrictId = shopsInfo[_shopId]?.ghnDistrictId || 3695
-          const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Token': ghnToken,
-              'ShopId': String(ghnShopId)
-            },
-            body: JSON.stringify({
-              from_district_id: shopGhnDistrictId, // Dynamic per shop
-              to_district_id: activeAddress.ghnDistrictId,
-              to_ward_code: activeAddress.ghnWardCode,
-              height: 15,
-              length: 15,
-              width: 15,
-              weight: 500, // Cân nặng ước lượng 500g
-              service_type_id: 2
+          try {
+            const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Token': ghnToken,
+                'ShopId': String(ghnShopId)
+              },
+              body: JSON.stringify({
+                from_district_id: shopGhnDistrictId,
+                to_district_id: activeAddress.ghnDistrictId,
+                to_ward_code: activeAddress.ghnWardCode,
+                height: 15,
+                length: 15,
+                width: 15,
+                weight: 500,
+                service_type_id: 2
+              })
             })
-          })
 
-          const data = await response.json()
-          if (data.code === 200 && data.data) {
-            totalFee += data.data.total
-          } else {
-            totalFee += 37700
+            const data = await response.json()
+            if (data.code === 200 && data.data) {
+              newFees[_shopId] = data.data.total
+            } else {
+              newFees[_shopId] = 37700
+            }
+          } catch {
+            newFees[_shopId] = 37700
           }
         }
-        setDynamicShippingFee(totalFee)
+        setShopShippingFees(newFees)
       } catch (e) {
         console.error('Lỗi tính phí ship GHN:', e)
-        setDynamicShippingFee(uniqueSelectedShops.length * 37700)
+        const fallbackFees: Record<string, number> = {}
+        uniqueSelectedShops.forEach(shopId => { fallbackFees[shopId] = 37700 })
+        setShopShippingFees(fallbackFees)
       }
     }
 
@@ -463,11 +498,25 @@ export const CartPage: React.FC<CartPageProps> = ({
   const shippingDiscount = selectedVoucher === 'freeship' ? Math.min(baseShippingFee, 35000) : 0
   const finalShippingFee = baseShippingFee - shippingDiscount
 
-  const voucherDiscount = selectedVoucher === 'discount10' 
-    ? Math.round(itemsTotal * 0.1) 
-    : selectedVoucher === 'discount50k' 
-      ? Math.min(itemsTotal, 50000) 
-      : 0
+  // Platform voucher discount calculation
+  let voucherDiscount = 0
+  if (selectedVoucher === 'discount10') {
+    voucherDiscount = Math.round(itemsTotal * 0.1)
+  } else if (selectedVoucher === 'discount50k') {
+    voucherDiscount = Math.min(itemsTotal, 50000)
+  } else if (selectedVoucher !== 'none' && selectedVoucher !== 'freeship') {
+    const dbPlatVoucher = allShopVouchers.find(
+      v => (v.code === selectedVoucher || v.id === selectedVoucher) && v.shopId === 'PLATFORM'
+    )
+    if (dbPlatVoucher && itemsTotal >= (dbPlatVoucher.minSpend || 0)) {
+      if (dbPlatVoucher.type === 'percentage') {
+        const disc = Math.round(itemsTotal * (dbPlatVoucher.value / 100))
+        voucherDiscount = dbPlatVoucher.maxDiscount ? Math.min(disc, dbPlatVoucher.maxDiscount) : disc
+      } else {
+        voucherDiscount = Math.min(itemsTotal, dbPlatVoucher.value)
+      }
+    }
+  }
 
   const getShopVoucherDiscount = (shopId: string, shopItemsTotal: number) => {
     const voucherId = selectedShopVouchers[shopId]
@@ -495,11 +544,27 @@ export const CartPage: React.FC<CartPageProps> = ({
   const shopVoucherDiscountTotal = uniqueSelectedShops.reduce((acc, shopId) => {
     if (typeof shopId !== 'string') return acc
     const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
-    const shopItemsTotal = shopItems.reduce((sum, item) => sum + parsePrice(item.product.flashPrice) * item.quantity, 0)
+    const shopItemsTotal = shopItems.reduce((sum, item) => sum + parsePrice(item.product.flashPrice || item.product.price || 0) * item.quantity, 0)
     return acc + getShopVoucherDiscount(shopId, shopItemsTotal)
   }, 0)
 
-  const grandTotal = itemsTotal + finalShippingFee - voucherDiscount - shopVoucherDiscountTotal
+  // Original items total & savings for Promotion Details Breakdown (Shopee style)
+  // Tổng tiền hàng = Tổng tiền GIÁ GỐC SẢN PHẨM * số lượng
+  const itemsOriginalTotal = selectedCartItems.reduce((acc, item) => {
+    const rawOrig = parsePrice(item.product.originalPrice)
+    const sellingPrice = parsePrice(item.product.flashPrice || item.product.price || 0)
+    const effectiveOrig = rawOrig > 0 ? Math.max(rawOrig, sellingPrice) : sellingPrice
+    return acc + effectiveOrig * item.quantity
+  }, 0)
+
+  // Giảm giá sản phẩm = GIÁ GỐC SẢN PHẨM - GIÁ BÁN SẢN PHẨM
+  const productDiscountTotal = Math.max(0, itemsOriginalTotal - itemsTotal)
+  const voucherDiscountTotal = (selectedVoucher !== 'freeship' ? voucherDiscount : 0) + shopVoucherDiscountTotal
+  // Tiết kiệm = Giảm giá sản phẩm + Voucher
+  const totalSavings = productDiscountTotal + voucherDiscountTotal + (selectedVoucher === 'freeship' ? shippingDiscount : 0)
+  const cartFinalPayable = Math.max(0, itemsTotal - (selectedVoucher !== 'freeship' ? voucherDiscount : 0) - shopVoucherDiscountTotal)
+
+  const grandTotal = itemsTotal + finalShippingFee - (selectedVoucher !== 'freeship' ? voucherDiscount : 0) - shopVoucherDiscountTotal
 
   const handlePlaceOrder = async () => {
     if (selectedCartItems.length === 0) return
@@ -520,6 +585,12 @@ export const CartPage: React.FC<CartPageProps> = ({
       }))
 
       const appliedVoucherIds = Object.values(selectedShopVouchers).filter(Boolean)
+      const shopDiscounts = uniqueSelectedShops.reduce((acc, sId) => {
+        const sItems = selectedCartItems.filter(item => item.product.shopId === sId)
+        const sTotal = sItems.reduce((sum, item) => sum + parsePrice(item.product.flashPrice || item.product.price || 0) * item.quantity, 0)
+        acc[sId] = getShopVoucherDiscount(sId, sTotal)
+        return acc
+      }, {} as Record<string, number>)
 
       const orderData = {
         buyerId: user?.id || 'guest-buyer-id',
@@ -536,6 +607,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         appliedVoucherIds: appliedVoucherIds.length > 0 ? JSON.stringify(appliedVoucherIds) : null,
         ghnDistrictId: activeAddress?.ghnDistrictId || null,
         ghnWardCode: activeAddress?.ghnWardCode || null,
+        shopShippingFees: shopShippingFees,
+        shopDiscounts: shopDiscounts,
         items: orderItems
       }
 
@@ -631,30 +704,19 @@ export const CartPage: React.FC<CartPageProps> = ({
     onBackToHome()
   }
 
-  const getShopShippingBadges = (shopId: string) => {
-    const info = shopsInfo[shopId]
-    if (!info || !info.shippingSettings) return null
-    const settings = info.shippingSettings
-    return (
-      <div className="flex gap-1 items-center ml-2.5">
-        {settings.express && <span className="bg-orange-50 text-orange-600 border border-orange-200 text-[9px] px-1 py-0.2 rounded-sm font-bold">Hỏa Tốc</span>}
-        {settings.fast && <span className="bg-emerald-50 text-emerald-600 border border-emerald-200 text-[9px] px-1 py-0.2 rounded-sm font-bold">Nhanh</span>}
-        {settings.saver && <span className="bg-blue-50 text-blue-600 border border-blue-200 text-[9px] px-1 py-0.2 rounded-sm font-bold">Tiết Kiệm</span>}
-      </div>
-    )
-  }
-
   return (
     <div className="w-full space-y-6">
       
       {/* 1. Header */}
-      <div className="bg-white rounded-2xl p-5 border border-slate-200/50 shadow-3xs flex items-center justify-between">
+      <div className="bg-white rounded-2xl p-5 border border-slate-200/60 shadow-2xs flex items-center justify-between">
         <div className="flex items-center gap-3">
           <span className="text-2xl">🌱</span>
           <div className="flex items-center gap-2">
-            <span className="text-xl font-black text-slate-800 tracking-tight">ZeroMall</span>
+            <span className="text-xl font-black text-slate-800 tracking-tight">
+              Zero<span className="text-emerald-600">Mall</span>
+            </span>
             <span className="text-slate-300">|</span>
-            <span className="text-base font-extrabold text-[#ee4d2d]">
+            <span className="text-base font-extrabold text-emerald-600">
               {step === 'cart' && 'Giỏ Hàng'}
               {step === 'checkout' && 'Thanh Toán'}
               {step === 'success' && 'Hoàn Tất Đặt Hàng'}
@@ -663,7 +725,6 @@ export const CartPage: React.FC<CartPageProps> = ({
         </div>
       </div>
 
-      {/* 2. Main Content Blocks */}
       {step === 'cart' && (
         <CartStepView
           cart={cart}
@@ -671,7 +732,6 @@ export const CartPage: React.FC<CartPageProps> = ({
           shopsInfo={shopsInfo}
           groupedItems={groupedItems}
           getItemKey={getItemKey}
-          getShopShippingBadges={getShopShippingBadges}
           handleSelectItem={handleSelectItem}
           handleSelectShopItems={handleSelectShopItems}
           handleSelectAll={handleSelectAll}
@@ -684,6 +744,21 @@ export const CartPage: React.FC<CartPageProps> = ({
           itemsTotal={itemsTotal}
           formatPrice={formatPrice}
           parsePrice={parsePrice}
+
+          selectedShopVouchers={selectedShopVouchers}
+          onOpenShopVoucherModal={(sId) => setActiveShopVoucherModalId(sId)}
+          onRemoveShopVoucher={(sId) => setSelectedShopVouchers(prev => ({ ...prev, [sId]: '' }))}
+          getShopVoucherDiscount={getShopVoucherDiscount}
+          allShopVouchers={allShopVouchers}
+          selectedVoucher={selectedVoucher}
+          onOpenPlatformVoucherModal={() => setShowVoucherModal(true)}
+          voucherDiscount={voucherDiscount}
+          shopVoucherDiscountTotal={shopVoucherDiscountTotal}
+          voucherDiscountTotal={voucherDiscountTotal}
+          itemsOriginalTotal={itemsOriginalTotal}
+          productDiscountTotal={productDiscountTotal}
+          totalSavings={totalSavings}
+          finalPayable={cartFinalPayable}
         />
       )}
 
@@ -702,7 +777,6 @@ export const CartPage: React.FC<CartPageProps> = ({
           shopMessages={shopMessages}
           setShopMessages={setShopMessages}
           setSelectedShopVouchers={setSelectedShopVouchers}
-          activeShopVoucherModalId={activeShopVoucherModalId}
           setActiveShopVoucherModalId={setActiveShopVoucherModalId}
           selectedVoucher={selectedVoucher}
           setSelectedVoucher={setSelectedVoucher}
@@ -711,6 +785,7 @@ export const CartPage: React.FC<CartPageProps> = ({
           itemsTotal={itemsTotal}
           insuranceTotal={0}
           finalShippingFee={finalShippingFee}
+          shopShippingFees={shopShippingFees}
           voucherDiscount={voucherDiscount}
           shopVoucherDiscountTotal={shopVoucherDiscountTotal}
           grandTotal={grandTotal}
@@ -721,7 +796,6 @@ export const CartPage: React.FC<CartPageProps> = ({
           parsePrice={parsePrice}
           formatPrice={formatPrice}
           getShopVoucherDiscount={getShopVoucherDiscount}
-          showVoucherModal={showVoucherModal}
           setShowVoucherModal={setShowVoucherModal}
           user={user}
         />
@@ -784,6 +858,42 @@ export const CartPage: React.FC<CartPageProps> = ({
           amount={grandTotal}
         />
       )}
+
+      {/* Shop Voucher Selector Modal (Available in both Cart and Checkout) */}
+      {activeShopVoucherModalId && (() => {
+        const shopId = activeShopVoucherModalId
+        const shopInfo = shopsInfo[shopId]
+        const shopName = shopInfo?.name || `Cửa hàng ${shopId.substring(0, 8)}`
+        const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
+        const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice) * item.quantity, 0)
+
+        return (
+          <ShopVoucherModal
+            isOpen={Boolean(activeShopVoucherModalId)}
+            onClose={() => setActiveShopVoucherModalId(null)}
+            shopId={shopId}
+            shopName={shopName}
+            shopItemsTotal={shopItemsTotal}
+            allShopVouchers={allShopVouchers}
+            selectedVoucherId={selectedShopVouchers[shopId]}
+            onSelectVoucher={(sId, vId) => {
+              setSelectedShopVouchers(prev => ({ ...prev, [sId]: vId }))
+            }}
+            formatPrice={formatPrice}
+          />
+        )
+      })()}
+
+      {/* Platform Voucher Selector Modal (Available in both Cart and Checkout) */}
+      <PlatformVoucherModal
+        isOpen={showVoucherModal}
+        onClose={() => setShowVoucherModal(false)}
+        selectedVoucher={selectedVoucher}
+        onSelectVoucher={(vCode) => setSelectedVoucher(vCode as any)}
+        itemsTotal={itemsTotal}
+        platformVouchers={allShopVouchers.filter(v => v.shopId === 'PLATFORM')}
+        formatPrice={formatPrice}
+      />
 
     </div>
   )
