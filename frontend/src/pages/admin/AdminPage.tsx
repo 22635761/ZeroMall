@@ -12,6 +12,7 @@ import { SystemReportsTab } from '../../components/admin/SystemReportsTab'
 import { CommissionSettingTab } from '../../components/admin/CommissionSettingTab'
 import { AuditLogsTab } from '../../components/admin/AuditLogsTab'
 import AdminPriceAnalyticsTab from '../../components/admin/AdminPriceAnalyticsTab'
+import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
 
 interface AdminPageProps {
   user: any
@@ -46,6 +47,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'vouchers': return 'PLATFORM_VOUCHERS';
       case 'flash-sale': return 'FLASH_SALE';
       case 'cs-staff': return 'MANAGE_CS_STAFF';
+      case 'live-chat': return 'LIVE_CHAT';
       case 'reports': return 'SYSTEM_REPORTS';
       case 'commission-setting': return 'COMMISSION_SETTING';
       case 'audit-logs': return 'AUDIT_LOGS';
@@ -63,6 +65,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'PLATFORM_VOUCHERS': return 'vouchers';
       case 'FLASH_SALE': return 'flash-sale';
       case 'MANAGE_CS_STAFF': return 'cs-staff';
+      case 'LIVE_CHAT': return 'live-chat';
       case 'SYSTEM_REPORTS': return 'reports';
       case 'COMMISSION_SETTING': return 'commission-setting';
       case 'AUDIT_LOGS': return 'audit-logs';
@@ -72,7 +75,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
+    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -244,6 +247,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'PLATFORM_VOUCHERS', label: 'Voucher toàn sàn', icon: '🎟️' },
     { id: 'FLASH_SALE', label: 'Quản lý Flash Sale', icon: '⚡' },
     { id: 'MANAGE_CS_STAFF', label: 'Nhân viên Platform CS', icon: '🎧' },
+    { id: 'LIVE_CHAT', label: 'Live Chat CSKH Sàn', icon: '💬' },
     { id: 'SYSTEM_REPORTS', label: 'Báo cáo hệ thống', icon: '📊' },
     { id: 'PRICE_ANALYTICS', label: 'Biến động & Giá vốn', icon: '📈' },
     { id: 'COMMISSION_SETTING', label: 'Chiết khấu sàn', icon: '⚙️' },
@@ -362,6 +366,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           {activePortalTab === 'MANAGE_CS_STAFF' && (
             <CsStaffTab csStaff={csStaff} fetchCsStaff={fetchCsStaff} triggerAuditLog={triggerAuditLog} />
+          )}
+
+          {activePortalTab === 'LIVE_CHAT' && (
+            <CsLiveChatTab user={user} />
           )}
 
           {activePortalTab === 'SYSTEM_REPORTS' && (

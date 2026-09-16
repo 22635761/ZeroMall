@@ -8,8 +8,13 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Get()
-  async findAll(@Query('shopId') shopId?: string, @Query('category') category?: string) {
-    return this.productService.findAll(shopId, category);
+  async findAll(
+    @Query('shopId') shopId?: string,
+    @Query('category') category?: string,
+    @Query('search') search?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.productService.findAll(shopId, category, search || q);
   }
 
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---

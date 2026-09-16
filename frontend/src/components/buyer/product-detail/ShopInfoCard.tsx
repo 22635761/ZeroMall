@@ -27,7 +27,7 @@ export const ShopInfoCard: React.FC<ShopInfoCardProps> = ({
   formatJoinDuration
 }) => {
   const navigate = useNavigate()
-  const shopId = product?.shopId || shopDetails?.id || '6e6e9cbe-c4cd-43a2-b71c-de2b32e9a30c'
+  const shopId = product?.shopId || shopDetails?.id || null
 
   const goToShop = () => {
     navigate(`/shop/${shopId}`)
@@ -62,11 +62,21 @@ export const ShopInfoCard: React.FC<ShopInfoCardProps> = ({
         <div className="flex flex-col gap-1.5 text-[11px]">
           <button
             onClick={() => {
-              const targetId = shopDetails?.id || shopId || 'zeromall-official';
-              const targetName = shopDetails?.name || 'ZeroMall Shop';
+              const targetId = shopDetails?.id || shopId;
+              if (!targetId) return; // No valid shop to chat with
+              const targetName = shopDetails?.name || null;
               window.dispatchEvent(
                 new CustomEvent('open_chat_with_shop', {
-                  detail: { shopId: targetId, shopName: targetName },
+                  detail: { 
+                    shopId: targetId, 
+                    shopName: targetName,
+                    product: product ? {
+                      id: product.id,
+                      name: product.name,
+                      price: product.flashPrice || product.price,
+                      image: product.image || (product.images && product.images[0]) || ''
+                    } : undefined
+                  },
                 })
               );
             }}

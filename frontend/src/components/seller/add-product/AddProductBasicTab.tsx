@@ -1,4 +1,5 @@
 import React from 'react'
+import { findProhibitedKeyword } from '../../../utils/bannedWords'
 
 interface UploadedImage {
   id: string
@@ -296,17 +297,36 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">* Tên sản phẩm</label>
           <span className="text-[9px] text-slate-400 font-bold">{productName.length}/120</span>
         </div>
-        <input
-          type="text"
-          required
-          placeholder="Nhập tên sản phẩm (Ví dụ: Điện thoại Apple iPhone 15 Pro Max 256GB - Hàng Chính Hãng)"
-          value={productName}
-          onChange={(e) => setProductName(e.target.value.substring(0, 120))}
-          className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
-        />
-        {errors.name && (
-          <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.name}</p>
-        )}
+        {(() => {
+          const prohibitedMatch = findProhibitedKeyword(productName);
+          return (
+            <>
+              <input
+                type="text"
+                required
+                placeholder="Nhập tên sản phẩm (Ví dụ: Điện thoại Apple iPhone 15 Pro Max 256GB - Hàng Chính Hãng)"
+                value={productName}
+                onChange={(e) => setProductName(e.target.value.substring(0, 120))}
+                className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none transition ${
+                  prohibitedMatch || errors.name
+                    ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-red-50/20'
+                    : 'border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+                }`}
+              />
+              {prohibitedMatch && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-[11px] font-semibold flex items-center gap-2 mt-1.5 shadow-2xs">
+                  <span className="text-sm">🚫</span>
+                  <span>
+                    Tên sản phẩm chứa từ cấm: <strong className="underline text-rose-900 font-black">"{prohibitedMatch}"</strong>. Vui lòng sửa lại tên để tiếp tục đăng bán.
+                  </span>
+                </div>
+              )}
+              {errors.name && !prohibitedMatch && (
+                <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.name}</p>
+              )}
+            </>
+          );
+        })()}
       </div>
 
       {/* Category & Brand row */}
@@ -350,17 +370,36 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">* Mô tả sản phẩm</label>
           <span className="text-[9px] text-slate-400 font-bold">{description.length}/3000</span>
         </div>
-        <textarea
-          required
-          rows={6}
-          placeholder="Nhập thông tin chi tiết về sản phẩm (Tính năng, công dụng, chất liệu, thông số kỹ thuật chi tiết...)"
-          value={description}
-          onChange={(e) => setDescription(e.target.value.substring(0, 3000))}
-          className="w-full border border-slate-200 rounded-xl px-4 py-3 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition resize-none leading-relaxed"
-        />
-        {errors.description && (
-          <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.description}</p>
-        )}
+        {(() => {
+          const prohibitedMatchDesc = findProhibitedKeyword(description);
+          return (
+            <>
+              <textarea
+                required
+                rows={6}
+                placeholder="Nhập thông tin chi tiết về sản phẩm (Tính năng, công dụng, chất liệu, thông số kỹ thuật chi tiết...)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value.substring(0, 3000))}
+                className={`w-full border rounded-xl px-4 py-3 text-xs focus:outline-none transition resize-none leading-relaxed ${
+                  prohibitedMatchDesc || errors.description
+                    ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-red-50/20'
+                    : 'border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+                }`}
+              />
+              {prohibitedMatchDesc && (
+                <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-[11px] font-semibold flex items-center gap-2 mt-1.5 shadow-2xs">
+                  <span className="text-sm">🚫</span>
+                  <span>
+                    Mô tả sản phẩm chứa từ cấm: <strong className="underline text-rose-900 font-black">"{prohibitedMatchDesc}"</strong>. Vui lòng sửa lại mô tả để tiếp tục đăng bán.
+                  </span>
+                </div>
+              )}
+              {errors.description && !prohibitedMatchDesc && (
+                <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.description}</p>
+              )}
+            </>
+          );
+        })()}
       </div>
 
     </div>

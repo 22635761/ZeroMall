@@ -2,25 +2,47 @@ import { Injectable, NotFoundException, ForbiddenException, BadRequestException 
 import { PrismaService } from './prisma.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
+import { findProhibitedKeyword } from './banned-words';
 
 @Injectable()
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(shopId?: string, category?: string) {
-    let whereClause: any = {};
-    if (shopId) whereClause.shopId = shopId;
-    if (category && category !== 'all') {
-      const trimmed = category.trim();
-      whereClause.OR = [
-        { category: { contains: trimmed, mode: 'insensitive' } },
-        { categoryRef: { slug: { equals: trimmed, mode: 'insensitive' } } },
-        { categoryRef: { name: { contains: trimmed, mode: 'insensitive' } } },
-      ];
+  async findAll(shopId?: string, category?: string, search?: string) {
+    const andConditions: any[] = [];
+
+    if (shopId) {
+      andConditions.push({ shopId });
     }
 
+    if (category && category !== 'all') {
+      const trimmed = category.trim();
+      andConditions.push({
+        OR: [
+          { category: { contains: trimmed, mode: 'insensitive' } },
+          { categoryRef: { slug: { equals: trimmed, mode: 'insensitive' } } },
+          { categoryRef: { name: { contains: trimmed, mode: 'insensitive' } } },
+        ],
+      });
+    }
+
+    if (search && search.trim()) {
+      const trimmedSearch = search.trim();
+      andConditions.push({
+        OR: [
+          { name: { contains: trimmedSearch, mode: 'insensitive' } },
+          { description: { contains: trimmedSearch, mode: 'insensitive' } },
+          { brand: { contains: trimmedSearch, mode: 'insensitive' } },
+          { category: { contains: trimmedSearch, mode: 'insensitive' } },
+          { sku: { contains: trimmedSearch, mode: 'insensitive' } },
+        ],
+      });
+    }
+
+    const whereClause = andConditions.length > 0 ? { AND: andConditions } : undefined;
+
     const products = await this.prisma.product.findMany({
-      where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
+      where: whereClause,
       include: { categoryRef: true },
       orderBy: { createdAt: 'desc' },
     });
@@ -69,6 +91,18 @@ export class ProductService {
   }
 
   async create(dto: CreateProductDto) {
+    const productName = String(dto.name || 'Sản phẩm mới');
+    const prohibitedWord = findProhibitedKeyword(productName);
+    if (prohibitedWord) {
+      throw new BadRequestException(`Tên sản phẩm chứa từ ngữ bị cấm không được phép kinh doanh: "${prohibitedWord}". Vui lòng sửa lại tên sản phẩm!`);
+    }
+
+    const description = String(dto.description || '');
+    const prohibitedWordDesc = findProhibitedKeyword(description);
+    if (prohibitedWordDesc) {
+      throw new BadRequestException(`Mô tả sản phẩm chứa từ ngữ bị cấm không được phép kinh doanh: "${prohibitedWordDesc}". Vui lòng sửa lại mô tả sản phẩm!`);
+    }
+
     const imagesStr = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
     const variationGroupsStr = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
     const variationRowsStr = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
@@ -77,7 +111,7 @@ export class ProductService {
     const product = await this.prisma.product.create({
       data: {
         shopId: String(dto.shopId),
-        name: String(dto.name || 'Sản phẩm mới'),
+        name: productName,
         image: dto.image ? String(dto.image) : null,
         images: imagesStr,
         video: dto.video ? String(dto.video) : null,
@@ -193,13 +227,27 @@ export class ProductService {
     await this.findOne(id); // Ensure product exists
     const updateData: any = {};
 
-    if (dto.name !== undefined) updateData.name = String(dto.name);
+    if (dto.name !== undefined) {
+      const nameStr = String(dto.name);
+      const prohibitedWord = findProhibitedKeyword(nameStr);
+      if (prohibitedWord) {
+        throw new BadRequestException(`Tên sản phẩm chứa từ ngữ bị cấm không được phép kinh doanh: "${prohibitedWord}". Vui lòng sửa lại tên sản phẩm!`);
+      }
+      updateData.name = nameStr;
+    }
     if (dto.image !== undefined) updateData.image = dto.image ? String(dto.image) : null;
     if (dto.images !== undefined) updateData.images = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
     if (dto.video !== undefined) updateData.video = dto.video ? String(dto.video) : null;
     if (dto.category !== undefined) updateData.category = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
     if (dto.brand !== undefined) updateData.brand = String(dto.brand);
-    if (dto.description !== undefined) updateData.description = String(dto.description);
+    if (dto.description !== undefined) {
+      const descStr = String(dto.description);
+      const prohibitedWordDesc = findProhibitedKeyword(descStr);
+      if (prohibitedWordDesc) {
+        throw new BadRequestException(`Mô tả sản phẩm chứa từ ngữ bị cấm không được phép kinh doanh: "${prohibitedWordDesc}". Vui lòng sửa lại mô tả sản phẩm!`);
+      }
+      updateData.description = descStr;
+    }
     if (dto.price !== undefined) updateData.price = String(dto.price);
     if (dto.originalPrice !== undefined) updateData.originalPrice = dto.originalPrice ? String(dto.originalPrice) : null;
     if (dto.stock !== undefined) updateData.stock = typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0;

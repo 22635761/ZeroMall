@@ -676,7 +676,18 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                         onClick={() => {
                           window.dispatchEvent(
                             new CustomEvent('open_chat_with_shop', {
-                              detail: { shopId: targetShopId, shopName: shopName },
+                              detail: { 
+                                shopId: targetShopId, 
+                                shopName: shopName,
+                                order: {
+                                  id: order.id,
+                                  totalAmount: order.totalAmount,
+                                  status: order.status,
+                                  itemsCount: order.items?.length || 1,
+                                  firstItemName: order.items?.[0]?.name,
+                                  firstItemImage: order.items?.[0]?.image || (order.items?.[0] as any)?.productImage
+                                }
+                              },
                             })
                           );
                         }}

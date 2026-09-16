@@ -274,13 +274,24 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
                 onClick={() => {
                   window.dispatchEvent(
                     new CustomEvent('open_chat_with_shop', {
-                      detail: { shopId, shopName: shopDisplayName },
+                      detail: { 
+                        shopId, 
+                        shopName: shopDisplayName,
+                        order: {
+                          id: order.id,
+                          totalAmount: order.totalAmount,
+                          status: order.status,
+                          itemsCount: order.items?.length || 1,
+                          firstItemName: order.items[0]?.name,
+                          firstItemImage: order.items[0]?.image
+                        }
+                      },
                     })
                   )
                 }}
                 className="px-4 py-2 bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-sm transition cursor-pointer"
               >
-                Liên Hệ Người Bán
+                💬 Chat Với Người Bán
               </button>
 
               <a
@@ -398,7 +409,18 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
               onClick={() => {
                 window.dispatchEvent(
                   new CustomEvent('open_chat_with_shop', {
-                    detail: { shopId, shopName: shopDisplayName },
+                    detail: { 
+                      shopId, 
+                      shopName: shopDisplayName,
+                      order: {
+                        id: order.id,
+                        totalAmount: order.totalAmount,
+                        status: order.status,
+                        itemsCount: order.items?.length || 1,
+                        firstItemName: order.items[0]?.name,
+                        firstItemImage: order.items[0]?.image
+                      }
+                    },
                   })
                 )
               }}
@@ -532,6 +554,30 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
                 Yêu Cầu Trả Hàng / Hoàn Tiền
               </button>
             )}
+
+            <button
+              onClick={() => {
+                window.dispatchEvent(
+                  new CustomEvent('open_chat_with_shop', {
+                    detail: {
+                      shopId: 'PLATFORM_SUPPORT',
+                      shopName: '🎧 ZeroMall CSKH & Hỗ Trợ Sàn',
+                      order: {
+                        id: order.id,
+                        totalAmount: order.totalAmount,
+                        status: order.status,
+                        itemsCount: order.items?.length || 1,
+                        firstItemName: order.items[0]?.name,
+                        firstItemImage: order.items[0]?.image
+                      }
+                    }
+                  })
+                );
+              }}
+              className="px-4 py-2 border border-slate-300 hover:border-slate-400 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-sm transition cursor-pointer flex items-center gap-1"
+            >
+              <span>🎧</span> CSKH Hỗ Trợ Đơn
+            </button>
           </div>
         </div>
       </div>

@@ -19,6 +19,7 @@ import { DeliveryPortal } from './pages/delivery/DeliveryPortal'
 import { ProfileModal } from './components/common/ProfileModal'
 import { BuyerOrdersPage } from './pages/buyer/BuyerOrdersPage'
 import { CategoryProductsPage } from './pages/buyer/CategoryProductsPage'
+import { SearchResultsPage } from './pages/buyer/SearchResultsPage'
 import { ShopDetailPage } from './pages/buyer/ShopDetailPage'
 import { toSlug } from './utils/slug'
 import { UserLayout } from './pages/buyer/UserLayout'
@@ -125,12 +126,22 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
       })
     : dbProducts;
 
+  const handleBuyerSearch = (query: string) => {
+    const trimmed = query.trim()
+    if (trimmed) {
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`)
+    } else {
+      navigate('/search')
+    }
+    if (handleSearch) handleSearch(trimmed)
+  }
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-800 font-sans selection:bg-[#ee4d2d] selection:text-white">
       {/* Shopee-style Header */}
       <Header
         cart={cart}
-        onSearch={handleSearch}
+        onSearch={handleBuyerSearch}
         onOpenCart={() => {
           localStorage.setItem('zm_checkout_step', 'cart')
           navigate('/cart')
@@ -186,6 +197,10 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                 <ServicePolicies />
               </>
             }
+          />
+          <Route
+            path="/search"
+            element={<SearchResultsPage products={dbProducts} />}
           />
           <Route
             path="/category/:categorySlug"
@@ -258,7 +273,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
       </main>
 
       {/* Floating Customer Support Chat */}
-      <ChatWidget user={user} />
+      <ChatWidget user={user} onOpenLogin={handleOpenLogin} />
 
       {/* Profile Modal */}
       <ProfileModal

@@ -202,6 +202,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       selectSubMenu('products', 'all-products')
     } catch (err: any) {
       alert(`Lỗi khi lưu sản phẩm: ${err.message}`)
+      throw err
     } finally {
       setProductsLoading(false)
     }

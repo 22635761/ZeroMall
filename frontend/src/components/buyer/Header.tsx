@@ -1,5 +1,5 @@
-import React, { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import React, { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { CartItem } from '../../models/cart.model'
 import { NotificationPopover } from '../common/NotificationPopover'
 
@@ -31,12 +31,34 @@ export const Header: React.FC<HeaderProps> = ({
   onBackToHome
 }) => {
   const navigate = useNavigate()
-  const [searchValue, setSearchValue] = useState('')
+  const [searchParams] = useSearchParams()
+  const urlQuery = searchParams.get('q') || searchParams.get('keyword') || ''
+
+  const [searchValue, setSearchValue] = useState(urlQuery)
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0)
+
+  useEffect(() => {
+    if (urlQuery) {
+      setSearchValue(urlQuery)
+    }
+  }, [urlQuery])
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    onSearch(searchValue)
+    const trimmed = searchValue.trim()
+    if (trimmed) {
+      navigate(`/search?q=${encodeURIComponent(trimmed)}`)
+      onSearch(trimmed)
+    } else {
+      navigate('/search')
+      onSearch('')
+    }
+  }
+
+  const handleHotSearchClick = (term: string) => {
+    setSearchValue(term)
+    navigate(`/search?q=${encodeURIComponent(term)}`)
+    onSearch(term)
   }
 
   const hotSearches = ['iPhone 15 Pro', 'Tai Nghe Sony', 'Bàn Phím Cơ', 'Son Tint Lì', 'Túi Xách Nữ', 'Áo Thun Nam']
@@ -70,9 +92,24 @@ export const Header: React.FC<HeaderProps> = ({
           {/* Right links */}
           <div className="flex items-center gap-4">
             <NotificationPopover user={user} />
-            <a href="#" className="flex items-center gap-1 hover:text-emerald-600 transition">
-              <span>❓</span> Hỗ Trợ
-            </a>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                if (!user) {
+                  onOpenLogin();
+                  return;
+                }
+                window.dispatchEvent(new CustomEvent('open_chat_with_shop', {
+                  detail: {
+                    shopId: 'PLATFORM_SUPPORT',
+                    shopName: '🎧 ZeroMall CSKH & Hỗ Trợ Sàn',
+                  }
+                }));
+              }}
+              className="flex items-center gap-1 hover:text-emerald-600 transition bg-transparent border-none p-0 cursor-pointer text-xs font-semibold text-slate-500"
+            >
+              <span>❓</span> Hỗ Trợ CSKH
+            </button>
             <a href="#" className="flex items-center gap-1 hover:text-emerald-600 transition font-bold">
               🌐 Tiếng Việt
             </a>
@@ -194,10 +231,7 @@ export const Header: React.FC<HeaderProps> = ({
             {hotSearches.map((term, i) => (
               <span
                 key={i}
-                onClick={() => {
-                  setSearchValue(term)
-                  onSearch(term)
-                }}
+                onClick={() => handleHotSearchClick(term)}
                 className="hover:text-emerald-600 cursor-pointer transition"
               >
                 {term}

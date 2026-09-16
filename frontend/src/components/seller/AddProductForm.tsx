@@ -4,6 +4,7 @@ import { AddProductBasicTab } from './add-product/AddProductBasicTab'
 import { AddProductSalesTab } from './add-product/AddProductSalesTab'
 import { AddProductShippingTab } from './add-product/AddProductShippingTab'
 import { AddProductOtherTab } from './add-product/AddProductOtherTab'
+import { findProhibitedKeyword } from '../../utils/bannedWords'
 
 interface AddProductFormProps {
   onSuccess: (product?: any) => void
@@ -179,8 +180,8 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
 
   const isImageValid = images.length >= 1
   const isVideoValid = videoMode === 'upload' ? !!videoFile.url : (videoLink.trim().length > 10 && (videoLink.includes('youtube.com') || videoLink.includes('youtu.be') || videoLink.includes('tiktok.com')))
-  const isNameValid = productName.trim().length > 0
-  const isDescValid = description.trim().length > 0
+  const isNameValid = productName.trim().length > 0 && !findProhibitedKeyword(productName)
+  const isDescValid = description.trim().length > 0 && !findProhibitedKeyword(description)
   const isBrandValid = brand.trim().length > 0
 
   const getYouTubeId = (url: string) => {
@@ -462,7 +463,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     return baseCost + extraSteps * 5000
   }
 
-  const handleSubmit = (e: React.FormEvent, targetStatus: 'active' | 'hidden' = 'active') => {
+  const handleSubmit = async (e: React.FormEvent, targetStatus: 'active' | 'hidden' = 'active') => {
     e.preventDefault()
 
     const newErrors: Record<string, string> = {}
@@ -472,6 +473,11 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     }
     if (!productName.trim()) {
       newErrors.name = 'Vui lòng nhập tên sản phẩm'
+    } else {
+      const prohibitedWord = findProhibitedKeyword(productName)
+      if (prohibitedWord) {
+        newErrors.name = `Tên sản phẩm chứa từ cấm không được phép đăng bán: "${prohibitedWord}". Vui lòng sửa lại tên sản phẩm!`
+      }
     }
     if (!category) {
       newErrors.category = 'Vui lòng chọn ngành hàng'
@@ -481,6 +487,11 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     }
     if (!description.trim()) {
       newErrors.description = 'Vui lòng nhập mô tả sản phẩm'
+    } else {
+      const prohibitedWordDesc = findProhibitedKeyword(description)
+      if (prohibitedWordDesc) {
+        newErrors.description = `Mô tả sản phẩm chứa từ cấm không được phép đăng bán: "${prohibitedWordDesc}". Vui lòng sửa lại mô tả!`
+      }
     }
 
     if (hasVariations) {
@@ -574,13 +585,18 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       reviewsCount: initialData?.reviewsCount || 0
     }
 
-    setToastMessage(initialData ? '🎉 Đã cập nhật sản phẩm thành công!' : '🎉 Đã thêm sản phẩm thành công!')
-    setShowToast(true)
-
-    setTimeout(() => {
-      setShowToast(false)
-      onSuccess(newProduct)
-    }, 1200)
+    try {
+      if (onSuccess) {
+        await onSuccess(newProduct)
+      }
+      setToastMessage(initialData ? '🎉 Đã cập nhật sản phẩm thành công!' : '🎉 Đã thêm sản phẩm thành công!')
+      setShowToast(true)
+      setTimeout(() => {
+        setShowToast(false)
+      }, 1500)
+    } catch (err: any) {
+      console.error('Failed to save product:', err)
+    }
   }
 
   return (

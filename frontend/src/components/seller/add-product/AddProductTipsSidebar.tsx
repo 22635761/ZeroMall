@@ -1,4 +1,5 @@
 import React from 'react'
+import { findProhibitedKeyword } from '../../../utils/bannedWords'
 
 interface AddProductTipsSidebarProps {
   isImageValid: boolean
@@ -19,6 +20,9 @@ export const AddProductTipsSidebar: React.FC<AddProductTipsSidebarProps> = ({
   productName,
   description
 }) => {
+  const prohibitedWord = findProhibitedKeyword(productName)
+  const prohibitedWordDesc = findProhibitedKeyword(description)
+
   return (
     <aside className="w-1/4 bg-white border border-slate-200/70 rounded-3xl p-5 sticky top-24 shrink-0 shadow-2xs select-none space-y-4">
       <h4 className="font-extrabold text-[11px] text-slate-400 uppercase tracking-wider">Gợi ý điền Thông tin</h4>
@@ -44,25 +48,43 @@ export const AddProductTipsSidebar: React.FC<AddProductTipsSidebarProps> = ({
 
         <li className="flex items-start gap-2.5">
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
-            isNameValid ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
+            isNameValid 
+              ? 'bg-emerald-500 text-white' 
+              : prohibitedWord 
+                ? 'bg-red-500 text-white font-bold' 
+                : 'bg-slate-100 text-slate-400 border border-slate-200'
           }`}>
-            {isNameValid ? '✓' : '•'}
+            {isNameValid ? '✓' : prohibitedWord ? '✕' : '•'}
           </span>
-          <span className={isNameValid ? 'text-slate-800 font-bold' : ''}>
+          <span className={isNameValid ? 'text-slate-800 font-bold' : prohibitedWord ? 'text-red-600 font-bold' : ''}>
             Điền tên sản phẩm
             <span className="block text-[10px] text-slate-400 font-medium mt-0.5">({productName.length}/120 ký tự)</span>
+            {prohibitedWord && (
+              <span className="block text-[10px] text-red-500 font-bold mt-1">
+                🚫 Chứa từ cấm: "{prohibitedWord}"
+              </span>
+            )}
           </span>
         </li>
 
         <li className="flex items-start gap-2.5">
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
-            isDescValid ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400 border border-slate-200'
+            isDescValid 
+              ? 'bg-emerald-500 text-white' 
+              : prohibitedWordDesc 
+                ? 'bg-red-500 text-white font-bold' 
+                : 'bg-slate-100 text-slate-400 border border-slate-200'
           }`}>
-            {isDescValid ? '✓' : '•'}
+            {isDescValid ? '✓' : prohibitedWordDesc ? '✕' : '•'}
           </span>
-          <span className={isDescValid ? 'text-slate-800 font-bold' : ''}>
+          <span className={isDescValid ? 'text-slate-800 font-bold' : prohibitedWordDesc ? 'text-red-600 font-bold' : ''}>
             Điền mô tả sản phẩm
             <span className="block text-[10px] text-slate-400 font-medium mt-0.5">({description.length} ký tự)</span>
+            {prohibitedWordDesc && (
+              <span className="block text-[10px] text-red-500 font-bold mt-1">
+                🚫 Chứa từ cấm: "{prohibitedWordDesc}"
+              </span>
+            )}
           </span>
         </li>
 

@@ -5,6 +5,7 @@ import { CsShopsTab } from '../../components/cs-support/CsShopsTab'
 import { CsWithdrawalsTab } from '../../components/cs-support/CsWithdrawalsTab'
 import { CsDisputesTab } from '../../components/cs-support/CsDisputesTab'
 import { CsOrdersTab } from '../../components/cs-support/CsOrdersTab'
+import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
 
 interface CsSupportPageProps {
   user: any
@@ -41,6 +42,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
       case 'withdrawals': return 'WITHDRAWALS';
       case 'disputes': return 'DISPUTES';
       case 'orders': return 'ORDERS';
+      case 'live-chat': return 'LIVE_CHAT';
       default: return null;
     }
   }
@@ -51,12 +53,13 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
       case 'WITHDRAWALS': return 'withdrawals';
       case 'DISPUTES': return 'disputes';
       case 'ORDERS': return 'orders';
+      case 'LIVE_CHAT': return 'live-chat';
       default: return 'shops';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'SHOPS' | 'WITHDRAWALS' | 'DISPUTES' | 'ORDERS'
+    'SHOPS' | 'WITHDRAWALS' | 'DISPUTES' | 'ORDERS' | 'LIVE_CHAT'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -342,6 +345,7 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
     { id: 'WITHDRAWALS', label: 'Phê duyệt rút tiền', icon: '💰' },
     { id: 'DISPUTES', label: 'Tranh chấp khiếu nại', icon: '⚖️' },
     { id: 'ORDERS', label: 'Lịch sử đơn hàng', icon: '📋' },
+    { id: 'LIVE_CHAT', label: 'Live Chat CSKH', icon: '💬' },
   ]
 
   return (
@@ -466,6 +470,10 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
               allOrdersLoading={allOrdersLoading}
               filteredOrders={filteredOrders}
             />
+          )}
+
+          {activePortalTab === 'LIVE_CHAT' && (
+            <CsLiveChatTab user={user} />
           )}
         </main>
       </div>

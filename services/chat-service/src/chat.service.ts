@@ -23,7 +23,7 @@ export class ChatService {
         data: {
           buyerId,
           shopId,
-          lastMessage: 'Cuộc trò chuyện mới được khởi tạo 👋',
+          lastMessage: null,
           lastMessageAt: new Date(),
         },
       });
@@ -33,13 +33,18 @@ export class ChatService {
     return conversation;
   }
 
-  async getConversations(filter: { buyerId?: string; shopId?: string }) {
+  async getConversations(filter: { buyerId?: string; shopId?: string; includeEmpty?: string | boolean }) {
     const where: any = {};
     if (filter.buyerId) where.buyerId = filter.buyerId;
     if (filter.shopId) where.shopId = filter.shopId;
 
     if (!filter.buyerId && !filter.shopId) {
       return [];
+    }
+
+    // Chỉ trả về các cuộc trò chuyện đã từng có tin nhắn trao đổi
+    if (!filter.includeEmpty || filter.includeEmpty === 'false') {
+      where.lastMessage = { not: null };
     }
 
     return this.prisma.conversation.findMany({
@@ -102,10 +107,18 @@ export class ChatService {
 
     // Update conversation summary & unread counts
     const isBuyerSender = data.senderType === 'BUYER';
+    const summaryText = data.type === 'IMAGE' 
+      ? '[Hình ảnh]' 
+      : data.type === 'PRODUCT_CARD' 
+      ? (data.content || '[Sản phẩm]') 
+      : data.type === 'ORDER_CARD' 
+      ? (data.content || '[Đơn hàng]') 
+      : data.content;
+
     await this.prisma.conversation.update({
       where: { id: data.conversationId },
       data: {
-        lastMessage: data.content,
+        lastMessage: summaryText,
         lastMessageAt: new Date(),
         unreadShopCount: isBuyerSender
           ? { increment: 1 }
