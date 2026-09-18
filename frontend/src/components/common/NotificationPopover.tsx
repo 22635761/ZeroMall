@@ -148,6 +148,17 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
       return;
     }
 
+    if (action === 'VIEW_REVIEWS') {
+      if (isSeller) {
+        if (onNavigateToMenu) {
+          onNavigateToMenu('cs-reviews');
+        } else {
+          window.location.href = '/seller?menu=cs&sub=reviews-mgmt';
+        }
+      }
+      return;
+    }
+
     if (action === 'OPEN_CHAT') {
       const shopId = meta?.shopId;
       const shopName = meta?.shopName || '';
@@ -162,7 +173,9 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
     }
   };
 
-  const getTypeIcon = (type: string) => {
+  const getTypeIcon = (type: string, title?: string) => {
+    if (title?.includes('Người theo dõi') || title?.includes('theo dõi')) return '👥';
+    if (title?.includes('Đánh giá')) return '⭐';
     switch (type) {
       case 'ORDER': return '📦';
       case 'PROMOTION': return '🏷️';
@@ -267,7 +280,7 @@ export const NotificationPopover: React.FC<NotificationPopoverProps> = ({
                   }`}
                 >
                   <div className="text-xl flex-shrink-0 mt-0.5">
-                    {getTypeIcon(item.type)}
+                    {getTypeIcon(item.type, item.title)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-1 mb-0.5">

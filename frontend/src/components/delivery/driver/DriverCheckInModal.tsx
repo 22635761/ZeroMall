@@ -90,6 +90,51 @@ export const DriverCheckInModal: React.FC<DriverCheckInModalProps> = ({
     }
   }
 
+  // Giả lập chụp ảnh khuôn mặt tài xế (khi Camera bị lỗi quyền trên trình duyệt)
+  const handleSimulateFacePhoto = () => {
+    const canvas = document.createElement('canvas')
+    canvas.width = 640
+    canvas.height = 480
+    const ctx = canvas.getContext('2d')
+    if (ctx) {
+      const grad = ctx.createLinearGradient(0, 0, 640, 480)
+      grad.addColorStop(0, '#064e3b')
+      grad.addColorStop(1, '#0f172a')
+      ctx.fillStyle = grad
+      ctx.fillRect(0, 0, 640, 480)
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font = 'bold 24px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('🛵 ZEROMALL EXPRESS - XÁC THỰC VÀO CA', 320, 90)
+
+      ctx.beginPath()
+      ctx.arc(320, 210, 70, 0, Math.PI * 2)
+      ctx.fillStyle = '#10b981'
+      ctx.fill()
+
+      ctx.fillStyle = '#ffffff'
+      ctx.font = '70px sans-serif'
+      ctx.fillText('👤', 320, 235)
+
+      ctx.fillStyle = '#f8fafc'
+      ctx.font = 'bold 20px sans-serif'
+      ctx.fillText(driverProfile?.name || 'Tài xế ZMX', 320, 320)
+
+      ctx.fillStyle = '#94a3b8'
+      ctx.font = '15px sans-serif'
+      ctx.fillText(`Xe: ${driverProfile?.vehicleNumber || 'ZMX'} • Hub: ${driverProfile?.hub?.name || 'Bưu cục'}`, 320, 350)
+
+      ctx.fillStyle = '#34d399'
+      ctx.font = '14px sans-serif'
+      ctx.fillText(`Thời gian điểm danh: ${new Date().toLocaleTimeString('vi-VN')} - ${new Date().toLocaleDateString('vi-VN')}`, 320, 385)
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.85)
+      setCapturedImage(dataUrl)
+      stopCamera()
+    }
+  }
+
   // Lấy định vị GPS
   const requestLocation = () => {
     setGpsError(null)
@@ -221,18 +266,28 @@ export const DriverCheckInModal: React.FC<DriverCheckInModalProps> = ({
               <span>1. Xác thực khuôn mặt qua Camera</span>
               <span className="text-rose-600 font-black">*</span>
             </span>
-            {capturedImage && (
+            <div className="flex items-center gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setCapturedImage(null)
-                  startCamera()
-                }}
-                className="text-xs text-emerald-600 hover:underline font-bold cursor-pointer flex items-center gap-1"
+                onClick={handleSimulateFacePhoto}
+                className="text-xs text-amber-600 hover:text-amber-700 font-bold cursor-pointer flex items-center gap-1 bg-amber-50 hover:bg-amber-100 px-2 py-0.5 rounded-lg border border-amber-200"
+                title="Sử dụng ảnh khuôn mặt giả lập khi trình duyệt chặn quyền truy cập Camera"
               >
-                <span>🔄</span> Chụp lại
+                <span>⚡</span> Giả lập chụp ảnh
               </button>
-            )}
+              {capturedImage && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCapturedImage(null)
+                    startCamera()
+                  }}
+                  className="text-xs text-emerald-600 hover:underline font-bold cursor-pointer flex items-center gap-1"
+                >
+                  <span>🔄</span> Chụp lại
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="relative aspect-4/3 rounded-2xl bg-slate-900 overflow-hidden flex items-center justify-center border-2 border-dashed border-slate-300">
@@ -241,18 +296,27 @@ export const DriverCheckInModal: React.FC<DriverCheckInModalProps> = ({
             ) : isCameraActive ? (
               <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover scale-x-[-1]" />
             ) : (
-              <div className="text-center p-4 text-slate-400 space-y-2">
+              <div className="text-center p-4 text-slate-400 space-y-2.5">
                 <span className="text-4xl block">📷</span>
                 <p className="text-xs text-slate-300 leading-relaxed px-2">
                   {cameraError || 'Đang kết nối Camera an toàn...'}
                 </p>
-                <button
-                  type="button"
-                  onClick={startCamera}
-                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-lg transition"
-                >
-                  🔄 Thử Lại Mở Camera
-                </button>
+                <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={startCamera}
+                    className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 text-xs font-bold rounded-lg transition"
+                  >
+                    🔄 Thử Lại
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSimulateFacePhoto}
+                    className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-lg transition shadow-md flex items-center gap-1.5"
+                  >
+                    <span>⚡</span> Giả Lập Chụp Ảnh Vào Ca
+                  </button>
+                </div>
               </div>
             )}
 
@@ -268,15 +332,26 @@ export const DriverCheckInModal: React.FC<DriverCheckInModalProps> = ({
             )}
           </div>
 
-          {/* Action chụp ảnh duy nhất từ Camera */}
-          {!capturedImage && isCameraActive && (
-            <button
-              type="button"
-              onClick={capturePhoto}
-              className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
-            >
-              <span className="text-base">📸</span> Chụp Ảnh Nhận Diện Khuôn Mặt
-            </button>
+          {/* Action chụp ảnh */}
+          {!capturedImage && (
+            <div className="space-y-2">
+              {isCameraActive && (
+                <button
+                  type="button"
+                  onClick={capturePhoto}
+                  className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-black rounded-xl transition shadow-md flex items-center justify-center gap-2 cursor-pointer active:scale-95"
+                >
+                  <span className="text-base">📸</span> Chụp Ảnh Nhận Diện Khuôn Mặt
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={handleSimulateFacePhoto}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <span>🤖</span> Dùng ảnh giả lập vào ca (Bỏ qua lỗi quyền Camera)
+              </button>
+            </div>
           )}
 
           {capturedImage && (

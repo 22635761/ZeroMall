@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import type { Order } from '../../models/order.model'
 import { formatOrderId } from '../../utils/orderUtils'
+import { ShopTrackingModal } from './ShopTrackingModal'
+import { ShopHandoverModal } from './ShopHandoverModal'
 
 interface OrderDetailProps {
   order: Order
@@ -8,6 +11,8 @@ interface OrderDetailProps {
   onBack: () => void
   onStatusUpdate: (orderId: string, newStatus: string) => Promise<void>
   updatingOrderId: string | null
+  shopId?: string
+  shopName?: string
 }
 
 const formatVND = (amount: number) =>
@@ -46,8 +51,47 @@ const getStepIndex = (status: string) => {
 }
 
 export const OrderDetail: React.FC<OrderDetailProps> = ({
-  order, onBack, onStatusUpdate, updatingOrderId
+  order, onBack, onStatusUpdate, updatingOrderId, shopId, shopName
 }) => {
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
+  const [trackingData, setTrackingData] = useState<any>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+
+  // Handover Modal State (Chế độ bàn giao cho ĐVVC)
+  const [showHandoverModal, setShowHandoverModal] = useState(false)
+  const [handoverLoading, setHandoverLoading] = useState(false)
+
+  const handleConfirmHandover = async (ord: Order) => {
+    setHandoverLoading(true)
+    try {
+      await onStatusUpdate(ord.id, 'SHIPPING')
+      setShowHandoverModal(false)
+    } catch (err: any) {
+      console.error('Error during handover in OrderDetail:', err)
+    } finally {
+      setHandoverLoading(false)
+    }
+  }
+
+  const handleOpenTrackingModal = async () => {
+    setTrackingLoading(true)
+    setShowTrackingModal(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery/tracking/${order.id}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTrackingData(data)
+      } else {
+        setTrackingData(null)
+      }
+    } catch (e) {
+      console.error('Error fetching tracking data:', e)
+      setTrackingData(null)
+    } finally {
+      setTrackingLoading(false)
+    }
+  }
+
   const currentStep = getStepIndex(order.status)
   const itemSubtotal = order.items.reduce((sum, item) => sum + item.price * item.quantity, 0)
 
@@ -60,22 +104,6 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           label: '✅ Xác Nhận Đơn Hàng',
           status: 'PROCESSING',
           className: 'bg-[#ee4d2d] hover:bg-[#d03d20] text-white'
-        }
-      case 'PROCESSING':
-      case 'PREPARING':
-      case 'CONFIRMED':
-        return {
-          label: '🚛 Chuẩn Bị Xong & Bàn Giao ĐVVC',
-          status: 'SHIPPING',
-          className: 'bg-blue-600 hover:bg-blue-700 text-white'
-        }
-      case 'SHIPPING':
-      case 'SHIPPED':
-      case 'IN_TRANSIT':
-        return {
-          label: '✅ Xác Nhận Giao Hàng Thành Công',
-          status: 'DELIVERED',
-          className: 'bg-emerald-600 hover:bg-emerald-700 text-white'
         }
       default:
         return null
@@ -103,17 +131,64 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
             Ngày đặt: {new Date(order.createdAt).toLocaleString('vi-VN')}
           </p>
         </div>
-        {nextAction && (
-          <button
-            onClick={() => onStatusUpdate(order.id, nextAction.status)}
-            disabled={updatingOrderId !== null}
-            className={`px-5 py-2.5 rounded-xl text-xs font-black shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2 ${nextAction.className}`}
-          >
-            {updatingOrderId === order.id ? (
-              <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Đang cập nhật...</>
-            ) : nextAction.label}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {nextAction && (
+            <button
+              onClick={() => onStatusUpdate(order.id, nextAction.status)}
+              disabled={updatingOrderId !== null}
+              className={`px-5 py-2.5 rounded-xl text-xs font-black shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2 ${nextAction.className}`}
+            >
+              {updatingOrderId === order.id ? (
+                <><div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> Đang cập nhật...</>
+              ) : nextAction.label}
+            </button>
+          )}
+
+          {(order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED') && (
+            <button
+              onClick={() => setShowHandoverModal(true)}
+              disabled={updatingOrderId !== null}
+              className="px-5 py-2.5 rounded-xl text-xs font-black shadow-md transition cursor-pointer disabled:opacity-50 flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+              title="Vào chế độ chuẩn bị hàng và bàn giao cho đơn vị vận chuyển ZMX"
+            >
+              <span>📦</span>
+              Chuẩn Bị Hàng
+            </button>
+          )}
+
+          {(order.status === 'SHIPPING' || order.status === 'SHIPPED' || order.status === 'IN_TRANSIT') && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleOpenTrackingModal}
+                className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 font-bold px-4 py-2.5 rounded-xl text-xs shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+                title="Xem lộ trình bưu phẩm trên bản đồ thời gian thực"
+              >
+                <span>🗺️</span>
+                Theo Dõi Hành Trình ZMX
+              </button>
+              <a
+                href="http://delivery.zeromall.local:3000"
+                target="_blank"
+                rel="noreferrer"
+                className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3.5 py-2.5 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
+                title="Mở cổng vận hành ZeroMall Express"
+              >
+                <span>🛵</span>
+                ZMX Delivery ↗
+              </a>
+            </div>
+          )}
+
+          {(order.status === 'DELIVERED' || order.status === 'COMPLETED') && (
+            <button
+              onClick={handleOpenTrackingModal}
+              className="bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-600 font-bold px-3.5 py-2 rounded-xl text-xs transition flex items-center gap-1.5 cursor-pointer"
+            >
+              <span>🗺️</span>
+              Lịch Sử Vận Chuyển ZMX
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Status Timeline */}
@@ -205,9 +280,17 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                 <span className="font-semibold text-slate-700 text-right leading-relaxed">{order.shippingAddress}</span>
               </div>
               {order.ghnOrderCode && (
-                <div className="flex justify-between">
-                  <span className="text-slate-400 font-semibold">Mã vận đơn GHN:</span>
-                  <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{order.ghnOrderCode}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-400 font-semibold">Mã vận đơn (ZMX):</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-md">{order.ghnOrderCode}</span>
+                    <button
+                      onClick={handleOpenTrackingModal}
+                      className="text-[10px] font-bold text-emerald-700 bg-emerald-100 hover:bg-emerald-200 px-2.5 py-1 rounded-lg transition cursor-pointer flex items-center gap-1"
+                    >
+                      <span>🗺️</span> Xem lộ trình
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -261,6 +344,26 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           </div>
         </div>
       )}
+
+      {/* ZMX Handover Modal (Chế độ bàn giao cho ĐVVC) */}
+      <ShopHandoverModal
+        isOpen={showHandoverModal}
+        onClose={() => setShowHandoverModal(false)}
+        order={order}
+        shopId={shopId || (order as any).shopId || ''}
+        shopName={shopName}
+        onConfirmHandover={handleConfirmHandover}
+        loading={handoverLoading}
+      />
+
+      {/* ZMX Realtime Tracking Modal */}
+      <ShopTrackingModal
+        isOpen={showTrackingModal}
+        onClose={() => setShowTrackingModal(false)}
+        trackingData={trackingData}
+        trackingLoading={trackingLoading}
+        orderId={order.id}
+      />
     </div>
   )
 }

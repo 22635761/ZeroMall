@@ -9,7 +9,6 @@ import { SepayPaymentModal } from '../../components/buyer/SepayPaymentModal'
 import { ShopVoucherModal } from '../../components/buyer/ShopVoucherModal'
 import { PlatformVoucherModal } from '../../components/buyer/PlatformVoucherModal'
 import type { ShippingAddress } from '../../models/address.model'
-import { DEFAULT_ADDRESSES } from '../../models/address.model'
 
 export const VIETNAM_PROVINCES = [
   "Thành phố Hà Nội",
@@ -165,34 +164,75 @@ export const CartPage: React.FC<CartPageProps> = ({
   // Store fetched shop details: { [shopId: string]: { name: string; shippingSettings?: any } }
   const [shopsInfo, setShopsInfo] = useState<{ [key: string]: any }>({})
 
-  // Checkout address & details (prefill with user details or default)
+  // Checkout address & details: Fetch dynamically from API per user
   const [addresses, setAddresses] = useState<ShippingAddress[]>(() => {
-    const saved = localStorage.getItem('zm_user_addresses')
-    return saved ? JSON.parse(saved) : DEFAULT_ADDRESSES
-  })
-
-  useEffect(() => {
-    if (user) {
-      console.log('ZeroMall: Buyer session active for checkout', user.email || user.name)
+    if (user?.id) {
+      const cached = localStorage.getItem(`zm_user_addresses_${user.id}`)
+      if (cached) {
+        try { return JSON.parse(cached) } catch (_) {}
+      }
     }
-  }, [user])
+    return []
+  })
 
   const [activeAddressId, setActiveAddressId] = useState<string>(() => {
-    const saved = localStorage.getItem('zm_active_address_id')
-    if (saved) return saved
-    const def = DEFAULT_ADDRESSES.find(a => a.isDefault)
-    return def ? def.id : (DEFAULT_ADDRESSES[0]?.id || '')
+    if (user?.id) {
+      return localStorage.getItem(`zm_active_address_id_${user.id}`) || ''
+    }
+    return ''
   })
 
-  // Sync addresses to localStorage
+  // Fetch addresses from backend when user is available
   useEffect(() => {
-    localStorage.setItem('zm_user_addresses', JSON.stringify(addresses))
-  }, [addresses])
+    // Dọn dẹp key cũ không phân biệt user
+    try {
+      localStorage.removeItem('zm_user_addresses')
+      localStorage.removeItem('zm_active_address_id')
+    } catch (e) {}
 
-  // Sync active address id to localStorage
+    if (!user?.id) {
+      setAddresses([])
+      setActiveAddressId('')
+      return
+    }
+
+    const fetchUserAddresses = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/users/${user.id}/addresses`)
+        if (res.ok) {
+          const data: ShippingAddress[] = await res.json()
+          setAddresses(data)
+          localStorage.setItem(`zm_user_addresses_${user.id}`, JSON.stringify(data))
+          
+          const def = data.find(a => a.isDefault) || data[0]
+          if (def) {
+            setActiveAddressId(def.id)
+            localStorage.setItem(`zm_active_address_id_${user.id}`, def.id)
+          } else {
+            setActiveAddressId('')
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching user addresses in CartPage:', err)
+      }
+    }
+
+    fetchUserAddresses()
+  }, [user?.id])
+
+  // Sync addresses to per-user localStorage cache
   useEffect(() => {
-    localStorage.setItem('zm_active_address_id', activeAddressId)
-  }, [activeAddressId])
+    if (user?.id) {
+      localStorage.setItem(`zm_user_addresses_${user.id}`, JSON.stringify(addresses))
+    }
+  }, [addresses, user?.id])
+
+  // Sync active address id to per-user localStorage
+  useEffect(() => {
+    if (user?.id && activeAddressId) {
+      localStorage.setItem(`zm_active_address_id_${user.id}`, activeAddressId)
+    }
+  }, [activeAddressId, user?.id])
 
   // Address modal visibility
   const [showAddressModal, setShowAddressModal] = useState(false)
@@ -218,6 +258,8 @@ export const CartPage: React.FC<CartPageProps> = ({
   const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
   const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'cod' | 'sepay'>('cod')
   const [shopShippingFees, setShopShippingFees] = useState<Record<string, number>>({})
+  const [shopPackageInfos, setShopPackageInfos] = useState<Record<string, { weightKg: number; isBulky: boolean; itemCount: number }>>({})
+  const [productSpecs, setProductSpecs] = useState<Record<string, { weight?: number; length?: number; width?: number; height?: number }>>({})
   
   // Shop Vouchers State
   const [allShopVouchers, setAllShopVouchers] = useState<any[]>([])
@@ -319,20 +361,11 @@ export const CartPage: React.FC<CartPageProps> = ({
             const res = await fetch(`${API_BASE_URL}/auth/shops/${shopId}`)
             if (res.ok) {
               const data = await res.json()
-              let pickupGhnDistrictId = 3695 // default fallback
-              try {
-                if (data.pickupAddress) {
-                  const pickup = typeof data.pickupAddress === 'string' ? JSON.parse(data.pickupAddress) : data.pickupAddress
-                  if (pickup.ghnDistrictId) pickupGhnDistrictId = pickup.ghnDistrictId
-                }
-              } catch (e) { /* ignore parse errors */ }
-
               setShopsInfo(prev => ({
                 ...prev,
                 [shopId]: {
                   name: data.name || `Cửa hàng ${shopId.substring(0, 8)}`,
                   shippingSettings: data.shippingSettings ? JSON.parse(data.shippingSettings) : null,
-                  ghnDistrictId: pickupGhnDistrictId,
                   pickupAddress: data.pickupAddress
                 }
               }))
@@ -365,6 +398,39 @@ export const CartPage: React.FC<CartPageProps> = ({
     
     if (cart.length > 0) {
       fetchActiveVouchers()
+    }
+  }, [cart])
+
+  // Tự động tải thông số kích thước & cân nặng chuẩn từ CSDL cho các sản phẩm trong giỏ hàng
+  useEffect(() => {
+    const fetchMissingSpecs = async () => {
+      const missingProductIds = cart
+        .map((i) => i.product.id)
+        .filter((id) => !productSpecs[id])
+
+      for (const pId of missingProductIds) {
+        try {
+          const res = await fetch(`${API_BASE_URL}/products/${pId}`)
+          if (res.ok) {
+            const pData = await res.json()
+            setProductSpecs((prev) => ({
+              ...prev,
+              [pId]: {
+                weight: pData.weight ? parseFloat(pData.weight) : 0,
+                length: pData.length ? parseFloat(pData.length) : 0,
+                width: pData.width ? parseFloat(pData.width) : 0,
+                height: pData.height ? parseFloat(pData.height) : 0,
+              },
+            }))
+          }
+        } catch (e) {
+          console.error('Error fetching product specs:', e)
+        }
+      }
+    }
+
+    if (cart.length > 0) {
+      fetchMissingSpecs()
     }
   }, [cart])
 
@@ -428,71 +494,87 @@ export const CartPage: React.FC<CartPageProps> = ({
     return acc + itemUnitPrice * item.quantity
   }, 0)
 
-  // Base shipping fee: calculated via GHN Production API, fallback to 37.700đ per shop
+  // Base shipping fee: Chuẩn vận chuyển nội bộ ZeroMall Express (ZMX)
+  // Tính cước theo Tổng trọng lượng / Thể tích quy đổi gộp cho toàn bộ sản phẩm của cùng 1 Shop
   const uniqueSelectedShops = Array.from(new Set(selectedCartItems.map(item => item.product.shopId).filter(Boolean))) as string[]
   
-  // Derive total shipping fee from per-shop fees
-  const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 37700), 0)
-  const baseShippingFee = dynamicShippingTotal
-
-  // Gọi API GHN tính phí ship động cho từng shop
+  // Tính phí ship ZMX cho từng shop dựa trên cân nặng/kích thước và khoảng cách thực tế
   useEffect(() => {
-    const calculateGHNShipping = async () => {
-      if (!activeAddress || !activeAddress.ghnDistrictId || !activeAddress.ghnWardCode || selectedCartItems.length === 0) {
-        const fallbackFees: Record<string, number> = {}
-        uniqueSelectedShops.forEach(shopId => { fallbackFees[shopId] = 37700 })
-        setShopShippingFees(fallbackFees)
-        return
+    const newFees: Record<string, number> = {}
+    const newPackageInfos: Record<string, { weightKg: number; isBulky: boolean; itemCount: number }> = {}
+
+    for (const shopId of uniqueSelectedShops) {
+      const shopItems = selectedCartItems.filter(item => item.product.shopId === shopId)
+
+      let totalActualWeight = 0
+      let totalVolumetricWeight = 0
+      let totalQuantity = 0
+
+      for (const item of shopItems) {
+        const spec = productSpecs[item.product.id] || {}
+        const rawW = item.product.weight !== undefined ? item.product.weight : spec.weight
+        const rawL = item.product.length !== undefined ? item.product.length : spec.length
+        const rawWidth = item.product.width !== undefined ? item.product.width : spec.width
+        const rawH = item.product.height !== undefined ? item.product.height : spec.height
+
+        const w = parseFloat(String(rawW || 0)) || 0
+        const l = parseFloat(String(rawL || 0)) || 0
+        const width = parseFloat(String(rawWidth || 0)) || 0
+        const h = parseFloat(String(rawH || 0)) || 0
+
+        // Trọng lượng quy đổi theo thể tích (gr): (D x R x C) / 5 (chuẩn logistics)
+        const vol = (l > 0 && width > 0 && h > 0) ? Math.round((l * width * h) / 5) : 0
+
+        totalActualWeight += w * item.quantity
+        totalVolumetricWeight += vol * item.quantity
+        totalQuantity += item.quantity
       }
 
-      try {
-        const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476'
-        const ghnShopId = parseInt(import.meta.env.VITE_GHN_SHOP_ID || '6350257', 10)
-        
-        const newFees: Record<string, number> = {}
-        for (const _shopId of uniqueSelectedShops) {
-          const shopGhnDistrictId = shopsInfo[_shopId]?.ghnDistrictId || 3695
-          try {
-            const response = await fetch('https://online-gateway.ghn.vn/shiip/public-api/v2/shipping-order/fee', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Token': ghnToken,
-                'ShopId': String(ghnShopId)
-              },
-              body: JSON.stringify({
-                from_district_id: shopGhnDistrictId,
-                to_district_id: activeAddress.ghnDistrictId,
-                to_ward_code: activeAddress.ghnWardCode,
-                height: 15,
-                length: 15,
-                width: 15,
-                weight: 500,
-                service_type_id: 2
-              })
-            })
+      // Trọng lượng tính cước của kiện hàng gộp (lấy max giữa cân nặng thực tế và thể tích quy đổi)
+      const chargeableWeight = Math.max(totalActualWeight, totalVolumetricWeight)
+      const weightKg = parseFloat((chargeableWeight / 1000).toFixed(2))
 
-            const data = await response.json()
-            if (data.code === 200 && data.data) {
-              newFees[_shopId] = data.data.total
-            } else {
-              newFees[_shopId] = 37700
-            }
-          } catch {
-            newFees[_shopId] = 37700
-          }
-        }
-        setShopShippingFees(newFees)
-      } catch (e) {
-        console.error('Lỗi tính phí ship GHN:', e)
-        const fallbackFees: Record<string, number> = {}
-        uniqueSelectedShops.forEach(shopId => { fallbackFees[shopId] = 37700 })
-        setShopShippingFees(fallbackFees)
+      // Phân tích tuyến đường giữa kho Shop và địa chỉ người nhận
+      const shopProv = (shopsInfo[shopId]?.pickupAddress?.province || '').toLowerCase()
+      const buyerProv = (activeAddress?.province || activeAddress?.region || '').toLowerCase()
+
+      const isSameProvince = Boolean(
+        shopProv && buyerProv && (
+          shopProv.includes(buyerProv) || buyerProv.includes(shopProv) ||
+          (shopProv.includes('hà nội') && buyerProv.includes('hà nội')) ||
+          (shopProv.includes('hồ chí minh') && buyerProv.includes('hồ chí minh')) ||
+          (shopProv.includes('đà nẵng') && buyerProv.includes('đà nẵng'))
+        )
+      )
+
+      // Cước cơ bản cho nấc đầu tiên (<= 500g):
+      // - Nội thành / Nội tỉnh: 16.500đ
+      // - Liên tỉnh / Liên miền (ví dụ Hà Nội <-> TP.HCM): 22.000đ (hoặc theo cài đặt baseFee của shop)
+      const shopSettings = shopsInfo[shopId]?.shippingSettings
+      const baseFee = isSameProvince ? 16500 : (shopSettings?.baseFee || 22000)
+      const stepFee = isSameProvince ? 2500 : 5000
+
+      let fee = baseFee
+      if (chargeableWeight > 500) {
+        const extraWeight = chargeableWeight - 500
+        const extraSteps = Math.ceil(extraWeight / 500)
+        fee += extraSteps * stepFee
+      }
+
+      newFees[shopId] = fee
+      newPackageInfos[shopId] = {
+        weightKg: weightKg > 0 ? weightKg : 0.5,
+        isBulky: chargeableWeight > 500,
+        itemCount: totalQuantity
       }
     }
 
-    calculateGHNShipping()
-  }, [activeAddressId, addresses, selectedKeys, cart])
+    setShopShippingFees(newFees)
+    setShopPackageInfos(newPackageInfos)
+  }, [uniqueSelectedShops.join(','), selectedCartItems, productSpecs, shopsInfo, activeAddress])
+
+  const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 22000), 0)
+  const baseShippingFee = dynamicShippingTotal
 
   // Shipping discount and vouchers
   const shippingDiscount = selectedVoucher === 'freeship' ? Math.min(baseShippingFee, 35000) : 0
@@ -605,8 +687,6 @@ export const CartPage: React.FC<CartPageProps> = ({
         platformDiscountAmount: voucherDiscount || 0,
         platformVoucherCode: selectedVoucher !== 'none' ? selectedVoucher.toUpperCase() : null,
         appliedVoucherIds: appliedVoucherIds.length > 0 ? JSON.stringify(appliedVoucherIds) : null,
-        ghnDistrictId: activeAddress?.ghnDistrictId || null,
-        ghnWardCode: activeAddress?.ghnWardCode || null,
         shopShippingFees: shopShippingFees,
         shopDiscounts: shopDiscounts,
         items: orderItems
@@ -786,6 +866,7 @@ export const CartPage: React.FC<CartPageProps> = ({
           insuranceTotal={0}
           finalShippingFee={finalShippingFee}
           shopShippingFees={shopShippingFees}
+          shopPackageInfos={shopPackageInfos}
           voucherDiscount={voucherDiscount}
           shopVoucherDiscountTotal={shopVoucherDiscountTotal}
           grandTotal={grandTotal}
@@ -839,6 +920,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         goongApiKey={goongApiKey}
         VIETNAM_PROVINCES={VIETNAM_PROVINCES}
         removeVietnameseTones={removeVietnameseTones}
+        user={user}
       />
 
       {/* Sepay VietQR Payment Modal */}

@@ -17,6 +17,7 @@ import { SellerChatManager } from '../../components/seller/SellerChatManager'
 import { ShopReviews } from '../../components/seller/ShopReviews'
 import { ShopLogisticsManager } from '../../components/seller/ShopLogisticsManager'
 import PriceManagement from '../../components/seller/PriceManagement'
+import { ShopReturnsTab } from '../../components/seller/ShopReturnsTab'
 import { NotificationPopover } from '../../components/common/NotificationPopover'
 import { orderService } from '../../services/order.service'
 
@@ -441,6 +442,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
           {activeMenu === 'products' && activeSubMenu === 'add-product' ? (
             <AddProductForm
               initialData={editingProduct}
+              shopDetails={shopDetails}
               onSuccess={(newProduct) => handleAddProductSuccess(newProduct)}
               onCancel={handleProductCancel}
             />
@@ -470,10 +472,12 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             <ShopFlashSale user={user} />
           ) : activeMenu === 'logistics' ? (
             <ShopLogisticsManager user={user} shopDetails={shopDetails} activeSubMenu={activeSubMenu} />
+          ) : activeMenu === 'orders' && activeSubMenu === 'refunds' ? (
+            <ShopReturnsTab currentShop={shopDetails} />
           ) : activeMenu === 'orders' ? (
             <ShopOrders user={user} token={token || ''} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'finance' && activeSubMenu === 'revenue' ? (
-            <ShopRevenue user={user} token={token || ''} />
+            <ShopRevenue user={user} token={token || ''} shopDetails={shopDetails} />
           ) : activeMenu === 'finance' && activeSubMenu === 'balance' ? (
             <ShopWallet user={user} onNavigateToBankAccounts={() => selectSubMenu('finance', 'bank-accounts')} />
           ) : activeMenu === 'finance' && activeSubMenu === 'bank-accounts' ? (

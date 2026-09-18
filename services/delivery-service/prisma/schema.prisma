@@ -221,20 +221,84 @@ model Settlement {
   createdAt     DateTime  @default(now())
 }
 
-// 12. HOÀN HÀNG (RETURNS)
+// 12. HOÀN HÀNG & TRẢ HÀNG / HOÀN TIỀN (RETURNS & REFUNDS)
 model Return {
-  id                String    @id @default(uuid())
-  orderId           String
-  shipmentId        String
-  shipment          Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  sellerId          String
-  buyerId           String
-  reason            String
-  type              String    @default("DELIVERY_FAILED") // DELIVERY_FAILED, BUYER_RETURN
-  status            String    @default("RETURNING")       // RETURNING, RETURNED, CANCELLED
-  returnShippingFee Float     @default(0)
-  createdAt         DateTime  @default(now())
-  completedAt       DateTime?
+  id                    String    @id @default(uuid())
+  returnNumber          String    @unique // RTN + timestamp, VD: RTN2609160001
+  orderId               String
+  shipmentId            String
+  shipment              Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
+  sellerId              String
+  buyerId               String
+  
+  resolution            String    @default("RETURN_REFUND") // REFUND_ONLY | RETURN_REFUND
+  reason                String    // NON_RECEIPT, ITEM_DAMAGED, WRONG_ITEM, FUNCTION_FAIL, COUNTERFEIT, CHANGE_MIND...
+  reasonDetail          String?   // Chi tiết từ người mua
+  
+  refundAmount          Float     @default(0) // Số tiền hoàn
+  returnShippingFee     Float     @default(0) // Phí chiều về
+  sellerShippingCharge  Float     @default(0) // Phí seller chịu
+  
+  status                String    @default("REQUESTED")
+  // REQUESTED, SELLER_REVIEWING, APPROVED, REJECTED,
+  // RETURN_SHIPPING, RETURN_IN_TRANSIT, DELIVERED_TO_SELLER,
+  // SELLER_CONFIRMED, SELLER_DISPUTED, CS_ARBITRATING,
+  // REFUND_PROCESSING, COMPLETED, CANCELLED
+  
+  returnTrackingNumber  String?   // Mã vận đơn thu hồi ZMX...
+  returnMethod          String?   // ZMX_PICKUP | ZMX_DROPOFF | SELF_ARRANGE
+  
+  sellerDeadline        DateTime? // Hạn chót seller phản hồi (48h)
+  buyerShipDeadline     DateTime? // Hạn chót buyer gửi hàng (6 ngày)
+  sellerInspectDeadline DateTime? // Hạn chót seller kiểm hàng (48h)
+  
+  csAgentId             String?
+  csNote                String?
+  sellerNote            String?
+  
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  completedAt           DateTime?
+  
+  items                 ReturnItem[]
+  evidences             ReturnEvidence[]
+  negotiations          ReturnNegotiation[]
+}
+
+model ReturnItem {
+  id           String  @id @default(uuid())
+  returnId     String
+  return       Return  @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  orderItemId  String
+  productId    String
+  productName  String
+  productImage String?
+  variant      String?
+  price        Float
+  quantity     Int
+  refundAmount Float   @default(0)
+}
+
+model ReturnEvidence {
+  id          String    @id @default(uuid())
+  returnId    String
+  return      Return    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  uploadedBy  String    // BUYER | SELLER | CS
+  fileUrl     String
+  fileType    String    @default("IMAGE") // IMAGE | VIDEO
+  description String?
+  createdAt   DateTime  @default(now())
+}
+
+model ReturnNegotiation {
+  id             String    @id @default(uuid())
+  returnId       String
+  return         Return    @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  proposedBy     String    // SELLER | BUYER | CS
+  proposedAmount Float
+  message        String?
+  status         String    @default("PENDING") // PENDING | ACCEPTED | REJECTED
+  createdAt      DateTime  @default(now())
 }
 
 // 13. KHIẾU NẠI & BỒI THƯỜNG (CLAIMS)

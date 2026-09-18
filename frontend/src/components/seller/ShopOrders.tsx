@@ -4,6 +4,8 @@ import type { Order } from '../../models/order.model'
 import { orderService } from '../../services/order.service'
 import { formatOrderId } from '../../utils/orderUtils'
 import { OrderDetail } from './OrderDetail'
+import { ShopTrackingModal } from './ShopTrackingModal'
+import { ShopHandoverModal } from './ShopHandoverModal'
 
 interface ShopOrdersProps {
   user: any
@@ -19,6 +21,48 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null)
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null)
+
+  // Handover Modal State (Chế độ bàn giao cho ĐVVC)
+  const [selectedHandoverOrder, setSelectedHandoverOrder] = useState<Order | null>(null)
+  const [handoverLoading, setHandoverLoading] = useState(false)
+
+  // Tracking Modal State cho Người Bán xem lộ trình ZMX
+  const [showTrackingModal, setShowTrackingModal] = useState(false)
+  const [trackingData, setTrackingData] = useState<any>(null)
+  const [trackingLoading, setTrackingLoading] = useState(false)
+  const [trackingModalOrderId, setTrackingModalOrderId] = useState<string>('')
+
+  const handleConfirmHandover = async (order: Order) => {
+    setHandoverLoading(true)
+    try {
+      await handleUpdateStatus(order.id, 'SHIPPING')
+      setSelectedHandoverOrder(null)
+    } catch (err: any) {
+      console.error('Error during handover:', err)
+    } finally {
+      setHandoverLoading(false)
+    }
+  }
+
+  const handleOpenTrackingModal = async (orderId: string) => {
+    setTrackingModalOrderId(orderId)
+    setTrackingLoading(true)
+    setShowTrackingModal(true)
+    try {
+      const res = await fetch(`${API_BASE_URL}/delivery/tracking/${orderId}`)
+      if (res.ok) {
+        const data = await res.json()
+        setTrackingData(data)
+      } else {
+        setTrackingData(null)
+      }
+    } catch (e) {
+      console.error('Error fetching tracking data:', e)
+      setTrackingData(null)
+    } finally {
+      setTrackingLoading(false)
+    }
+  }
 
   const shopId = user?.shopId
 
@@ -123,7 +167,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
     setUpdatingOrderId(orderId)
     try {
       const order = orders.find((o) => o.id === orderId)
-      let ghnOrderCode: string | undefined = undefined
+      let zmxTrackingCode: string | undefined = undefined
 
       if (newStatus === 'SHIPPING' && order) {
         try {
@@ -150,8 +194,8 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
           })
           if (delRes.ok) {
             const delData = await delRes.json()
-            ghnOrderCode = delData.trackingNumber
-            alert(`🚚 Đã chuyển đơn sang ZeroMall Express (ZMX) thành công!\nMã vận đơn: ${ghnOrderCode}\nTài xế ZMX sẽ sớm đến lấy hàng.`)
+            zmxTrackingCode = delData.trackingNumber
+            alert(`🚚 Đã chuyển đơn sang ZeroMall Express (ZMX) thành công!\nMã vận đơn: ${zmxTrackingCode}\nTài xế ZMX sẽ sớm đến lấy hàng.`)
           } else {
             const errJson = await delRes.json().catch(() => ({}))
             console.error('Delivery create returned error:', errJson)
@@ -160,13 +204,13 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
           console.error('Failed to create delivery order on ZMX:', delErr)
         }
 
-        if (!ghnOrderCode) {
+        if (!zmxTrackingCode) {
           const randomNum = Math.floor(100000000 + Math.random() * 900000000)
-          ghnOrderCode = `ZMX-VN-${randomNum}`
+          zmxTrackingCode = `ZMX-VN-${randomNum}`
         }
       }
 
-      await orderService.updateOrderStatus(orderId, newStatus, ghnOrderCode, token)
+      await orderService.updateOrderStatus(orderId, newStatus, zmxTrackingCode, token)
 
       // Refresh orders list
       await fetchOrders()
@@ -257,6 +301,8 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
           await fetchOrders()
         }}
         updatingOrderId={updatingOrderId}
+        shopId={user?.shopId || ''}
+        shopName={user?.shopName}
       />
     )
   }
@@ -357,7 +403,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                       <>
                         <span className="text-slate-300">|</span>
                         <span className="text-[10px] text-emerald-600 font-bold bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                          🚛 GHN: {order.ghnOrderCode}
+                          🚚 ZMX: {order.ghnOrderCode}
                         </span>
                       </>
                     )}
@@ -499,32 +545,38 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
 
                     {(order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED') && (
                       <button
-                        onClick={() => handleUpdateStatus(order.id, 'SHIPPING')}
+                        onClick={() => setSelectedHandoverOrder(order)}
                         disabled={updatingOrderId !== null}
-                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        title="Vào chế độ chuẩn bị hàng và bàn giao cho đơn vị vận chuyển ZMX"
                       >
-                        {updatingOrderId === order.id ? (
-                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <span>🚛</span>
-                        )}
-                        Chuẩn bị xong & Bàn giao ĐVVC
+                        <span>📦</span>
+                        Chuẩn bị hàng
                       </button>
                     )}
 
                     {(order.status === 'SHIPPING' || order.status === 'SHIPPED' || order.status === 'IN_TRANSIT') && (
-                      <button
-                        onClick={() => handleUpdateStatus(order.id, 'DELIVERED')}
-                        disabled={updatingOrderId !== null}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      >
-                        {updatingOrderId === order.id ? (
-                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <span>✅</span>
-                        )}
-                        Xác nhận giao thành công
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleOpenTrackingModal(order.id)}
+                          className="bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 font-bold px-3.5 py-2 rounded-xl text-xs transition duration-200 flex items-center gap-1.5 cursor-pointer shadow-3xs"
+                          title="Xem bản đồ và tiến độ di chuyển của bưu phẩm"
+                        >
+                          <span>🗺️</span>
+                          Theo dõi hành trình ZMX
+                        </button>
+
+                        <a
+                          href="http://delivery.zeromall.local:3000"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-3 py-2 rounded-xl text-xs transition duration-200 flex items-center gap-1 cursor-pointer"
+                          title="Mở cổng vận hành ZeroMall Express"
+                        >
+                          <span>🛵</span>
+                          ZMX Delivery ↗
+                        </a>
+                      </div>
                     )}
 
                     {order.status === 'REFUND_PENDING' && (
@@ -611,6 +663,30 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
           </div>
         </div>
       )}
+
+      {/* MODAL: BÀN GIAO CHO ĐƠN VỊ VẬN CHUYỂN ZMX */}
+      <ShopHandoverModal
+        isOpen={selectedHandoverOrder !== null}
+        onClose={() => setSelectedHandoverOrder(null)}
+        order={selectedHandoverOrder}
+        shopId={shopId || ''}
+        shopName={user?.shopName}
+        onConfirmHandover={handleConfirmHandover}
+        loading={handoverLoading}
+      />
+
+      {/* MODAL: TRA CỨU HÀNH TRÌNH VẬN CHUYỂN ZMX (LIVE MAP TRACKING) */}
+      <ShopTrackingModal
+        isOpen={showTrackingModal}
+        onClose={() => {
+          setShowTrackingModal(false)
+          setTrackingData(null)
+          setTrackingModalOrderId('')
+        }}
+        trackingData={trackingData}
+        trackingLoading={trackingLoading}
+        orderId={trackingModalOrderId}
+      />
     </div>
   )
 }

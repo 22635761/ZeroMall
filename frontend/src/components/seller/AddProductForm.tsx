@@ -10,6 +10,7 @@ interface AddProductFormProps {
   onSuccess: (product?: any) => void
   onCancel: () => void
   initialData?: any
+  shopDetails?: any
 }
 
 interface UploadedImage {
@@ -41,8 +42,23 @@ interface VariationRow {
   sku: string
 }
 
-export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCancel, initialData }) => {
+export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCancel, initialData, shopDetails }) => {
   const [activeTab, setActiveTab] = useState<'basic' | 'sales' | 'shipping' | 'other'>('basic')
+
+  // Parse Shop Shipping Settings
+  const shopShippingConfig = React.useMemo(() => {
+    if (shopDetails?.shippingSettings) {
+      try {
+        return typeof shopDetails.shippingSettings === 'string'
+          ? JSON.parse(shopDetails.shippingSettings)
+          : shopDetails.shippingSettings
+      } catch (e) {
+        console.error('Error parsing shop shippingSettings:', e)
+      }
+    }
+    // Default fallback if shop hasn't set anything
+    return { express: true, fast: true, saver: true, bulky: false }
+  }, [shopDetails?.shippingSettings])
 
   // Basic Info
   const [images, setImages] = useState<UploadedImage[]>([])
@@ -73,11 +89,26 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const [length, setLength] = useState('')
   const [width, setWidth] = useState('')
   const [height, setHeight] = useState('')
-  const [shippingProviders, setShippingProviders] = useState({
-    spx: true,
-    ghtk: true,
-    ghn: true
-  })
+
+  // Đơn vị vận chuyển liên kết: khởi tạo dựa trên cấu hình vận chuyển thực tế của Shop
+  const [shippingProviders, setShippingProviders] = useState(() => ({
+    spx: !!shopShippingConfig.express,
+    fast: !!shopShippingConfig.fast,
+    saver: !!shopShippingConfig.saver,
+    bulky: !!shopShippingConfig.bulky
+  }))
+
+  // Cập nhật lại khi shopDetails load xong
+  useEffect(() => {
+    if (!initialData) {
+      setShippingProviders({
+        spx: !!shopShippingConfig.express,
+        fast: !!shopShippingConfig.fast,
+        saver: !!shopShippingConfig.saver,
+        bulky: !!shopShippingConfig.bulky
+      })
+    }
+  }, [shopShippingConfig, initialData])
 
   // Other Info
   const [condition, setCondition] = useState('new')
@@ -454,11 +485,24 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     )
   }
 
+  // Tính cước vận chuyển ước tính chuẩn logistics (dựa trên Cân nặng thực tế & Trọng lượng quy đổi kích thước D x R x C / 5000)
   const getShippingCost = (baseCost: number) => {
-    const w = parseFloat(weight) || 0
-    if (w <= 0) return 0
-    if (w <= 500) return baseCost
-    const extraWeight = w - 500
+    const actualWeight = parseFloat(weight) || 0
+    const l = parseFloat(length) || 0
+    const w = parseFloat(width) || 0
+    const h = parseFloat(height) || 0
+
+    // Trọng lượng quy đổi theo thể tích: (Dài x Rộng x Cao) / 5000 (gam hoặc cm3 quy chuẩn)
+    // Nếu đơn vị cm: (L * W * H) / 5000 = kg -> đổi ra gram (* 1000) => (L * W * H) / 5 (gr)
+    const volumetricWeight = (l > 0 && w > 0 && h > 0) ? Math.round((l * w * h) / 5) : 0
+    const chargeableWeight = Math.max(actualWeight, volumetricWeight)
+
+    if (chargeableWeight <= 0) return 0
+    // Cước cơ bản cho nấc đầu tiên dưới 500g
+    if (chargeableWeight <= 500) return baseCost
+    
+    // Mỗi 500g phụ trội cộng thêm phí cước
+    const extraWeight = chargeableWeight - 500
     const extraSteps = Math.ceil(extraWeight / 500)
     return baseCost + extraSteps * 5000
   }
@@ -729,6 +773,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               shippingProviders={shippingProviders}
               setShippingProviders={setShippingProviders}
               getShippingCost={getShippingCost}
+              shopShippingConfig={shopShippingConfig}
               errors={errors}
             />
           )}

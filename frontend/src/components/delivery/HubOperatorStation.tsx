@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react'
+import React, { useState, useMemo, useEffect } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
-import { LinehaulDispatchModal, type LinehaulDispatchData, type LinehaulShipment } from './LinehaulDispatchModal'
+import { LinehaulDispatchModal, type LinehaulDispatchData, type LinehaulShipment, type DockTruck } from './LinehaulDispatchModal'
 import { BarcodeCameraScanner } from './BarcodeCameraScanner'
 import { LinehaulInboundReconciliationModal, type LinehaulTrip } from './LinehaulInboundReconciliationModal'
 import { LastMileDispatchModal } from './LastMileDispatchModal'
@@ -154,7 +154,7 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
 
   const [stationTab, setStationTab] = useState<'INBOUND_PICKUP' | 'SORTING_LINEHAUL' | 'INBOUND_RECEIVING' | 'DISPATCH_LASTMILE'>('INBOUND_PICKUP')
   const [scannedCode, setScannedCode] = useState('')
-  const [scanMessage, setScanMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [scanMessage, setScanMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null)
   const [searchFilter, setSearchFilter] = useState('')
   const [isCameraScannerOpen, setIsCameraScannerOpen] = useState(false)
 
@@ -162,6 +162,52 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
   const [isDispatchModalOpen, setIsDispatchModalOpen] = useState(false)
   const [modalShipments, setModalShipments] = useState<LinehaulShipment[]>([])
   const [selectedShipmentIds, setSelectedShipmentIds] = useState<Set<string>>(new Set())
+
+  // Quản lý các chuyến xe đang mở tại cửa Dock (chưa niêm phong seal)
+  const [dockTrucks, setDockTrucks] = useState<DockTruck[]>(() => {
+    try {
+      const saved = localStorage.getItem(`zeromall_dock_trucks_${currentHub?.id || 'default'}`)
+      return saved ? JSON.parse(saved) : []
+    } catch {
+      return []
+    }
+  })
+
+  // Cập nhật lại dockTrucks khi đổi Hub
+  useEffect(() => {
+    if (currentHub?.id) {
+      try {
+        const saved = localStorage.getItem(`zeromall_dock_trucks_${currentHub.id}`)
+        setDockTrucks(saved ? JSON.parse(saved) : [])
+      } catch {
+        setDockTrucks([])
+      }
+    }
+  }, [currentHub?.id])
+
+  const saveDockTrucks = (trucks: DockTruck[]) => {
+    setDockTrucks(trucks)
+    try {
+      localStorage.setItem(`zeromall_dock_trucks_${currentHub?.id || 'default'}`, JSON.stringify(trucks))
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // State cho modal niêm phong nhanh từ Dock
+  const [sealingDockTruck, setSealingDockTruck] = useState<DockTruck | null>(null)
+  const [quickSealNumber, setQuickSealNumber] = useState<string>('')
+
+  // Xe mục tiêu bắn hàng trực tiếp (Zero-Popup Direct Scan-to-Truck)
+  const [activeScanDockTruckId, setActiveScanDockTruckId] = useState<string | null>(null)
+  const [directScanMode, setDirectScanMode] = useState<boolean>(true)
+
+  // Tự động chọn xe đầu tiên tại Dock làm mục tiêu bắn
+  useEffect(() => {
+    if (dockTrucks.length > 0 && (!activeScanDockTruckId || !dockTrucks.some((t) => t.id === activeScanDockTruckId))) {
+      setActiveScanDockTruckId(dockTrucks[0].id)
+    }
+  }, [dockTrucks, activeScanDockTruckId])
 
   // State cho Modal Tiếp Nhận & Đối Soát Bảng Kê Chuyến Xe Tải (Tab 3)
   const [reconcilingTrip, setReconcilingTrip] = useState<LinehaulTrip | null>(null)
@@ -379,30 +425,312 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
     setIsDispatchModalOpen(true)
   }
 
-  // Xử lý xác nhận niêm phong & xuất xe từ Modal
+  // Xử lý xác nhận xếp xe / niêm phong & xuất xe từ Modal
   const handleConfirmLinehaulDispatch = async (data: LinehaulDispatchData) => {
-    for (const shipmentId of data.shipmentIds) {
+    if (!data.isSealAndDispatch) {
+      // Chế độ 1: Xếp lên xe tại Dock (thùng xe mở để gom thêm hàng)
+      const selectedShipmentObjects: LinehaulShipment[] = data.shipmentIds.map((id) => {
+        const found = sortingList.find((s) => s.id === id)
+        return {
+          id,
+          trackingNumber: found?.trackingNumber || id,
+          orderId: found?.orderId || '',
+          buyerName: found?.buyerName || '',
+          buyerPhone: found?.buyerPhone || '',
+          deliveryAddress: found?.deliveryAddress || '',
+          package: found?.package,
+          codAmount: found?.codAmount || 0,
+          status: 'SORTING',
+        }
+      })
+
+      // Cập nhật tracking log cho các kiện hàng này
+      for (const shipmentId of data.shipmentIds) {
+        await onUpdateStatus(
+          shipmentId,
+          'SORTING',
+          undefined,
+          currentHub?.id,
+          `Đã xếp lên xe tải [${data.truckNumber}] tại cửa Dock (Tuyến đi ${data.targetHubName}). Thùng xe mở chờ gom đủ tải.`
+        )
+      }
+
+      // Cập nhật dockTrucks
+      const existingTruckIndex = dockTrucks.findIndex(
+        (t) => t.truckNumber === data.truckNumber && t.targetHubId === data.targetHubId
+      )
+
+      let updatedTrucks: DockTruck[]
+      if (existingTruckIndex >= 0) {
+        const existing = dockTrucks[existingTruckIndex]
+        const mergedShipments = [...existing.shipments]
+        for (const item of selectedShipmentObjects) {
+          if (!mergedShipments.some((s) => s.id === item.id)) {
+            mergedShipments.push(item)
+          }
+        }
+        updatedTrucks = [...dockTrucks]
+        updatedTrucks[existingTruckIndex] = {
+          ...existing,
+          truckDriver: data.truckDriver || existing.truckDriver,
+          truckDriverPhone: data.truckDriverPhone || existing.truckDriverPhone,
+          truckType: data.truckType || existing.truckType,
+          shipments: mergedShipments,
+        }
+      } else {
+        const newTruck: DockTruck = {
+          id: `dock_${Date.now()}`,
+          truckNumber: data.truckNumber,
+          truckDriver: data.truckDriver,
+          truckDriverPhone: data.truckDriverPhone,
+          truckType: data.truckType,
+          targetHubId: data.targetHubId,
+          targetHubName: data.targetHubName,
+          shipments: selectedShipmentObjects,
+          createdAt: new Date().toISOString(),
+        }
+        updatedTrucks = [newTruck, ...dockTrucks]
+      }
+
+      saveDockTrucks(updatedTrucks)
+      setIsDispatchModalOpen(false)
+      setModalShipments([])
+      setSelectedShipmentIds(new Set())
+      setScanMessage({
+        type: 'success',
+        text: `📦 Đã xếp thành công ${data.shipmentIds.length} kiện lên Xe tải [${data.truckNumber}] tại Cửa Dock (${data.targetHubName}). Thùng xe vẫn mở để tiếp tục gom thêm hàng!`,
+      })
+      onRefresh()
+    } else {
+      // Chế độ 2: Niêm phong Seal chì & Xuất bến ngay lập tức
+      for (const shipmentId of data.shipmentIds) {
+        await onUpdateStatus(
+          shipmentId,
+          'IN_TRANSIT',
+          undefined,
+          currentHub?.id,
+          undefined,
+          {
+            truckNumber: data.truckNumber,
+            truckDriver: data.truckDriver,
+            truckDriverPhone: data.truckDriverPhone,
+            sealNumber: data.sealNumber,
+            targetHubId: data.targetHubId,
+          }
+        )
+      }
+
+      // Xóa xe khỏi dockTrucks nếu xe này trước đó đang mở tại dock
+      const remainingTrucks = dockTrucks.filter((t) => t.truckNumber !== data.truckNumber)
+      saveDockTrucks(remainingTrucks)
+
+      setIsDispatchModalOpen(false)
+      setModalShipments([])
+      setSelectedShipmentIds(new Set())
+      setScanMessage({
+        type: 'success',
+        text: `🚚 Đã niêm phong khóa Seal [${data.sealNumber}] & xuất bến ${data.shipmentIds.length} kiện lên Xe tải [${data.truckNumber}] đi ${data.targetHubName}!`,
+      })
+      onRefresh()
+    }
+  }
+
+  // Mở modal niêm phong từ danh sách xe tại Dock
+  const handleOpenSealModal = (truck: DockTruck) => {
+    const destHub = hubs.find((h) => h.id === truck.targetHubId)
+    const destCode = destHub?.code || 'DEST'
+    const originCode = currentHub?.code || 'HUB'
+    setQuickSealNumber(`SEAL-${originCode}-${destCode}-${Math.floor(1000 + Math.random() * 9000)}`)
+    setSealingDockTruck(truck)
+  }
+
+  // Xác nhận niêm phong & xuất bến từ Dock
+  const handleConfirmSealFromDock = async () => {
+    if (!sealingDockTruck || !quickSealNumber.trim()) return
+    const seal = quickSealNumber.trim().toUpperCase()
+
+    for (const s of sealingDockTruck.shipments) {
       await onUpdateStatus(
-        shipmentId,
+        s.id,
         'IN_TRANSIT',
         undefined,
         currentHub?.id,
         undefined,
         {
-          truckNumber: data.truckNumber,
-          truckDriver: data.truckDriver,
-          truckDriverPhone: data.truckDriverPhone,
-          sealNumber: data.sealNumber,
-          targetHubId: data.targetHubId,
+          truckNumber: sealingDockTruck.truckNumber,
+          truckDriver: sealingDockTruck.truckDriver,
+          truckDriverPhone: sealingDockTruck.truckDriverPhone,
+          sealNumber: seal,
+          targetHubId: sealingDockTruck.targetHubId,
         }
       )
     }
-    setIsDispatchModalOpen(false)
-    setModalShipments([])
-    setSelectedShipmentIds(new Set())
+
+    const remainingTrucks = dockTrucks.filter((t) => t.id !== sealingDockTruck.id)
+    saveDockTrucks(remainingTrucks)
+    setSealingDockTruck(null)
     setScanMessage({
       type: 'success',
-      text: `🚚 Đã xuất bến thành công ${data.shipmentIds.length} kiện lên Xe tải [${data.truckNumber}] (Seal: ${data.sealNumber}) đi ${data.targetHubName}!`,
+      text: `🚚 Đã niêm phong khóa Seal [${seal}] & xuất bến Xe tải [${sealingDockTruck.truckNumber}] (${sealingDockTruck.shipments.length} kiện) đi ${sealingDockTruck.targetHubName}!`,
+    })
+    onRefresh()
+  }
+
+  // Dỡ toàn bộ kiện hàng của xe tại Dock trở lại sàn kho
+  const handleUnloadEntireDockTruck = async (truck: DockTruck) => {
+    const confirm = window.confirm(`Bạn có chắc muốn dỡ toàn bộ ${truck.shipments.length} kiện trên xe tải [${truck.truckNumber}] quay trở lại sàn kho không?`)
+    if (!confirm) return
+
+    for (const s of truck.shipments) {
+      await onUpdateStatus(
+        s.id,
+        'AT_ORIGIN_HUB',
+        undefined,
+        currentHub?.id,
+        `Đã dỡ kiện hàng khỏi xe tải [${truck.truckNumber}] quay trở lại sàn kho bưu cục ${currentHub?.name}`
+      )
+    }
+
+    const remaining = dockTrucks.filter((t) => t.id !== truck.id)
+    saveDockTrucks(remaining)
+    setScanMessage({
+      type: 'info',
+      text: `↩️ Đã dỡ toàn bộ hàng trên xe tải [${truck.truckNumber}] trở lại sàn kho bưu cục.`,
+    })
+    onRefresh()
+  }
+
+  // Dỡ 1 kiện hàng khỏi xe tại Dock
+  const handleUnloadSingleShipmentFromDock = async (truckId: string, shipmentId: string, truckNumber: string) => {
+    await onUpdateStatus(
+      shipmentId,
+      'AT_ORIGIN_HUB',
+      undefined,
+      currentHub?.id,
+      `Đã dỡ kiện hàng khỏi xe tải [${truckNumber}] quay trở lại sàn kho bưu cục`
+    )
+
+    const updated = dockTrucks
+      .map((t) => {
+        if (t.id === truckId) {
+          return { ...t, shipments: t.shipments.filter((s) => s.id !== shipmentId) }
+        }
+        return t
+      })
+      .filter((t) => t.shipments.length > 0)
+    saveDockTrucks(updated)
+    setScanMessage({
+      type: 'info',
+      text: `↩️ Đã dỡ bưu kiện khỏi xe tải [${truckNumber}] quay lại sàn kho.`,
+    })
+    onRefresh()
+  }
+
+  // Lọc các bưu kiện trong kho chưa lên xe nào và có địa chỉ khớp tuyến của xe này
+  const getMatchingUnloadedParcelsForTruck = (truck: DockTruck) => {
+    const loadedIds = new Set(dockTrucks.flatMap((t) => t.shipments.map((s) => s.id)))
+    const targetHub = hubs.find((h) => h.id === truck.targetHubId)
+    const targetProv = (targetHub?.province || '').toLowerCase()
+
+    return sortingList.filter((s) => {
+      if (loadedIds.has(s.id)) return false
+      const addr = (s.deliveryAddress || '').toLowerCase()
+      if (targetProv.includes('hồ chí minh') || targetProv.includes('hcm')) {
+        return (
+          addr.includes('hồ chí minh') ||
+          addr.includes('tp.hcm') ||
+          addr.includes('tp hcm') ||
+          addr.includes('sài gòn') ||
+          addr.includes('tân bình') ||
+          addr.includes('gò vấp') ||
+          addr.includes('bình thạnh') ||
+          addr.includes('quận 1') ||
+          addr.includes('quận 2') ||
+          addr.includes('quận 3') ||
+          addr.includes('quận 7') ||
+          addr.includes('quận 12') ||
+          addr.includes('thủ đức') ||
+          addr.includes('bình tân') ||
+          addr.includes('tân phú') ||
+          addr.includes('phú nhuận') ||
+          addr.includes('nhà bè') ||
+          addr.includes('bình chánh') ||
+          addr.includes('hóc môn') ||
+          addr.includes('củ chi') ||
+          addr.includes('bình dương') ||
+          addr.includes('đồng nai')
+        )
+      }
+      if (targetProv.includes('hà nội') || targetProv.includes('mê linh')) {
+        return (
+          addr.includes('hà nội') ||
+          addr.includes('mê linh') ||
+          addr.includes('cầu giấy') ||
+          addr.includes('ba đình') ||
+          addr.includes('đống đa') ||
+          addr.includes('hoàn kiếm') ||
+          addr.includes('hà đông') ||
+          addr.includes('long biên') ||
+          addr.includes('hoàng mai') ||
+          addr.includes('thanh xuân') ||
+          addr.includes('nam từ liêm') ||
+          addr.includes('bắc từ liêm') ||
+          addr.includes('tây hồ') ||
+          addr.includes('gia lâm') ||
+          addr.includes('đông anh') ||
+          addr.includes('sóc sơn')
+        )
+      }
+      return false
+    })
+  }
+
+  // 1-Click: Gom toàn bộ kiện hàng cùng tuyến trong kho vào chuyến xe này
+  const handleBatchLoadRouteToTruck = async (truck: DockTruck) => {
+    const matchingParcels = getMatchingUnloadedParcelsForTruck(truck)
+    if (matchingParcels.length === 0) {
+      alert(`Hiện không còn kiện hàng nào trong kho chờ xuất đi tuyến ${truck.targetHubName}!`)
+      return
+    }
+
+    const confirm = window.confirm(
+      `⚡ GOM HÀNG HÀNG LOẠT THEO TUYẾN:\nBạn có chắc muốn nạp toàn bộ ${matchingParcels.length} kiện hàng cùng tuyến [${truck.targetHubName}] lên xe tải [${truck.truckNumber}] không?`
+    )
+    if (!confirm) return
+
+    const newItems: LinehaulShipment[] = matchingParcels.map((s) => ({
+      id: s.id,
+      trackingNumber: s.trackingNumber,
+      orderId: s.orderId,
+      buyerName: s.buyerName,
+      buyerPhone: s.buyerPhone,
+      deliveryAddress: s.deliveryAddress,
+      package: s.package,
+      codAmount: s.codAmount,
+      status: 'SORTING',
+    }))
+
+    for (const s of matchingParcels) {
+      await onUpdateStatus(
+        s.id,
+        'SORTING',
+        undefined,
+        currentHub?.id,
+        `Gom hàng loạt theo tuyến: Đã xếp lên xe tải [${truck.truckNumber}] tại cửa Dock (Tuyến ${truck.targetHubName})`
+      )
+    }
+
+    const updated = dockTrucks.map((t) => {
+      if (t.id === truck.id) {
+        return { ...t, shipments: [...t.shipments, ...newItems] }
+      }
+      return t
+    })
+    saveDockTrucks(updated)
+
+    setScanMessage({
+      type: 'success',
+      text: `⚡ Đã gom thành công ${matchingParcels.length} kiện hàng lên Xe tải [${truck.truckNumber}]! (Hiện có: ${truck.shipments.length + matchingParcels.length} kiện trên xe)`,
     })
     onRefresh()
   }
@@ -466,9 +794,18 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
       buttonColor: 'bg-amber-600 hover:bg-amber-500',
     },
     SORTING_LINEHAUL: {
-      placeholder: 'Quét mã vận đơn để MỞ PHIÊN ĐÓNG XE TẢI LINEHAUL...',
-      buttonLabel: '🚛 Quét & Đóng Xe',
-      buttonColor: 'bg-sky-600 hover:bg-sky-500',
+      placeholder:
+        dockTrucks.length > 0 && directScanMode
+          ? `🔫 Bắn súng quét PDA liên thanh nạp thẳng vào Xe [${(dockTrucks.find((t) => t.id === activeScanDockTruckId) || dockTrucks[0]).truckNumber}]...`
+          : 'Quét mã vận đơn để MỞ PHIÊN ĐÓNG XE TẢI LINEHAUL...',
+      buttonLabel:
+        dockTrucks.length > 0 && directScanMode
+          ? `⚡ Bắn Lên Xe [${(dockTrucks.find((t) => t.id === activeScanDockTruckId) || dockTrucks[0]).truckNumber}]`
+          : '🚛 Quét & Đóng Xe',
+      buttonColor:
+        dockTrucks.length > 0 && directScanMode
+          ? 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500'
+          : 'bg-sky-600 hover:bg-sky-500',
     },
     INBOUND_RECEIVING: {
       placeholder: 'Quét mã vận đơn để CẮT SEAL & NHẬP BƯU CỤC PHÁT...',
@@ -509,8 +846,100 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
         await onUpdateStatus(targetShipment.id, 'AT_ORIGIN_HUB', undefined, currentHub?.id, `Nhân viên kho [${currentUser.name}] đã quét nhận bàn giao từ Shipper về ${currentHub?.name}`)
         setScanMessage({ type: 'success', text: `✅ Đã nhập kho: ${targetShipment.trackingNumber} — Bàn giao từ Shipper thành công` })
       } else if (stationTab === 'SORTING_LINEHAUL') {
-        // Mở Modal đóng xe cho kiện hàng vừa quét
-        handleOpenDispatchSingle(targetShipment)
+        const targetTruck = dockTrucks.find((t) => t.id === activeScanDockTruckId) || dockTrucks[0]
+
+        if (directScanMode && targetTruck) {
+          // CHẾ ĐỘ BẮN SÚNG PDA SIÊU TỐC: Nạp trực tiếp vào xe không bật popup
+          const targetHub = hubs.find((h) => h.id === targetTruck.targetHubId)
+          const targetProv = (targetHub?.province || '').toLowerCase()
+          const addr = (targetShipment.deliveryAddress || '').toLowerCase()
+          let isMisroute = false
+
+          if (targetProv.includes('hồ chí minh') || targetProv.includes('hcm')) {
+            isMisroute =
+              !addr.includes('hồ chí minh') &&
+              !addr.includes('hcm') &&
+              !addr.includes('sài gòn') &&
+              !addr.includes('tân bình') &&
+              !addr.includes('gò vấp') &&
+              !addr.includes('bình thạnh') &&
+              !addr.includes('quận 1') &&
+              !addr.includes('bình dương') &&
+              !addr.includes('long an') &&
+              !addr.includes('đồng nai')
+          } else if (targetProv.includes('hà nội') || targetProv.includes('mê linh')) {
+            isMisroute =
+              !addr.includes('hà nội') &&
+              !addr.includes('mê linh') &&
+              !addr.includes('bắc ninh') &&
+              !addr.includes('vĩnh phúc') &&
+              !addr.includes('hải phòng')
+          }
+
+          if (isMisroute) {
+            setScanMessage({
+              type: 'error',
+              text: `🚨 CẢNH BÁO BẮN NHẦM XE: Đơn [${targetShipment.trackingNumber}] giao tại (${targetShipment.deliveryAddress}), không thuộc tuyến xe [${targetTruck.truckNumber}] đi ${targetTruck.targetHubName}!`,
+            })
+            setScannedCode('')
+            return
+          }
+
+          if (targetTruck.shipments.some((s) => s.id === targetShipment.id)) {
+            setScanMessage({
+              type: 'info',
+              text: `ℹ️ Kiện hàng [${targetShipment.trackingNumber}] đã có sẵn trên xe [${targetTruck.truckNumber}]!`,
+            })
+            setScannedCode('')
+            return
+          }
+
+          const shipmentItem: LinehaulShipment = {
+            id: targetShipment.id,
+            trackingNumber: targetShipment.trackingNumber,
+            orderId: targetShipment.orderId,
+            buyerName: targetShipment.buyerName,
+            buyerPhone: targetShipment.buyerPhone,
+            deliveryAddress: targetShipment.deliveryAddress,
+            package: targetShipment.package,
+            codAmount: targetShipment.codAmount,
+            status: 'SORTING',
+          }
+
+          await onUpdateStatus(
+            targetShipment.id,
+            'SORTING',
+            undefined,
+            currentHub?.id,
+            `Bắn súng quét PDA: Đã xếp lên xe tải [${targetTruck.truckNumber}] tại cửa Dock (Tuyến đi ${targetTruck.targetHubName})`
+          )
+
+          const updatedTrucks = dockTrucks.map((t) => {
+            if (t.id === targetTruck.id) {
+              return { ...t, shipments: [...t.shipments, shipmentItem] }
+            }
+            return t
+          })
+          saveDockTrucks(updatedTrucks)
+
+          // Âm thanh phản hồi bíp
+          try {
+            const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)()
+            const osc = audioCtx.createOscillator()
+            osc.frequency.setValueAtTime(880, audioCtx.currentTime)
+            osc.connect(audioCtx.destination)
+            osc.start()
+            osc.stop(audioCtx.currentTime + 0.08)
+          } catch {}
+
+          setScanMessage({
+            type: 'success',
+            text: `🎯 BẮN THÀNH CÔNG: [${targetShipment.trackingNumber}] ➔ Xe [${targetTruck.truckNumber}] (Tổng: ${targetTruck.shipments.length + 1} kiện trên xe)`,
+          })
+        } else {
+          // Mở Modal đóng xe thông thường
+          handleOpenDispatchSingle(targetShipment)
+        }
       } else if (stationTab === 'INBOUND_RECEIVING') {
         await onUpdateStatus(targetShipment.id, 'AT_DESTINATION_HUB', undefined, currentHub?.id, `Xe tải trung chuyển đã đến và bàn giao bưu kiện vào ${currentHub?.name}`)
         setScanMessage({ type: 'success', text: `🏢 Đã kiểm tra Seal & nhập bưu cục phát: ${targetShipment.trackingNumber}` })
@@ -707,6 +1136,59 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
             />
           </div>
         )}
+        {/* Chế độ Bắn Hàng Trực Tiếp Lên Xe Tuyến (Tab 2: SORTING_LINEHAUL) */}
+        {stationTab === 'SORTING_LINEHAUL' && dockTrucks.length > 0 && (
+          <div className="p-3 bg-gradient-to-r from-sky-50 via-indigo-50 to-sky-50 border-2 border-sky-300 rounded-2xl space-y-2">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-xs font-black text-sky-950">
+                <span className="text-base">🎯</span>
+                <span>Mục Tiêu Bắn Hàng Trực Tiếp Lên Xe (Scan-to-Truck):</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-500 font-bold">Chế độ súng quét:</span>
+                <button
+                  type="button"
+                  onClick={() => setDirectScanMode(!directScanMode)}
+                  className={`px-3 py-1 rounded-lg text-[10px] font-black cursor-pointer transition flex items-center gap-1.5 border shadow-xs ${
+                    directScanMode
+                      ? 'bg-emerald-600 text-white border-emerald-700'
+                      : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{directScanMode ? '⚡ Nạp Thẳng Vào Xe (Không Popup)' : '⚙️ Mở Modal Xác Nhận'}</span>
+                </button>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-wrap pt-0.5">
+              <span className="text-[10px] text-slate-500 font-bold">Chọn xe nhận hàng:</span>
+              {dockTrucks.map((dt) => {
+                const isActive = (activeScanDockTruckId || dockTrucks[0].id) === dt.id
+                return (
+                  <button
+                    key={dt.id}
+                    type="button"
+                    onClick={() => setActiveScanDockTruckId(dt.id)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-mono font-black transition cursor-pointer flex items-center gap-2 border ${
+                      isActive
+                        ? 'bg-sky-600 text-white border-sky-700 shadow-sm ring-2 ring-sky-400/40'
+                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span>🚛 [{dt.truckNumber}]</span>
+                    <span className="text-[10px] font-sans font-normal opacity-90">➔ {dt.targetHubName}</span>
+                    <span className={`px-1.5 py-0.5 text-[9px] rounded-md font-bold ${
+                      isActive ? 'bg-sky-800 text-white' : 'bg-slate-100 text-slate-600'
+                    }`}>
+                      {dt.shipments.length} kiện
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
         <form onSubmit={handleScanSubmit} className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <span className="absolute left-4 top-3 text-slate-400 text-sm">🔍</span>
@@ -732,6 +1214,8 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
           <div className={`p-3 rounded-xl text-xs font-bold ${
             scanMessage.type === 'success'
               ? 'bg-emerald-50 border border-emerald-300 text-emerald-700'
+              : scanMessage.type === 'info'
+              ? 'bg-sky-50 border border-sky-300 text-sky-700'
               : 'bg-rose-50 border border-rose-300 text-rose-700'
           }`}>
             {scanMessage.text}
@@ -741,6 +1225,128 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
 
       {/* ====== SECTION 4: PARCEL TABLE ====== */}
       <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
+        {/* Banner Các Chuyến Xe Đang Xếp Hàng Tại Cửa Dock (Tab 2: SORTING_LINEHAUL) */}
+        {stationTab === 'SORTING_LINEHAUL' && (
+          <div className="p-5 bg-gradient-to-r from-slate-900 via-sky-950 to-indigo-950 text-white border-b border-sky-900/60 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-sky-600/50 border border-sky-400/40 flex items-center justify-center text-lg shadow-inner">
+                  🚚
+                </div>
+                <div>
+                  <h4 className="font-black text-sm text-white flex items-center gap-2">
+                    <span>Cửa Dock Xếp Xe Tuyến — Đang Mở Thùng ({dockTrucks.length} xe)</span>
+                    {dockTrucks.length > 0 && (
+                      <span className="px-2 py-0.5 bg-sky-500/30 border border-sky-400/50 rounded-full text-[10px] text-sky-300 font-mono animate-pulse">
+                        Đang Xếp Hàng
+                      </span>
+                    )}
+                  </h4>
+                  <p className="text-[11px] text-slate-300">
+                    Thùng xe mở tại Dock để gom thêm bưu kiện. Khi xe đủ tải, bấm <b>Niêm Phong Seal & Xuất Bến</b> để hoàn tất.
+                  </p>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-sky-300 font-mono">
+                Tổng cộng: <b>{dockTrucks.reduce((sum, t) => sum + t.shipments.length, 0)} kiện</b> đã xếp lên các xe tại Dock
+              </div>
+            </div>
+
+            {dockTrucks.length === 0 ? (
+              <div className="py-3 px-4 text-center text-xs text-slate-400 bg-slate-800/40 rounded-xl border border-slate-700/60 flex items-center justify-center gap-2">
+                <span>ℹ️</span>
+                <span>Cửa Dock hiện đang trống. Chọn các bưu kiện trong danh sách bên dưới rồi bấm <b>"Đóng Xe Tuyến"</b> để bắt đầu xếp hàng lên xe.</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                {dockTrucks.map((dt) => {
+                  const truckWeight = dt.shipments.reduce((sum, s) => sum + (s.package?.weight || 0.5), 0)
+                  const truckCod = dt.shipments.reduce((sum, s) => sum + (s.codAmount || 0), 0)
+
+                  return (
+                    <div
+                      key={dt.id}
+                      className="bg-slate-800/95 hover:bg-slate-800 border border-sky-500/40 rounded-2xl p-3.5 space-y-3 transition shadow-sm text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="space-y-0.5">
+                          <div className="font-mono font-black text-sm text-sky-300 flex items-center gap-1.5">
+                            <span>🚛</span>
+                            <span>[{dt.truckNumber}]</span>
+                            <span className="text-[10px] text-slate-300 font-sans font-normal">({dt.truckType})</span>
+                          </div>
+                          <div className="text-[11px] text-slate-300 font-medium">
+                            Bác tài: <b>{dt.truckDriver}</b>
+                            {dt.truckDriverPhone && <span className="text-slate-400 font-mono"> ({dt.truckDriverPhone})</span>}
+                          </div>
+                        </div>
+                        <span className="px-2 py-0.5 bg-sky-500/20 text-sky-300 border border-sky-400/40 rounded-lg text-[9px] font-bold shrink-0">
+                          🟡 ĐANG XẾP
+                        </span>
+                      </div>
+
+                      <div className="p-2 bg-slate-900/60 rounded-xl border border-slate-700/60 text-[11px] space-y-1">
+                        <div className="text-slate-300 flex items-center gap-1">
+                          <span className="text-slate-400">Tuyến đến:</span>
+                          <b className="text-white truncate">{dt.targetHubName}</b>
+                        </div>
+                        <div className="flex justify-between text-slate-300 text-[10px]">
+                          <span>Quy mô: <b className="text-sky-300 font-mono">{dt.shipments.length} kiện</b></span>
+                          <span>Trọng lượng: <b className="text-white font-mono">{truckWeight.toFixed(1)} kg</b></span>
+                          {truckCod > 0 && <span>COD: <b className="text-emerald-400 font-mono">{truckCod.toLocaleString('vi-VN')}đ</b></span>}
+                        </div>
+                      </div>
+
+                      {/* 1-Click: Gom toàn bộ kiện hàng cùng tuyến còn lại trong kho */}
+                      {(() => {
+                        const matchingUnloaded = getMatchingUnloadedParcelsForTruck(dt)
+                        if (matchingUnloaded.length > 0) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => handleBatchLoadRouteToTruck(dt)}
+                              disabled={actionLoading}
+                              className="w-full py-2 px-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-md flex items-center justify-center gap-1.5 animate-pulse"
+                            >
+                              <span>⚡</span>
+                              <span>Gom Toàn Bộ {matchingUnloaded.length} Kiện Cùng Tuyến Vào Xe</span>
+                            </button>
+                          )
+                        }
+                        return (
+                          <div className="text-[10px] text-emerald-300 bg-emerald-950/50 border border-emerald-700/50 rounded-xl px-2.5 py-1 text-center font-bold">
+                            ✓ Đã gom hết kiện hàng chờ xuất tuyến này trong kho
+                          </div>
+                        )
+                      })()}
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenSealModal(dt)}
+                          className="flex-1 px-3 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-sm flex items-center justify-center gap-1.5"
+                        >
+                          <span>🔒</span>
+                          <span>Niêm Phong Seal & Xuất Bến</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleUnloadEntireDockTruck(dt)}
+                          title="Dỡ toàn bộ kiện hàng trở lại sàn kho"
+                          className="px-2.5 py-2 bg-slate-700/80 hover:bg-rose-900/60 hover:border-rose-500 border border-slate-600 text-slate-300 hover:text-rose-200 rounded-xl text-xs font-bold transition cursor-pointer"
+                        >
+                          Dỡ xe
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Banner Đối Soát Chuyến Xe Tuyến (Tab 3: INBOUND_RECEIVING) */}
         {stationTab === 'INBOUND_RECEIVING' && (
           <div className="p-5 bg-gradient-to-r from-indigo-900 via-slate-900 to-indigo-950 text-white border-b border-indigo-900/60 space-y-3">
@@ -830,6 +1436,57 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
                 <span>🚛</span>
                 <span>Đóng Xe Tuyến ({selectedShipmentIds.size} kiện đã chọn)</span>
               </button>
+            )}
+
+            {/* Quick Route Selectors (Tab 2) */}
+            {stationTab === 'SORTING_LINEHAUL' && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {hubs
+                  .filter((h) => !currentHub?.id || h.id !== currentHub.id)
+                  .map((destHub) => {
+                    const prov = (destHub.province || '').toLowerCase()
+                    const loadedIds = new Set(dockTrucks.flatMap((t) => t.shipments.map((item) => item.id)))
+                    const matching = sortingList.filter((s) => {
+                      if (loadedIds.has(s.id)) return false
+                      const addr = (s.deliveryAddress || '').toLowerCase()
+                      if (prov.includes('hồ chí minh') || prov.includes('hcm')) {
+                        return (
+                          addr.includes('hồ chí minh') ||
+                          addr.includes('tp.hcm') ||
+                          addr.includes('tp hcm') ||
+                          addr.includes('sài gòn') ||
+                          addr.includes('tân bình') ||
+                          addr.includes('gò vấp') ||
+                          addr.includes('bình thạnh') ||
+                          addr.includes('quận 1') ||
+                          addr.includes('bình dương') ||
+                          addr.includes('đồng nai')
+                        )
+                      }
+                      if (prov.includes('hà nội') || prov.includes('mê linh')) {
+                        return addr.includes('hà nội') || addr.includes('mê linh') || addr.includes('cầu giấy')
+                      }
+                      return addr.includes(prov)
+                    })
+
+                    if (matching.length === 0) return null
+
+                    return (
+                      <button
+                        key={destHub.id}
+                        type="button"
+                        onClick={() => {
+                          const matchingIds = matching.map((s) => s.id)
+                          setSelectedShipmentIds(new Set(matchingIds))
+                        }}
+                        className="px-2 py-1 bg-sky-50 hover:bg-sky-100 border border-sky-300 text-sky-800 rounded-lg text-[10px] font-black transition cursor-pointer flex items-center gap-1"
+                        title={`Chọn toàn bộ ${matching.length} kiện chờ xuất đi ${destHub.name}`}
+                      >
+                        <span>⚡ Chọn Tuyến {destHub.code} ({matching.length} kiện)</span>
+                      </button>
+                    )
+                  })}
+              </div>
             )}
 
             {/* Batch Last-Mile Dispatch Button (Tab 4) */}
@@ -960,6 +1617,17 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
                             💰 COD: {s.codAmount.toLocaleString('vi-VN')}đ
                           </div>
                         )}
+                        {stationTab === 'SORTING_LINEHAUL' && (() => {
+                          const dt = dockTrucks.find((t) => t.shipments.some((item) => item.id === s.id))
+                          if (!dt) return null
+                          return (
+                            <div className="pt-0.5">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-sky-100 text-sky-800 border border-sky-300 font-mono text-[9px] font-bold">
+                                <span>🚛</span> Trên xe: [{dt.truckNumber}]
+                              </span>
+                            </div>
+                          )
+                        })()}
                       </td>
 
                       {/* Người nhận */}
@@ -1066,15 +1734,30 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
                           </button>
                         )}
 
-                        {stationTab === 'SORTING_LINEHAUL' && (
-                          <button
-                            onClick={() => handleOpenDispatchSingle(s)}
-                            disabled={actionLoading}
-                            className="px-3 py-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-lg text-[11px] transition cursor-pointer shadow-sm disabled:opacity-40 flex items-center gap-1 ml-auto"
-                          >
-                            <span>🚛</span> Đóng Xe Tải
-                          </button>
-                        )}
+                        {stationTab === 'SORTING_LINEHAUL' && (() => {
+                          const dt = dockTrucks.find((t) => t.shipments.some((item) => item.id === s.id))
+                          if (dt) {
+                            return (
+                              <button
+                                onClick={() => handleUnloadSingleShipmentFromDock(dt.id, s.id, dt.truckNumber)}
+                                disabled={actionLoading}
+                                className="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 font-bold rounded-lg text-[10px] transition cursor-pointer shadow-xs disabled:opacity-40 flex items-center gap-1 ml-auto"
+                                title="Dỡ bưu kiện này khỏi xe tải quay lại sàn kho"
+                              >
+                                <span>↩️</span> Dỡ Khỏi Xe
+                              </button>
+                            )
+                          }
+                          return (
+                            <button
+                              onClick={() => handleOpenDispatchSingle(s)}
+                              disabled={actionLoading}
+                              className="px-3 py-1.5 bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white font-bold rounded-lg text-[11px] transition cursor-pointer shadow-sm disabled:opacity-40 flex items-center gap-1 ml-auto"
+                            >
+                              <span>🚛</span> Đóng Xe Tải
+                            </button>
+                          )
+                        })()}
 
                         {stationTab === 'INBOUND_RECEIVING' && (
                           <div className="flex items-center gap-1.5 justify-end">
@@ -1164,8 +1847,100 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
         currentHub={currentHub}
         availableHubs={hubs}
         selectedShipments={modalShipments}
+        dockTrucks={dockTrucks}
+        registeredDrivers={drivers}
         actionLoading={actionLoading}
       />
+
+      {/* ====== MODAL: QUICK SEAL & DISPATCH FROM DOCK ====== */}
+      {sealingDockTruck && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl border border-slate-200 overflow-hidden text-left">
+            <div className="bg-gradient-to-r from-amber-600 to-orange-600 text-white p-4 flex justify-between items-center">
+              <div className="flex items-center gap-2.5">
+                <span className="text-xl">🔒</span>
+                <div>
+                  <h4 className="font-black text-sm text-white">Niêm Phong Seal Chì Xuất Bến</h4>
+                  <p className="text-[10px] text-amber-100 font-mono">
+                    Xe: [{sealingDockTruck.truckNumber}] • Tuyến: {sealingDockTruck.targetHubName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setSealingDockTruck(null)}
+                className="w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 text-white flex items-center justify-center text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs">
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-1">
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Quy mô xuất bến:</span>
+                  <span className="font-black text-slate-800">{sealingDockTruck.shipments.length} bưu kiện</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Tài xế phụ trách:</span>
+                  <span className="font-bold text-slate-800">{sealingDockTruck.truckDriver} ({sealingDockTruck.truckDriverPhone || 'Không có SĐT'})</span>
+                </div>
+                <div className="flex justify-between text-[11px]">
+                  <span className="text-slate-500 font-medium">Bưu cục tiếp nhận:</span>
+                  <span className="font-bold text-indigo-700">{sealingDockTruck.targetHubName}</span>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="font-black text-amber-950 block text-xs">
+                  Mã Khóa Chì Niêm Phong (Security Seal Number) <span className="text-rose-500">*</span>:
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={quickSealNumber}
+                    onChange={(e) => setQuickSealNumber(e.target.value.toUpperCase())}
+                    placeholder="VD: SEAL-HN-HCM-9821"
+                    className="w-full px-3.5 py-2.5 bg-white border-2 border-amber-400 rounded-xl font-mono font-black text-amber-900 text-xs tracking-wider uppercase focus:outline-none focus:border-amber-600"
+                    required
+                  />
+                  <span className="absolute right-2.5 top-2 text-[9px] font-bold text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded">
+                    ZMX CHÍNH HÃNG
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-500 italic">
+                  * Dập khóa Seal vào cửa thùng xe trước khi tài xế nổ máy xuất bến.
+                </p>
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setSealingDockTruck(null)}
+                  disabled={actionLoading}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs cursor-pointer"
+                >
+                  Hủy Bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={handleConfirmSealFromDock}
+                  disabled={actionLoading || !quickSealNumber.trim()}
+                  className="px-5 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-black rounded-xl text-xs shadow-md transition cursor-pointer flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  {actionLoading ? (
+                    <span>Đang Xuất Bến...</span>
+                  ) : (
+                    <>
+                      <span>🔒</span>
+                      <span>Chốt Seal & Xuất Bến ({sealingDockTruck.shipments.length} Kiện)</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ====== MODAL: LINEHAUL INBOUND MANIFEST & DISCREPANCY RECONCILIATION (TAB 3) ====== */}
       <LinehaulInboundReconciliationModal

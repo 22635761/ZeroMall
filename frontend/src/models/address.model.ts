@@ -5,10 +5,11 @@ export interface ShippingAddress {
   region: string
   details: string
   isDefault: boolean
+  province?: string
+  district?: string
+  ward?: string
   lat?: number
   lng?: number
-  ghnDistrictId?: number
-  ghnWardCode?: string
 }
 
 export const DEFAULT_ADDRESSES: ShippingAddress[] = []

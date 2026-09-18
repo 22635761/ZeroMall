@@ -66,25 +66,13 @@ export const ShopBankAccounts: React.FC<ShopBankAccountsProps> = ({ user, shopId
   const [errorMessage, setErrorMessage] = useState('')
 
   useEffect(() => {
+    // Dọn dẹp key mock cũ không theo ownerId hoặc key thử nghiệm
+    try {
+      localStorage.removeItem('zeromall_linked_bank_accounts_shop-test-id')
+    } catch (e) {}
+
     const loaded = getLinkedBankAccounts(ownerId)
-    if (loaded.length === 0) {
-      const initialMock: LinkedBankAccount[] = [
-        {
-          id: 'bank-' + Date.now(),
-          bankName: 'MBBank (MB)',
-          bankCode: 'MB',
-          accountNumber: '0964579675',
-          accountName: 'ZERO MALL FASHION HUB',
-          branch: 'Chi nhánh Hà Nội',
-          isDefault: true,
-          createdAt: new Date().toISOString()
-        }
-      ]
-      setAccounts(initialMock)
-      saveLinkedBankAccounts(ownerId, initialMock)
-    } else {
-      setAccounts(loaded)
-    }
+    setAccounts(loaded)
   }, [ownerId])
 
   const openAddModal = () => {

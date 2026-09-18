@@ -159,31 +159,62 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // ── Delivery fail modal ──
   const [failModal, setFailModal] = useState<{ id: string; trackingNumber: string } | null>(null)
 
-  // ── Phân loại đơn hàng theo trạng thái chuẩn SPX ──
-  const myShipments = shipments.filter((s) =>
-    s.assignments?.some(
-      (a) =>
-        a.driver?.phone === driverProfile?.phone ||
-        a.driver?.phone === currentUser.phoneNumber ||
-        (driverProfile?.id && (a as any).driverId === driverProfile.id)
-    )
+  // Helper: kiểm tra assignment có đúng là của tài xế đang đăng nhập hay không
+  const isMyAssignment = (a: any) =>
+    (driverProfile?.id && (a.driverId === driverProfile.id || a.driver?.id === driverProfile.id)) ||
+    (driverProfile?.phone && a.driver?.phone === driverProfile.phone) ||
+    (currentUser?.phoneNumber && a.driver?.phone === currentUser.phoneNumber)
+
+  const myShipments = shipments.filter((s) => s.assignments?.some(isMyAssignment))
+
+  // 1. Đơn cần đi lấy tại Shop (First-Mile):
+  // Phải có phân công PICKUP đang active (ASSIGNED / ACCEPTED / IN_PROGRESS) của chính tài xế này
+  const pickupTasks = shipments.filter(
+    (s) =>
+      ['PICKUP_PENDING', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status) &&
+      s.assignments?.some(
+        (a) =>
+          a.type === 'PICKUP' &&
+          ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status) &&
+          isMyAssignment(a)
+      )
   )
 
-  // Đơn cần đi lấy tại Shop (First-Mile)
-  const pickupTasks = myShipments.filter((s) =>
-    ['WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
+  // 1.1 Đơn đang giữ trên xe (Đã lấy từ Shop, đang chờ mang về Hub nhập kho)
+  const holdingTasks = shipments.filter(
+    (s) =>
+      s.status === 'PICKED_UP' &&
+      s.assignments?.some(
+        (a) =>
+          a.type === 'PICKUP' &&
+          isMyAssignment(a)
+      )
   )
 
-  // Đơn giao hàng Last-Mile: Chờ lấy tại Hub (DELIVERY_ASSIGNED) hoặc Đang trên xe đi giao (OUT_FOR_DELIVERY)
-  const deliveryTasks = myShipments.filter(
+  // 2. Đơn giao hàng Last-Mile:
+  // CHỈ lấy các đơn mà tài xế này ĐƯỢC PHÂN CÔNG GIAO HÀNG (DELIVERY) và đang active!
+  // Tuyệt đối không hiển thị nếu đơn được phân công cho tài xế bưu cục khác
+  const deliveryTasks = shipments.filter(
     (s) =>
       ['DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY'].includes(s.status) &&
-      s.assignments?.some((a) => a.type === 'DELIVERY' && ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status))
+      s.assignments?.some(
+        (a) =>
+          a.type === 'DELIVERY' &&
+          ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status) &&
+          isMyAssignment(a)
+      )
   )
 
-  // Đơn đã giao thành công
-  const completedTasks = myShipments.filter((s) =>
-    ['DELIVERED', 'COMPLETED'].includes(s.status)
+  // 3. Đơn đã hoàn tất bởi tài xế này (hoàn thành giao hàng tận nơi)
+  const completedTasks = shipments.filter(
+    (s) =>
+      ['DELIVERED', 'COMPLETED'].includes(s.status) &&
+      s.assignments?.some(
+        (a) =>
+          a.type === 'DELIVERY' &&
+          a.status === 'COMPLETED' &&
+          isMyAssignment(a)
+      )
   )
 
   // Tổng tiền COD tài xế đang giữ
@@ -192,7 +223,7 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   const driverEarnings = completedTasks.length * 15000
 
   // Badge cho tab Đơn Hàng: Khi Offline thì ẩn badge (0) theo chuẩn SPX
-  const ordersBadge = driverState === 'OFFLINE' ? 0 : (pickupTasks.length + deliveryTasks.length)
+  const ordersBadge = driverState === 'OFFLINE' ? 0 : (pickupTasks.length + holdingTasks.length + deliveryTasks.length)
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 font-sans selection:bg-emerald-600 selection:text-white">
@@ -240,6 +271,7 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
               currentUser={currentUser}
               driverProfile={driverProfile}
               pickupCount={pickupTasks.length}
+              holdingCount={holdingTasks.length}
               deliveryCount={deliveryTasks.length}
               completedCount={completedTasks.length}
               codInWallet={codInWallet}
@@ -255,6 +287,7 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
           {activeTab === 'ORDERS' && (
             <DriverOrdersTab
               pickupTasks={pickupTasks}
+              holdingTasks={holdingTasks}
               deliveryTasks={deliveryTasks}
               onUpdateStatus={onUpdateStatus}
               actionLoading={actionLoading}

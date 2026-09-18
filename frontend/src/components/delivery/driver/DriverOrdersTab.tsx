@@ -28,11 +28,13 @@ export interface Shipment {
     status: string
     driverId?: string
     driver?: { id?: string; name?: string; phone?: string; vehicleNumber?: string }
+    proofImage?: string
   }>
 }
 
 export interface DriverOrdersTabProps {
   pickupTasks: Shipment[]
+  holdingTasks?: Shipment[]
   deliveryTasks: Shipment[]
   onUpdateStatus: (shipmentId: string, status: string, failureReason?: string, proofImage?: string) => Promise<void>
   actionLoading: boolean
@@ -53,6 +55,7 @@ const formatMoney = (val: number) => (val || 0).toLocaleString('vi-VN') + 'đ'
  */
 export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
   pickupTasks,
+  holdingTasks = [],
   deliveryTasks,
   onUpdateStatus,
   actionLoading,
@@ -61,7 +64,12 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
   onOpenCheckIn,
 }) => {
   const [subTab, setSubTab] = useState<'PICKUP' | 'DELIVERY'>('PICKUP')
+  const [pickupFilter, setPickupFilter] = useState<'PENDING' | 'HOLDING'>(
+    pickupTasks.length === 0 && holdingTasks.length > 0 ? 'HOLDING' : 'PENDING'
+  )
   const [confirmPickupShipment, setConfirmPickupShipment] = useState<Shipment | null>(null)
+  const [previewProofImage, setPreviewProofImage] = useState<string | null>(null)
+  const [barcodeModalShipment, setBarcodeModalShipment] = useState<Shipment | null>(null)
 
   // Nếu tài xế chưa vào ca (OFFLINE): Khóa toàn bộ danh sách đơn hàng theo chuẩn SPX
   if (!isOnline) {
@@ -110,7 +118,7 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
               subTab === 'PICKUP' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
             }`}
           >
-            {pickupTasks.length}
+            {pickupTasks.length + holdingTasks.length}
           </span>
         </button>
 
@@ -137,129 +145,322 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
       {/* 2. Sub-Tab Content: LẤY HÀNG (PICKUP) */}
       {subTab === 'PICKUP' && (
         <div className="space-y-3">
-          {pickupTasks.length === 0 ? (
-            <div className="py-12 px-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-2">
-              <span className="text-4xl block">🏪</span>
-              <p className="text-xs font-bold text-slate-600">Không có đơn cần đi lấy</p>
-              <p className="text-[11px] text-slate-400">Các đơn lấy hàng từ Người Bán sẽ xuất hiện tại đây khi được phân công.</p>
-            </div>
-          ) : (
-            pickupTasks.map((shipment) => {
-              const shopName = shipment.pickupAddress?.name || 'Kho Người Bán'
-              const shopPhone = shipment.pickupAddress?.phone || ''
-              
-              // Ghép đầy đủ địa chỉ kho của Shop đã đăng ký: số nhà/chi tiết, phường/xã, quận/huyện, tỉnh/thành
-              const addressParts = [
-                shipment.pickupAddress?.address,
-                shipment.pickupAddress?.ward,
-                shipment.pickupAddress?.district,
-                shipment.pickupAddress?.province,
-              ]
-                .filter(Boolean)
-                .map((s) => String(s).trim())
-                .filter(Boolean)
+          {/* Sub-segmented filter: Cần Lấy vs Đang Giữ Trên Xe */}
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+            <button
+              type="button"
+              onClick={() => setPickupFilter('PENDING')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                pickupFilter === 'PENDING'
+                  ? 'bg-white text-slate-800 shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>🏪 Cần Lấy</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                pickupFilter === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-slate-200 text-slate-600'
+              }`}>
+                {pickupTasks.length}
+              </span>
+            </button>
 
-              const uniqueParts: string[] = []
-              for (const part of addressParts) {
-                if (!uniqueParts.some((p) => p.toLowerCase() === part.toLowerCase())) {
-                  uniqueParts.push(part)
+            <button
+              type="button"
+              onClick={() => setPickupFilter('HOLDING')}
+              className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer ${
+                pickupFilter === 'HOLDING'
+                  ? 'bg-teal-600 text-white shadow-xs'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>🚚 Đang Giữ Trên Xe</span>
+              <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-black ${
+                pickupFilter === 'HOLDING' ? 'bg-white/25 text-white' : 'bg-slate-200 text-slate-600'
+              }`}>
+                {holdingTasks.length}
+              </span>
+            </button>
+          </div>
+
+          {/* CHẾ ĐỘ 1: CẦN LẤY TẠI SHOP */}
+          {pickupFilter === 'PENDING' && (
+            pickupTasks.length === 0 ? (
+              <div className="py-10 px-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-2">
+                <span className="text-4xl block">🏪</span>
+                <p className="text-xs font-bold text-slate-600">Không có đơn cần đi lấy</p>
+                <p className="text-[11px] text-slate-400">
+                  {holdingTasks.length > 0
+                    ? `Bạn đang giữ ${holdingTasks.length} kiện hàng đã lấy trên xe. Chuyển sang thẻ "Đang Giữ Trên Xe" để xem chi tiết.`
+                    : 'Các đơn lấy hàng từ Người Bán sẽ xuất hiện tại đây khi được phân công.'}
+                </p>
+              </div>
+            ) : (
+              pickupTasks.map((shipment) => {
+                const shopName = shipment.pickupAddress?.name || 'Kho Người Bán'
+                const shopPhone = shipment.pickupAddress?.phone || ''
+                
+                const addressParts = [
+                  shipment.pickupAddress?.address,
+                  shipment.pickupAddress?.ward,
+                  shipment.pickupAddress?.district,
+                  shipment.pickupAddress?.province,
+                ]
+                  .filter(Boolean)
+                  .map((s) => String(s).trim())
+                  .filter(Boolean)
+
+                const uniqueParts: string[] = []
+                for (const part of addressParts) {
+                  if (!uniqueParts.some((p) => p.toLowerCase() === part.toLowerCase())) {
+                    uniqueParts.push(part)
+                  }
                 }
-              }
-              const shopAddress = uniqueParts.length > 0 ? uniqueParts.join(', ') : 'Chưa cập nhật địa chỉ kho'
-              const packageSummary = shipment.package?.itemsSummary || 'Sản phẩm ZeroMall'
-              const packageWeight = shipment.package?.weight ?? 0.5
-              const isAssigned = shipment.status === 'PICKUP_ASSIGNED'
+                const shopAddress = uniqueParts.length > 0 ? uniqueParts.join(', ') : 'Chưa cập nhật địa chỉ kho'
+                const packageSummary = shipment.package?.itemsSummary || 'Sản phẩm ZeroMall'
+                const packageWeight = shipment.package?.weight ?? 0.5
+                const isAssigned = shipment.status === 'PICKUP_ASSIGNED'
 
-              return (
-                <div
-                  key={shipment.id}
-                  className="bg-white border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-xs hover:border-emerald-300 transition-colors"
-                >
-                  {/* Header: Tracking & Status */}
-                  <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-100">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-slate-400 text-[10px]">Mã đơn:</span>
-                      <span className="font-mono font-bold text-emerald-700 text-xs">
-                        {shipment.trackingNumber}
+                return (
+                  <div
+                    key={shipment.id}
+                    className="bg-white border border-slate-200/90 rounded-2xl p-4 space-y-3 shadow-xs hover:border-emerald-300 transition-colors"
+                  >
+                    {/* Header: Tracking & Status */}
+                    <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-100">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-400 text-[10px]">Mã đơn:</span>
+                        <span className="font-mono font-bold text-emerald-700 text-xs">
+                          {shipment.trackingNumber}
+                        </span>
+                      </div>
+                      <span
+                        className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
+                          isAssigned
+                            ? 'bg-amber-50 text-amber-700 border-amber-200/60'
+                            : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
+                        }`}
+                      >
+                        {isAssigned ? 'Đã gán' : 'Đang đến lấy'}
                       </span>
                     </div>
-                    <span
-                      className={`px-2 py-0.5 text-[10px] font-bold rounded-md border ${
-                        isAssigned
-                          ? 'bg-amber-50 text-amber-700 border-amber-200/60'
-                          : 'bg-emerald-50 text-emerald-700 border-emerald-200/60'
-                      }`}
-                    >
-                      {isAssigned ? 'Đã gán' : 'Đang đến lấy'}
-                    </span>
-                  </div>
 
-                  {/* Shop Details - Buyer info is strictly omitted per SPX Privacy rules */}
-                  <div className="space-y-1.5 text-xs">
-                    <div className="flex items-start gap-1.5">
-                      <span className="text-sm">🏪</span>
-                      <div className="flex-1">
-                        <p className="font-bold text-slate-900 text-sm">{shopName}</p>
-                        {shopPhone && (
-                          <p className="text-slate-500 text-[11px] font-medium">SĐT Shop: {shopPhone}</p>
-                        )}
+                    {/* Shop Details */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-sm">🏪</span>
+                        <div className="flex-1">
+                          <p className="font-bold text-slate-900 text-sm">{shopName}</p>
+                          {shopPhone && (
+                            <p className="text-slate-500 text-[11px] font-medium">SĐT Shop: {shopPhone}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-1.5 text-slate-700">
+                        <span className="text-sm shrink-0">📍</span>
+                        <p className="text-xs leading-relaxed text-slate-700 font-medium">
+                          {shopAddress}
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 text-[11px]">
+                        <span>📦</span>
+                        <span className="font-medium truncate flex-1">{packageSummary}</span>
+                        <span className="font-bold text-slate-700 shrink-0">({packageWeight} kg)</span>
                       </div>
                     </div>
 
-                    <div className="flex items-start gap-1.5 text-slate-700">
-                      <span className="text-sm shrink-0">📍</span>
-                      <p className="text-xs leading-relaxed text-slate-700 font-medium">
-                        {shopAddress}
-                      </p>
-                    </div>
+                    {/* Action Buttons */}
+                    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
+                      {shopPhone ? (
+                        <a
+                          href={`tel:${shopPhone}`}
+                          className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1 cursor-pointer"
+                        >
+                          📞 Gọi Shop
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled
+                          className="py-2.5 bg-slate-50 text-slate-400 font-bold rounded-xl text-xs text-center flex items-center justify-center gap-1 cursor-not-allowed"
+                        >
+                          📞 Chưa có SĐT
+                        </button>
+                      )}
 
-                    <div className="flex items-center gap-1.5 text-slate-600 bg-slate-50 p-2 rounded-xl border border-slate-100 text-[11px]">
-                      <span>📦</span>
-                      <span className="font-medium truncate flex-1">{packageSummary}</span>
-                      <span className="font-bold text-slate-700 shrink-0">({packageWeight} kg)</span>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-100">
-                    {shopPhone ? (
                       <a
-                        href={`tel:${shopPhone}`}
-                        className="py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1 cursor-pointer"
+                        href={`https://maps.google.com/?q=${encodeURIComponent(shopAddress)}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1 cursor-pointer border border-sky-200/50"
                       >
-                        📞 Gọi Shop
+                        🗺️ Dẫn Đường
                       </a>
-                    ) : (
+
                       <button
                         type="button"
-                        disabled
-                        className="py-2.5 bg-slate-50 text-slate-400 font-bold rounded-xl text-xs text-center flex items-center justify-center gap-1 cursor-not-allowed"
+                        onClick={() => setConfirmPickupShipment(shipment)}
+                        disabled={actionLoading}
+                        className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
                       >
-                        📞 Chưa có SĐT
+                        <span>📦 Xác Nhận Đã Lấy</span>
                       </button>
-                    )}
+                    </div>
+                  </div>
+                )
+              })
+            )
+          )}
 
-                    <a
-                      href={`https://maps.google.com/?q=${encodeURIComponent(shopAddress)}`}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="py-2.5 bg-sky-50 hover:bg-sky-100 text-sky-700 font-bold rounded-xl text-xs transition text-center flex items-center justify-center gap-1 cursor-pointer border border-sky-200/50"
-                    >
-                      🗺️ Dẫn Đường
-                    </a>
-
-                    <button
-                      type="button"
-                      onClick={() => setConfirmPickupShipment(shipment)}
-                      disabled={actionLoading}
-                      className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-                    >
-                      <span>📦 Xác Nhận Đã Lấy</span>
-                    </button>
+          {/* CHẾ ĐỘ 2: ĐANG GIỮ TRÊN XE (ĐÃ LẤY TỪ SHOP - CHỜ NHẬP KHO HUB) */}
+          {pickupFilter === 'HOLDING' && (
+            holdingTasks.length === 0 ? (
+              <div className="py-10 px-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl text-center text-slate-400 space-y-2">
+                <span className="text-4xl block">🚚</span>
+                <p className="text-xs font-bold text-slate-600">Chưa có kiện hàng nào trên xe</p>
+                <p className="text-[11px] text-slate-400">
+                  Sau khi bạn bấm "Xác nhận đã lấy" tại Shop, kiện hàng sẽ chuyển vào đây để bạn kiểm đếm trước khi bàn giao về Bưu cục.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="bg-teal-50 border border-teal-200 rounded-2xl p-3 flex items-center justify-between text-xs text-teal-900">
+                  <div className="flex items-center gap-2">
+                    <span className="text-lg">🚚</span>
+                    <div>
+                      <p className="font-black">Đang giữ {holdingTasks.length} kiện hàng trên xe</p>
+                      <p className="text-[11px] text-teal-700">Hãy mang về Bưu cục để nhân viên quét nhập kho hoặc bấm bàn giao</p>
+                    </div>
                   </div>
                 </div>
-              )
-            })
+
+                {holdingTasks.map((shipment) => {
+                  const shopName = shipment.pickupAddress?.name || 'Kho Người Bán'
+                  const shopPhone = shipment.pickupAddress?.phone || ''
+                  const pickupAssignment = shipment.assignments?.find((a) => a.type === 'PICKUP')
+                  const proofImg = pickupAssignment?.proofImage
+
+                  const addressParts = [
+                    shipment.pickupAddress?.address,
+                    shipment.pickupAddress?.ward,
+                    shipment.pickupAddress?.district,
+                    shipment.pickupAddress?.province,
+                  ]
+                    .filter(Boolean)
+                    .map((s) => String(s).trim())
+                    .filter(Boolean)
+
+                  const uniqueParts: string[] = []
+                  for (const part of addressParts) {
+                    if (!uniqueParts.some((p) => p.toLowerCase() === part.toLowerCase())) {
+                      uniqueParts.push(part)
+                    }
+                  }
+                  const shopAddress = uniqueParts.length > 0 ? uniqueParts.join(', ') : 'Kho Shop'
+                  const packageSummary = shipment.package?.itemsSummary || 'Sản phẩm ZeroMall'
+
+                  return (
+                    <div
+                      key={shipment.id}
+                      className="bg-white border-2 border-teal-200/80 rounded-2xl p-4 space-y-3 shadow-xs"
+                    >
+                      {/* Header */}
+                      <div className="flex justify-between items-center text-xs pb-2 border-b border-slate-100">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-400 text-[10px]">Mã vận đơn:</span>
+                          <span className="font-mono font-black text-emerald-700 text-xs">
+                            {shipment.trackingNumber}
+                          </span>
+                        </div>
+                        <span className="px-2 py-0.5 text-[10px] font-black rounded-md bg-teal-100 text-teal-800 border border-teal-200">
+                          🚚 Đang Giữ Trên Xe
+                        </span>
+                      </div>
+
+                      {/* Info */}
+                      <div className="space-y-1.5 text-xs">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="font-bold text-slate-900">{shopName}</p>
+                            {shopPhone && (
+                              <p className="text-slate-500 text-[11px] font-medium">SĐT Shop: {shopPhone}</p>
+                            )}
+                            <p className="text-[11px] text-slate-500 mt-0.5">📍 Lấy từ: {shopAddress}</p>
+                          </div>
+                          {proofImg && (
+                            <button
+                              type="button"
+                              onClick={() => setPreviewProofImage(proofImg)}
+                              className="shrink-0 relative group cursor-pointer"
+                              title="Xem ảnh POP đã chụp"
+                            >
+                              <img
+                                src={proofImg}
+                                alt="POP Proof"
+                                className="w-12 h-12 object-cover rounded-xl border-2 border-emerald-500 shadow-xs"
+                              />
+                              <span className="absolute inset-0 bg-black/30 rounded-xl flex items-center justify-center text-[10px] text-white opacity-0 group-hover:opacity-100 transition">
+                                🔍
+                              </span>
+                            </button>
+                          )}
+                        </div>
+
+                        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-[11px] space-y-1 text-slate-600">
+                          <div className="flex items-center justify-between">
+                            <span>Bưu kiện: <strong>{packageSummary}</strong></span>
+                            {shipment.codAmount > 0 && (
+                              <span className="text-amber-700 font-bold">COD: {formatMoney(shipment.codAmount)}</span>
+                            )}
+                          </div>
+                          <p className="text-[10px] text-slate-400">
+                            Giao đến: {shipment.buyerName} • {shipment.deliveryAddress}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Bàn Giao Bưu Cục (Chuẩn Quy Trình SPX) */}
+                      <div className="pt-2 border-t border-slate-100 space-y-2">
+                        <div className="bg-amber-50/80 border border-amber-200/90 rounded-xl p-2.5 flex items-start gap-2 text-[11px] text-amber-900">
+                          <span className="text-base shrink-0">🏢</span>
+                          <div className="flex-1 leading-snug">
+                            <p className="font-bold text-amber-950">Chờ Nhân Viên Bưu Cục Quét Nhập Kho</p>
+                            <p className="text-amber-800 text-[10px] mt-0.5">
+                              Tài xế mang gói hàng về bàn tiếp nhận tại Bưu Cục. Nhân viên kho bắn súng quét mã để xác nhận nhập kho và giải phóng trách nhiệm cho bạn.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setBarcodeModalShipment(shipment)}
+                            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-900 text-white font-bold rounded-xl text-xs transition shadow-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>📱</span> Mã Barcode Bàn Giao
+                          </button>
+
+                          <button
+                            type="button"
+                            disabled={actionLoading}
+                            title="Mô phỏng Bưu cục quét nhận nhập kho (Dành cho thử nghiệm)"
+                            onClick={async () => {
+                              if (window.confirm(`[MÔ PHỎNG TEST] Xác nhận giả lập Bưu Cục đã quét nhận kiện hàng ${shipment.trackingNumber} nhập kho?`)) {
+                                await onUpdateStatus(shipment.id, 'AT_ORIGIN_HUB')
+                              }
+                            }}
+                            className="py-2.5 px-3 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-bold rounded-xl text-[11px] transition cursor-pointer disabled:opacity-50 shrink-0"
+                          >
+                            🧪 Test Nhập Kho
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )
           )}
         </div>
       )}
@@ -487,6 +688,127 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
           }}
           actionLoading={actionLoading}
         />
+      )}
+
+      {/* ── Modal: Xem Ảnh Bằng Chứng Lấy Hàng Phóng To (POP Preview) ── */}
+      {previewProofImage && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setPreviewProofImage(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-4 max-w-sm w-full space-y-3 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <h4 className="font-black text-xs text-slate-800 flex items-center gap-1.5">
+                <span>📸</span> Ảnh Bằng Chứng Lấy Hàng (POP)
+              </h4>
+              <button
+                type="button"
+                onClick={() => setPreviewProofImage(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center cursor-pointer text-xs"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="rounded-2xl overflow-hidden bg-slate-900 border border-slate-200 aspect-4/3 flex items-center justify-center">
+              <img
+                src={previewProofImage}
+                alt="POP Preview"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setPreviewProofImage(null)}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Modal: Mã Vạch Barcode Bàn Giao Cho Bưu Cục Quét ── */}
+      {barcodeModalShipment && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setBarcodeModalShipment(null)}
+        >
+          <div
+            className="bg-white rounded-3xl p-5 max-w-sm w-full space-y-4 shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">📦</span>
+                <div>
+                  <h4 className="font-black text-sm text-slate-900">Mã Bàn Giao Bưu Cục</h4>
+                  <p className="text-[10px] text-slate-500 font-medium">Inbound Barcode / QR Code</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setBarcodeModalShipment(null)}
+                className="w-7 h-7 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 font-bold flex items-center justify-center cursor-pointer text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Khung Barcode & QR Code trung tâm */}
+            <div className="bg-slate-50 p-4 rounded-2xl border-2 border-slate-200 text-center space-y-3">
+              {/* Barcode SVG representation */}
+              <div className="bg-white p-3 rounded-xl border border-slate-200/80 shadow-inner flex flex-col items-center justify-center">
+                <svg className="w-full h-16 max-w-[260px]" viewBox="0 0 240 60" preserveAspectRatio="none">
+                  {/* Generate visual barcode lines */}
+                  {Array.from({ length: 42 }).map((_, idx) => {
+                    const charCode = barcodeModalShipment.trackingNumber.charCodeAt(idx % barcodeModalShipment.trackingNumber.length) || 65
+                    const x = 12 + idx * 5.2
+                    const w = (charCode % 2 === 0 ? 2.8 : 1.4)
+                    return <rect key={idx} x={x} y="4" width={w} height="52" fill="#0f172a" />
+                  })}
+                </svg>
+                <span className="font-mono font-black text-base tracking-widest text-slate-900 mt-1">
+                  {barcodeModalShipment.trackingNumber}
+                </span>
+              </div>
+
+              {/* QR Code thumbnail */}
+              <div className="flex items-center justify-center gap-3 pt-1">
+                <img
+                  src={`https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(barcodeModalShipment.trackingNumber)}`}
+                  alt="QR Barcode"
+                  className="w-24 h-24 rounded-xl border border-slate-300 p-1 bg-white shadow-xs"
+                />
+                <div className="text-left text-[11px] text-slate-600 space-y-1">
+                  <p className="font-bold text-slate-800">Bưu kiện: {barcodeModalShipment.package?.itemsSummary || 'Sản phẩm ZeroMall'}</p>
+                  <p className="text-[10px] text-slate-500">Shop: {barcodeModalShipment.pickupAddress?.name || 'Kho người bán'}</p>
+                  {barcodeModalShipment.codAmount > 0 && (
+                    <p className="text-amber-700 font-bold text-[11px]">COD: {formatMoney(barcodeModalShipment.codAmount)}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Hướng dẫn nghiệp vụ */}
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-3 text-[11px] text-teal-900 flex items-start gap-2 leading-relaxed">
+              <span className="text-base shrink-0">💡</span>
+              <p>
+                Đưa màn hình này cho nhân viên kho tại Bưu cục bắn súng quét mã nếu tem nhãn trên kiện hàng bị mờ hoặc không quét được.
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setBarcodeModalShipment(null)}
+              className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition cursor-pointer"
+            >
+              Đóng Mã Bàn Giao
+            </button>
+          </div>
+        </div>
       )}
     </div>
   )

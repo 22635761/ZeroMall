@@ -4,6 +4,7 @@ export interface DriverHomeTabProps {
   currentUser: any
   driverProfile: any
   pickupCount: number
+  holdingCount?: number
   deliveryCount: number
   completedCount: number
   codInWallet: number
@@ -23,6 +24,7 @@ export const DriverHomeTab: React.FC<DriverHomeTabProps> = ({
   currentUser,
   driverProfile,
   pickupCount,
+  holdingCount = 0,
   deliveryCount,
   completedCount,
   codInWallet,
@@ -148,8 +150,26 @@ export const DriverHomeTab: React.FC<DriverHomeTabProps> = ({
         </div>
       )}
 
-      {/* 3. Lưới 3 thẻ thống kê (Stat Cards) */}
-      <div className="grid grid-cols-3 gap-2.5">
+      {/* 2.1 Banner Kiện hàng đang giữ trên xe chờ nhập kho */}
+      {isOnline && holdingCount > 0 && (
+        <div className="bg-teal-50 border-2 border-teal-500 rounded-2xl p-3.5 space-y-1 shadow-xs text-teal-900">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-black text-xs text-teal-800">
+              <span className="text-base">🚚</span>
+              <span>ĐANG GIỮ {holdingCount} KIỆN HÀNG TRÊN XE</span>
+            </div>
+            <span className="px-2 py-0.5 bg-teal-600 text-white font-bold text-[10px] rounded-md">
+              Chờ nhập Hub
+            </span>
+          </div>
+          <p className="text-xs text-teal-700 leading-relaxed">
+            Bạn đã lấy thành công {holdingCount} đơn hàng từ Shop. Hãy kiểm đếm tại tab <strong>"Lấy Hàng &gt; Đang Giữ Trên Xe"</strong> và mang về Bưu cục để bàn giao.
+          </p>
+        </div>
+      )}
+
+      {/* 3. Lưới 4 thẻ thống kê (Stat Cards: 2x2 grid) */}
+      <div className="grid grid-cols-2 gap-2.5">
         {/* Cần Lấy */}
         <div
           className={`border p-3 rounded-2xl text-center space-y-1 shadow-xs transition ${
@@ -159,10 +179,28 @@ export const DriverHomeTab: React.FC<DriverHomeTabProps> = ({
           }`}
         >
           <span className="text-[11px] font-semibold flex items-center justify-center gap-1 text-slate-700">
-            <span>{isOnline ? '📦' : '🔒'}</span> Cần Lấy
+            <span>{isOnline ? '🏪' : '🔒'}</span> Cần Lấy (Shop)
           </span>
           <p className={`text-2xl font-black ${isOnline ? 'text-amber-600' : 'text-slate-400'}`}>
             {isOnline ? (pickupCount ?? 0) : 0}
+          </p>
+        </div>
+
+        {/* Đang Giữ Trên Xe */}
+        <div
+          className={`border p-3 rounded-2xl text-center space-y-1 shadow-xs transition ${
+            isOnline
+              ? holdingCount > 0
+                ? 'bg-teal-50 border-teal-300 ring-2 ring-teal-200/50'
+                : 'bg-teal-50/50 border-teal-200/70'
+              : 'bg-slate-50 border-slate-200 opacity-60'
+          }`}
+        >
+          <span className="text-[11px] font-semibold flex items-center justify-center gap-1 text-teal-800">
+            <span>{isOnline ? '🚚' : '🔒'}</span> Đang Giữ Trên Xe
+          </span>
+          <p className={`text-2xl font-black ${isOnline ? 'text-teal-700' : 'text-slate-400'}`}>
+            {isOnline ? (holdingCount ?? 0) : 0}
           </p>
         </div>
 
@@ -175,7 +213,7 @@ export const DriverHomeTab: React.FC<DriverHomeTabProps> = ({
           }`}
         >
           <span className="text-[11px] font-semibold flex items-center justify-center gap-1 text-slate-700">
-            <span>{isOnline ? '🛵' : '🔒'}</span> Cần Giao
+            <span>{isOnline ? '🛵' : '🔒'}</span> Cần Giao (Khách)
           </span>
           <p className={`text-2xl font-black ${isOnline ? 'text-orange-600' : 'text-slate-400'}`}>
             {isOnline ? (deliveryCount ?? 0) : 0}
@@ -183,11 +221,11 @@ export const DriverHomeTab: React.FC<DriverHomeTabProps> = ({
         </div>
 
         {/* COD Đang Giữ */}
-        <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-2xl text-center space-y-1 shadow-xs">
+        <div className="bg-emerald-50/70 border border-emerald-200/80 p-3 rounded-2xl text-center space-y-1 shadow-xs flex flex-col justify-center">
           <span className="text-[11px] text-emerald-800 font-semibold flex items-center justify-center gap-1">
             <span>💰</span> COD Đang Giữ
           </span>
-          <p className="text-xs font-black text-emerald-700 mt-1 truncate" title={formatMoney(codInWallet)}>
+          <p className="text-sm font-black text-emerald-700 mt-1 truncate" title={formatMoney(codInWallet)}>
             {formatMoney(codInWallet)}
           </p>
         </div>

@@ -181,26 +181,6 @@ export const CsShopsTab: React.FC<CsShopsTabProps> = ({
                             <span className="shrink-0 mt-0.5">📍</span>
                             <span>{fullAddress || 'Chưa có chi tiết địa chỉ'}</span>
                           </p>
-                          {(pickup.ghnProvinceId || pickup.ghnDistrictId || pickup.ghnWardCode) && (
-                            <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-200/50">
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mr-0.5">Mã GHN:</span>
-                              {pickup.ghnProvinceId && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[10px] rounded border border-emerald-200/60 font-bold">
-                                  Tỉnh: {pickup.ghnProvinceId}
-                                </span>
-                              )}
-                              {pickup.ghnDistrictId && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[10px] rounded border border-emerald-200/60 font-bold">
-                                  Huyện: {pickup.ghnDistrictId}
-                                </span>
-                              )}
-                              {pickup.ghnWardCode && (
-                                <span className="px-2 py-0.5 bg-emerald-50 text-emerald-700 font-mono text-[10px] rounded border border-emerald-200/60 font-bold">
-                                  Xã: {pickup.ghnWardCode}
-                                </span>
-                              )}
-                            </div>
-                          )}
                           {pickup.coordinates && (
                             <p className="text-[10px] text-slate-400 font-mono flex items-center gap-1 pt-0.5">
                               <span>🌐 Tọa độ:</span> {pickup.coordinates.lat?.toFixed(4)}, {pickup.coordinates.lng?.toFixed(4)}

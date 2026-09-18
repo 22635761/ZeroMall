@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, UseGuards, Request, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, Delete, Patch, UseGuards, Request, Param, Query } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
@@ -125,4 +125,41 @@ export class AuthController {
   async createAuditLog(@Body() dto: { user: string; action: string }) {
     return this.authService.createAuditLog(dto.user, dto.action);
   }
+
+  // Quản lý địa chỉ giao hàng của người dùng (User Addresses)
+  @Get('users/:userId/addresses')
+  async getUserAddresses(@Param('userId') userId: string) {
+    return this.authService.getUserAddresses(userId);
+  }
+
+  @Post('users/:userId/addresses')
+  async createUserAddress(@Param('userId') userId: string, @Body() dto: any) {
+    return this.authService.createUserAddress(userId, dto);
+  }
+
+  @Put('users/:userId/addresses/:addressId')
+  async updateUserAddress(
+    @Param('userId') userId: string,
+    @Param('addressId') addressId: string,
+    @Body() dto: any,
+  ) {
+    return this.authService.updateUserAddress(userId, addressId, dto);
+  }
+
+  @Delete('users/:userId/addresses/:addressId')
+  async deleteUserAddress(
+    @Param('userId') userId: string,
+    @Param('addressId') addressId: string,
+  ) {
+    return this.authService.deleteUserAddress(userId, addressId);
+  }
+
+  @Patch('users/:userId/addresses/:addressId/default')
+  async setDefaultUserAddress(
+    @Param('userId') userId: string,
+    @Param('addressId') addressId: string,
+  ) {
+    return this.authService.setDefaultUserAddress(userId, addressId);
+  }
 }
+

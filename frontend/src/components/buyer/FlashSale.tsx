@@ -18,6 +18,10 @@ export interface Product {
   brand?: string
   shopId?: string
   location?: string
+  weight?: number | string
+  length?: number | string
+  width?: number | string
+  height?: number | string
 }
 
 interface FlashSaleProps {

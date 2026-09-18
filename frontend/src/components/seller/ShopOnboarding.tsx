@@ -9,9 +9,6 @@ interface Address {
   district: string
   ward: string
   detailAddress: string
-  ghnProvinceId?: number
-  ghnDistrictId?: number
-  ghnWardCode?: string
   coordinates?: {
     lat: number
     lng: number
@@ -458,7 +455,7 @@ export const ShopOnboarding: React.FC<ShopOnboardingProps> = ({
         </div>
       </main>
 
-      {/* --- ADD / EDIT ADDRESS MODAL (MODULAR & CASCADING GHN DROPDOWNS) --- */}
+      {/* --- ADD / EDIT ADDRESS MODAL (MODULAR & CASCADING VIETNAM DROPDOWNS) --- */}
       <ShopAddressModal
         isOpen={isAddressModalOpen}
         onClose={() => setIsAddressModalOpen(false)}

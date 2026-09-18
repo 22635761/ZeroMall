@@ -505,7 +505,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                   }
                 })()}
               </p>
-              <p><span className="font-bold text-slate-500">Đơn vị vận chuyển:</span> Giao Hàng Nhanh (GHN), Hỏa Tốc</p>
+              <p><span className="font-bold text-slate-500">Đơn vị vận chuyển:</span> ZeroMall Express (ZMX), Hỏa Tốc</p>
               <p><span className="font-bold text-slate-500">Thời gian chuẩn bị hàng:</span> Trong 24 giờ</p>
             </div>
           </div>

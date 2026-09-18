@@ -130,7 +130,7 @@ export const SellerAuthForm: React.FC<SellerAuthFormProps> = ({
                   📦
                 </div>
                 <h4 className="font-extrabold text-xs text-slate-800">Tự Động Vận Hành</h4>
-                <p className="text-[11px] text-slate-500 leading-snug font-medium">Tích hợp giao hàng GHN, in phiếu gửi hàng & quản lý kho tự động.</p>
+                <p className="text-[11px] text-slate-500 leading-snug font-medium">Tích hợp vận chuyển ZeroMall Express (ZMX), in phiếu gửi hàng & quản lý kho tự động.</p>
               </div>
 
               <div className="bg-white p-4 rounded-2xl border border-slate-200/80 shadow-3xs space-y-1.5">

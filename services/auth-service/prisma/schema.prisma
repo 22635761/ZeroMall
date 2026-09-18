@@ -31,6 +31,7 @@ model User {
   
   // Các shop người dùng này theo dõi
   follows   ShopFollow[]
+  addresses UserAddress[]
 }
 
 model Shop {
@@ -72,3 +73,23 @@ model AuditLog {
   user      String
   action    String
 }
+
+model UserAddress {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  phone         String
+  region        String
+  details       String
+  isDefault     Boolean  @default(false)
+  lat           Float?
+  lng           Float?
+  ghnDistrictId Int?
+  ghnWardCode   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
+}
+

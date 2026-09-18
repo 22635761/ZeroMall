@@ -155,6 +155,21 @@ export class PaymentController {
     return this.paymentService.cancelEscrow(orderId);
   }
 
+  @Post('escrow/:orderId/freeze')
+  async freezeEscrow(@Param('orderId') orderId: string) {
+    return this.paymentService.freezeEscrow(orderId);
+  }
+
+  @Post('escrow/:orderId/unfreeze')
+  async unfreezeEscrow(@Param('orderId') orderId: string) {
+    return this.paymentService.unfreezeEscrow(orderId);
+  }
+
+  @Post('return-refund')
+  async processReturnRefund(@Body() body: { orderId: string; buyerId: string; shopId: string; refundAmount: number; reason?: string }) {
+    return this.paymentService.processReturnRefund(body);
+  }
+
   @Get('escrow/:orderId')
   async getEscrowStatus(@Param('orderId') orderId: string) {
     return this.paymentService.getEscrowStatus(orderId);

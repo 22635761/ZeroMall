@@ -30,12 +30,15 @@ model User {
   ownedShop Shop? @relation("ShopOwner")
 
   // Các shop người dùng này theo dõi
-  follows ShopFollow[]
+  follows   ShopFollow[]
+  addresses UserAddress[]
 }
 
 model Shop {
   id               String   @id @default(uuid())
   name             String
+  logo             String?
+  description      String?
   ownerId          String   @unique
   owner            User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
   staff            User[]   @relation("ShopStaff")
@@ -69,4 +72,23 @@ model AuditLog {
   timestamp DateTime @default(now())
   user      String
   action    String
+}
+
+model UserAddress {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name          String
+  phone         String
+  region        String
+  details       String
+  isDefault     Boolean  @default(false)
+  lat           Float?
+  lng           Float?
+  ghnDistrictId Int?
+  ghnWardCode   String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId])
 }

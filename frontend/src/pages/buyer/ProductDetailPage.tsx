@@ -84,7 +84,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             video: p.video || '',
             category: p.category,
             brand: p.brand,
-            shopId: p.shopId
+            shopId: p.shopId,
+            weight: p.weight,
+            length: p.length,
+            width: p.width,
+            height: p.height
           })
         }
       } catch (e) {
@@ -542,7 +546,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           />
         </div>
 
-        <ShopTopProductsSidebar />
+        <ShopTopProductsSidebar shopId={product?.shopId} currentProductId={product?.id} />
       </div>
 
       {/* Dynamic Flying Items Animation */}

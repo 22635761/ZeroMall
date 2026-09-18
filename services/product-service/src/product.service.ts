@@ -320,7 +320,7 @@ export class ProductService {
   }
 
   async createReview(productId: string, dto: CreateReviewDto) {
-    return this.prisma.review.create({
+    const review = await this.prisma.review.create({
       data: {
         productId,
         orderId: dto.orderId,
@@ -331,6 +331,37 @@ export class ProductService {
         images: dto.images,
       },
     });
+
+    // Tạo thông báo cho Shop khi có đánh giá mới
+    try {
+      const product = await this.prisma.product.findUnique({
+        where: { id: productId },
+        select: { name: true, shopId: true },
+      });
+
+      if (product?.shopId) {
+        const notifServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3006';
+        const stars = '⭐'.repeat(dto.rating || 5);
+        const reviewer = dto.username || 'Khách hàng';
+        const shortComment = dto.comment ? ` - "${dto.comment.slice(0, 60)}..."` : '';
+
+        fetch(`${notifServiceUrl}/notifications`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: product.shopId,
+            title: `Đánh giá mới ${stars}`,
+            content: `${reviewer} vừa đánh giá ${dto.rating} sao cho sản phẩm "${product.name}"${shortComment}`,
+            type: 'SYSTEM',
+            metadata: { action: 'VIEW_REVIEWS', productId, reviewId: review.id },
+          }),
+        }).catch((err) => console.error('Error sending review notification to shop:', err));
+      }
+    } catch (notifErr) {
+      console.error('Failed to trigger review notification:', notifErr);
+    }
+
+    return review;
   }
 
   async getShopStats(shopId: string) {

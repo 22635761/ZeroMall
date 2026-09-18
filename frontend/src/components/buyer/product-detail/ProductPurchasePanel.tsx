@@ -144,7 +144,29 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
             </div>
             <div className="flex gap-4 text-slate-500 pl-7">
               <span className="w-16">Phí vận chuyển</span>
-              <span className="font-semibold text-slate-700">16.500đ - 32.000đ</span>
+              {(() => {
+                const pWeight = parseFloat(String(product.weight || 0)) || 0
+                const pL = parseFloat(String(product.length || 0)) || 0
+                const pW = parseFloat(String(product.width || 0)) || 0
+                const pH = parseFloat(String(product.height || 0)) || 0
+                const volWeight = (pL > 0 && pW > 0 && pH > 0) ? Math.round((pL * pW * pH) / 5) : 0
+                const cw = Math.max(pWeight, volWeight)
+                let fee = 22000
+                if (cw > 500) {
+                  const extra = Math.ceil((cw - 500) / 500)
+                  fee += extra * 5000
+                }
+                return (
+                  <span className="font-semibold text-slate-700 flex items-center gap-1.5">
+                    <span>{fee.toLocaleString('vi-VN')}đ</span>
+                    {cw > 500 && (
+                      <span className="text-[10px] text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded font-bold">
+                        Hàng cồng kềnh {(cw / 1000).toFixed(2)}kg
+                      </span>
+                    )}
+                  </span>
+                )
+              })()}
             </div>
           </div>
         </div>

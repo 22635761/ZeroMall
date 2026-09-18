@@ -139,6 +139,8 @@ exports.Prisma.UserScalarFieldEnum = {
 exports.Prisma.ShopScalarFieldEnum = {
   id: 'id',
   name: 'name',
+  logo: 'logo',
+  description: 'description',
   ownerId: 'ownerId',
   responseRate: 'responseRate',
   responseTime: 'responseTime',
@@ -165,6 +167,22 @@ exports.Prisma.AuditLogScalarFieldEnum = {
   action: 'action'
 };
 
+exports.Prisma.UserAddressScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  phone: 'phone',
+  region: 'region',
+  details: 'details',
+  isDefault: 'isDefault',
+  lat: 'lat',
+  lng: 'lng',
+  ghnDistrictId: 'ghnDistrictId',
+  ghnWardCode: 'ghnWardCode',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -185,7 +203,8 @@ exports.Prisma.ModelName = {
   User: 'User',
   Shop: 'Shop',
   ShopFollow: 'ShopFollow',
-  AuditLog: 'AuditLog'
+  AuditLog: 'AuditLog',
+  UserAddress: 'UserAddress'
 };
 
 /**

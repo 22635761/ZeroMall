@@ -26,6 +26,7 @@ export interface Order {
   platformVoucherCode?: string | null
   appliedVoucherIds?: string | null
   commissionRate?: number
+  trackingCode?: string
   ghnDistrictId?: number
   ghnWardCode?: string
   ghnOrderCode?: string

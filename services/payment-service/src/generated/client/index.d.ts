@@ -8346,10 +8346,11 @@ export namespace Prisma {
 
   export type EscrowTransactionWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    orderId?: string
+    orderId_shopId?: EscrowTransactionOrderIdShopIdCompoundUniqueInput
     AND?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
     OR?: EscrowTransactionWhereInput[]
     NOT?: EscrowTransactionWhereInput | EscrowTransactionWhereInput[]
+    orderId?: StringFilter<"EscrowTransaction"> | string
     shopId?: StringFilter<"EscrowTransaction"> | string
     amount?: FloatFilter<"EscrowTransaction"> | number
     commissionRate?: FloatFilter<"EscrowTransaction"> | number
@@ -8357,7 +8358,7 @@ export namespace Prisma {
     releaseAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
     createdAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
     updatedAt?: DateTimeFilter<"EscrowTransaction"> | Date | string
-  }, "id" | "orderId">
+  }, "id" | "orderId_shopId">
 
   export type EscrowTransactionOrderByWithAggregationInput = {
     id?: SortOrder
@@ -9128,6 +9129,11 @@ export namespace Prisma {
   export type SystemConfigMinOrderByAggregateInput = {
     key?: SortOrder
     value?: SortOrder
+  }
+
+  export type EscrowTransactionOrderIdShopIdCompoundUniqueInput = {
+    orderId: string
+    shopId: string
   }
 
   export type EscrowTransactionCountOrderByAggregateInput = {

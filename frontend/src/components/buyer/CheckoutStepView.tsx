@@ -26,6 +26,7 @@ interface CheckoutStepViewProps {
   insuranceTotal: number
   finalShippingFee: number
   shopShippingFees: Record<string, number>
+  shopPackageInfos?: Record<string, { weightKg: number; isBulky: boolean; itemCount: number }>
   voucherDiscount: number
   shopVoucherDiscountTotal: number
   grandTotal: number
@@ -63,6 +64,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
   insuranceTotal,
   finalShippingFee,
   shopShippingFees,
+  shopPackageInfos,
   voucherDiscount,
   shopVoucherDiscountTotal,
   grandTotal,
@@ -299,29 +301,52 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
 
               {/* Shop Shipping Fee Row - PER SHOP (Shopee style) */}
               <div className="px-6 py-4 border-t border-slate-100 bg-slate-50/30">
-                <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center text-sm">
-                  <div className="flex items-center gap-3">
-                    <span className="text-lg">🚚</span>
-                    <div className="space-y-0.5">
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-700 text-xs sm:text-sm">Phương thức vận chuyển:</span>
-                        <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded">
-                          Nhanh
-                        </span>
+                {(() => {
+                  const pkgInfo = shopPackageInfos?.[shopId]
+                  return (
+                    <div className="space-y-1.5">
+                      <div className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center text-sm">
+                        <div className="flex items-center gap-3">
+                          <span className="text-lg">🚚</span>
+                          <div className="space-y-0.5">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-bold text-slate-700 text-xs sm:text-sm">Phương thức vận chuyển:</span>
+                              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded">
+                                Nhanh
+                              </span>
+                              {pkgInfo && (
+                                <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                  <span>📦</span> Kiện gộp: {pkgInfo.weightKg} kg
+                                </span>
+                              )}
+                              {pkgInfo?.isBulky && (
+                                <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded">
+                                  Hàng cồng kềnh
+                                </span>
+                              )}
+                            </div>
+                            {shopPickupLocation && (
+                              <p className="text-[10px] text-slate-400 font-medium">
+                                Gửi từ: {shopPickupLocation}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-black text-slate-800">
+                            {formatPrice(shopShipFee)}
+                          </span>
+                        </div>
                       </div>
-                      {shopPickupLocation && (
-                        <p className="text-[10px] text-slate-400 font-medium">
-                          Gửi từ: {shopPickupLocation}
+
+                      {pkgInfo && pkgInfo.itemCount > 1 && (
+                        <p className="text-[10px] text-emerald-700 font-medium pl-8">
+                          ✨ Đã gom chung {pkgInfo.itemCount} sản phẩm của shop vào 1 kiện hàng để tối ưu chi phí vận chuyển.
                         </p>
                       )}
                     </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-800">
-                      {formatPrice(shopShipFee)}
-                    </span>
-                  </div>
-                </div>
+                  )
+                })()}
               </div>
 
               {/* Shop Note + Shop Subtotal Footer */}

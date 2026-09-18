@@ -435,11 +435,10 @@ export class OrderService implements OnModuleInit {
       }
     }
 
-    // Khi đơn hàng được xác nhận Trả hàng / Hoàn về Shop thành công, hoàn lại tồn kho cho Shop
+    // Chuẩn Shopee: Hàng trả về KHÔNG tự động nhập lại kho.
+    // Người bán sẽ kiểm tra thực tế tình trạng hàng và chủ động bấm "Nhập kho" hoặc "Ghi nhận tổn thất"
     if (dto.status === 'RETURNED' && exists.status !== 'RETURNED') {
-      if (exists.items && exists.items.length > 0) {
-        await this.rollbackProductStock(exists.items);
-      }
+      console.log(`[OrderService] Order ${exists.id} marked as RETURNED. Stock restock is deferred to Seller decision.`);
     }
 
     // Bắn sự kiện order.updated sang Kafka để gửi thông báo Realtime cho Khách hàng

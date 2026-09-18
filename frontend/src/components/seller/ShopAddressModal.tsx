@@ -1,27 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import { cleanAdminName } from '../../utils/vietnameseTones'
-
-interface GHNProvince {
-  ProvinceID: number
-  ProvinceName: string
-  Code?: string
-  NameExtension?: string[]
-}
-
-interface GHNDistrict {
-  DistrictID: number
-  ProvinceID: number
-  DistrictName: string
-  Code?: string
-  NameExtension?: string[]
-}
-
-interface GHNWard {
-  WardCode: string
-  DistrictID: number
-  WardName: string
-  NameExtension?: string[]
-}
+import type { ProvinceItem, DistrictItem, WardItem } from '../buyer/address/types'
+import vietnamAddressData from '../../data/vietnam-address-tree.json'
+import { fetchCoordinatesByAddress } from '../../services/geocoding.service'
 
 export interface AddressData {
   fullName: string
@@ -30,9 +11,6 @@ export interface AddressData {
   district: string
   ward: string
   detailAddress: string
-  ghnProvinceId?: number
-  ghnDistrictId?: number
-  ghnWardCode?: string
   coordinates?: {
     lat: number
     lng: number
@@ -56,26 +34,25 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
   initialAddress,
   goongApiKey = import.meta.env.VITE_GOONG_API_KEY || ''
 }) => {
-  const ghnToken = import.meta.env.VITE_GHN_TOKEN || '8ce5ea5c-29bd-11f1-85f0-528b13e85476'
-
   // Form states
   const [fullName, setFullName] = useState('')
   const [phoneNumber, setPhoneNumber] = useState('')
   const [detailAddress, setDetailAddress] = useState('')
   const [coordinates, setCoordinates] = useState<{ lat: number; lng: number } | null>(null)
 
-  // GHN Administrative lists & selected IDs
-  const [provinces, setProvinces] = useState<GHNProvince[]>([])
-  const [districts, setDistricts] = useState<GHNDistrict[]>([])
-  const [wards, setWards] = useState<GHNWard[]>([])
+  // Local Vietnam administrative data
+  const provinces = useMemo<ProvinceItem[]>(() => {
+    return (vietnamAddressData as ProvinceItem[]).sort((a, b) =>
+      a.name.localeCompare(b.name, 'vi')
+    )
+  }, [])
 
-  const [selectedProvinceId, setSelectedProvinceId] = useState<number | ''>('')
-  const [selectedDistrictId, setSelectedDistrictId] = useState<number | ''>('')
-  const [selectedWardCode, setSelectedWardCode] = useState<string>('')
+  const [districts, setDistricts] = useState<DistrictItem[]>([])
+  const [wards, setWards] = useState<WardItem[]>([])
 
-  const [loadingProvinces, setLoadingProvinces] = useState(false)
-  const [loadingDistricts, setLoadingDistricts] = useState(false)
-  const [loadingWards, setLoadingWards] = useState(false)
+  const [selectedProvinceCode, setSelectedProvinceCode] = useState<number | ''>('')
+  const [selectedDistrictCode, setSelectedDistrictCode] = useState<number | ''>('')
+  const [selectedWardCode, setSelectedWardCode] = useState<number | ''>('')
 
   // Goong autocomplete states
   const [searchQuery, setSearchQuery] = useState('')
@@ -84,14 +61,10 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
 
   // Map Modal states
   const [isMapModalOpen, setIsMapModalOpen] = useState(false)
-  const [mapSearchQuery, setMapSearchQuery] = useState('')
-  const [mapSuggestions, setMapSuggestions] = useState<any[]>([])
-  const [mapSearchLoading, setMapSearchLoading] = useState(false)
   const [selectedMapCoords, setSelectedMapCoords] = useState<{ lat: number; lng: number }>({ lat: 10.762622, lng: 106.660172 })
   const [selectedMapAddress, setSelectedMapAddress] = useState('')
   const [selectedMapCompound, setSelectedMapCompound] = useState<{ province: string; district: string; ward: string; detail: string }>({ province: '', district: '', ward: '', detail: '' })
   const [mapInstance, setMapInstance] = useState<any>(null)
-  const [mapMarker, setMapMarker] = useState<any>(null)
 
   const isMounted = useRef(true)
   useEffect(() => {
@@ -99,35 +72,41 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
     return () => { isMounted.current = false }
   }, [])
 
-  // 1. Tải danh sách 63 Tỉnh/Thành phố từ GHN Master Data khi mở modal
-  useEffect(() => {
-    if (!isOpen) return
+  // Helper tìm và đồng bộ Tỉnh/Huyện/Xã từ chuỗi địa chỉ
+  const autoMatchAddressComponents = (provName: string, distName: string, wardName: string, detailStr?: string) => {
+    if (detailStr) setDetailAddress(detailStr)
 
-    const fetchProvinces = async () => {
-      setLoadingProvinces(true)
-      try {
-        const res = await fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/province', {
-          headers: { 'Token': ghnToken }
-        })
-        const json = await res.json()
-        if (json.code === 200 && Array.isArray(json.data)) {
-          // Sắp xếp tiếng Việt theo thứ tự bảng chữ cái
-          const sorted = [...json.data].sort((a: GHNProvince, b: GHNProvince) => 
-            a.ProvinceName.localeCompare(b.ProvinceName, 'vi')
-          )
-          if (isMounted.current) setProvinces(sorted)
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải danh sách Tỉnh/Thành phố từ GHN:', err)
-      } finally {
-        if (isMounted.current) setLoadingProvinces(false)
-      }
+    const cleanP = cleanAdminName(provName)
+    const cleanD = cleanAdminName(distName)
+    const cleanW = cleanAdminName(wardName)
+
+    const matchedP = provinces.find(p => cleanAdminName(p.name) === cleanP)
+    if (!matchedP) return
+    setSelectedProvinceCode(matchedP.code)
+
+    const sortedDistricts = [...matchedP.districts].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+    setDistricts(sortedDistricts)
+
+    const matchedD = sortedDistricts.find(d => cleanAdminName(d.name) === cleanD)
+    if (!matchedD) {
+      setSelectedDistrictCode('')
+      setWards([])
+      return
     }
+    setSelectedDistrictCode(matchedD.code)
 
-    fetchProvinces()
-  }, [isOpen, ghnToken])
+    const sortedWards = [...matchedD.wards].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+    setWards(sortedWards)
 
-  // 2. Điền thông tin ban đầu nếu có (khi edit hoặc mở lại)
+    const matchedW = sortedWards.find(w => cleanAdminName(w.name) === cleanW)
+    if (matchedW) {
+      setSelectedWardCode(matchedW.code)
+    } else {
+      setSelectedWardCode('')
+    }
+  }
+
+  // Điền thông tin ban đầu nếu có
   useEffect(() => {
     if (!isOpen) return
     if (initialAddress) {
@@ -135,171 +114,87 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
       setPhoneNumber(initialAddress.phoneNumber || '')
       setDetailAddress(initialAddress.detailAddress || '')
       setCoordinates(initialAddress.coordinates || null)
-      if (initialAddress.ghnProvinceId) {
-        setSelectedProvinceId(initialAddress.ghnProvinceId)
+      if (initialAddress.province) {
+        autoMatchAddressComponents(
+          initialAddress.province,
+          initialAddress.district || '',
+          initialAddress.ward || ''
+        )
       }
     } else {
       setFullName('')
       setPhoneNumber('')
       setDetailAddress('')
       setCoordinates(null)
-      setSelectedProvinceId('')
-      setSelectedDistrictId('')
+      setSelectedProvinceCode('')
+      setSelectedDistrictCode('')
       setSelectedWardCode('')
+      setDistricts([])
+      setWards([])
     }
   }, [isOpen, initialAddress])
 
-  // 3. Khi Tỉnh/Thành phố thay đổi -> Tải danh sách Quận/Huyện của Tỉnh đó
-  useEffect(() => {
-    if (!selectedProvinceId) {
+  // Khi người dùng đổi Tỉnh / TP
+  const handleSelectProvince = async (provCode: number | '') => {
+    setSelectedProvinceCode(provCode)
+    setSelectedDistrictCode('')
+    setSelectedWardCode('')
+
+    if (!provCode) {
       setDistricts([])
-      setSelectedDistrictId('')
       setWards([])
-      setSelectedWardCode('')
       return
     }
 
-    const fetchDistricts = async () => {
-      setLoadingDistricts(true)
-      try {
-        const res = await fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/district', {
-          method: 'POST',
-          headers: { 
-            'Token': ghnToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ province_id: Number(selectedProvinceId) })
-        })
-        const json = await res.json()
-        if (json.code === 200 && Array.isArray(json.data)) {
-          const sorted = [...json.data].sort((a: GHNDistrict, b: GHNDistrict) => 
-            a.DistrictName.localeCompare(b.DistrictName, 'vi')
-          )
-          if (isMounted.current) {
-            setDistricts(sorted)
-            // Nếu initialAddress có district khớp, tự động chọn
-            if (initialAddress?.ghnDistrictId) {
-              const matched = sorted.find(d => d.DistrictID === initialAddress.ghnDistrictId)
-              if (matched) setSelectedDistrictId(matched.DistrictID)
-            } else if (initialAddress?.district) {
-              const cleanInitDist = cleanAdminName(initialAddress.district)
-              const matched = sorted.find(d => cleanAdminName(d.DistrictName) === cleanInitDist)
-              if (matched) setSelectedDistrictId(matched.DistrictID)
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải danh sách Quận/Huyện từ GHN:', err)
-      } finally {
-        if (isMounted.current) setLoadingDistricts(false)
+    const prov = provinces.find(p => p.code === provCode)
+    if (prov) {
+      const sorted = [...prov.districts].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+      setDistricts(sorted)
+      setWards([])
+      const coords = await fetchCoordinatesByAddress(`${prov.name}, Việt Nam`, goongApiKey)
+      if (coords) {
+        setCoordinates(coords)
+        setSelectedMapCoords(coords)
       }
     }
+  }
 
-    fetchDistricts()
-  }, [selectedProvinceId, ghnToken])
+  // Khi người dùng đổi Quận / Huyện
+  const handleSelectDistrict = async (distCode: number | '') => {
+    setSelectedDistrictCode(distCode)
+    setSelectedWardCode('')
 
-  // 4. Khi Quận/Huyện thay đổi -> Tải danh sách Phường/Xã của Quận đó
-  useEffect(() => {
-    if (!selectedDistrictId) {
+    if (!distCode) {
       setWards([])
-      setSelectedWardCode('')
       return
     }
 
-    const fetchWards = async () => {
-      setLoadingWards(true)
-      try {
-        const res = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${selectedDistrictId}`, {
-          method: 'POST',
-          headers: { 
-            'Token': ghnToken,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ district_id: Number(selectedDistrictId) })
-        })
-        const json = await res.json()
-        if (json.code === 200 && Array.isArray(json.data)) {
-          const sorted = [...json.data].sort((a: GHNWard, b: GHNWard) => 
-            a.WardName.localeCompare(b.WardName, 'vi')
-          )
-          if (isMounted.current) {
-            setWards(sorted)
-            if (initialAddress?.ghnWardCode) {
-              const matched = sorted.find(w => w.WardCode === initialAddress.ghnWardCode)
-              if (matched) setSelectedWardCode(matched.WardCode)
-            } else if (initialAddress?.ward) {
-              const cleanInitWard = cleanAdminName(initialAddress.ward)
-              const matched = sorted.find(w => cleanAdminName(w.WardName) === cleanInitWard)
-              if (matched) setSelectedWardCode(matched.WardCode)
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải danh sách Phường/Xã từ GHN:', err)
-      } finally {
-        if (isMounted.current) setLoadingWards(false)
+    const dist = districts.find(d => d.code === distCode)
+    if (dist) {
+      const sorted = [...dist.wards].sort((a, b) => a.name.localeCompare(b.name, 'vi'))
+      setWards(sorted)
+      const provName = provinces.find(p => p.code === selectedProvinceCode)?.name || ''
+      const coords = await fetchCoordinatesByAddress(`${dist.name}, ${provName}, Việt Nam`, goongApiKey)
+      if (coords) {
+        setCoordinates(coords)
+        setSelectedMapCoords(coords)
       }
     }
+  }
 
-    fetchWards()
-  }, [selectedDistrictId, ghnToken])
-
-  // Helper tìm và đồng bộ Tỉnh/Huyện/Xã từ chuỗi địa chỉ (Goong Map / Reverse Geocode)
-  const autoMatchAddressComponents = async (provName: string, distName: string, wardName: string, detailStr?: string) => {
-    if (detailStr) setDetailAddress(detailStr)
-
-    const cleanP = cleanAdminName(provName)
-    const cleanD = cleanAdminName(distName)
-    const cleanW = cleanAdminName(wardName)
-
-    // 1. Tìm Tỉnh trong danh sách provinces
-    const matchedP = provinces.find(p => {
-      if (cleanAdminName(p.ProvinceName) === cleanP) return true
-      return p.NameExtension?.some(ext => cleanAdminName(ext) === cleanP)
-    })
-
-    if (!matchedP) return
-    setSelectedProvinceId(matchedP.ProvinceID)
-
-    // 2. Tải danh sách Quận của Tỉnh này
-    try {
-      const distRes = await fetch('https://online-gateway.ghn.vn/shiip/public-api/master-data/district', {
-        method: 'POST',
-        headers: { 'Token': ghnToken, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ province_id: matchedP.ProvinceID })
-      })
-      const distJson = await distRes.json()
-      if (distJson.code === 200 && Array.isArray(distJson.data)) {
-        setDistricts(distJson.data)
-        const matchedD = distJson.data.find((d: GHNDistrict) => {
-          if (cleanAdminName(d.DistrictName) === cleanD) return true
-          return d.NameExtension?.some((ext: string) => cleanAdminName(ext) === cleanD)
-        })
-
-        if (!matchedD) return
-        setSelectedDistrictId(matchedD.DistrictID)
-
-        // 3. Tải danh sách Phường/Xã của Quận này
-        const wardRes = await fetch(`https://online-gateway.ghn.vn/shiip/public-api/master-data/ward?district_id=${matchedD.DistrictID}`, {
-          method: 'POST',
-          headers: { 'Token': ghnToken, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ district_id: matchedD.DistrictID })
-        })
-        const wardJson = await wardRes.json()
-        if (wardJson.code === 200 && Array.isArray(wardJson.data)) {
-          setWards(wardJson.data)
-          const matchedW = wardJson.data.find((w: GHNWard) => {
-            if (cleanAdminName(w.WardName) === cleanW) return true
-            return w.NameExtension?.some((ext: string) => cleanAdminName(ext) === cleanW)
-          })
-
-          if (matchedW) {
-            setSelectedWardCode(matchedW.WardCode)
-          }
-        }
+  // Khi người dùng đổi Phường / Xã
+  const handleSelectWard = async (wardCode: number | '') => {
+    setSelectedWardCode(wardCode)
+    if (!wardCode) return
+    const ward = wards.find(w => w.code === wardCode)
+    if (ward) {
+      const provName = provinces.find(p => p.code === selectedProvinceCode)?.name || ''
+      const distName = districts.find(d => d.code === selectedDistrictCode)?.name || ''
+      const coords = await fetchCoordinatesByAddress(`${ward.name}, ${distName}, ${provName}, Việt Nam`, goongApiKey)
+      if (coords) {
+        setCoordinates(coords)
+        setSelectedMapCoords(coords)
       }
-    } catch (e) {
-      console.error('Lỗi khi tự động so khớp địa chỉ GHN:', e)
     }
   }
 
@@ -310,30 +205,30 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
       return
     }
 
-    const timer = setTimeout(() => {
+    const timer = setTimeout(async () => {
       setLoadingSuggestions(true)
-      fetch(`https://rsapi.goong.io/Place/AutoComplete?api_key=${goongApiKey}&input=${encodeURIComponent(searchQuery)}`)
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.status === 'OK' && data.predictions) {
-            setSuggestions(data.predictions)
-          } else {
-            setSuggestions([])
-          }
-        })
-        .catch((err) => {
-          console.error('Error Goong autocomplete:', err)
-          setSuggestions([])
-        })
-        .finally(() => setLoadingSuggestions(false))
+      try {
+        const res = await fetch(`https://rsapi.goong.io/Place/AutoComplete?api_key=${goongApiKey}&input=${encodeURIComponent(searchQuery)}`)
+        const data = await res.json()
+        if (data.status === 'OK' && isMounted.current) {
+          setSuggestions(data.predictions || [])
+        }
+      } catch (err) {
+        console.error('Lỗi khi gợi ý địa chỉ:', err)
+      } finally {
+        if (isMounted.current) setLoadingSuggestions(false)
+      }
     }, 350)
 
     return () => clearTimeout(timer)
   }, [searchQuery, goongApiKey])
 
+  // Chọn một địa điểm từ ô tìm kiếm nhanh
   const handleSelectSuggestion = async (placeId: string) => {
-    if (!goongApiKey) return
     setLoadingSuggestions(true)
+    setSuggestions([])
+    setSearchQuery('')
+
     try {
       const res = await fetch(`https://rsapi.goong.io/Place/Detail?api_key=${goongApiKey}&place_id=${placeId}`)
       const data = await res.json()
@@ -341,83 +236,87 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
         const result = data.result
         const compound = result.compound || {}
         
+        const provStr = compound.province || ''
+        const distStr = compound.district || ''
+        const wardStr = compound.commune || ''
+        const fullAddr = result.formatted_address || ''
+
+        autoMatchAddressComponents(provStr, distStr, wardStr, fullAddr)
+
         if (result.geometry?.location) {
           setCoordinates({
             lat: result.geometry.location.lat,
             lng: result.geometry.location.lng
           })
         }
-
-        await autoMatchAddressComponents(
-          compound.province || '',
-          compound.district || '',
-          compound.commune || '',
-          result.formatted_address || ''
-        )
-
-        setSuggestions([])
-        setSearchQuery('')
       }
     } catch (err) {
-      console.error('Error fetching Goong place details:', err)
+      console.error('Lỗi khi lấy chi tiết địa điểm:', err)
     } finally {
-      setLoadingSuggestions(false)
+      if (isMounted.current) setLoadingSuggestions(false)
     }
   }
 
-  // Reverse Geocoding
-  const reverseGeocode = (lat: number, lng: number) => {
-    if (!goongApiKey || goongApiKey === 'YOUR_GOONG_API_KEY_HERE') {
-      setSelectedMapAddress(`Tọa độ: ${lat.toFixed(6)}, ${lng.toFixed(6)}`)
-      return
-    }
+  // Reverse Geocoding khi kéo marker hoặc click bản đồ
+  const reverseGeocode = async (lat: number, lng: number) => {
+    if (!goongApiKey || goongApiKey === 'YOUR_GOONG_API_KEY_HERE') return
 
-    fetch(`https://rsapi.goong.io/Geocode?latlng=${lat},${lng}&api_key=${goongApiKey}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.results && data.results.length > 0) {
-          const first = data.results[0]
-          setSelectedMapAddress(first.formatted_address || '')
-          const compound = first.compound || {}
-          setSelectedMapCompound({
-            province: compound.province || '',
-            district: compound.district || '',
-            ward: compound.commune || '',
-            detail: first.formatted_address || ''
-          })
-        }
-      })
-      .catch((e) => console.error(e))
+    try {
+      const res = await fetch(`https://rsapi.goong.io/Geocode?latlng=${lat},${lng}&api_key=${goongApiKey}`)
+      const data = await res.json()
+      if (data.status === 'OK' && data.results && data.results.length > 0) {
+        const first = data.results[0]
+        const compound = first.compound || {}
+        
+        setSelectedMapAddress(first.formatted_address || '')
+        setSelectedMapCompound({
+          province: compound.province || '',
+          district: compound.district || '',
+          ward: compound.commune || '',
+          detail: first.formatted_address || ''
+        })
+      }
+    } catch (err) {
+      console.error('Lỗi khi định vị tọa độ:', err)
+    }
   }
 
-  // Leaflet Map Modal Initializer
+  // Mở modal bản đồ Leaflet
+  const handleOpenMapPicker = () => {
+    const initLat = coordinates?.lat || 10.762622
+    const initLng = coordinates?.lng || 106.660172
+    setSelectedMapCoords({ lat: initLat, lng: initLng })
+    setIsMapModalOpen(true)
+    reverseGeocode(initLat, initLng)
+  }
+
+  // Khởi tạo bản đồ Leaflet khi map modal mở
   useEffect(() => {
     if (!isMapModalOpen) {
-      setMapInstance(null)
-      setMapMarker(null)
+      if (mapInstance) {
+        mapInstance.remove()
+        setMapInstance(null)
+      }
       return
     }
 
     const timer = setTimeout(() => {
       if (typeof L === 'undefined') return
-      const container = document.getElementById('leaflet-shop-address-map')
+
+      const container = document.getElementById('shop-address-map-picker')
       if (!container) return
 
-      const initCoords = coordinates || { lat: 10.762622, lng: 106.660172 }
-      setSelectedMapCoords(initCoords)
+      const map = L.map(container, { zoomControl: false }).setView([selectedMapCoords.lat, selectedMapCoords.lng], 15)
 
-      const map = L.map('leaflet-shop-address-map', { zoomControl: false }).setView([initCoords.lat, initCoords.lng], 15)
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
       }).addTo(map)
 
       L.control.zoom({ position: 'bottomright' }).addTo(map)
 
-      const marker = L.marker([initCoords.lat, initCoords.lng], { draggable: true }).addTo(map)
-      setMapInstance(map)
-      setMapMarker(marker)
-
-      reverseGeocode(initCoords.lat, initCoords.lng)
+      const marker = L.marker([selectedMapCoords.lat, selectedMapCoords.lng], {
+        draggable: true
+      }).addTo(map)
 
       marker.on('dragend', () => {
         const pos = marker.getLatLng()
@@ -426,23 +325,27 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
       })
 
       map.on('click', (e: any) => {
-        marker.setLatLng(e.latlng)
-        setSelectedMapCoords({ lat: e.latlng.lat, lng: e.latlng.lng })
-        reverseGeocode(e.latlng.lat, e.latlng.lng)
+        const { lat, lng } = e.latlng
+        marker.setLatLng([lat, lng])
+        setSelectedMapCoords({ lat, lng })
+        reverseGeocode(lat, lng)
       })
-    }, 100)
+
+      setMapInstance(map)
+    }, 200)
 
     return () => clearTimeout(timer)
   }, [isMapModalOpen])
 
-  const handleConfirmMapSelection = async () => {
+  // Lưu khi xác nhận ghim vị trí từ bản đồ
+  const handleConfirmMapLocation = () => {
     setCoordinates(selectedMapCoords)
     if (selectedMapCompound.province) {
-      await autoMatchAddressComponents(
+      autoMatchAddressComponents(
         selectedMapCompound.province,
         selectedMapCompound.district,
         selectedMapCompound.ward,
-        selectedMapCompound.detail
+        selectedMapAddress || selectedMapCompound.detail
       )
     } else if (selectedMapAddress) {
       setDetailAddress(selectedMapAddress)
@@ -450,33 +353,35 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
     setIsMapModalOpen(false)
   }
 
-  // Handle Save
-  const handleSave = (e: React.FormEvent) => {
+  // Kiểm tra tính hợp lệ và Submit
+  const handleSaveAddress = (e: React.FormEvent) => {
     e.preventDefault()
 
     if (!fullName.trim()) {
-      alert('Vui lòng nhập Họ & Tên người liên hệ kho!')
+      alert('Vui lòng nhập Tên người liên hệ / Người đại diện kho!')
       return
     }
 
     const cleanPhone = phoneNumber.replace(/[\s\(\)\-\+]/g, '')
-    if (!/^(0|\+?84)\d{9,10}$/.test(cleanPhone)) {
-      alert('Vui lòng nhập Số điện thoại hợp lệ (10 số)!')
+    if (!/^\d{9,12}$/.test(cleanPhone)) {
+      alert('Vui lòng nhập Số điện thoại hợp lệ (9 - 12 chữ số)!')
       return
     }
 
-    if (!selectedProvinceId) {
-      alert('Vui lòng chọn Tỉnh/Thành phố từ danh sách!')
+    const selectedProv = provinces.find(p => p.code === Number(selectedProvinceCode))
+    const selectedDist = districts.find(d => d.code === Number(selectedDistrictCode))
+    const selectedWard = wards.find(w => w.code === Number(selectedWardCode))
+
+    if (!selectedProv) {
+      alert('Vui lòng chọn Tỉnh/Thành phố!')
       return
     }
-
-    if (!selectedDistrictId) {
-      alert('Vui lòng chọn Quận/Huyện từ danh sách!')
+    if (!selectedDist) {
+      alert('Vui lòng chọn Quận/Huyện!')
       return
     }
-
-    if (!selectedWardCode) {
-      alert('Vui lòng chọn Phường/Xã từ danh sách!')
+    if (!selectedWard) {
+      alert('Vui lòng chọn Phường/Xã!')
       return
     }
 
@@ -485,20 +390,13 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
       return
     }
 
-    const selectedProv = provinces.find(p => p.ProvinceID === Number(selectedProvinceId))
-    const selectedDist = districts.find(d => d.DistrictID === Number(selectedDistrictId))
-    const selectedWard = wards.find(w => w.WardCode === selectedWardCode)
-
     onSave({
       fullName: fullName.trim(),
       phoneNumber: cleanPhone,
-      province: selectedProv ? selectedProv.ProvinceName : '',
-      district: selectedDist ? selectedDist.DistrictName : '',
-      ward: selectedWard ? selectedWard.WardName : '',
+      province: selectedProv.name,
+      district: selectedDist.name,
+      ward: selectedWard.name,
       detailAddress: detailAddress.trim(),
-      ghnProvinceId: selectedProv ? selectedProv.ProvinceID : undefined,
-      ghnDistrictId: selectedDist ? selectedDist.DistrictID : undefined,
-      ghnWardCode: selectedWardCode || undefined,
       coordinates: coordinates || undefined
     })
 
@@ -518,55 +416,61 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
               <h2 className="font-extrabold text-base text-slate-800 flex items-center gap-2">
                 <span>📍</span> Thêm Địa Chỉ Lấy Hàng
               </h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">Địa chỉ bưu tá ZMX sẽ đến nhận hàng từ Shop</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Điền thông tin kho hàng để tài xế ZeroMall Express (ZMX) đến nhận kiện hàng
+              </p>
             </div>
             <button 
               type="button"
               onClick={onClose}
-              className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-200/60 transition text-slate-400 hover:text-slate-700 cursor-pointer text-sm font-bold"
+              className="text-slate-400 hover:text-slate-600 p-2 rounded-xl hover:bg-slate-100 transition cursor-pointer text-lg font-bold"
             >
               ✕
             </button>
           </div>
 
-          {/* Modal Body / Form */}
-          <form onSubmit={handleSave} className="p-5 sm:p-6 space-y-4 text-left overflow-y-auto max-h-[75vh]">
+          {/* Modal Body */}
+          <form onSubmit={handleSaveAddress} className="p-5 sm:p-6 space-y-4 max-h-[75vh] overflow-y-auto text-left">
             
-            {/* Goong Autocomplete Search */}
-            {goongApiKey && goongApiKey !== 'YOUR_GOONG_API_KEY_HERE' && (
-              <div className="space-y-1.5 relative">
-                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                  <span>🔎</span> Tìm nhanh bằng bản đồ (Goong Map)
+            {/* Goong Autocomplete Search Bar */}
+            {goongApiKey && goongApiKey !== 'YOUR_GOONG_API_KEY_HERE' ? (
+              <div className="relative space-y-1.5">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  🔎 Tìm nhanh vị trí kho (Goong Map)
                 </label>
-                <input 
-                  type="text" 
-                  placeholder="Nhập tên địa điểm, số nhà, tên đường để tự động điền..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition shadow-3xs"
-                />
-                {loadingSuggestions && (
-                  <div className="absolute right-3.5 top-[30px] w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                )}
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Nhập địa chỉ kho hàng để gợi ý tự động..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs focus:outline-none focus:border-emerald-500 transition shadow-3xs pr-9"
+                  />
+                  {loadingSuggestions && (
+                    <div className="absolute right-3 top-2.5 w-4 h-4 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+                  )}
+                </div>
 
                 {suggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-16 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                  <div className="absolute left-0 right-0 top-14 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
                     {suggestions.map((p) => (
-                      <div 
-                        key={p.place_id} 
+                      <div
+                        key={p.place_id}
                         onClick={() => handleSelectSuggestion(p.place_id)}
-                        className="px-4 py-2.5 hover:bg-emerald-50/50 text-[11px] font-semibold text-slate-700 cursor-pointer transition"
+                        className="px-4 py-2.5 hover:bg-emerald-50 text-xs font-semibold text-slate-700 cursor-pointer transition text-left"
                       >
-                        <span className="font-bold text-emerald-800">{p.structured_formatting.main_text}</span>
-                        <span className="text-slate-400 font-normal ml-1">({p.structured_formatting.secondary_text})</span>
+                        <span className="font-extrabold text-slate-900">{p.structured_formatting.main_text}</span>
+                        {p.structured_formatting.secondary_text && (
+                          <span className="text-slate-400 font-normal ml-1">({p.structured_formatting.secondary_text})</span>
+                        )}
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-            )}
+            ) : null}
 
-            {/* Name & Phone */}
+            {/* Họ tên & Số điện thoại */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
@@ -596,7 +500,7 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
               </div>
             </div>
 
-            {/* 3 CẤP ĐỊA CHỈ HÀNH CHÍNH (TỈNH / QUẬN / PHƯỜNG) - 100% DROPDOWN CHUẨN SHOPEE / GHN */}
+            {/* 3 CẤP ĐỊA CHỈ HÀNH CHÍNH (TỈNH / QUẬN / PHƯỜNG) */}
             <div className="space-y-3 bg-emerald-50/20 p-4 rounded-2xl border border-emerald-100/80">
               <div className="flex items-center justify-between">
                 <p className="text-[10px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
@@ -615,20 +519,14 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
                   </label>
                   <select
                     required
-                    value={selectedProvinceId}
-                    onChange={(e) => {
-                      const val = e.target.value ? Number(e.target.value) : ''
-                      setSelectedProvinceId(val)
-                    }}
-                    disabled={loadingProvinces}
+                    value={selectedProvinceCode}
+                    onChange={(e) => handleSelectProvince(e.target.value ? Number(e.target.value) : '')}
                     className="w-full border border-slate-250 bg-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition cursor-pointer text-slate-800 font-medium"
                   >
-                    <option value="">
-                      {loadingProvinces ? '⏳ Đang tải 63 Tỉnh/Thành...' : '-- Chọn Tỉnh / TP --'}
-                    </option>
+                    <option value="">-- Chọn Tỉnh / TP --</option>
                     {provinces.map((p) => (
-                      <option key={p.ProvinceID} value={p.ProvinceID}>
-                        {p.ProvinceName}
+                      <option key={p.code} value={p.code}>
+                        {p.name}
                       </option>
                     ))}
                   </select>
@@ -641,24 +539,17 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
                   </label>
                   <select
                     required
-                    value={selectedDistrictId}
-                    onChange={(e) => {
-                      const val = e.target.value ? Number(e.target.value) : ''
-                      setSelectedDistrictId(val)
-                    }}
-                    disabled={!selectedProvinceId || loadingDistricts}
-                    className="w-full border border-slate-250 bg-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    value={selectedDistrictCode}
+                    onChange={(e) => handleSelectDistrict(e.target.value ? Number(e.target.value) : '')}
+                    disabled={!selectedProvinceCode}
+                    className="w-full border border-slate-250 bg-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500 transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   >
                     <option value="">
-                      {!selectedProvinceId 
-                        ? '-- Chọn Tỉnh/TP trước --' 
-                        : loadingDistricts 
-                          ? '⏳ Đang tải Quận/Huyện...' 
-                          : '-- Chọn Quận / Huyện --'}
+                      {!selectedProvinceCode ? '-- Chọn Tỉnh/TP trước --' : '-- Chọn Quận / Huyện --'}
                     </option>
                     {districts.map((d) => (
-                      <option key={d.DistrictID} value={d.DistrictID}>
-                        {d.DistrictName}
+                      <option key={d.code} value={d.code}>
+                        {d.name}
                       </option>
                     ))}
                   </select>
@@ -672,20 +563,16 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
                   <select
                     required
                     value={selectedWardCode}
-                    onChange={(e) => setSelectedWardCode(e.target.value)}
-                    disabled={!selectedDistrictId || loadingWards}
-                    className="w-full border border-slate-250 bg-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+                    onChange={(e) => handleSelectWard(e.target.value ? Number(e.target.value) : '')}
+                    disabled={!selectedDistrictCode}
+                    className="w-full border border-slate-250 bg-white rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-emerald-500 transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
                   >
                     <option value="">
-                      {!selectedDistrictId 
-                        ? '-- Chọn Quận/Huyện trước --' 
-                        : loadingWards 
-                          ? '⏳ Đang tải Phường/Xã...' 
-                          : '-- Chọn Phường / Xã --'}
+                      {!selectedDistrictCode ? '-- Chọn Quận/Huyện trước --' : '-- Chọn Phường / Xã --'}
                     </option>
                     {wards.map((w) => (
-                      <option key={w.WardCode} value={w.WardCode}>
-                        {w.WardName}
+                      <option key={w.code} value={w.code}>
+                        {w.name}
                       </option>
                     ))}
                   </select>
@@ -716,181 +603,97 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
                 <p className="text-slate-400">
                   {coordinates 
                     ? `Tọa độ: ${coordinates.lat.toFixed(5)}, ${coordinates.lng.toFixed(5)}` 
-                    : 'Ghim vị trí chính xác để Shipper tìm kho nhanh hơn'}
+                    : 'Ghim vị trí chính xác để Shipper ZMX tìm kho nhanh hơn'}
                 </p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsMapModalOpen(true)}
-                  className="bg-white border border-slate-250 text-slate-700 hover:text-emerald-600 hover:border-emerald-500/50 px-3 py-1.5 rounded-xl text-[10px] font-extrabold transition cursor-pointer flex items-center gap-1 shadow-3xs"
-                >
-                  🗺️ Ghim bản đồ
-                </button>
-                {coordinates ? (
-                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-2.5 py-1.5 rounded-xl text-[9px] font-black uppercase flex items-center justify-center">
-                    ✓ Đã có GPS
-                  </span>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.geolocation.getCurrentPosition(
-                        (pos) => {
-                          setCoordinates({
-                            lat: pos.coords.latitude,
-                            lng: pos.coords.longitude
-                          })
-                        },
-                        () => {
-                          setCoordinates({
-                            lat: 10.762622 + (Math.random() - 0.5) * 0.05,
-                            lng: 106.660172 + (Math.random() - 0.5) * 0.05
-                          })
-                        }
-                      )
-                    }}
-                    className="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-1.5 rounded-xl text-[10px] font-extrabold transition cursor-pointer shadow-3xs"
-                  >
-                    Định vị GPS
-                  </button>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={handleOpenMapPicker}
+                className="px-3 py-1.5 bg-white border border-emerald-500 text-emerald-600 rounded-xl text-xs font-bold hover:bg-emerald-50 transition cursor-pointer shadow-3xs"
+              >
+                {coordinates ? 'Thay Đổi Ghim' : '🗺️ Ghim Trên Bản Đồ'}
+              </button>
             </div>
 
-            {/* Modal Footer */}
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            {/* Submit & Cancel buttons */}
+            <div className="pt-2 flex justify-end gap-3 border-t border-slate-100">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-5 py-2.5 rounded-xl border border-slate-250 font-bold text-xs hover:bg-slate-50 transition cursor-pointer text-slate-600"
+                className="px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
               >
                 Hủy
               </button>
               <button
                 type="submit"
-                className="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl font-bold text-xs shadow-md transition cursor-pointer"
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
               >
-                Lưu lại
+                Lưu Địa Chỉ
               </button>
             </div>
+
           </form>
         </div>
       </div>
 
-      {/* --- SELECT LOCATION ON MAP MODAL --- */}
+      {/* --- LEAFLET INTERACTIVE MAP MODAL --- */}
       {isMapModalOpen && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-[120] p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col h-[75vh] relative animate-in zoom-in-95 duration-200 text-left">
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center z-[110] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-slate-100 flex flex-col h-[85vh] animate-in zoom-in-95 duration-200">
             
-            {/* Modal Header */}
-            <div className="p-4 border-b border-slate-100 flex justify-between items-center relative bg-white shrink-0">
-              <h3 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
-                <span>🗺️</span> Chọn vị trí kho hàng trên bản đồ
-              </h3>
-              <button 
+            {/* Map Header */}
+            <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <div>
+                <h3 className="font-extrabold text-sm text-slate-800 flex items-center gap-1.5">
+                  <span>🗺️</span> Chọn Vị Trí Ghim Kho Hàng
+                </h3>
+                <p className="text-[11px] text-slate-400">
+                  Kéo thả ghim đỏ hoặc click trực tiếp vào vị trí chính xác của kho trên bản đồ
+                </p>
+              </div>
+              <button
                 type="button"
                 onClick={() => setIsMapModalOpen(false)}
-                className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 transition text-slate-400 hover:text-slate-600 cursor-pointer font-bold"
+                className="text-slate-400 hover:text-slate-600 p-1.5 rounded-xl hover:bg-slate-100 text-sm font-bold cursor-pointer"
               >
                 ✕
               </button>
             </div>
 
-            {/* Map Container */}
-            <div className="flex-1 relative bg-slate-100 h-full overflow-hidden">
-              <div id="leaflet-shop-address-map" className="w-full h-full z-10"></div>
-
-              {/* Absolute Search Positioned inside Map */}
-              <div className="absolute top-4 left-4 z-20 w-72 sm:w-80">
-                <div className="relative shadow-md rounded-xl overflow-hidden border border-slate-200">
-                  <input 
-                    type="text" 
-                    placeholder="Tìm kiếm địa chỉ trên bản đồ..."
-                    value={mapSearchQuery}
-                    onChange={(e) => setMapSearchQuery(e.target.value)}
-                    className="w-full bg-white rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500 transition pr-8 text-slate-800"
-                  />
-                  {mapSearchLoading && (
-                    <div className="absolute right-3 top-3 w-3.5 h-3.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
-                  )}
-                </div>
-
-                {mapSuggestions.length > 0 && (
-                  <div className="absolute left-0 right-0 top-12 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
-                    {mapSuggestions.map((p) => (
-                      <div 
-                        key={p.place_id} 
-                        onClick={async () => {
-                          if (!goongApiKey) return
-                          setMapSearchLoading(true)
-                          try {
-                            const res = await fetch(`https://rsapi.goong.io/Place/Detail?api_key=${goongApiKey}&place_id=${p.place_id}`)
-                            const data = await res.json()
-                            if (data.status === 'OK' && data.result) {
-                              const result = data.result
-                              const compound = result.compound || {}
-                              setSelectedMapCompound({
-                                province: compound.province || '',
-                                district: compound.district || '',
-                                ward: compound.commune || '',
-                                detail: result.formatted_address || ''
-                              })
-                              setSelectedMapAddress(result.formatted_address || '')
-                              if (result.geometry?.location) {
-                                const loc = {
-                                  lat: result.geometry.location.lat,
-                                  lng: result.geometry.location.lng
-                                }
-                                setSelectedMapCoords(loc)
-                                if (mapInstance && mapMarker) {
-                                  mapInstance.setView([loc.lat, loc.lng], 16)
-                                  mapMarker.setLatLng([loc.lat, loc.lng])
-                                }
-                              }
-                            }
-                          } catch (err) {
-                            console.error(err)
-                          } finally {
-                            setMapSearchLoading(false)
-                            setMapSuggestions([])
-                            setMapSearchQuery('')
-                          }
-                        }}
-                        className="px-4 py-2.5 hover:bg-slate-50 text-[11px] font-semibold text-slate-700 cursor-pointer transition text-left"
-                      >
-                        <span className="font-bold text-slate-800">{p.structured_formatting.main_text}</span>
-                        <span className="text-slate-400 font-normal ml-1">({p.structured_formatting.secondary_text})</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
+            {/* Leaflet Map Canvas */}
+            <div className="flex-1 relative">
+              <div id="shop-address-map-picker" className="w-full h-full" />
             </div>
 
-            {/* Map Footer */}
-            <div className="p-4 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white shrink-0">
-              <div className="text-xs">
-                <p className="font-bold text-slate-700 truncate max-w-sm">{selectedMapAddress || 'Đang xác định địa chỉ...'}</p>
-                <p className="text-[10px] text-slate-400 font-mono">Tọa độ: {selectedMapCoords.lat.toFixed(6)}, {selectedMapCoords.lng.toFixed(6)}</p>
+            {/* Selected Address Preview & Footer */}
+            <div className="p-4 bg-white border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3 text-left">
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Vị trí đang ghim:</p>
+                <p className="text-xs font-bold text-slate-800 truncate">
+                  {selectedMapAddress || 'Đang cập nhật địa chỉ...'}
+                </p>
+                <p className="text-[10px] text-emerald-600 font-semibold">
+                  Tọa độ: {selectedMapCoords.lat.toFixed(6)}, {selectedMapCoords.lng.toFixed(6)}
+                </p>
               </div>
-              <div className="flex gap-2 w-full sm:w-auto justify-end">
+              <div className="flex gap-2 w-full sm:w-auto">
                 <button
                   type="button"
                   onClick={() => setIsMapModalOpen(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold hover:bg-slate-50 transition cursor-pointer"
+                  className="flex-1 sm:flex-none px-4 py-2 border border-slate-200 text-slate-500 rounded-xl text-xs font-bold hover:bg-slate-50 cursor-pointer"
                 >
                   Hủy
                 </button>
                 <button
                   type="button"
-                  onClick={handleConfirmMapSelection}
-                  className="bg-emerald-600 hover:bg-emerald-500 text-white px-5 py-2 rounded-xl text-xs font-bold transition shadow-md cursor-pointer"
+                  onClick={handleConfirmMapLocation}
+                  className="flex-1 sm:flex-none px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm cursor-pointer"
                 >
-                  Xác nhận địa điểm
+                  Xác Nhận Vị Trí Này
                 </button>
               </div>
             </div>
+
           </div>
         </div>
       )}

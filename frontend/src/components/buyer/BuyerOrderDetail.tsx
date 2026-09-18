@@ -3,6 +3,8 @@ import type { Order } from '../../models/order.model'
 import { formatOrderId } from '../../utils/orderUtils'
 import { LiveMapTracking } from '../delivery/LiveMapTracking'
 import { API_BASE_URL } from '../../config/api.config'
+import { returnService, type ReturnData } from '../../services/return.service'
+import { ReturnTrackingView } from './ReturnTrackingView'
 
 interface BuyerOrderDetailProps {
   order: Order
@@ -42,6 +44,26 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
   const [loadingTracking, setLoadingTracking] = useState(false)
   const [showFullLogs, setShowFullLogs] = useState(false)
   const [showLiveMapModal, setShowLiveMapModal] = useState(false)
+  const [returnData, setReturnData] = useState<ReturnData | null>(null)
+  const [showReturnView, setShowReturnView] = useState(false)
+
+  const fetchReturn = async () => {
+    try {
+      const returns = await returnService.getReturns({ orderId: order.id })
+      if (returns && returns.length > 0) {
+        setReturnData(returns[0])
+        setShowReturnView(true)
+      } else {
+        setReturnData(null)
+      }
+    } catch (e) {
+      console.error('Failed to fetch return data for order detail:', e)
+    }
+  }
+
+  useEffect(() => {
+    fetchReturn()
+  }, [order.id])
 
   // Fetch ZMX tracking info
   useEffect(() => {
@@ -130,6 +152,10 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
         return { text: 'ĐƠN HÀNG ĐÃ HOÀN THÀNH', color: 'text-[#ee4d2d]' }
       case 'CANCELLED':
         return { text: 'ĐÃ HỦY ĐƠN HÀNG', color: 'text-slate-500' }
+      case 'RETURN_REQUESTED':
+        return { text: 'ĐANG XỬ LÝ TRẢ HÀNG / HOÀN TIỀN', color: 'text-amber-600' }
+      case 'RETURNED':
+        return { text: 'ĐÃ TRẢ HÀNG / HOÀN TIỀN', color: 'text-purple-600' }
       default:
         return { text: order.status, color: 'text-slate-700' }
     }
@@ -156,6 +182,40 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Return Request Banner & View if exists */}
+      {returnData && (
+        <div className="space-y-4">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-xl p-4 flex flex-wrap items-center justify-between gap-3 shadow-xs">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">🔄</span>
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs font-bold text-amber-900">
+                    Yêu Cầu Trả Hàng / Hoàn Tiền #{returnData.returnNumber || returnData.id.slice(0, 8)}
+                  </p>
+                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900">
+                    {returnData.status}
+                  </span>
+                </div>
+                <p className="text-[11px] text-amber-800 mt-0.5">
+                  Số tiền yêu cầu hoàn: <strong className="text-rose-600 font-bold">{formatMoney(returnData.refundAmount)}</strong> • Phương án: <span className="font-semibold">{returnData.resolution === 'REFUND_ONLY' ? 'Hoàn tiền ngay (không trả hàng)' : 'Trả hàng & Hoàn tiền'}</span>
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowReturnView(!showReturnView)}
+              className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded text-xs font-bold transition cursor-pointer shadow-xs"
+            >
+              {showReturnView ? 'Thu gọn tiến trình hoàn' : 'Chi tiết tiến trình trả hàng'}
+            </button>
+          </div>
+
+          {showReturnView && (
+            <ReturnTrackingView returnData={returnData} onRefresh={fetchReturn} />
+          )}
+        </div>
+      )}
 
       {/* 2. Timeline Step Progress Bar (Shopee 5-step Style) */}
       {order.status !== 'CANCELLED' && (
@@ -546,7 +606,14 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
               </button>
             )}
 
-            {(order.status === 'DELIVERED' || order.status === 'COMPLETED') && (
+            {returnData ? (
+              <button
+                onClick={() => setShowReturnView(true)}
+                className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 text-xs font-bold rounded-sm transition cursor-pointer flex items-center gap-1.5"
+              >
+                <span>🔄</span> Xem Chi Tiết Trả Hàng
+              </button>
+            ) : (order.status === 'DELIVERED' || order.status === 'COMPLETED') && (
               <button
                 onClick={() => onOpenRefund(order)}
                 className="px-4 py-2 border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-medium rounded-sm transition cursor-pointer"

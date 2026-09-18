@@ -6,21 +6,59 @@ import type { Order } from '../../models/order.model'
 interface ShopRevenueProps {
   user: any
   token: string
+  shopDetails?: any
 }
 
-export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token }) => {
+export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetails }) => {
   const shopId = user?.shopId || ''
 
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [commissionRate, setCommissionRate] = useState<number>(5)
   const now = new Date()
-  const [filterMode, setFilterMode] = useState<'MONTH_YEAR' | 'ALL'>('MONTH_YEAR')
-  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1)
+  
+  // Mặc định tự động vào trang là xem "TẤT CẢ" (ALL)
+  const [selectedMonth, setSelectedMonth] = useState<string>('ALL')
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear())
   const [activeTab, setActiveTab] = useState<'ALL' | 'RELEASED' | 'HELD' | 'IN_TRANSIT' | 'CANCELLED'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null)
+
+  // Xác định ngày Shop tạo tài khoản để giới hạn dải Tháng/Năm
+  const shopCreatedDate = useMemo(() => {
+    const rawDate = shopDetails?.createdAt || user?.createdAt
+    if (rawDate) {
+      const parsed = new Date(rawDate)
+      if (!isNaN(parsed.getTime())) return parsed
+    }
+    return now
+  }, [shopDetails?.createdAt, user?.createdAt])
+
+  const startYear = shopCreatedDate.getFullYear()
+  const startMonth = shopCreatedDate.getMonth() + 1
+  const currentYear = now.getFullYear()
+  const currentMonth = now.getMonth() + 1
+
+  // Danh sách các Năm hợp lệ từ năm tạo shop đến năm hiện tại
+  const availableYears = useMemo(() => {
+    const years: number[] = []
+    for (let y = startYear; y <= currentYear; y++) {
+      years.push(y)
+    }
+    return years
+  }, [startYear, currentYear])
+
+  // Danh sách các Tháng hợp lệ theo Năm đang chọn
+  const availableMonths = useMemo(() => {
+    const months: number[] = []
+    const minM = selectedYear === startYear ? startMonth : 1
+    const maxM = selectedYear === currentYear ? currentMonth : 12
+
+    for (let m = minM; m <= maxM; m++) {
+      months.push(m)
+    }
+    return months
+  }, [selectedYear, startYear, startMonth, currentYear, currentMonth])
 
   // Fetch orders and commission rate
   useEffect(() => {
@@ -49,14 +87,15 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token }) => {
     fetchData()
   }, [shopId, token])
 
-  // Filter orders by Month & Year from Database
+  // Filter orders: 'ALL' -> Toàn bộ; hoặc theo tháng & năm đã chọn
   const dateFilteredOrders = useMemo(() => {
-    if (filterMode === 'ALL') return orders
+    if (selectedMonth === 'ALL') return orders
+    const monthNum = Number(selectedMonth)
     return orders.filter(order => {
       const orderDate = new Date(order.createdAt)
-      return orderDate.getMonth() + 1 === Number(selectedMonth) && orderDate.getFullYear() === Number(selectedYear)
+      return orderDate.getMonth() + 1 === monthNum && orderDate.getFullYear() === Number(selectedYear)
     })
-  }, [orders, filterMode, selectedMonth, selectedYear])
+  }, [orders, selectedMonth, selectedYear])
 
   // Compute Revenue Dashboard Metrics for current filter
   const metrics = useMemo(() => {
@@ -173,70 +212,52 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token }) => {
 
         {/* Month & Year Selector Filter */}
         <div className="flex flex-wrap items-center gap-2 bg-slate-50 border border-slate-200 p-2 rounded-xl shrink-0">
-          <span className="text-xs font-bold text-slate-600 pl-1">📅 Chọn Tháng/Năm:</span>
-          
+          <span className="text-xs font-bold text-slate-600 pl-1">📅 Lọc theo thời gian:</span>
+
           <select
-            value={filterMode === 'ALL' ? 'ALL' : selectedMonth}
+            value={selectedMonth}
             onChange={(e) => {
-              if (e.target.value === 'ALL') {
-                setFilterMode('ALL')
-              } else {
-                setFilterMode('MONTH_YEAR')
-                setSelectedMonth(Number(e.target.value))
-              }
+              setSelectedMonth(e.target.value)
             }}
-            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden"
+            className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden cursor-pointer shadow-3xs"
           >
-            <option value="ALL">Tất cả các tháng</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+            <option value="ALL">🌟 Tất Cả Thời Gian</option>
+            {availableMonths.map(m => (
               <option key={m} value={m}>Tháng {m < 10 ? `0${m}` : m}</option>
             ))}
           </select>
 
-          {filterMode === 'MONTH_YEAR' && (
+          {selectedMonth !== 'ALL' && (
             <select
               value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden"
+              onChange={(e) => {
+                const newY = Number(e.target.value)
+                setSelectedYear(newY)
+                // Đảm bảo nếu chọn năm bắt đầu mà tháng hiện tại nhỏ hơn startMonth thì reset
+                const minM = newY === startYear ? startMonth : 1
+                const maxM = newY === currentYear ? currentMonth : 12
+                if (Number(selectedMonth) < minM || Number(selectedMonth) > maxM) {
+                  setSelectedMonth(String(minM))
+                }
+              }}
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden cursor-pointer shadow-3xs"
             >
-              {Array.from({ length: now.getFullYear() - 2023 + 1 }, (_, i) => 2023 + i).map(y => (
+              {availableYears.map(y => (
                 <option key={y} value={y}>Năm {y}</option>
               ))}
             </select>
           )}
 
-          <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-          <button
-            onClick={() => {
-              setFilterMode('MONTH_YEAR')
-              setSelectedMonth(now.getMonth() + 1)
-              setSelectedYear(now.getFullYear())
-            }}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-              filterMode === 'MONTH_YEAR' && selectedMonth === now.getMonth() + 1 && selectedYear === now.getFullYear()
-                ? 'bg-emerald-600 text-white shadow-3xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-            }`}
-          >
-            Tháng Này
-          </button>
-
-          <button
-            onClick={() => {
-              setFilterMode('MONTH_YEAR')
-              const lm = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-              setSelectedMonth(lm.getMonth() + 1)
-              setSelectedYear(lm.getFullYear())
-            }}
-            className={`px-2.5 py-1 text-xs font-bold rounded-lg transition cursor-pointer ${
-              filterMode === 'MONTH_YEAR' && selectedMonth === (new Date(now.getFullYear(), now.getMonth() - 1, 1).getMonth() + 1)
-                ? 'bg-emerald-600 text-white shadow-3xs'
-                : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
-            }`}
-          >
-            Tháng Trước
-          </button>
+          {selectedMonth !== 'ALL' && (
+            <button
+              type="button"
+              onClick={() => setSelectedMonth('ALL')}
+              className="px-2.5 py-1 text-xs font-bold text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded-lg transition cursor-pointer"
+              title="Xem lại tất cả đơn hàng"
+            >
+              ✕ Bỏ lọc
+            </button>
+          )}
         </div>
       </div>
 
@@ -246,7 +267,9 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token }) => {
         {/* Card 1: Số Đơn Bán Được */}
         <div className="bg-white border border-slate-200/60 rounded-2xl p-4.5 shadow-3xs flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">Đơn Hàng Tháng Này</span>
+            <span className="text-xs font-extrabold text-slate-400 uppercase tracking-wider">
+              {selectedMonth === 'ALL' ? 'Tất Cả Đơn Hàng' : `Đơn Hàng T${selectedMonth}/${selectedYear}`}
+            </span>
             <span className="text-lg">📦</span>
           </div>
           <div>

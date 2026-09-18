@@ -883,4 +883,177 @@ export class PaymentService implements OnModuleInit {
     const escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
     return escrow || null;
   }
+
+  async freezeEscrow(orderId: string) {
+    const escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
+    if (!escrow) {
+      console.log(`[Escrow] No escrow found to freeze for order ${orderId}`);
+      return { success: false, message: 'Không tìm thấy Escrow' };
+    }
+    if (escrow.status === 'HELD') {
+      await this.prisma.escrowTransaction.update({
+        where: { id: escrow.id },
+        data: { status: 'DISPUTE_FROZEN' },
+      });
+      console.log(`[Escrow] Frozen escrow for order ${orderId} due to return request`);
+    }
+    return { success: true, status: 'DISPUTE_FROZEN' };
+  }
+
+  async unfreezeEscrow(orderId: string) {
+    const escrow = await this.prisma.escrowTransaction.findFirst({ where: { orderId } });
+    if (!escrow) {
+      return { success: false, message: 'Không tìm thấy Escrow' };
+    }
+    if (escrow.status === 'DISPUTE_FROZEN') {
+      await this.prisma.escrowTransaction.update({
+        where: { id: escrow.id },
+        data: { status: 'HELD' },
+      });
+      console.log(`[Escrow] Unfrozen escrow for order ${orderId}, resumed HELD`);
+    }
+    return { success: true, status: 'HELD' };
+  }
+
+  async processReturnRefund(dto: {
+    orderId: string;
+    buyerId: string;
+    shopId: string;
+    refundAmount: number;
+    reason?: string;
+  }) {
+    const { orderId, buyerId, shopId, refundAmount, reason } = dto;
+    console.log(`[Payment] Processing return refund for order #${orderId}, amount: ${refundAmount}đ to buyer ${buyerId}`);
+
+    const escrow = await this.prisma.escrowTransaction.findFirst({
+      where: { orderId },
+    });
+
+    const buyerWallet = await this.getWallet(buyerId);
+
+    // Trường hợp 1: Escrow đang được giữ (HELD hoặc DISPUTE_FROZEN)
+    if (escrow && (escrow.status === 'HELD' || escrow.status === 'DISPUTE_FROZEN')) {
+      return await this.prisma.$transaction(async (tx) => {
+        await tx.escrowTransaction.update({
+          where: { id: escrow.id },
+          data: { status: 'REFUNDED' },
+        });
+
+        const shopWallet = await tx.wallet.findUnique({ where: { buyerId: shopId } });
+        if (shopWallet) {
+          const newOnHold = Math.max(0, shopWallet.onHoldBalance - escrow.amount);
+          await tx.wallet.update({
+            where: { id: shopWallet.id },
+            data: { onHoldBalance: newOnHold },
+          });
+        }
+
+        const updatedBuyerWallet = await tx.wallet.update({
+          where: { id: buyerWallet.id },
+          data: { balance: { increment: refundAmount } },
+        });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: buyerWallet.id,
+            amount: refundAmount,
+            type: 'REFUND',
+            description: `Hoàn tiền trả hàng cho đơn hàng #${orderId}${reason ? ` (${reason})` : ''}`,
+            status: 'SUCCESS',
+          },
+        });
+
+        return {
+          success: true,
+          type: 'ESCROW_REFUND',
+          refundedAmount: refundAmount,
+          buyerBalance: updatedBuyerWallet.balance,
+        };
+      });
+    }
+
+    // Trường hợp 2: Escrow đã RELEASED -> CLAWBACK từ ví shop
+    if (escrow && escrow.status === 'RELEASED') {
+      return await this.prisma.$transaction(async (tx) => {
+        let shopWallet = await tx.wallet.findUnique({ where: { buyerId: shopId } });
+        if (!shopWallet) {
+          shopWallet = await tx.wallet.create({
+            data: { buyerId: shopId, balance: 0, onHoldBalance: 0 },
+          });
+        }
+
+        const updatedShopWallet = await tx.wallet.update({
+          where: { id: shopWallet.id },
+          data: { balance: { decrement: refundAmount } },
+        });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: shopWallet.id,
+            amount: refundAmount,
+            type: 'CLAWBACK',
+            description: `Thu hồi tiền do đơn hàng #${orderId} bị trả hàng/hoàn tiền sau khi đã giải ngân (Số dư ví: ${updatedShopWallet.balance.toLocaleString('vi-VN')}đ)`,
+            status: 'SUCCESS',
+          },
+        });
+
+        const updatedBuyerWallet = await tx.wallet.update({
+          where: { id: buyerWallet.id },
+          data: { balance: { increment: refundAmount } },
+        });
+
+        await tx.walletTransaction.create({
+          data: {
+            walletId: buyerWallet.id,
+            amount: refundAmount,
+            type: 'REFUND',
+            description: `Hoàn tiền trả hàng cho đơn hàng #${orderId}${reason ? ` (${reason})` : ''}`,
+            status: 'SUCCESS',
+          },
+        });
+
+        const commissionRefund = refundAmount * (escrow.commissionRate / 100);
+        const platformWallet = await tx.wallet.findUnique({ where: { buyerId: 'PLATFORM' } });
+        if (platformWallet && commissionRefund > 0) {
+          await tx.wallet.update({
+            where: { id: platformWallet.id },
+            data: { balance: { decrement: commissionRefund } },
+          });
+        }
+
+        return {
+          success: true,
+          type: 'CLAWBACK',
+          refundedAmount: refundAmount,
+          shopBalance: updatedShopWallet.balance,
+          buyerBalance: updatedBuyerWallet.balance,
+        };
+      });
+    }
+
+    // Trường hợp 3: Hoàn tiền trực tiếp
+    return await this.prisma.$transaction(async (tx) => {
+      const updatedBuyerWallet = await tx.wallet.update({
+        where: { id: buyerWallet.id },
+        data: { balance: { increment: refundAmount } },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: buyerWallet.id,
+          amount: refundAmount,
+          type: 'REFUND',
+          description: `Hoàn tiền trả hàng cho đơn hàng #${orderId}${reason ? ` (${reason})` : ''}`,
+          status: 'SUCCESS',
+        },
+      });
+
+      return {
+        success: true,
+        type: 'DIRECT_REFUND',
+        refundedAmount: refundAmount,
+        buyerBalance: updatedBuyerWallet.balance,
+      };
+    });
+  }
 }

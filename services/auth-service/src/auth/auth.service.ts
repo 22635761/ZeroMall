@@ -199,6 +199,43 @@ export class AuthService {
           shopId,
         },
       });
+
+      // Tạo thông báo cho Shop khi có người dùng nhấn Theo dõi
+      try {
+        const follower = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { name: true, email: true },
+        });
+        const followerName = follower?.name || follower?.email || 'Một khách hàng';
+
+        // Lấy thông tin Shop để gửi thông báo vào ID của Shop và ID Chủ Shop
+        const shop = await this.prisma.shop.findUnique({
+          where: { id: shopId },
+          select: { ownerId: true, name: true },
+        });
+
+        const notifServiceUrl = process.env.NOTIFICATION_SERVICE_URL || 'http://notification-service:3006';
+        const targetIds = [shopId];
+        if (shop?.ownerId && shop.ownerId !== shopId) {
+          targetIds.push(shop.ownerId);
+        }
+
+        for (const targetId of targetIds) {
+          fetch(`${notifServiceUrl}/notifications`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              userId: targetId,
+              title: 'Người theo dõi mới 🎉',
+              content: `Người dùng ${followerName} vừa nhấn Theo dõi shop của bạn. Hãy đăng thêm sản phẩm mới để tiếp cận khách hàng!`,
+              type: 'SYSTEM',
+              metadata: { action: 'VIEW_SHOP', shopId },
+            }),
+          }).catch((err) => console.error('Error sending follow notification:', err));
+        }
+      } catch (notifErr) {
+        console.error('Failed to trigger follow notification:', notifErr);
+      }
     }
 
     return this.getShopFollowStatus(shopId, userId);
@@ -363,5 +400,130 @@ export class AuthService {
     return this.prisma.auditLog.create({
       data: { user, action }
     });
+  }
+
+  // Quản lý địa chỉ giao hàng của người dùng (User Addresses)
+  async getUserAddresses(userId: string) {
+    return this.prisma.userAddress.findMany({
+      where: { userId },
+      orderBy: [{ isDefault: 'desc' }, { createdAt: 'desc' }],
+    });
+  }
+
+  async createUserAddress(userId: string, dto: {
+    name: string;
+    phone: string;
+    region: string;
+    details: string;
+    isDefault?: boolean;
+    lat?: number;
+    lng?: number;
+    ghnDistrictId?: number;
+    ghnWardCode?: string;
+  }) {
+    const count = await this.prisma.userAddress.count({ where: { userId } });
+    const shouldBeDefault = dto.isDefault ?? (count === 0);
+
+    return this.prisma.$transaction(async (tx) => {
+      if (shouldBeDefault) {
+        await tx.userAddress.updateMany({
+          where: { userId },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.userAddress.create({
+        data: {
+          userId,
+          name: dto.name,
+          phone: dto.phone,
+          region: dto.region,
+          details: dto.details,
+          isDefault: shouldBeDefault,
+          lat: dto.lat,
+          lng: dto.lng,
+          ghnDistrictId: dto.ghnDistrictId,
+          ghnWardCode: dto.ghnWardCode,
+        },
+      });
+    });
+  }
+
+  async updateUserAddress(userId: string, addressId: string, dto: {
+    name?: string;
+    phone?: string;
+    region?: string;
+    details?: string;
+    isDefault?: boolean;
+    lat?: number;
+    lng?: number;
+    ghnDistrictId?: number;
+    ghnWardCode?: string;
+  }) {
+    const existing = await this.prisma.userAddress.findFirst({
+      where: { id: addressId, userId },
+    });
+    if (!existing) throw new NotFoundException('Không tìm thấy địa chỉ');
+
+    return this.prisma.$transaction(async (tx) => {
+      if (dto.isDefault) {
+        await tx.userAddress.updateMany({
+          where: { userId },
+          data: { isDefault: false },
+        });
+      }
+
+      return tx.userAddress.update({
+        where: { id: addressId },
+        data: {
+          ...dto,
+        },
+      });
+    });
+  }
+
+  async deleteUserAddress(userId: string, addressId: string) {
+    const existing = await this.prisma.userAddress.findFirst({
+      where: { id: addressId, userId },
+    });
+    if (!existing) throw new NotFoundException('Không tìm thấy địa chỉ');
+
+    await this.prisma.userAddress.delete({ where: { id: addressId } });
+
+    // Nếu xóa địa chỉ mặc định, tự động gán địa chỉ mới nhất làm mặc định
+    if (existing.isDefault) {
+      const next = await this.prisma.userAddress.findFirst({
+        where: { userId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (next) {
+        await this.prisma.userAddress.update({
+          where: { id: next.id },
+          data: { isDefault: true },
+        });
+      }
+    }
+
+    return { success: true };
+  }
+
+  async setDefaultUserAddress(userId: string, addressId: string) {
+    const existing = await this.prisma.userAddress.findFirst({
+      where: { id: addressId, userId },
+    });
+    if (!existing) throw new NotFoundException('Không tìm thấy địa chỉ');
+
+    await this.prisma.$transaction([
+      this.prisma.userAddress.updateMany({
+        where: { userId },
+        data: { isDefault: false },
+      }),
+      this.prisma.userAddress.update({
+        where: { id: addressId },
+        data: { isDefault: true },
+      }),
+    ]);
+
+    return { success: true };
   }
 }

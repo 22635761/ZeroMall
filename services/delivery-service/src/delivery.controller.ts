@@ -166,4 +166,85 @@ export class DeliveryController {
   async getClaims(@Query('sellerId') sellerId?: string) {
     return this.deliveryService.getClaims(sellerId);
   }
+
+  // 10. QUẢN LÝ TRẢ HÀNG & HOÀN TIỀN (RETURNS & REFUNDS)
+  @Post('returns')
+  async createReturn(@Body() body: any) {
+    return this.deliveryService.createReturn(body);
+  }
+
+  @Get('returns')
+  async getReturns(
+    @Query('sellerId') sellerId?: string,
+    @Query('buyerId') buyerId?: string,
+    @Query('orderId') orderId?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.deliveryService.getReturns({ sellerId, buyerId, orderId, status, search });
+  }
+
+  @Get('returns/:id')
+  async getReturnById(@Param('id') id: string) {
+    return this.deliveryService.getReturnById(id);
+  }
+
+  @Patch('returns/:id/respond')
+  async sellerRespondReturn(
+    @Param('id') id: string,
+    @Body() body: { action: 'APPROVE' | 'REJECT' | 'NEGOTIATE'; note?: string; proposedAmount?: number; evidenceUrl?: string }
+  ) {
+    return this.deliveryService.sellerRespondReturn(id, body);
+  }
+
+  @Patch('returns/:id/negotiate-respond')
+  async buyerRespondNegotiation(
+    @Param('id') id: string,
+    @Body() body: { accept: boolean; note?: string }
+  ) {
+    return this.deliveryService.buyerRespondNegotiation(id, body);
+  }
+
+  @Post('returns/:id/ship')
+  async buyerConfirmShipReturn(
+    @Param('id') id: string,
+    @Body() body: { returnMethod: 'ZMX_PICKUP' | 'ZMX_DROPOFF' | 'SELF_ARRANGE'; externalTrackingNumber?: string; proofImage?: string }
+  ) {
+    return this.deliveryService.buyerConfirmShipReturn(id, body);
+  }
+
+  @Patch('returns/:id/mark-delivered')
+  async markReturnDeliveredToSeller(@Param('id') id: string) {
+    return this.deliveryService.markReturnDeliveredToSeller(id);
+  }
+
+  @Patch('returns/:id/confirm-receive')
+  async sellerConfirmReceiveReturn(
+    @Param('id') id: string,
+    @Body() body: { conditionOk: boolean; note?: string; restockAction?: 'RESTOCK' | 'SCRAP'; evidenceUrl?: string }
+  ) {
+    return this.deliveryService.sellerConfirmReceiveReturn(id, body);
+  }
+
+  @Patch('returns/:id/arbitrate')
+  async csArbitrateReturn(
+    @Param('id') id: string,
+    @Body() body: { decision: 'REFUND_BUYER' | 'REJECT_RETURN'; note: string; csAgentId?: string }
+  ) {
+    return this.deliveryService.csArbitrateReturn(id, body);
+  }
+
+  @Patch('returns/:id/cancel')
+  async cancelReturn(
+    @Param('id') id: string,
+    @Body('reason') reason?: string
+  ) {
+    return this.deliveryService.cancelReturn(id, reason);
+  }
+
+  // 11. Lấy thông tin kho lấy hàng của Shop
+  @Get('seller-address/:sellerId')
+  async getSellerAddress(@Param('sellerId') sellerId: string) {
+    return this.deliveryService.getSellerAddress(sellerId);
+  }
 }

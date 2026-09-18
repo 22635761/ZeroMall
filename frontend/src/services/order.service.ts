@@ -28,7 +28,7 @@ export const orderService = {
   async updateOrderStatus(
     orderId: string,
     status: string,
-    ghnOrderCode?: string,
+    trackingCode?: string,
     token?: string,
     refundReason?: string,
     refundDescription?: string,
@@ -43,7 +43,8 @@ export const orderService = {
       headers,
       body: JSON.stringify({
         status,
-        ghnOrderCode,
+        ghnOrderCode: trackingCode,
+        trackingCode,
         refundReason,
         refundDescription,
         refundEmail

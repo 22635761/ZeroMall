@@ -326,9 +326,8 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
               <div>
                 <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-2.5">ĐƠN VỊ VẬN CHUYỂN</h4>
                 <div className="flex flex-wrap gap-2 text-[10px]">
-                  <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">SPX Express</span>
-                  <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">GHTK</span>
-                  <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">GHN</span>
+                  <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">ZeroMall Express</span>
+                  <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">ZMX Hỏa Tốc</span>
                 </div>
               </div>
             </div>
@@ -493,12 +492,16 @@ function App() {
           video: p.video || '',
           category: p.category,
           brand: p.brand,
-          shopId: p.shopId
+          shopId: p.shopId,
+          weight: p.weight,
+          length: p.length,
+          width: p.width,
+          height: p.height
         }
       })
       setDbProducts(formatted)
 
-      // Sync existing cart items with freshly fetched DB products to ensure accurate originalPrice
+      // Sync existing cart items with freshly fetched DB products to ensure accurate originalPrice and shipping dimensions
       setCart(prev => prev.map(cartItem => {
         const found = formatted.find((p: any) => p.id === cartItem.product.id)
         if (found) {
@@ -508,7 +511,11 @@ function App() {
               ...cartItem.product,
               originalPrice: found.originalPrice,
               flashPrice: found.flashPrice,
-              price: found.flashPrice
+              price: found.flashPrice,
+              weight: found.weight,
+              length: found.length,
+              width: found.width,
+              height: found.height
             }
           }
         }
