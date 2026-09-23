@@ -153,9 +153,22 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
       case 'CANCELLED':
         return { text: 'ĐÃ HỦY ĐƠN HÀNG', color: 'text-slate-500' }
       case 'RETURN_REQUESTED':
-        return { text: 'ĐANG XỬ LÝ TRẢ HÀNG / HOÀN TIỀN', color: 'text-amber-600' }
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (CHỜ SHOP DUYỆT)', color: 'text-amber-600' }
+      case 'RETURN_APPROVED':
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (ĐÃ DUYỆT • CHỜ GỬI HÀNG)', color: 'text-blue-600' }
+      case 'RETURN_PENDING':
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (CHỜ TRẢ HÀNG)', color: 'text-amber-600' }
+      case 'RETURN_SHIPPED':
+      case 'RETURN_SHIPPING':
+      case 'RETURN_IN_TRANSIT':
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (ĐANG VẬN CHUYỂN TRẢ)', color: 'text-indigo-600' }
+      case 'DELIVERED_TO_SELLER':
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (SHOP ĐANG KIỂM HÀNG)', color: 'text-orange-600' }
+      case 'REFUND_DISPUTED':
+        return { text: 'TRẢ HÀNG / HOÀN TIỀN (TRANH CHẤP)', color: 'text-rose-600' }
+      case 'REFUNDED':
       case 'RETURNED':
-        return { text: 'ĐÃ TRẢ HÀNG / HOÀN TIỀN', color: 'text-purple-600' }
+        return { text: 'ĐÃ TRẢ HÀNG & HOÀN TIỀN THÀNH CÔNG', color: 'text-emerald-600' }
       default:
         return { text: order.status, color: 'text-slate-700' }
     }
@@ -194,8 +207,24 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
                   <p className="text-xs font-bold text-amber-900">
                     Yêu Cầu Trả Hàng / Hoàn Tiền #{returnData.returnNumber || returnData.id.slice(0, 8)}
                   </p>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-200 text-amber-900">
-                    {returnData.status}
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200 text-amber-900 border border-amber-300">
+                    {returnData.status === 'REQUESTED' || returnData.status === 'SELLER_REVIEWING'
+                      ? 'Chờ Người Bán Phản Hồi'
+                      : returnData.status === 'RETURN_SHIPPING' || returnData.status === 'APPROVED'
+                      ? 'Đã Duyệt • Chờ Gửi Hàng'
+                      : returnData.status === 'RETURN_IN_TRANSIT' || returnData.status === 'RETURN_SHIPPED'
+                      ? 'Đang Vận Chuyển Về Shop'
+                      : returnData.status === 'DELIVERED_TO_SELLER'
+                      ? 'Đã Tới Kho Shop • Chờ Kiểm Tra'
+                      : returnData.status === 'SELLER_DISPUTED' || returnData.status === 'CS_ARBITRATING'
+                      ? 'CS Sàn Đang Xử Lý'
+                      : returnData.status === 'COMPLETED'
+                      ? 'Hoàn Tiền Thành Công'
+                      : returnData.status === 'CANCELLED'
+                      ? 'Đã Hủy Yêu Cầu'
+                      : returnData.status === 'REJECTED'
+                      ? 'Bị Bác Bỏ'
+                      : returnData.status}
                   </span>
                 </div>
                 <p className="text-[11px] text-amber-800 mt-0.5">
@@ -503,29 +532,60 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
 
         {/* Các dòng sản phẩm */}
         <div className="divide-y divide-slate-100">
-          {order.items.map((item) => (
-            <div key={item.id} className="p-4 flex gap-4 text-xs items-start">
-              <img
-                src={item.image || 'https://placehold.co/100x100?text=No+Image'}
-                alt={item.name}
-                className="w-20 h-20 border border-slate-200 rounded-sm object-cover shrink-0"
-              />
-              <div className="flex-1 min-w-0 space-y-1">
-                <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 leading-snug">
-                  {item.name}
-                </h4>
-                {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && (
-                  <p className="text-[11px] text-slate-500">
-                    Phân loại hàng: <span className="font-medium text-slate-700">{item.variant}</span>
-                  </p>
-                )}
-                <p className="text-slate-600 font-medium">x{item.quantity}</p>
+          {order.items.map((item) => {
+            const returnItem = returnData?.items?.find(
+              (ri) =>
+                (ri.orderItemId && ri.orderItemId === item.id) ||
+                (ri.productId && ri.productId === item.productId) ||
+                (ri.productName && (ri.productName === item.name || ri.productName === (item as any).productName))
+            )
+            const isItemReturned = Boolean(returnItem)
+            const hasReturn = Boolean(returnData)
+
+            return (
+              <div
+                key={item.id}
+                className={`p-4 flex gap-4 text-xs items-start transition ${
+                  isItemReturned
+                    ? 'bg-amber-50/40'
+                    : hasReturn
+                    ? 'bg-slate-50/30'
+                    : ''
+                }`}
+              >
+                <img
+                  src={item.image || 'https://placehold.co/100x100?text=No+Image'}
+                  alt={item.name}
+                  className="w-20 h-20 border border-slate-200 rounded-sm object-cover shrink-0"
+                />
+                <div className="flex-1 min-w-0 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h4 className="font-semibold text-slate-900 text-sm line-clamp-2 leading-snug">
+                      {item.name}
+                    </h4>
+                    {isItemReturned ? (
+                      <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-0.5 rounded text-[11px]">
+                        <span>🔄</span> Yêu Cầu Trả Hàng (x{returnItem?.quantity || item.quantity} - Hoàn {formatMoney(returnItem?.refundAmount || item.price * (returnItem?.quantity || item.quantity))})
+                      </span>
+                    ) : hasReturn ? (
+                      <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-2 py-0.5 rounded text-[11px]">
+                        <span>✓</span> Giữ Lại / Không Hoàn
+                      </span>
+                    ) : null}
+                  </div>
+                  {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && (
+                    <p className="text-[11px] text-slate-500">
+                      Phân loại hàng: <span className="font-medium text-slate-700">{item.variant}</span>
+                    </p>
+                  )}
+                  <p className="text-slate-600 font-medium">x{item.quantity}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[#ee4d2d] font-bold text-sm">{formatMoney(item.price)}</p>
+                </div>
               </div>
-              <div className="text-right shrink-0">
-                <p className="text-[#ee4d2d] font-bold text-sm">{formatMoney(item.price)}</p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* 5. Bảng Tính Tiền & Thanh Toán Chi Tiết */}
@@ -563,9 +623,20 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
             )}
 
             <div className="pt-2 border-t border-slate-200 flex justify-between items-baseline">
-              <span className="text-sm font-bold text-slate-900">Thành tiền:</span>
+              <span className="text-sm font-bold text-slate-900">Thành tiền đơn:</span>
               <span className="text-xl font-black text-[#ee4d2d]">{formatMoney(order.totalAmount)}</span>
             </div>
+
+            {returnData && (
+              <div className="pt-2 pb-2 px-3 bg-amber-50/80 border border-amber-200 rounded-lg flex justify-between items-center text-xs mt-2">
+                <span className="font-bold text-amber-900 flex items-center gap-1">
+                  <span>🔄</span> Số tiền yêu cầu hoàn:
+                </span>
+                <span className="text-base font-black text-rose-600">
+                  {formatMoney(returnData.refundAmount)}
+                </span>
+              </div>
+            )}
 
             <div className="pt-2 text-[11px] text-slate-500 flex justify-between border-t border-dashed border-slate-200">
               <span>Phương thức Thanh toán:</span>

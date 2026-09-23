@@ -6,6 +6,7 @@ import { formatOrderId } from '../../utils/orderUtils'
 import { OrderDetail } from './OrderDetail'
 import { ShopTrackingModal } from './ShopTrackingModal'
 import { ShopHandoverModal } from './ShopHandoverModal'
+import { returnService, type ReturnData } from '../../services/return.service'
 
 interface ShopOrdersProps {
   user: any
@@ -78,6 +79,9 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
     }
   }, [activeSubMenu])
 
+  // Returns map (orderId -> ReturnData)
+  const [returnsMap, setReturnsMap] = useState<Record<string, ReturnData>>({})
+
   const fetchOrders = async () => {
     if (!shopId) {
       setError('Không tìm thấy thông tin Shop của bạn!')
@@ -87,7 +91,20 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
     setLoading(true)
     setError(null)
     try {
-      const data = await orderService.fetchSellerOrders(shopId, token)
+      const [data, returnsData] = await Promise.all([
+        orderService.fetchSellerOrders(shopId, token),
+        returnService.getReturns({ sellerId: shopId }).catch(() => [] as ReturnData[])
+      ])
+
+      const rMap: Record<string, ReturnData> = {}
+      if (Array.isArray(returnsData)) {
+        returnsData.forEach((ret) => {
+          if (ret && ret.orderId) {
+            rMap[ret.orderId] = ret
+          }
+        })
+      }
+      setReturnsMap(rMap)
       setOrders(data)
     } catch (err: any) {
       console.error(err)
@@ -271,19 +288,27 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       case 'COMPLETED':
         return <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-full text-[10px] font-bold">🎉 Đã Hoàn Tất</span>
       case 'REFUND_PENDING':
-        return <span className="bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Yêu cầu hoàn tiền</span>
+      case 'RETURN_REQUESTED':
+        return <span className="bg-amber-100 text-amber-800 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ Shop duyệt hoàn trả</span>
+      case 'RETURN_APPROVED':
+        return <span className="bg-blue-100 text-blue-800 px-2.5 py-1 rounded-full text-[10px] font-bold">Shop đã duyệt • Chờ khách gửi hàng</span>
       case 'RETURN_PENDING':
-        return <span className="bg-yellow-100 text-yellow-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ người mua trả hàng</span>
+        return <span className="bg-yellow-100 text-yellow-800 px-2.5 py-1 rounded-full text-[10px] font-bold">Chờ người mua trả hàng</span>
       case 'RETURN_SHIPPED':
-        return <span className="bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Người mua đang trả hàng</span>
+      case 'RETURN_SHIPPING':
+      case 'RETURN_IN_TRANSIT':
+        return <span className="bg-purple-100 text-purple-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Người mua đang gửi hàng về</span>
+      case 'DELIVERED_TO_SELLER':
+        return <span className="bg-orange-100 text-orange-800 px-2.5 py-1 rounded-full text-[10px] font-bold animate-pulse">Hàng về kho • Cần kiểm hàng</span>
       case 'REFUND_DISPUTED':
         return <span className="bg-red-105 text-red-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Tranh chấp khiếu nại</span>
       case 'REFUNDED':
+      case 'RETURNED':
         return <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Đã hoàn tiền</span>
       case 'CANCELLED':
         return <span className="bg-rose-100 text-rose-700 px-2.5 py-1 rounded-full text-[10px] font-bold">Đã hủy</span>
       default:
-        return null
+        return <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full text-[10px] font-bold">{status}</span>
     }
   }
 
@@ -294,6 +319,7 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
       <OrderDetail
         order={selectedOrder}
         token={token}
+        returnData={returnsMap[selectedOrder.id]}
         onBack={() => setSelectedOrderId(null)}
         onStatusUpdate={async (orderId, newStatus) => {
           await handleUpdateStatus(orderId, newStatus)
@@ -380,6 +406,17 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
           {filteredOrders.map((order) => {
             // Calculate shop's item subtotal for this order
             const itemSubtotal = order.items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+            const returnData = returnsMap[order.id]
+            const returnItemsList = returnData?.items || []
+            const hasReturnItems = returnItemsList.length > 0
+            const isPartialReturn = hasReturnItems && returnItemsList.length < (order.items?.length || 0)
+            const isReturning = Boolean(
+              returnData ||
+              order.status.startsWith('RETURN_') ||
+              order.status.startsWith('REFUND_') ||
+              order.status === 'REFUNDED' ||
+              order.status === 'RETURNED'
+            )
 
             return (
               <div 
@@ -408,7 +445,12 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                       </>
                     )}
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {isPartialReturn && (
+                      <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        Khách trả {returnItemsList.length}/{order.items.length} món
+                      </span>
+                    )}
                     {getStatusBadge(order.status)}
                     <span className="text-[10px] text-slate-400 font-bold bg-slate-100 px-2 py-0.5 rounded-sm uppercase">
                       {order.paymentMethod === 'cod' ? 'Thanh toán COD' : 'Thanh toán ZeroPay'}
@@ -431,28 +473,104 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
 
                 {/* Items details */}
                 <div className="divide-y divide-slate-100/60 px-5">
-                  {order.items.map((item) => (
-                    <div key={item.id} className="py-3.5 flex items-start gap-3.5">
-                      <img 
-                        src={item.image} 
-                        alt={item.name} 
-                        className="w-14 h-14 object-cover rounded-xl border border-slate-100 shrink-0" 
-                      />
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <h4 className="text-xs font-bold text-slate-700 leading-snug line-clamp-2">{item.name}</h4>
-                        {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
-                          <p className="text-[10px] text-slate-400 font-semibold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md inline-block">
-                            Phân loại hàng: {item.variant}
-                          </p>
-                        )}
-                        <div className="flex items-center justify-between text-xs pt-1">
-                          <span className="text-slate-500 font-medium">x{item.quantity}</span>
-                          <span className="font-bold text-slate-700">{formatVND(item.price)}</span>
+                  {order.items.map((item) => {
+                    const returnItem = returnItemsList.find(
+                      (ri) =>
+                        (ri.orderItemId && ri.orderItemId === item.id) ||
+                        (ri.productId && ri.productId === item.productId) ||
+                        (ri.productName && (ri.productName === item.name || ri.productName === (item as any).productName))
+                    )
+                    const isItemReturned = Boolean(returnItem)
+
+                    return (
+                      <div
+                        key={item.id}
+                        className={`py-3.5 flex items-start gap-3.5 transition ${
+                          isItemReturned
+                            ? 'bg-amber-50/40 -mx-5 px-5 border-l-4 border-amber-500'
+                            : isReturning
+                            ? 'bg-slate-50/30'
+                            : ''
+                        }`}
+                      >
+                        <img 
+                          src={item.image} 
+                          alt={item.name} 
+                          className="w-14 h-14 object-cover rounded-xl border border-slate-100 shrink-0" 
+                        />
+                        <div className="flex-1 min-w-0 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h4 className="text-xs font-bold text-slate-700 leading-snug line-clamp-2">{item.name}</h4>
+                            {isItemReturned ? (
+                              <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-0.5 rounded text-[10px]">
+                                <span>🔄</span> Khách yêu cầu trả hàng (x{returnItem?.quantity || item.quantity} - Hoàn {formatVND(returnItem?.refundAmount || item.price * (returnItem?.quantity || item.quantity))})
+                              </span>
+                            ) : isReturning ? (
+                              <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-2 py-0.5 rounded text-[10px]">
+                                <span>✓</span> Giữ lại / Đã nhận
+                              </span>
+                            ) : null}
+                          </div>
+                          {item.variant && item.variant.trim() !== '' && item.variant !== 'Mặc định' && item.variant !== 'Tiêu chuẩn' && item.variant !== 'Default' && (
+                            <p className="text-[10px] text-slate-400 font-semibold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md inline-block">
+                              Phân loại hàng: {item.variant}
+                            </p>
+                          )}
+                          <div className="flex items-center justify-between text-xs pt-1">
+                            <span className="text-slate-500 font-medium">x{item.quantity}</span>
+                            <span className="font-bold text-slate-700">{formatVND(item.price)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
+
+                {/* Banner Thông Tin Yêu Cầu Hoàn Hàng từ CSDL Delivery Return nếu có */}
+                {returnData && (
+                  <div className="px-5 py-3.5 bg-gradient-to-r from-amber-50 to-orange-50 border-t border-amber-200/80 text-xs space-y-2 text-left">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">🔄</span>
+                        <span className="font-extrabold text-amber-900">
+                          Yêu cầu Trả hàng / Hoàn tiền #{returnData.returnNumber || returnData.id.slice(0, 8)}
+                        </span>
+                        <span className="px-2 py-0.5 rounded-md font-bold text-[10px] bg-amber-200 text-amber-900">
+                          {returnData.status}
+                        </span>
+                      </div>
+                      <a
+                        href="/seller?menu=orders&sub=refunds"
+                        onClick={(e) => e.stopPropagation()}
+                        className="text-xs font-bold text-orange-700 hover:text-orange-900 underline flex items-center gap-1 cursor-pointer"
+                      >
+                        Xử lý trong tab Trả Hàng / Hoàn Tiền ↗
+                      </a>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-white p-3 rounded-xl border border-amber-200/70 text-[11px]">
+                      <div>
+                        <span className="text-slate-400 block font-medium">Phương án:</span>
+                        <span className="font-bold text-slate-800">
+                          {returnData.resolution === 'REFUND_ONLY' ? 'Chỉ hoàn tiền (không trả hàng)' : 'Trả hàng & Hoàn tiền'}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-medium">Lý do khiếu nại:</span>
+                        <span className="font-bold text-slate-800">{returnData.reason}</span>
+                        {returnData.reasonDetail && (
+                          <p className="text-slate-500 italic mt-0.5">"{returnData.reasonDetail}"</p>
+                        )}
+                      </div>
+                      <div>
+                        <span className="text-slate-400 block font-medium">Số tiền khách yêu cầu hoàn:</span>
+                        <span className="font-black text-rose-600 text-sm">{formatVND(returnData.refundAmount)}</span>
+                        {returnData.returnTrackingNumber && (
+                          <p className="text-slate-600 mt-0.5">Mã vận đơn hoàn: <strong>{returnData.returnTrackingNumber}</strong></p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Refund info details & proof images gallery if present */}
                 {(order.refundReason || order.refundDescription || order.refundEmail) && (
@@ -519,11 +637,17 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                 {/* Order Footer & Actions */}
                 <div className="bg-slate-50/20 border-t border-slate-100 px-5 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
                   {/* Financial summary */}
-                  <div className="flex items-baseline gap-4 w-full sm:w-auto">
+                  <div className="flex items-center flex-wrap gap-4 w-full sm:w-auto">
                     <div className="text-left">
                       <p className="text-[10px] text-slate-400 font-semibold">Doanh thu tạm tính (chưa ship)</p>
                       <p className="text-sm font-black text-emerald-600 mt-0.5">{formatVND(itemSubtotal)}</p>
                     </div>
+                    {returnData?.refundAmount ? (
+                      <div className="text-left bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                        <p className="text-[10px] text-amber-800 font-bold">Khách yêu cầu hoàn</p>
+                        <p className="text-sm font-black text-rose-600 mt-0.5">{formatVND(returnData.refundAmount)}</p>
+                      </div>
+                    ) : null}
                   </div>
 
                   {/* Actions buttons */}
@@ -613,6 +737,16 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                       >
                         <span>✅</span> Đã nhận hàng trả & Đồng ý hoàn tiền
                       </button>
+                    )}
+
+                    {returnData && (
+                      <a
+                        href="/seller?menu=orders&sub=refunds"
+                        className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-3.5 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer"
+                        title="Chuyển sang tab Trả hàng / Hoàn tiền để xử lý yêu cầu"
+                      >
+                        <span>🔄</span> Xử lý trả hàng ({returnData.status})
+                      </a>
                     )}
 
                     {order.status === 'REFUNDED' && (

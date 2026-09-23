@@ -934,14 +934,33 @@ export class PaymentService implements OnModuleInit {
     // Trường hợp 1: Escrow đang được giữ (HELD hoặc DISPUTE_FROZEN)
     if (escrow && (escrow.status === 'HELD' || escrow.status === 'DISPUTE_FROZEN')) {
       return await this.prisma.$transaction(async (tx) => {
-        await tx.escrowTransaction.update({
-          where: { id: escrow.id },
-          data: { status: 'REFUNDED' },
-        });
+        // Kiểm tra trả 1 phần hay trả toàn bộ
+        const isPartial = refundAmount < escrow.amount - 100; // Tránh sai số làm tròn nhỏ
+        const remainingAmount = Math.max(0, escrow.amount - refundAmount);
 
+        if (isPartial && remainingAmount > 0) {
+          // Trả 1 phần: Cập nhật lại số tiền còn lại trong Escrow và mở lại trạng thái HELD để sau này giải ngân
+          await tx.escrowTransaction.update({
+            where: { id: escrow.id },
+            data: {
+              amount: remainingAmount,
+              status: 'HELD',
+            },
+          });
+        } else {
+          // Trả toàn bộ đơn
+          await tx.escrowTransaction.update({
+            where: { id: escrow.id },
+            data: { status: 'REFUNDED' },
+          });
+        }
+
+        // Trừ đúng số tiền hàng của đơn (tối đa escrow.amount của Shop) ra khỏi onHoldBalance của Shop
+        // Phí vận chuyển ban đầu (nếu có trong refundAmount) do Sàn hoàn trả cho Người mua, không trừ vào ví Shop
+        const shopDeduction = Math.min(refundAmount, escrow.amount);
         const shopWallet = await tx.wallet.findUnique({ where: { buyerId: shopId } });
         if (shopWallet) {
-          const newOnHold = Math.max(0, shopWallet.onHoldBalance - escrow.amount);
+          const newOnHold = Math.max(0, shopWallet.onHoldBalance - shopDeduction);
           await tx.wallet.update({
             where: { id: shopWallet.id },
             data: { onHoldBalance: newOnHold },
@@ -965,8 +984,9 @@ export class PaymentService implements OnModuleInit {
 
         return {
           success: true,
-          type: 'ESCROW_REFUND',
+          type: isPartial ? 'PARTIAL_ESCROW_REFUND' : 'ESCROW_REFUND',
           refundedAmount: refundAmount,
+          remainingEscrowAmount: remainingAmount,
           buyerBalance: updatedBuyerWallet.balance,
         };
       });
@@ -982,15 +1002,17 @@ export class PaymentService implements OnModuleInit {
           });
         }
 
+        // Shop chỉ bị thu hồi tối đa số tiền hàng đã thực nhận từ đơn (escrow.amount), không bị thu hồi tiền ship
+        const shopClawback = Math.min(refundAmount, escrow.amount);
         const updatedShopWallet = await tx.wallet.update({
           where: { id: shopWallet.id },
-          data: { balance: { decrement: refundAmount } },
+          data: { balance: { decrement: shopClawback } },
         });
 
         await tx.walletTransaction.create({
           data: {
             walletId: shopWallet.id,
-            amount: refundAmount,
+            amount: shopClawback,
             type: 'CLAWBACK',
             description: `Thu hồi tiền do đơn hàng #${orderId} bị trả hàng/hoàn tiền sau khi đã giải ngân (Số dư ví: ${updatedShopWallet.balance.toLocaleString('vi-VN')}đ)`,
             status: 'SUCCESS',

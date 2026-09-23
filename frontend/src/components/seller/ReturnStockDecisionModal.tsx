@@ -116,10 +116,31 @@ export const ReturnStockDecisionModal: React.FC<ReturnStockDecisionModalProps> =
               <span className="font-bold text-orange-600">x{item.quantity}</span>
             </div>
           ))}
-          <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
-            <span className="text-slate-500">Tiền hoàn cho khách:</span>
-            <span className="font-black text-orange-600 text-sm">{returnData.refundAmount.toLocaleString('vi-VN')}đ</span>
-          </div>
+          {(() => {
+            const itemsTotal = (returnData.items || []).reduce(
+              (sum, it) => sum + ((it.price || 0) * it.quantity),
+              0
+            );
+            const shippingRefund = Math.max(0, returnData.refundAmount - itemsTotal);
+            const shopDeductAmount = itemsTotal > 0 ? Math.min(returnData.refundAmount, itemsTotal) : returnData.refundAmount;
+
+            return (
+              <div className="pt-2 border-t border-slate-200 flex justify-between items-center text-xs">
+                <div>
+                  <span className="text-slate-500 block text-[11px]">Khấu trừ từ Shop:</span>
+                  {shippingRefund > 0 && (
+                    <span className="text-[10px] text-emerald-600">(+ {shippingRefund.toLocaleString('vi-VN')}đ ship do Sàn hoàn)</span>
+                  )}
+                </div>
+                <div className="text-right">
+                  <span className="font-black text-rose-600 text-sm block">{shopDeductAmount.toLocaleString('vi-VN')}đ</span>
+                  {shippingRefund > 0 && (
+                    <span className="text-[10px] text-slate-400">Khách nhận: {returnData.refundAmount.toLocaleString('vi-VN')}đ</span>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
         </div>
 
         {/* 3 Lựa chọn kiểm hàng & tồn kho */}

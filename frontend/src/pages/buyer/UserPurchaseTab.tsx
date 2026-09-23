@@ -8,6 +8,7 @@ import { ReviewModal } from '../../components/buyer/ReviewModal'
 import type { ReviewSubmitData } from '../../components/buyer/ReviewModal'
 import { BuyerOrderDetail } from '../../components/buyer/BuyerOrderDetail'
 import { ReturnRequestModal } from '../../components/buyer/ReturnRequestModal'
+import { returnService, type ReturnData } from '../../services/return.service'
 import {
   mapStatusToTab,
   getShopeeTypeNumber
@@ -70,11 +71,28 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     } catch (e) { console.error(e) }
   }, [ratedOrders])
 
+  // Returns map (orderId -> ReturnData)
+  const [returnsMap, setReturnsMap] = useState<Record<string, ReturnData>>({})
+
   const fetchOrders = async () => {
     if (!user) return
     setIsLoading(true)
     try {
-      const data = await orderService.fetchBuyerOrders(user.id)
+      const [data, returnsData] = await Promise.all([
+        orderService.fetchBuyerOrders(user.id),
+        returnService.getReturns({ buyerId: user.id }).catch(() => [] as ReturnData[])
+      ])
+
+      const rMap: Record<string, ReturnData> = {}
+      if (Array.isArray(returnsData)) {
+        returnsData.forEach((ret) => {
+          if (ret && ret.orderId) {
+            rMap[ret.orderId] = ret
+          }
+        })
+      }
+      setReturnsMap(rMap)
+
       const now = Date.now()
       const twoDaysMs = 2 * 24 * 60 * 60 * 1000
 
@@ -391,6 +409,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
                 order={order}
                 shopsInfo={shopsInfo}
                 isRated={ratedOrders.has(order.id)}
+                returnData={returnsMap[order.id]}
                 onViewDetail={(o) => {
                   setSelectedOrderForDetail(o)
                   navigate(`/user/purchase/order/${o.id}?type=${getShopeeTypeNumber(o.status)}`)
@@ -460,6 +479,7 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
       <PurchaseOrderDetailModal
         order={selectedOrderDetail}
+        returnData={selectedOrderDetail ? returnsMap[selectedOrderDetail.id] : null}
         onClose={() => setSelectedOrderDetail(null)}
       />
 

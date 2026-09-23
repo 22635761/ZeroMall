@@ -120,7 +120,7 @@ export const returnService = {
   async sellerRespond(
     id: string,
     payload: {
-      action: 'APPROVE' | 'REJECT' | 'NEGOTIATE';
+      action: 'APPROVE' | 'REJECT' | 'NEGOTIATE' | 'REFUND_IMMEDIATELY';
       note?: string;
       proposedAmount?: number;
       evidenceUrl?: string;
@@ -152,6 +152,34 @@ export const returnService = {
   ): Promise<{ success: boolean; returnTrackingNumber: string; status: string; message: string }> {
     return apiRequest(`/delivery/returns/${id}/ship`, {
       method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async shipperConfirmPickup(
+    id: string,
+    payload: {
+      driverId?: string;
+      proofImage?: string;
+      note?: string;
+    }
+  ): Promise<{ success: boolean; returnTrackingNumber: string; status: string; message: string }> {
+    return apiRequest(`/delivery/returns/${id}/driver-pickup`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    });
+  },
+
+  async hubInboundReturn(
+    id: string,
+    payload: {
+      hubId: string;
+      staffName?: string;
+      note?: string;
+    }
+  ): Promise<{ success: boolean; message: string; return?: ReturnData }> {
+    return apiRequest(`/delivery/returns/${id}/hub-inbound`, {
+      method: 'PATCH',
       body: JSON.stringify(payload),
     });
   },

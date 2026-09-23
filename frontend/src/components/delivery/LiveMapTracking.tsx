@@ -494,7 +494,14 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
     }).addTo(map)
 
     // Tự động căn chỉnh bao quát toàn bộ lộ trình
-    map.fitBounds(polyline.getBounds(), { padding: [60, 60] })
+    map.fitBounds(polyline.getBounds(), { padding: [40, 40] })
+
+    // Invalidate size sau khi DOM đã render xong để bản đồ hiển thị mượt mà trong modal
+    setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize()
+      }
+    }, 150)
 
     return () => {
       if (mapInstanceRef.current) {
@@ -506,16 +513,16 @@ export const LiveMapTracking: React.FC<LiveMapTrackingProps> = ({ trackingData, 
 
   return (
     <div className="space-y-2 text-left">
-      {/* Container Bản đồ */}
-      <div className="relative w-full h-[280px] sm:h-[320px] rounded-3xl overflow-hidden border-2 border-slate-200 shadow-md bg-slate-100">
+      {/* Container Bản đồ - Tinh gọn chiều cao vừa vặn modal */}
+      <div className="relative w-full h-[210px] sm:h-[230px] rounded-2xl overflow-hidden border border-slate-200 shadow-xs bg-slate-100">
         <div ref={mapContainerRef} className="w-full h-full z-10" />
 
-        {/* Thanh Trạng Thái Đang Ở Đâu Phủ Trên Bản Đồ */}
-        <div className="absolute top-3 left-3 right-3 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 p-3 rounded-2xl shadow-lg flex items-center justify-between gap-3">
+        {/* Thanh Trạng Thái Đang Ở Đâu Phủ Trên Bản Đồ - Thu gọn padding */}
+        <div className="absolute top-2.5 left-2.5 right-2.5 z-20 bg-white/95 backdrop-blur-md border border-slate-200/90 px-3 py-2 rounded-xl shadow-md flex items-center justify-between gap-2.5">
           <div className="space-y-0.5 min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
-              <span className="text-xs font-black text-slate-900 tracking-tight truncate">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping shrink-0"></span>
+              <span className="text-[11px] font-black text-slate-900 tracking-tight truncate">
                 Vị Trí Hiện Tại Của Bưu Kiện
               </span>
             </div>

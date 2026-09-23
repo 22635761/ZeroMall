@@ -2,13 +2,17 @@ import React from 'react'
 import type { Order } from '../../../models/order.model'
 import { getStatusText, getStatusColor, formatMoney } from './types'
 
+import type { ReturnData } from '../../../services/return.service'
+
 interface PurchaseOrderDetailModalProps {
   order: Order | null
+  returnData?: ReturnData | null
   onClose: () => void
 }
 
 export const PurchaseOrderDetailModal: React.FC<PurchaseOrderDetailModalProps> = ({
   order,
+  returnData,
   onClose
 }) => {
   if (!order) return null
@@ -58,38 +62,68 @@ export const PurchaseOrderDetailModal: React.FC<PurchaseOrderDetailModalProps> =
         {/* Items list */}
         <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
           <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Danh Sách Sản Phẩm</p>
-          {order.items.map((item: any) => (
-            <div key={item.id} className="flex gap-3 text-xs border-b border-slate-100 pb-2.5">
-              <img
-                src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'}
-                alt={item.name || item.productName}
-                className="w-12 h-12 object-cover border border-slate-200 rounded-lg shrink-0"
-              />
-              <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-slate-800 line-clamp-1">{item.name || item.productName}</h4>
-                <p className="text-[10px] text-slate-400">
-                  x{item.quantity} {item.variant ? `(${item.variant})` : ''}
-                </p>
+          {order.items.map((item: any) => {
+            const returnItem = returnData?.items?.find(
+              (ri) =>
+                (ri.orderItemId && ri.orderItemId === item.id) ||
+                (ri.productId && ri.productId === item.productId) ||
+                (ri.productName && (ri.productName === item.name || ri.productName === item.productName))
+            )
+            const isItemReturned = Boolean(returnItem)
+
+            return (
+              <div
+                key={item.id}
+                className={`flex gap-3 text-xs border-b border-slate-100 pb-2.5 p-1 rounded-md ${
+                  isItemReturned ? 'bg-amber-50/60' : ''
+                }`}
+              >
+                <img
+                  src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'}
+                  alt={item.name || item.productName}
+                  className="w-12 h-12 object-cover border border-slate-200 rounded-lg shrink-0"
+                />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <h4 className="font-bold text-slate-800 line-clamp-1">{item.name || item.productName}</h4>
+                    {isItemReturned && (
+                      <span className="bg-amber-100 text-amber-800 text-[9px] font-bold px-1 py-0.5 rounded border border-amber-300">
+                        🔄 Yêu cầu hoàn (Hoàn {formatMoney(returnItem?.refundAmount || item.price * (returnItem?.quantity || item.quantity))})
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    x{item.quantity} {item.variant ? `(${item.variant})` : ''}
+                  </p>
+                </div>
+                <div className="text-right font-extrabold text-slate-700">
+                  {formatMoney(item.price * item.quantity)}
+                </div>
               </div>
-              <div className="text-right font-extrabold text-slate-700">
-                {formatMoney(item.price * item.quantity)}
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
 
         {/* Footer Total */}
-        <div className="pt-3 border-t border-slate-100 flex items-center justify-between">
-          <div>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Thành Tiền</p>
-            <p className="text-lg font-black text-[#ee4d2d]">{formatMoney(order.totalAmount)}</p>
+        <div className="pt-3 border-t border-slate-100 space-y-2">
+          {returnData?.refundAmount && (
+            <div className="flex justify-between items-center bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200 text-xs">
+              <span className="font-bold text-amber-900">Số tiền yêu cầu hoàn:</span>
+              <span className="font-black text-rose-600 text-sm">{formatMoney(returnData.refundAmount)}</span>
+            </div>
+          )}
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-[10px] font-bold text-slate-400 uppercase">Thành Tiền Đơn</p>
+              <p className="text-lg font-black text-[#ee4d2d]">{formatMoney(order.totalAmount)}</p>
+            </div>
+            <button
+              onClick={onClose}
+              className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+            >
+              Đóng
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
-          >
-            Đóng
-          </button>
         </div>
       </div>
     </div>

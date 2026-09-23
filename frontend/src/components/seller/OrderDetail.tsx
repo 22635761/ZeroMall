@@ -4,10 +4,12 @@ import type { Order } from '../../models/order.model'
 import { formatOrderId } from '../../utils/orderUtils'
 import { ShopTrackingModal } from './ShopTrackingModal'
 import { ShopHandoverModal } from './ShopHandoverModal'
+import type { ReturnData } from '../../services/return.service'
 
 interface OrderDetailProps {
   order: Order
   token: string
+  returnData?: ReturnData
   onBack: () => void
   onStatusUpdate: (orderId: string, newStatus: string) => Promise<void>
   updatingOrderId: string | null
@@ -51,7 +53,7 @@ const getStepIndex = (status: string) => {
 }
 
 export const OrderDetail: React.FC<OrderDetailProps> = ({
-  order, onBack, onStatusUpdate, updatingOrderId, shopId, shopName
+  order, returnData, onBack, onStatusUpdate, updatingOrderId, shopId, shopName
 }) => {
   const [showTrackingModal, setShowTrackingModal] = useState(false)
   const [trackingData, setTrackingData] = useState<any>(null)
@@ -238,24 +240,55 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-xs">
             <h3 className="text-xs font-black text-slate-700 uppercase tracking-wider mb-4">Sản Phẩm Đặt Mua</h3>
             <div className="divide-y divide-slate-100">
-              {order.items.map((item) => (
-                <div key={item.id} className="py-4 flex gap-4 items-start">
-                  <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-xl border border-slate-100 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="text-xs font-bold text-slate-700 leading-snug line-clamp-2">{item.name}</h4>
-                    {item.variant && item.variant.trim() && item.variant !== 'Mặc định' && (
-                      <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md inline-block mt-1">
-                        Phân loại: {item.variant}
-                      </span>
-                    )}
+              {order.items.map((item) => {
+                const returnItem = returnData?.items?.find(
+                  (ri) =>
+                    (ri.orderItemId && ri.orderItemId === item.id) ||
+                    (ri.productId && ri.productId === item.productId) ||
+                    (ri.productName && (ri.productName === item.name || ri.productName === (item as any).productName))
+                )
+                const isItemReturned = Boolean(returnItem)
+                const hasReturn = Boolean(returnData)
+
+                return (
+                  <div
+                    key={item.id}
+                    className={`py-4 px-3 flex gap-4 items-start rounded-xl transition ${
+                      isItemReturned
+                        ? 'bg-amber-50/50 border border-amber-200'
+                        : hasReturn
+                        ? 'bg-slate-50/40'
+                        : ''
+                    }`}
+                  >
+                    <img src={item.image} alt={item.name} className="w-16 h-16 object-cover rounded-xl border border-slate-100 shrink-0" />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h4 className="text-xs font-bold text-slate-700 leading-snug line-clamp-2">{item.name}</h4>
+                        {isItemReturned ? (
+                          <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 font-bold px-2 py-0.5 rounded text-[10px]">
+                            <span>🔄</span> Khách yêu cầu hoàn (x{returnItem?.quantity || item.quantity} - Hoàn {formatVND(returnItem?.refundAmount || item.price * (returnItem?.quantity || item.quantity))})
+                          </span>
+                        ) : hasReturn ? (
+                          <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-2 py-0.5 rounded text-[10px]">
+                            <span>✓</span> Giữ lại / Đã nhận
+                          </span>
+                        ) : null}
+                      </div>
+                      {item.variant && item.variant.trim() && item.variant !== 'Mặc định' && (
+                        <span className="text-[10px] text-slate-400 font-semibold bg-slate-50 border border-slate-100 px-2 py-0.5 rounded-md inline-block mt-1">
+                          Phân loại: {item.variant}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-xs font-black text-slate-700">{formatVND(item.price)}</p>
+                      <p className="text-[10px] text-slate-400">× {item.quantity}</p>
+                      <p className="text-xs font-bold text-emerald-600 mt-1">{formatVND(item.price * item.quantity)}</p>
+                    </div>
                   </div>
-                  <div className="text-right shrink-0">
-                    <p className="text-xs font-black text-slate-700">{formatVND(item.price)}</p>
-                    <p className="text-[10px] text-slate-400">× {item.quantity}</p>
-                    <p className="text-xs font-bold text-emerald-600 mt-1">{formatVND(item.price * item.quantity)}</p>
-                  </div>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 
@@ -314,6 +347,14 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
                 <span className="font-extrabold text-slate-800">Tổng thanh toán:</span>
                 <span className="font-black text-emerald-600 text-base">{formatVND(order.totalAmount)}</span>
               </div>
+              {returnData?.refundAmount ? (
+                <div className="bg-amber-50 border border-amber-200 p-2.5 rounded-xl flex justify-between items-center text-xs">
+                  <span className="font-bold text-amber-900 flex items-center gap-1">
+                    <span>🔄</span> Số tiền hoàn:
+                  </span>
+                  <span className="font-black text-rose-600 text-sm">{formatVND(returnData.refundAmount)}</span>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <span className="text-slate-400 font-semibold">Phương thức TT:</span>
                 <span className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
@@ -328,8 +369,81 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
         </div>
       </div>
 
-      {/* Refund info if any */}
-      {(order.refundReason || order.refundDescription) && (
+      {/* Return info from Delivery ReturnData */}
+      {returnData && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-3xl p-6 shadow-xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-200/70">
+            <div className="flex items-center gap-2">
+              <span className="text-xl">🔄</span>
+              <h3 className="text-sm font-extrabold text-amber-950">
+                Yêu Cầu Trả Hàng / Hoàn Tiền #{returnData.returnNumber || returnData.id.slice(0, 8)}
+              </h3>
+              <span className="bg-amber-200 text-amber-900 font-bold px-2.5 py-0.5 rounded-full text-[10px]">
+                {returnData.status}
+              </span>
+            </div>
+            <a
+              href="/seller?menu=orders&sub=refunds"
+              className="px-4 py-1.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold transition shadow-xs flex items-center gap-1 cursor-pointer"
+            >
+              <span>⚙️</span> Vào Tab Trả Hàng / Hoàn Tiền Để Xử Lý ↗
+            </a>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs pt-1">
+            <div className="bg-white p-3.5 rounded-2xl border border-amber-200/80 space-y-1">
+              <span className="text-slate-400 block font-medium">Phương án giải quyết:</span>
+              <span className="font-bold text-slate-800">
+                {returnData.resolution === 'REFUND_ONLY' ? 'Chỉ hoàn tiền (không trả hàng)' : 'Trả hàng & Hoàn tiền'}
+              </span>
+              <span className="text-slate-400 block font-medium pt-1">Lý do:</span>
+              <span className="font-bold text-slate-800">{returnData.reason}</span>
+              {returnData.reasonDetail && (
+                <p className="text-slate-600 italic bg-slate-50 p-2 rounded-lg border border-slate-150 mt-1">
+                  "{returnData.reasonDetail}"
+                </p>
+              )}
+            </div>
+
+            <div className="bg-white p-3.5 rounded-2xl border border-amber-200/80 space-y-1">
+              <span className="text-slate-400 block font-medium">Sản phẩm yêu cầu trả ({returnData.items.length} món):</span>
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {returnData.items.map((it) => (
+                  <div key={it.id} className="flex justify-between items-center bg-slate-50 p-1.5 rounded-lg border border-slate-150 text-[11px]">
+                    <span className="font-bold text-slate-800 truncate max-w-[150px]">{it.productName}</span>
+                    <span className="font-bold text-rose-600">x{it.quantity} ({formatVND(it.refundAmount || it.price * it.quantity)})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="bg-white p-3.5 rounded-2xl border border-amber-200/80 space-y-1">
+              <span className="text-slate-400 block font-medium">Số tiền khách yêu cầu hoàn:</span>
+              <span className="text-base font-black text-rose-600 block">{formatVND(returnData.refundAmount)}</span>
+              {returnData.returnTrackingNumber && (
+                <p className="text-[11px] text-slate-700 mt-2">
+                  Mã vận đơn bưu cục: <strong className="font-mono font-bold text-slate-900">{returnData.returnTrackingNumber}</strong>
+                </p>
+              )}
+              {returnData.evidences.length > 0 && (
+                <div className="pt-2">
+                  <span className="text-slate-400 block font-medium mb-1">Ảnh minh chứng:</span>
+                  <div className="flex gap-1.5 overflow-x-auto">
+                    {returnData.evidences.map((ev) => (
+                      <a key={ev.id} href={ev.fileUrl} target="_blank" rel="noreferrer">
+                        <img src={ev.fileUrl} alt="evidence" className="w-10 h-10 object-cover rounded-lg border border-slate-200" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Refund info if any (fallback legacy) */}
+      {!returnData && (order.refundReason || order.refundDescription) && (
         <div className="bg-rose-50/30 border border-rose-200/60 rounded-3xl p-6 shadow-xs space-y-3">
           <h3 className="text-xs font-black text-rose-600 uppercase tracking-wider flex items-center gap-2">
             ⚠️ Thông Tin Yêu Cầu Hoàn Tiền

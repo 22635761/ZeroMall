@@ -35,7 +35,12 @@ export const mapStatusToTab = (status: string): string => {
       return 'DELIVERED'
     case 'REFUND_PENDING':
     case 'RETURN_PENDING':
+    case 'RETURN_REQUESTED':
+    case 'RETURN_APPROVED':
     case 'RETURN_SHIPPED':
+    case 'RETURN_SHIPPING':
+    case 'RETURN_IN_TRANSIT':
+    case 'DELIVERED_TO_SELLER':
     case 'REFUND_DISPUTED':
     case 'REFUNDED':
     case 'RETURNED':
@@ -72,11 +77,18 @@ export const getStatusText = (status: string): string => {
     case 'CANCELED':
       return 'ĐÃ HỦY'
     case 'REFUND_PENDING':
+    case 'RETURN_REQUESTED':
       return 'TRẢ HÀNG (CHỜ DUYỆT)'
+    case 'RETURN_APPROVED':
+      return 'TRẢ HÀNG (CHỜ GỬI TRẢ)'
     case 'RETURN_PENDING':
       return 'TRẢ HÀNG (CHỜ TRẢ)'
     case 'RETURN_SHIPPED':
-      return 'TRẢ HÀNG (ĐANG TRẢ)'
+    case 'RETURN_SHIPPING':
+    case 'RETURN_IN_TRANSIT':
+      return 'TRẢ HÀNG (ĐANG VẬN CHUYỂN)'
+    case 'DELIVERED_TO_SELLER':
+      return 'TRẢ HÀNG (SHOP KIỂM HÀNG)'
     case 'REFUND_DISPUTED':
       return 'TRẢ HÀNG (TRANH CHẤP)'
     case 'REFUNDED':

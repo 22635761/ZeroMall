@@ -20,7 +20,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
   // Mặc định tự động vào trang là xem "TẤT CẢ" (ALL)
   const [selectedMonth, setSelectedMonth] = useState<string>('ALL')
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear())
-  const [activeTab, setActiveTab] = useState<'ALL' | 'RELEASED' | 'HELD' | 'IN_TRANSIT' | 'CANCELLED'>('ALL')
+  const [activeTab, setActiveTab] = useState<'ALL' | 'RELEASED' | 'HELD' | 'IN_TRANSIT' | 'CANCELLED' | 'DISPUTE'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null)
 
@@ -106,6 +106,8 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
     let releasedCount = 0
     let heldRevenue = 0
     let heldCount = 0
+    let frozenDisputeRevenue = 0
+    let frozenDisputeCount = 0
     let inTransitRevenue = 0
     let inTransitCount = 0
     let cancelledCount = 0
@@ -138,13 +140,26 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
       } else if (order.status === 'DELIVERED') {
         heldRevenue += netRevenue
         heldCount++
+      } else if ([
+        'RETURN_REQUESTED',
+        'RETURN_PENDING',
+        'RETURN_APPROVED',
+        'RETURN_SHIPPED',
+        'RETURN_SHIPPING',
+        'RETURN_IN_TRANSIT',
+        'DELIVERED_TO_SELLER',
+        'REFUND_PENDING',
+        'REFUND_DISPUTED'
+      ].includes(order.status)) {
+        frozenDisputeRevenue += netRevenue
+        frozenDisputeCount++
       } else {
         inTransitRevenue += netRevenue
         inTransitCount++
       }
     })
 
-    const netEstimatedRevenue = releasedRevenue + heldRevenue + inTransitRevenue
+    const netEstimatedRevenue = releasedRevenue + heldRevenue + frozenDisputeRevenue + inTransitRevenue
 
     return {
       totalGMV,
@@ -155,6 +170,8 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
       releasedCount,
       heldRevenue,
       heldCount,
+      frozenDisputeRevenue,
+      frozenDisputeCount,
       inTransitRevenue,
       inTransitCount,
       cancelledCount
@@ -167,7 +184,21 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
       // Tab filter
       if (activeTab === 'RELEASED' && order.status !== 'COMPLETED') return false
       if (activeTab === 'HELD' && order.status !== 'DELIVERED') return false
-      if (activeTab === 'IN_TRANSIT' && ['COMPLETED', 'DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED'].includes(order.status)) return false
+      const isDispute = [
+        'RETURN_REQUESTED',
+        'RETURN_PENDING',
+        'RETURN_APPROVED',
+        'RETURN_SHIPPED',
+        'RETURN_SHIPPING',
+        'RETURN_IN_TRANSIT',
+        'DELIVERED_TO_SELLER',
+        'REFUND_PENDING',
+        'REFUND_DISPUTED'
+      ].includes(order.status)
+      if (activeTab === 'DISPUTE' && !isDispute) return false
+      if (activeTab === 'IN_TRANSIT' && (
+        ['COMPLETED', 'DELIVERED', 'CANCELLED', 'REFUNDED', 'RETURNED', 'PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(order.status) || isDispute
+      )) return false
       if (activeTab === 'CANCELLED' && !['CANCELLED', 'REFUNDED', 'RETURNED'].includes(order.status)) return false
 
       // Search query
@@ -314,6 +345,11 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
             <p className="text-xl font-black text-amber-600 tracking-tight">{formatPrice(metrics.heldRevenue)}</p>
             <p className="text-[10px] text-amber-700/80 font-bold mt-1">
               {metrics.heldCount} đơn Đã Giao (Chờ giải ngân)
+              {metrics.frozenDisputeCount > 0 && (
+                <span className="block text-purple-700 font-bold mt-0.5">
+                  • {metrics.frozenDisputeCount} đơn khiếu nại ({formatPrice(metrics.frozenDisputeRevenue)})
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -344,6 +380,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
               { id: 'ALL', label: `Tất Cả Đơn (${dateFilteredOrders.length})` },
               { id: 'RELEASED', label: `🟢 Đã Giải Ngân (${metrics.releasedCount})` },
               { id: 'HELD', label: `🔒 Đang Tạm Giữ 3 Ngày (${metrics.heldCount})` },
+              { id: 'DISPUTE', label: `⚠️ Đang Khiếu Nại / Trả Hàng (${metrics.frozenDisputeCount})` },
               { id: 'IN_TRANSIT', label: `🚚 Đang Vận Chuyển (${metrics.inTransitCount})` },
               { id: 'CANCELLED', label: `❌ Đã Hủy / Hoàn Tiền (${metrics.cancelledCount})` },
             ].map(tab => (
@@ -424,6 +461,36 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
                     statusBadge = (
                       <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-black inline-flex items-center gap-1">
                         <span>🔒</span> Tạm Giữ 3 Ngày
+                      </span>
+                    )
+                  } else if (order.status === 'RETURN_REQUESTED' || order.status === 'RETURN_PENDING') {
+                    statusBadge = (
+                      <span className="px-2.5 py-1 bg-purple-50 text-purple-700 border border-purple-200 rounded-full text-[10px] font-black inline-flex items-center gap-1" title="Khách yêu cầu Trả hàng / Hoàn tiền - Chờ Shop duyệt - Tiền Escrow đang đóng băng">
+                        <span>⚠️</span> Chờ Duyệt Đổi Trả
+                      </span>
+                    )
+                  } else if (order.status === 'RETURN_APPROVED') {
+                    statusBadge = (
+                      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 border border-indigo-200 rounded-full text-[10px] font-black inline-flex items-center gap-1" title="Đã đồng ý cho khách trả hàng - Chờ gửi hàng hoàn">
+                        <span>📦</span> Đã Duyệt Đổi Trả
+                      </span>
+                    )
+                  } else if (order.status === 'RETURN_SHIPPED' || order.status === 'RETURN_SHIPPING' || order.status === 'RETURN_IN_TRANSIT') {
+                    statusBadge = (
+                      <span className="px-2.5 py-1 bg-violet-50 text-violet-700 border border-violet-200 rounded-full text-[10px] font-black inline-flex items-center gap-1" title="Hàng hoàn đang trên đường trả về người bán qua ZMX">
+                        <span>🔄</span> Hàng Hoàn Đang Vận Chuyển
+                      </span>
+                    )
+                  } else if (order.status === 'DELIVERED_TO_SELLER') {
+                    statusBadge = (
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-full text-[10px] font-black inline-flex items-center gap-1" title="Shop đã nhận được kiện hoàn - Chờ kiểm tra và xác nhận hoàn tiền">
+                        <span>📥</span> Đã Nhận Kiện Hoàn
+                      </span>
+                    )
+                  } else if (order.status === 'REFUND_DISPUTED') {
+                    statusBadge = (
+                      <span className="px-2.5 py-1 bg-red-50 text-red-700 border border-red-300 rounded-full text-[10px] font-black inline-flex items-center gap-1" title="Shop khiếu nại kiện hàng trả - Chờ CS giải quyết">
+                        <span>🚨</span> Khiếu Nại Đổi Trả
                       </span>
                     )
                   } else if (['CANCELLED', 'REFUNDED', 'RETURNED'].includes(order.status)) {
@@ -590,7 +657,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
                   <div>
                     <p className="text-[10px] font-extrabold text-emerald-800 uppercase">Tiền Về Ví Shop Thực Thu</p>
                     <p className="text-[10px] text-emerald-600 mt-0.5">
-                      Trạng thái: {selectedOrderForDetail.status === 'COMPLETED' ? '🟢 Đã Giải Ngân' : selectedOrderForDetail.status === 'DELIVERED' ? '🔒 Đang Tạm Giữ 3 Ngày' : '🚚 Đang Giao / Xử Lý'}
+                      Trạng thái: {selectedOrderForDetail.status === 'COMPLETED' ? '🟢 Đã Giải Ngân' : selectedOrderForDetail.status === 'DELIVERED' ? '🔒 Đang Tạm Giữ 3 Ngày' : selectedOrderForDetail.status === 'RETURN_REQUESTED' ? '⚠️ Đóng Băng Khiếu Nại' : ['CANCELLED', 'REFUNDED', 'RETURNED'].includes(selectedOrderForDetail.status) ? '❌ Đã Hủy / Hoàn Tiền' : '🚚 Đang Giao / Xử Lý'}
                     </p>
                   </div>
                   <p className="text-xl font-black text-emerald-600">

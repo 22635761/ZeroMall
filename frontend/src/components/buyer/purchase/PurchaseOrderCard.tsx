@@ -2,10 +2,13 @@ import React from 'react'
 import type { Order } from '../../../models/order.model'
 import { getStatusText, getStatusColor, formatMoney } from './types'
 
+import type { ReturnData } from '../../../services/return.service'
+
 interface PurchaseOrderCardProps {
   order: Order
   shopsInfo: { [key: string]: string }
   isRated: boolean
+  returnData?: ReturnData
   onViewDetail: (order: Order) => void
   onOpenTracking: (orderId: string) => void
   onOpenCancel: (order: Order) => void
@@ -21,6 +24,7 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
   order,
   shopsInfo,
   isRated,
+  returnData,
   onViewDetail,
   onOpenTracking,
   onOpenCancel,
@@ -42,6 +46,19 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
       : targetShopId.startsWith('Shop')
       ? targetShopId
       : `Shop ${targetShopId.substring(0, 8)}`)
+
+  // Kiểm tra thông tin hoàn trả một phần
+  const isReturning = Boolean(
+    returnData ||
+    order.status.startsWith('RETURN_') ||
+    order.status.startsWith('REFUND_') ||
+    order.status === 'REFUNDED' ||
+    order.status === 'RETURNED'
+  )
+  const returnItemsList = returnData?.items || []
+  const hasReturnItems = returnItemsList.length > 0
+  const isPartialReturn = hasReturnItems && returnItemsList.length < (order.items?.length || 0)
+
 
   return (
     <div className="bg-white border border-slate-200/65 rounded-sm p-4 sm:p-5 shadow-3xs space-y-4">
@@ -95,11 +112,43 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
           >
             <span>🚚</span> Tra Cứu Vận Chuyển ZMX
           </button>
-          <div className={`font-bold ${getStatusColor(order.status)}`}>
-            {getStatusText(order.status)}
+          <div className="flex items-center gap-1.5">
+            {isPartialReturn && (
+              <span className="bg-amber-100 text-amber-800 border border-amber-300 text-[10px] font-bold px-1.5 py-0.5 rounded-sm">
+                Trả {returnItemsList.length}/{order.items.length} món
+              </span>
+            )}
+            <div className={`font-bold ${getStatusColor(order.status)}`}>
+              {getStatusText(order.status)}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Thông báo hướng dẫn trả hàng chuẩn Shopee - Nổi bật ngay đầu thẻ đơn hàng */}
+      {(order.status === 'RETURN_APPROVED' || (returnData?.status === 'APPROVED' && order.status !== 'DELIVERED_TO_SELLER' && order.status !== 'REFUNDED')) && (
+        <div className="bg-amber-50/90 border border-amber-300 rounded-lg p-3 text-xs space-y-1.5 animate-in fade-in">
+          <div className="flex items-center gap-2 text-amber-900 font-bold">
+            <span className="text-base">📦</span>
+            <span>Shop đã duyệt yêu cầu trả hàng!</span>
+          </div>
+          <p className="text-amber-800 text-[11px] leading-relaxed">
+            Vui lòng đóng gói hàng cẩn thận. Shipper ZMX sẽ liên hệ và đến thu hồi hàng hoàn tại địa chỉ của bạn, hoặc bạn có thể gửi hàng tại bưu cục ZMX gần nhất. Sau khi Shop nhận lại hàng, tiền hoàn sẽ được chuyển tự động vào ví ZeroPay của bạn.
+          </p>
+        </div>
+      )}
+
+      {(order.status === 'RETURN_SHIPPING' || order.status === 'RETURN_IN_TRANSIT') && (
+        <div className="bg-blue-50/90 border border-blue-300 rounded-lg p-3 text-xs space-y-1.5 animate-in fade-in">
+          <div className="flex items-center gap-2 text-blue-900 font-bold">
+            <span className="text-base">🚚</span>
+            <span>Hàng hoàn đang trên đường vận chuyển về Người Bán</span>
+          </div>
+          <p className="text-blue-800 text-[11px] leading-relaxed">
+            Shipper đã nhận kiện hàng trả và đang trung chuyển về Shop. Ngay khi Shop nhận được kiện hàng và đối soát thành công, hệ thống sẽ tự động hoàn tiền vào ví ZeroPay của bạn.
+          </p>
+        </div>
+      )}
 
       {/* Order Items List - Bấm vào xem chi tiết đơn hàng */}
       <div
@@ -107,37 +156,75 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
         className="space-y-3 cursor-pointer hover:bg-slate-50/70 p-2 -mx-2 rounded-lg transition group"
         title="Bấm để xem chi tiết đơn hàng"
       >
-        {order.items.map((item: any) => (
-          <div key={item.id} className="flex gap-3 text-xs">
-            <img
-              src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'}
-              alt={item.name || item.productName}
-              className="w-[70px] h-[70px] border border-slate-200 rounded-sm object-cover shrink-0"
-            />
-            <div className="flex-1 min-w-0 space-y-1">
-              <h4 className="font-semibold text-slate-800 line-clamp-1 hover:text-[#ee4d2d] transition">
-                {item.name || item.productName}
-              </h4>
-              {item.variant &&
-                item.variant.trim() !== '' &&
-                item.variant !== 'Mặc định' &&
-                item.variant !== 'Tiêu chuẩn' &&
-                item.variant !== 'Default' && (
-                  <p className="text-[10px] text-slate-400 font-medium mt-0.5">
-                    Phân loại hàng: <span className="font-semibold text-slate-600">{item.variant}</span>
-                  </p>
-                )}
-              <p className="font-medium text-slate-700">x{item.quantity}</p>
+        {order.items.map((item: any) => {
+          // Kiểm tra item này có nằm trong danh sách hoàn trả không
+          const returnItem = returnItemsList.find(
+            (ri) =>
+              (ri.orderItemId && ri.orderItemId === item.id) ||
+              (ri.productId && ri.productId === item.productId) ||
+              (ri.productName && (ri.productName === item.name || ri.productName === item.productName))
+          )
+          const isItemReturned = Boolean(returnItem)
+
+          return (
+            <div
+              key={item.id}
+              className={`flex gap-3 text-xs p-2 rounded-lg transition ${
+                isItemReturned
+                  ? 'bg-amber-50/50 border border-amber-200/70'
+                  : isReturning
+                  ? 'bg-slate-50/40 border border-slate-100'
+                  : ''
+              }`}
+            >
+              <img
+                src={item.image || item.productImage || 'https://placehold.co/100x100?text=No+Image'}
+                alt={item.name || item.productName}
+                className="w-[70px] h-[70px] border border-slate-200 rounded-sm object-cover shrink-0"
+              />
+              <div className="flex-1 min-w-0 space-y-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h4 className="font-semibold text-slate-800 line-clamp-1 hover:text-[#ee4d2d] transition">
+                    {item.name || item.productName}
+                  </h4>
+                  {isItemReturned ? (
+                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-300 font-bold px-1.5 py-0.5 rounded text-[10px]">
+                      <span>🔄</span> Yêu cầu trả hàng {returnItem?.refundAmount ? `(Hoàn ${formatMoney(returnItem.refundAmount)})` : ''}
+                    </span>
+                  ) : isReturning ? (
+                    <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium px-1.5 py-0.5 rounded text-[10px]">
+                      <span>✓</span> Giữ lại
+                    </span>
+                  ) : null}
+                </div>
+
+                {item.variant &&
+                  item.variant.trim() !== '' &&
+                  item.variant !== 'Mặc định' &&
+                  item.variant !== 'Tiêu chuẩn' &&
+                  item.variant !== 'Default' && (
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Phân loại hàng: <span className="font-semibold text-slate-600">{item.variant}</span>
+                    </p>
+                  )}
+                <p className="font-medium text-slate-700">x{item.quantity}</p>
+              </div>
+              <div className="text-right shrink-0">
+                <p className="text-[#ee4d2d] font-bold">{formatMoney(item.price)}</p>
+              </div>
             </div>
-            <div className="text-right shrink-0">
-              <p className="text-[#ee4d2d] font-bold">{formatMoney(item.price)}</p>
-            </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Order total amount summary */}
       <div className="pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-4 text-xs">
+        {returnData?.refundAmount ? (
+          <div className="flex items-center gap-1.5 text-xs bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+            <span className="text-amber-800 font-medium">Số tiền yêu cầu hoàn:</span>
+            <span className="font-black text-rose-600 text-sm">{formatMoney(returnData.refundAmount)}</span>
+          </div>
+        ) : <div />}
         <div className="flex items-center gap-1.5 ml-auto">
           <span className="text-slate-500">Thành tiền:</span>
           <span className="text-base font-extrabold text-[#ee4d2d]">{formatMoney(order.totalAmount)}</span>
@@ -247,12 +334,18 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
         {/* 4. TRẢ HÀNG */}
         {(order.status === 'REFUND_PENDING' ||
           order.status === 'RETURN_PENDING' ||
+          order.status === 'RETURN_REQUESTED' ||
+          order.status === 'RETURN_APPROVED' ||
           order.status === 'RETURN_SHIPPED' ||
+          order.status === 'RETURN_SHIPPING' ||
+          order.status === 'RETURN_IN_TRANSIT' ||
+          order.status === 'DELIVERED_TO_SELLER' ||
           order.status === 'REFUND_DISPUTED' ||
           order.status === 'REFUNDED' ||
-          order.status === 'RETURNED') && (
+          order.status === 'RETURNED' ||
+          Boolean(returnData)) && (
           <>
-            {order.status === 'RETURN_PENDING' && (
+            {(order.status === 'RETURN_PENDING' || order.status === 'RETURN_APPROVED') && (
               <button
                 onClick={() => onConfirmReturnShipped(order)}
                 className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-sm transition duration-150 cursor-pointer shadow-3xs text-[11px]"
@@ -261,10 +354,16 @@ export const PurchaseOrderCard: React.FC<PurchaseOrderCardProps> = ({
               </button>
             )}
             <button
+              onClick={() => onViewDetail(order)}
+              className="px-4 py-2 bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-800 rounded-sm font-semibold transition duration-150 cursor-pointer shadow-3xs text-[11px] flex items-center gap-1"
+            >
+              <span>🔄</span> Xem tiến trình trả hàng
+            </button>
+            <button
               onClick={() => onOpenSimpleDetail(order)}
               className="px-4 py-2 border border-slate-200 rounded-sm font-semibold hover:bg-slate-50 text-slate-700 transition duration-150 cursor-pointer shadow-3xs text-[11px]"
             >
-              📄 Xem chi tiết
+              📄 Xem chi tiết đơn
             </button>
           </>
         )}

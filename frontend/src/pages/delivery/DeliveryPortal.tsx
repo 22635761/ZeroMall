@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
+import type { ReturnData } from '../../services/return.service'
 
 interface TrackingLog {
   id: string
@@ -120,6 +121,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   // Navigation Tabs: Đơn cần lấy, Đơn tại kho, Tuyến giao khách, Quản lý COD, Trạm Hub & Tài xế
   const [activeTab, setActiveTab] = useState<'ALL' | 'MY_TASKS' | 'PICKUP' | 'HUB' | 'DELIVERY' | 'COD' | 'HUBS_DRIVERS'>('ALL')
   const [shipments, setShipments] = useState<Shipment[]>([])
+  const [returns, setReturns] = useState<ReturnData[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [hubs, setHubs] = useState<Hub[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,15 +139,17 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   const fetchAllData = async () => {
     setLoading(true)
     try {
-      const [shipmentsRes, driversRes, hubsRes] = await Promise.all([
+      const [shipmentsRes, driversRes, hubsRes, returnsRes] = await Promise.all([
         fetch(`${API_BASE_URL}/delivery/shipments`),
         fetch(`${API_BASE_URL}/delivery/drivers`),
         fetch(`${API_BASE_URL}/delivery/hubs`),
+        fetch(`${API_BASE_URL}/delivery/returns`),
       ])
 
       if (shipmentsRes.ok) setShipments(await shipmentsRes.json())
       if (driversRes.ok) setDrivers(await driversRes.json())
       if (hubsRes.ok) setHubs(await hubsRes.json())
+      if (returnsRes.ok) setReturns(await returnsRes.json())
     } catch (e) {
       console.error('Error loading logistics database:', e)
     } finally {
@@ -365,6 +369,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
             hubs={hubs}
             drivers={drivers}
             shipments={shipments}
+            returns={returns}
             onRefresh={fetchAllData}
             onUpdateStatus={(shipmentId, status, failureReason, hubId, note, linehaulData) =>
               handleUpdateStatus(shipmentId, status, failureReason, undefined, hubId, note, linehaulData)
@@ -546,6 +551,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
               hubs={hubs}
               drivers={drivers}
               shipments={shipments}
+              returns={returns}
               onRefresh={fetchAllData}
               onUpdateStatus={(shipmentId, status, failureReason, hubId, note, linehaulData) =>
                 handleUpdateStatus(shipmentId, status, failureReason, undefined, hubId, note, linehaulData)

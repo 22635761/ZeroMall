@@ -175,7 +175,7 @@ export const ReturnTrackingView: React.FC<ReturnTrackingViewProps> = ({
       {returnData.returnTrackingNumber && (
         <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 flex items-center justify-between text-xs">
           <div>
-            <span className="text-slate-500 block text-[11px]">Mã vận đơn hoàn trả (SPX):</span>
+            <span className="text-slate-500 block text-[11px]">Mã vận đơn hoàn trả (ZMX Express):</span>
             <span className="font-bold text-slate-800 text-sm tracking-wider">{returnData.returnTrackingNumber}</span>
           </div>
           <span className="text-[11px] bg-slate-200 text-slate-700 font-semibold px-2 py-1 rounded-lg">

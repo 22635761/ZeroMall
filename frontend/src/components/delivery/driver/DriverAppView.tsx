@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { API_BASE_URL } from '../../../config/api.config'
+import { returnService, type ReturnData } from '../../../services/return.service'
 
 // Child components
 import { DriverBottomNav } from './DriverBottomNav'
@@ -82,10 +83,40 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // ── Navigation state ──
   const [activeTab, setActiveTab] = useState<TabKey>('HOME')
 
-  // ── Online / Offline state & Attendance ──
   const [driverState, setDriverState] = useState<'ONLINE' | 'OFFLINE'>('OFFLINE')
   const [showCheckInModal, setShowCheckInModal] = useState(false)
   const [attendanceToday, setAttendanceToday] = useState<any>(null)
+  const [returnPickups, setReturnPickups] = useState<ReturnData[]>([])
+  const [holdingReturnTasks, setHoldingReturnTasks] = useState<ReturnData[]>([])
+
+  // Lấy danh sách các đơn Trả Hàng (Cần thu hồi & Đang giữ trên xe)
+  const fetchReturnPickups = useCallback(async () => {
+    try {
+      const data = await returnService.getReturns()
+      if (Array.isArray(data)) {
+        // 1. Đơn cần đến nhà Người Mua để thu hồi
+        setReturnPickups(
+          data.filter(
+            (r) =>
+              r.status === 'RETURN_SHIPPING' &&
+              r.resolution !== 'REFUND_ONLY' &&
+              (r.returnMethod === 'ZMX_PICKUP' || !r.returnMethod)
+          )
+        )
+        // 2. Đơn hoàn trả đã lấy từ khách, đang giữ trên xe chờ nhập kho Bưu Cục
+        setHoldingReturnTasks(
+          data.filter(
+            (r) =>
+              r.status === 'RETURN_IN_TRANSIT' &&
+              r.resolution !== 'REFUND_ONLY' &&
+              (r.returnMethod === 'ZMX_PICKUP' || !r.returnMethod)
+          )
+        )
+      }
+    } catch (e) {
+      console.warn('Cannot fetch return pickups for driver:', e)
+    }
+  }, [])
 
   // Kiểm tra trạng thái điểm danh hôm nay từ backend
   const fetchAttendance = async () => {
@@ -104,7 +135,37 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
 
   useEffect(() => {
     fetchAttendance()
-  }, [driverProfile?.id])
+    fetchReturnPickups()
+  }, [driverProfile?.id, fetchReturnPickups])
+
+  // Xử lý khi tài xế bấm xác nhận đã lấy hàng hoàn từ Người Mua
+  const handleDriverConfirmReturnPickup = async (ret: ReturnData) => {
+    if (!window.confirm(`Xác nhận bạn đã đến địa chỉ Người Mua và nhận bưu kiện hoàn trả #${ret.returnNumber}?`)) return
+    try {
+      const res = await returnService.shipperConfirmPickup(ret.id, {
+        driverId: driverProfile?.id,
+        note: `Tài xế ${currentUser?.name || driverProfile?.name || 'ZMX'} đã thu hồi hàng hoàn tại nhà khách`,
+      })
+      alert(res.message || 'Xác nhận thu hồi hàng hoàn thành công!')
+      fetchReturnPickups()
+      onRefresh()
+    } catch (e: any) {
+      alert(e.message || 'Lỗi xác nhận thu hồi hàng hoàn')
+    }
+  }
+
+  // Xử lý khi tài xế hoặc bưu cục hoàn tất bàn giao kiện hàng hoàn về Shop (hoặc test nhập kho)
+  const handleDriverDeliverReturnToSeller = async (ret: ReturnData) => {
+    if (!window.confirm(`[MÔ PHỎNG TEST] Xác nhận bưu kiện hoàn #${ret.returnTrackingNumber || ret.returnNumber} đã được bàn giao nhập kho Bưu Cục hoặc giao tới Người Bán?`)) return
+    try {
+      await returnService.markDeliveredToSeller(ret.id)
+      alert('Đã xác nhận bàn giao hàng hoàn thành công!')
+      fetchReturnPickups()
+      onRefresh()
+    } catch (e: any) {
+      alert(e.message || 'Lỗi bàn giao hàng hoàn')
+    }
+  }
 
   const toggleOnlineStatus = () => {
     if (driverState === 'OFFLINE') {
@@ -223,7 +284,14 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   const driverEarnings = completedTasks.length * 15000
 
   // Badge cho tab Đơn Hàng: Khi Offline thì ẩn badge (0) theo chuẩn SPX
-  const ordersBadge = driverState === 'OFFLINE' ? 0 : (pickupTasks.length + holdingTasks.length + deliveryTasks.length)
+  const ordersBadge =
+    driverState === 'OFFLINE'
+      ? 0
+      : pickupTasks.length +
+        holdingTasks.length +
+        returnPickups.length +
+        holdingReturnTasks.length +
+        deliveryTasks.length
 
   return (
     <div className="min-h-screen bg-slate-100 flex justify-center text-slate-800 font-sans selection:bg-emerald-600 selection:text-white">
@@ -270,8 +338,8 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
             <DriverHomeTab
               currentUser={currentUser}
               driverProfile={driverProfile}
-              pickupCount={pickupTasks.length}
-              holdingCount={holdingTasks.length}
+              pickupCount={pickupTasks.length + returnPickups.length}
+              holdingCount={holdingTasks.length + holdingReturnTasks.length}
               deliveryCount={deliveryTasks.length}
               completedCount={completedTasks.length}
               codInWallet={codInWallet}
@@ -288,7 +356,11 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
             <DriverOrdersTab
               pickupTasks={pickupTasks}
               holdingTasks={holdingTasks}
+              holdingReturnTasks={holdingReturnTasks}
               deliveryTasks={deliveryTasks}
+              returnTasks={returnPickups}
+              onConfirmReturnPickup={handleDriverConfirmReturnPickup}
+              onDeliverReturnToSeller={handleDriverDeliverReturnToSeller}
               onUpdateStatus={onUpdateStatus}
               actionLoading={actionLoading}
               onShowFailModal={(s) => setFailModal({ id: s.id, trackingNumber: s.trackingNumber })}

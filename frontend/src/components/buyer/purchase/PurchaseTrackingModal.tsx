@@ -17,12 +17,18 @@ export const PurchaseTrackingModal: React.FC<PurchaseTrackingModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 text-left space-y-4 p-6">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+    <div
+      className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-4 animate-in fade-in duration-200"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-3xl w-full max-w-lg max-h-[90vh] shadow-2xl overflow-hidden border border-slate-100 animate-in zoom-in-95 duration-200 text-left flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Sticky Header */}
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 bg-white shrink-0">
           <div>
-            <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
+            <h3 className="font-black text-slate-800 text-sm sm:text-base flex items-center gap-2">
               <span>🚚</span> Thông Tin Vận Chuyển ZeroExpress (ZMX)
             </h3>
             <p className="text-[11px] text-slate-400 font-medium mt-0.5">
@@ -30,12 +36,17 @@ export const PurchaseTrackingModal: React.FC<PurchaseTrackingModalProps> = ({
             </p>
           </div>
           <button
+            type="button"
             onClick={onClose}
-            className="text-slate-400 hover:text-slate-600 font-bold text-xl transition cursor-pointer p-1"
+            className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 hover:text-slate-800 font-bold text-lg transition flex items-center justify-center cursor-pointer ml-2 shrink-0"
+            title="Đóng cửa sổ"
           >
             ✕
           </button>
         </div>
+
+        {/* Scrollable Body */}
+        <div className="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
 
         {trackingLoading ? (
           <div className="py-12 flex flex-col items-center justify-center space-y-3">
@@ -116,13 +127,14 @@ export const PurchaseTrackingModal: React.FC<PurchaseTrackingModalProps> = ({
             <div className="pt-3 border-t border-slate-100 flex justify-end">
               <button
                 onClick={onClose}
-                className="px-6 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
+                className="px-6 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
               >
                 Đóng
               </button>
             </div>
           </div>
         )}
+        </div>
       </div>
     </div>
   )

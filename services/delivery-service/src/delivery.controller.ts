@@ -1,9 +1,13 @@
 import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
+import { ReturnDeliveryService } from './return.service';
 
 @Controller('delivery')
 export class DeliveryController {
-  constructor(private readonly deliveryService: DeliveryService) {}
+  constructor(
+    private readonly deliveryService: DeliveryService,
+    private readonly returnService: ReturnDeliveryService,
+  ) {}
 
   // 1. Tạo Shipment (Vận đơn SPX)
   @Post('shipments')
@@ -170,7 +174,7 @@ export class DeliveryController {
   // 10. QUẢN LÝ TRẢ HÀNG & HOÀN TIỀN (RETURNS & REFUNDS)
   @Post('returns')
   async createReturn(@Body() body: any) {
-    return this.deliveryService.createReturn(body);
+    return this.returnService.createReturn(body);
   }
 
   @Get('returns')
@@ -181,20 +185,20 @@ export class DeliveryController {
     @Query('status') status?: string,
     @Query('search') search?: string,
   ) {
-    return this.deliveryService.getReturns({ sellerId, buyerId, orderId, status, search });
+    return this.returnService.getReturns({ sellerId, buyerId, orderId, status, search });
   }
 
   @Get('returns/:id')
   async getReturnById(@Param('id') id: string) {
-    return this.deliveryService.getReturnById(id);
+    return this.returnService.getReturnById(id);
   }
 
   @Patch('returns/:id/respond')
   async sellerRespondReturn(
     @Param('id') id: string,
-    @Body() body: { action: 'APPROVE' | 'REJECT' | 'NEGOTIATE'; note?: string; proposedAmount?: number; evidenceUrl?: string }
+    @Body() body: { action: 'APPROVE' | 'REJECT' | 'NEGOTIATE' | 'REFUND_IMMEDIATELY'; note?: string; proposedAmount?: number; evidenceUrl?: string }
   ) {
-    return this.deliveryService.sellerRespondReturn(id, body);
+    return this.returnService.sellerRespondReturn(id, body);
   }
 
   @Patch('returns/:id/negotiate-respond')
@@ -202,7 +206,7 @@ export class DeliveryController {
     @Param('id') id: string,
     @Body() body: { accept: boolean; note?: string }
   ) {
-    return this.deliveryService.buyerRespondNegotiation(id, body);
+    return this.returnService.buyerRespondNegotiation(id, body);
   }
 
   @Post('returns/:id/ship')
@@ -210,12 +214,28 @@ export class DeliveryController {
     @Param('id') id: string,
     @Body() body: { returnMethod: 'ZMX_PICKUP' | 'ZMX_DROPOFF' | 'SELF_ARRANGE'; externalTrackingNumber?: string; proofImage?: string }
   ) {
-    return this.deliveryService.buyerConfirmShipReturn(id, body);
+    return this.returnService.buyerConfirmShipReturn(id, body);
+  }
+
+  @Patch('returns/:id/driver-pickup')
+  async shipperConfirmReturnPickup(
+    @Param('id') id: string,
+    @Body() body: { driverId?: string; proofImage?: string; note?: string }
+  ) {
+    return this.returnService.shipperConfirmReturnPickup(id, body);
+  }
+
+  @Patch('returns/:id/hub-inbound')
+  async hubInboundReturn(
+    @Param('id') id: string,
+    @Body() body: { hubId: string; staffName?: string; note?: string }
+  ) {
+    return this.returnService.hubInboundReturn(id, body);
   }
 
   @Patch('returns/:id/mark-delivered')
   async markReturnDeliveredToSeller(@Param('id') id: string) {
-    return this.deliveryService.markReturnDeliveredToSeller(id);
+    return this.returnService.markReturnDeliveredToSeller(id);
   }
 
   @Patch('returns/:id/confirm-receive')
@@ -223,7 +243,7 @@ export class DeliveryController {
     @Param('id') id: string,
     @Body() body: { conditionOk: boolean; note?: string; restockAction?: 'RESTOCK' | 'SCRAP'; evidenceUrl?: string }
   ) {
-    return this.deliveryService.sellerConfirmReceiveReturn(id, body);
+    return this.returnService.sellerConfirmReceiveReturn(id, body);
   }
 
   @Patch('returns/:id/arbitrate')
@@ -231,7 +251,7 @@ export class DeliveryController {
     @Param('id') id: string,
     @Body() body: { decision: 'REFUND_BUYER' | 'REJECT_RETURN'; note: string; csAgentId?: string }
   ) {
-    return this.deliveryService.csArbitrateReturn(id, body);
+    return this.returnService.csArbitrateReturn(id, body);
   }
 
   @Patch('returns/:id/cancel')
@@ -239,7 +259,7 @@ export class DeliveryController {
     @Param('id') id: string,
     @Body('reason') reason?: string
   ) {
-    return this.deliveryService.cancelReturn(id, reason);
+    return this.returnService.cancelReturn(id, reason);
   }
 
   // 11. Lấy thông tin kho lấy hàng của Shop
