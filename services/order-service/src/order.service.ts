@@ -89,7 +89,24 @@ export class OrderService implements OnModuleInit {
       if (order.items && order.items.length > 0) {
         await this.rollbackProductStock(order.items);
       }
-      console.log(`[AutoCancel] Cancelled overdue order and restored stock: ${order.id}`);
+
+      // Hủy shipment và yêu cầu lấy hàng bên delivery-service
+      try {
+        const deliveryServiceUrl =
+          process.env.DELIVERY_SERVICE_URL || 'http://delivery-service:3008';
+        await fetch(
+          `${deliveryServiceUrl}/delivery/shipments/cancel-by-order/${order.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reason: 'Đơn hàng quá hạn thanh toán (Auto-Cancel)' }),
+          },
+        );
+      } catch (delErr) {
+        console.error(`[AutoCancel] Error cancelling delivery shipment for order ${order.id}:`, delErr);
+      }
+
+      console.log(`[AutoCancel] Cancelled overdue order, restored stock & cancelled delivery: ${order.id}`);
     }
   }
 
@@ -143,6 +160,11 @@ export class OrderService implements OnModuleInit {
     // Nếu bất kỳ sản phẩm nào không đủ kho, notifyProductPurchase sẽ ném lỗi BadRequestException
     await this.notifyProductPurchase(dto.items);
 
+    const totalRawShippingFee = shopIds.reduce(
+      (sum, sId) => sum + (dto.shopShippingFees?.[sId] ?? 22000),
+      0,
+    );
+
     try {
       // Create a separate order per shop
       for (const shopId of shopIds) {
@@ -153,25 +175,41 @@ export class OrderService implements OnModuleInit {
           0,
         );
 
-        const ratio =
+        const itemRatio =
           totalItemsValue > 0 ? shopSubtotal / totalItemsValue : 1 / shopCount;
-        const allocatedShippingFee =
+
+        const rawShopShipFee =
           dto.shopShippingFees && dto.shopShippingFees[shopId] !== undefined
             ? dto.shopShippingFees[shopId]
-            : Math.round(dto.shippingFee * ratio);
+            : totalRawShippingFee > 0
+              ? Math.round(totalRawShippingFee / shopCount)
+              : 22000;
+
+        const shipRatio =
+          totalRawShippingFee > 0
+            ? rawShopShipFee / totalRawShippingFee
+            : 1 / shopCount;
+
+        const allocatedShippingFee =
+          dto.shippingFee !== undefined && dto.shippingFee !== null
+            ? Math.round(dto.shippingFee * shipRatio)
+            : rawShopShipFee;
+
         const allocatedPlatformDiscount = Math.round(
-          (dto.platformDiscountAmount || 0) * ratio,
+          (dto.platformDiscountAmount || 0) * itemRatio,
         );
         const allocatedShopDiscount =
           dto.shopDiscounts && dto.shopDiscounts[shopId] !== undefined
             ? dto.shopDiscounts[shopId]
             : Math.round((dto.shopDiscountAmount || 0) / shopCount);
 
-        const totalAmount =
+        const totalAmount = Math.max(
+          0,
           shopSubtotal +
-          allocatedShippingFee -
-          allocatedPlatformDiscount -
-          allocatedShopDiscount;
+            allocatedShippingFee -
+            allocatedPlatformDiscount -
+            allocatedShopDiscount,
+        );
 
         const order = await this.prisma.$transaction(async (tx) => {
           return await tx.order.create({
@@ -349,7 +387,10 @@ export class OrderService implements OnModuleInit {
   async getOrdersBySeller(shopId: string) {
     return this.prisma.order.findMany({
       where: {
-        shopId: shopId,
+        OR: [
+          { shopId: shopId },
+          { items: { some: { shopId: shopId } } },
+        ],
       },
       include: {
         items: true,
@@ -370,6 +411,13 @@ export class OrderService implements OnModuleInit {
 
     if (!exists) {
       throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    if (exists.status === 'CANCELLED' && dto.status !== 'CANCELLED') {
+      console.warn(
+        `[OrderService] Order ${id} is already CANCELLED. Rejecting status change to ${dto.status}.`,
+      );
+      return exists;
     }
 
     const updateData: any = {
@@ -404,6 +452,33 @@ export class OrderService implements OnModuleInit {
       }
       if (exists.items && exists.items.length > 0) {
         await this.rollbackProductStock(exists.items);
+      }
+
+      // Hủy shipment và yêu cầu phân công tài xế bên delivery-service
+      try {
+        const deliveryServiceUrl =
+          process.env.DELIVERY_SERVICE_URL || 'http://delivery-service:3008';
+        await fetch(
+          `${deliveryServiceUrl}/delivery/shipments/cancel-by-order/${exists.id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              reason:
+                dto.refundReason ||
+                dto.refundDescription ||
+                'Đơn hàng đã được hủy',
+            }),
+          },
+        );
+        console.log(
+          `[OrderService] Notified delivery-service to cancel shipment for order ${exists.id}`,
+        );
+      } catch (delErr) {
+        console.error(
+          `[OrderService] Error notifying delivery-service of cancellation for order ${exists.id}:`,
+          delErr,
+        );
       }
 
       // Nếu đơn hàng đã được thanh toán (hoặc thanh toán qua Ví/Sepay và ở trạng thái PROCESSING/PENDING_PAYMENT), hoàn tiền về Ví ZeroPay cho khách

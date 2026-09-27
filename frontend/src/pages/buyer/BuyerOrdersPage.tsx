@@ -54,7 +54,11 @@ export const BuyerOrdersPage: React.FC<BuyerOrdersPageProps> = ({ user, onBackTo
   }
 
   const handleUpdateStatus = async (orderId: string, newStatus: string, actionName: string) => {
-    if (!window.confirm(`Bạn có chắc chắn muốn ${actionName} đơn hàng này?`)) return
+    const confirmMessage = newStatus === 'COMPLETED'
+      ? 'Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn từ Shop? Sau khi bấm đã nhận được hàng mọi khiếu nại của bạn đều vô nghĩa và không thể đổi trả hàng. Hãy XÁC NHẬN.'
+      : `Bạn có chắc chắn muốn ${actionName} đơn hàng này?`
+
+    if (!window.confirm(confirmMessage)) return
 
     try {
       await orderService.updateOrderStatus(orderId, newStatus)

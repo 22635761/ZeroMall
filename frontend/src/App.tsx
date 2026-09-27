@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API_BASE_URL } from './config/api.config'
-import { BrowserRouter as Router, Routes, Route, useNavigate, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom'
 import { Header } from './components/buyer/Header'
 import type { CartItem } from './models/cart.model'
 import { Hero } from './components/buyer/Hero'
@@ -13,6 +13,8 @@ import { CartPage } from './pages/buyer/CartPage'
 import { ServicePolicies } from './components/buyer/ServicePolicies'
 import { ChatWidget } from './components/buyer/ChatWidget'
 import { AuthModal } from './components/common/AuthModal'
+import { LoginPromptModal } from './components/common/LoginPromptModal'
+import { useLanguage } from './context/LanguageContext'
 import { SellerPortal } from './pages/seller/SellerPortal'
 import { AdminPortal } from './pages/admin/AdminPortal'
 import { DeliveryPortal } from './pages/delivery/DeliveryPortal'
@@ -115,7 +117,32 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
   handleBuyNow
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { t } = useLanguage();
   const [selectedCategory, setSelectedCategory] = useState<any | null>(null);
+  const [loginPromptInfo, setLoginPromptInfo] = useState<{
+    isOpen: boolean;
+    title?: string;
+    description?: string;
+    icon?: string;
+  }>({ isOpen: false });
+
+  const triggerLoginPrompt = (title?: string, description?: string, icon?: string) => {
+    setLoginPromptInfo({
+      isOpen: true,
+      title: title || t('auth.prompt_title', 'Bạn chưa đăng nhập tài khoản'),
+      description: description || t('auth.prompt_cart_desc', 'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để xem giỏ hàng, lưu trữ sản phẩm và tiến hành đặt hàng.'),
+      icon: icon || '🛒'
+    });
+  };
+
+  // Trigger login prompt if redirected from an unauthenticated protected action
+  useEffect(() => {
+    if ((location.state as any)?.showLoginPrompt && !user) {
+      triggerLoginPrompt();
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, user, navigate]);
 
   const filteredProducts = selectedCategory
     ? dbProducts.filter(p => {
@@ -136,16 +163,40 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
     if (handleSearch) handleSearch(trimmed)
   }
 
+  const handleCartClick = () => {
+    if (!user) {
+      triggerLoginPrompt(
+        t('auth.prompt_title', 'Bạn chưa đăng nhập tài khoản'),
+        t('auth.prompt_cart_desc', 'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để xem giỏ hàng, lưu trữ sản phẩm và tiến hành đặt hàng.'),
+        '🛒'
+      );
+      return;
+    }
+    localStorage.setItem('zm_checkout_step', 'cart');
+    navigate('/cart');
+  };
+
+  const handleBuyerBuyNow = (product: Product, quantity: number, variant: string) => {
+    if (!user) {
+      triggerLoginPrompt(
+        t('auth.prompt_title', 'Bạn chưa đăng nhập tài khoản'),
+        t('auth.prompt_cart_desc', 'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để tiến hành mua hàng.'),
+        '🛍️'
+      );
+      return;
+    }
+    handleBuyNow(product, quantity, variant);
+    localStorage.setItem('zm_checkout_step', 'checkout');
+    navigate('/checkout');
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-800 font-sans selection:bg-[#ee4d2d] selection:text-white">
       {/* Shopee-style Header */}
       <Header
         cart={cart}
         onSearch={handleBuyerSearch}
-        onOpenCart={() => {
-          localStorage.setItem('zm_checkout_step', 'cart')
-          navigate('/cart')
-        }}
+        onOpenCart={handleCartClick}
         onRemoveCartItem={handleRemoveCartItem}
         user={user}
         onLogout={handleLogout}
@@ -174,7 +225,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                   <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex justify-between items-center text-xs animate-in fade-in duration-200">
                     <div className="flex items-center gap-2">
                       <span className="text-lg">🏷️</span>
-                      <span className="font-bold text-slate-700">Đang lọc theo danh mục:</span>
+                      <span className="font-bold text-slate-700">{t('home.filter_active', 'Đang lọc theo danh mục:')}</span>
                       <span className="font-black text-emerald-700 bg-white border border-emerald-200 px-3 py-1 rounded-full">{selectedCategory.name}</span>
                       <span className="text-slate-400 font-semibold">({filteredProducts.length} sản phẩm phù hợp)</span>
                     </div>
@@ -182,7 +233,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                       onClick={() => setSelectedCategory(null)}
                       className="bg-white hover:bg-emerald-100 text-emerald-700 font-bold px-3.5 py-1.5 rounded-xl border border-emerald-300 transition cursor-pointer flex items-center gap-1"
                     >
-                      ✕ Hủy lọc danh mục
+                      {t('home.cancel_filter', '✕ Hủy lọc danh mục')}
                     </button>
                   </div>
                 )}
@@ -208,30 +259,46 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
           />
           <Route
             path="/shop/:shopId"
-            element={<ShopDetailPage user={user} allProducts={dbProducts} />}
+            element={
+              <ShopDetailPage
+                user={user}
+                allProducts={dbProducts}
+                onOpenLogin={handleOpenLogin}
+                onOpenRegister={handleOpenRegister}
+                onRequireLogin={(title, desc, icon) => triggerLoginPrompt(title, desc, icon)}
+              />
+            }
           />
           <Route
             path="/cart"
             element={
-              <CartPage
-                cart={cart}
-                user={user}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveCartItem}
-                onBackToHome={() => navigate('/')}
-              />
+              !user ? (
+                <Navigate to="/" replace state={{ showLoginPrompt: true }} />
+              ) : (
+                <CartPage
+                  cart={cart}
+                  user={user}
+                  onUpdateQuantity={handleUpdateCartQuantity}
+                  onRemoveItem={handleRemoveCartItem}
+                  onBackToHome={() => navigate('/')}
+                />
+              )
             }
           />
           <Route
             path="/checkout"
             element={
-              <CartPage
-                cart={cart}
-                user={user}
-                onUpdateQuantity={handleUpdateCartQuantity}
-                onRemoveItem={handleRemoveCartItem}
-                onBackToHome={() => navigate('/')}
-              />
+              !user ? (
+                <Navigate to="/" replace state={{ showLoginPrompt: true }} />
+              ) : (
+                <CartPage
+                  cart={cart}
+                  user={user}
+                  onUpdateQuantity={handleUpdateCartQuantity}
+                  onRemoveItem={handleRemoveCartItem}
+                  onBackToHome={() => navigate('/')}
+                />
+              )
             }
           />
           <Route
@@ -250,11 +317,12 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                 user={user}
                 onBackToHome={() => navigate('/')}
                 onAddToCart={handleAddToCart}
-                onBuyNow={handleBuyNow}
+                onBuyNow={handleBuyerBuyNow}
                 onOpenLogin={() => {
                   setAuthTab('login')
                   setIsAuthOpen(true)
                 }}
+                onRequireLogin={(title, desc, icon) => triggerLoginPrompt(title, desc, icon)}
               />
             }
           />
@@ -273,7 +341,11 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
       </main>
 
       {/* Floating Customer Support Chat */}
-      <ChatWidget user={user} onOpenLogin={handleOpenLogin} />
+      <ChatWidget
+        user={user}
+        onOpenLogin={handleOpenLogin}
+        onRequireLogin={(title, desc, icon) => triggerLoginPrompt(title, desc, icon)}
+      />
 
       {/* Profile Modal */}
       <ProfileModal
@@ -283,7 +355,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
       />
 
       {/* Extended Shopee-style Footer */}
-      <footer className="bg-white border-t border-slate-200 mt-16 text-xs text-slate-500 py-12 text-left">
+      <footer className="bg-white border-t border-slate-200 mt-16 text-xs text-slate-500 py-12 text-left font-sans">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           
           {/* Main Footer Links */}
@@ -291,31 +363,31 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
             
             {/* Column 1: Customer support */}
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">CHĂM SÓC KHÁCH HÀNG</h4>
+              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">{t('footer.customer_service', 'CHĂM SÓC KHÁCH HÀNG')}</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Trung Tâm Trợ Giúp</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.help_centre', 'Trung Tâm Trợ Giúp ZeroMall')}</a></li>
                 <li><a href="#" className="hover:text-[#ee4d2d] transition">ZeroMall Blog</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Hướng Dẫn Mua Hàng</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Hướng Dẫn Bán Hàng</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Thanh Toán & Trả Hàng</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.shopping_guide', 'Hướng Dẫn Mua Hàng & Đặt Hàng')}</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.selling_guide', 'Hướng Dẫn Bán Hàng Cho Shop')}</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.payments_refunds', 'Thanh Toán & Trả Hàng')}</a></li>
               </ul>
             </div>
 
             {/* Column 2: About company */}
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">VỀ ZEROMALL</h4>
+              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">{t('footer.about_zeromall', 'VỀ ZEROMALL')}</h4>
               <ul className="space-y-2">
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Giới Thiệu Về ZeroMall Việt Nam</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Tuyển Dụng</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Điều Khoản ZeroMall</a></li>
-                <li><a href="#" className="hover:text-[#ee4d2d] transition">Chính Sách Bảo Mật</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.about_us', 'Giới Thiệu Về ZeroMall Việt Nam')}</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.careers', 'Tuyển Dụng')}</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.terms', 'Điều Khoản ZeroMall')}</a></li>
+                <li><a href="#" className="hover:text-[#ee4d2d] transition">{t('footer.privacy', 'Chính Sách Bảo Mật')}</a></li>
               </ul>
             </div>
 
             {/* Column 3: Payment & Logistics logos */}
             <div className="space-y-4">
               <div>
-                <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-2.5">THANH TOÁN</h4>
+                <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-2.5">{t('footer.payment', 'THANH TOÁN')}</h4>
                 <div className="flex flex-wrap gap-2 text-base">
                   <span className="bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">VISA</span>
                   <span className="bg-slate-50 border border-slate-200 px-2 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">MC</span>
@@ -324,7 +396,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                 </div>
               </div>
               <div>
-                <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-2.5">ĐƠN VỊ VẬN CHUYỂN</h4>
+                <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px] mb-2.5">{t('footer.shipping_partners', 'ĐƠN VỊ VẬN CHUYỂN')}</h4>
                 <div className="flex flex-wrap gap-2 text-[10px]">
                   <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">ZeroMall Express</span>
                   <span className="bg-slate-50 border border-slate-200 px-2.5 py-1.5 rounded-sm font-bold text-slate-500 shadow-3xs cursor-default">ZMX Hỏa Tốc</span>
@@ -334,7 +406,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
 
             {/* Column 4: App Download & Social links */}
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">THEO DÕI CHÚNG TÔI</h4>
+              <h4 className="font-bold text-slate-700 uppercase tracking-wider text-[11px]">{t('footer.follow_us', 'THEO DÕI CHÚNG TÔI')}</h4>
               <ul className="space-y-2">
                 <li><a href="#" className="hover:text-[#ee4d2d] transition flex items-center gap-2"><span>👥</span> Facebook</a></li>
                 <li><a href="#" className="hover:text-[#ee4d2d] transition flex items-center gap-2"><span>📸</span> Instagram</a></li>
@@ -346,8 +418,8 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
 
           {/* Corporate info */}
           <div className="pt-8 text-center text-slate-400 space-y-2 text-[11px]">
-            <p>© 2026 ZeroMall. Tất cả quyền lợi được bảo lưu.</p>
-            <p>Quốc gia & Khu vực: Việt Nam | Singapore | Malaysia | Thái Lan | Philippines | Indonesia</p>
+            <p>{t('footer.all_rights', '© 2026 ZeroMall. Tất cả quyền lợi được bảo lưu.')}</p>
+            <p>{t('footer.regions', 'Quốc gia & Khu vực: Việt Nam | Singapore | Malaysia | Thái Lan | Philippines | Indonesia')}</p>
             <div className="pt-4 max-w-2xl mx-auto space-y-1">
               <p className="font-bold text-slate-500 text-xs">Công ty TNHH ZeroMall Việt Nam</p>
               <p>Địa chỉ: Tầng 28, Tòa nhà Trung tâm Lotte Hà Nội, 54 Liễu Giai, Phường Cống Vị, Quận Ba Đình, Thành phố Hà Nội, Việt Nam.</p>
@@ -366,6 +438,17 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
         initialTab={authTab}
       />
 
+      {/* Login Prompt Modal for unauthenticated actions */}
+      <LoginPromptModal
+        isOpen={loginPromptInfo.isOpen}
+        onClose={() => setLoginPromptInfo(prev => ({ ...prev, isOpen: false }))}
+        onOpenLogin={handleOpenLogin}
+        onOpenRegister={handleOpenRegister}
+        title={loginPromptInfo.title}
+        description={loginPromptInfo.description}
+        icon={loginPromptInfo.icon}
+      />
+
       {/* Toast Notification */}
       {toast && (
         <div className="fixed bottom-6 right-6 z-55 bg-slate-900/95 text-white px-5 py-3.5 rounded-xl shadow-2xl flex items-center gap-2.5 border border-slate-700/50 backdrop-blur-md animate-in fade-in slide-in-from-bottom-5 duration-300">
@@ -378,9 +461,18 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
 }
 
 function App() {
-  // Auth states
-  const [user, setUser] = useState<any>(null)
-  const [token, setToken] = useState<string | null>(null)
+  // Auth states - initialize synchronously from localStorage
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const savedUser = localStorage.getItem('zm_user')
+      return savedUser ? JSON.parse(savedUser) : null
+    } catch {
+      return null
+    }
+  })
+  const [token, setToken] = useState<string | null>(() => {
+    return localStorage.getItem('zm_token') || null
+  })
   const [isAuthOpen, setIsAuthOpen] = useState(false)
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login')
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -481,7 +573,10 @@ function App() {
           name: p.name,
           originalPrice: originalPriceStr,
           flashPrice: flashPriceStr,
+          price: flashPriceStr,
           image: p.image || 'https://placehold.co/400x400?text=No+Image',
+          stock: p.stock !== undefined ? p.stock : 0,
+          status: p.status || 'active',
           sold: p.sales || 0,
           total: (p.sales || 0) + (p.stock || 0),
           rating: p.rating ?? 0,
@@ -499,9 +594,9 @@ function App() {
           height: p.height
         }
       })
-      setDbProducts(formatted)
+      setDbProducts(formatted.filter((p: any) => (p.stock !== undefined ? p.stock > 0 : p.total > p.sold) && p.status !== 'hidden'))
 
-      // Sync existing cart items with freshly fetched DB products to ensure accurate originalPrice and shipping dimensions
+      // Sync existing cart items with freshly fetched DB products to ensure accurate originalPrice, stock, and shipping dimensions
       setCart(prev => prev.map(cartItem => {
         const found = formatted.find((p: any) => p.id === cartItem.product.id)
         if (found) {
@@ -512,6 +607,10 @@ function App() {
               originalPrice: found.originalPrice,
               flashPrice: found.flashPrice,
               price: found.flashPrice,
+              stock: found.stock,
+              status: found.status,
+              sold: found.sold,
+              total: found.total,
               weight: found.weight,
               length: found.length,
               width: found.width,
@@ -625,6 +724,12 @@ function App() {
 
   // Cart operations
   const handleAddToCart = (product: Product, quantity: number, variant: string) => {
+    const stockVal = product.stock !== undefined ? product.stock : (product.total !== undefined ? product.total - (product.sold || 0) : 99)
+    if (stockVal <= 0 || product.status === 'hidden') {
+      showToast('⚠️ Sản phẩm này hiện đã hết hàng!')
+      return
+    }
+
     setCart((prev) => {
       const existingIdx = prev.findIndex(
         (item) => item.product.id === product.id && item.selectedVariant === variant
@@ -632,33 +737,48 @@ function App() {
 
       if (existingIdx > -1) {
         const updated = [...prev]
+        const currentQty = updated[existingIdx].quantity
+        if (currentQty + quantity > stockVal) {
+          showToast(`⚠️ Kho chỉ còn ${stockVal} sản phẩm có sẵn!`)
+          updated[existingIdx].quantity = stockVal
+          return updated
+        }
         updated[existingIdx].quantity += quantity
         return updated
       } else {
-        return [...prev, { product, quantity, selectedVariant: variant }]
+        const finalQty = Math.min(quantity, stockVal)
+        return [...prev, { product, quantity: finalQty, selectedVariant: variant }]
       }
     })
     showToast(`Đã thêm ${quantity} sản phẩm vào giỏ hàng thành công!`)
   }
 
   const handleBuyNow = (product: Product, quantity: number, variant: string) => {
+    const stockVal = product.stock !== undefined ? product.stock : (product.total !== undefined ? product.total - (product.sold || 0) : 99)
+    if (stockVal <= 0 || product.status === 'hidden') {
+      alert('Sản phẩm này hiện đã hết hàng, quý khách không thể mua ngay!')
+      return
+    }
+
+    const cleanVariant = variant || ''
+    const targetKey = `${product.id}#${cleanVariant}`
+
     // Add to cart first
     setCart((prev) => {
       const existingIdx = prev.findIndex(
-        (item) => item.product.id === product.id && item.selectedVariant === variant
+        (item) => item.product.id === product.id && (item.selectedVariant || '') === cleanVariant
       )
 
       if (existingIdx > -1) {
         const updated = [...prev]
-        updated[existingIdx].quantity += quantity
+        updated[existingIdx].quantity = Math.min(updated[existingIdx].quantity + quantity, stockVal)
         return updated
       } else {
-        return [...prev, { product, quantity, selectedVariant: variant }]
+        return [...prev, { product, quantity: Math.min(quantity, stockVal), selectedVariant: cleanVariant }]
       }
     })
-    const targetKey = `${product.id}#${variant || 'default'}`
     localStorage.setItem('zm_selected_keys', JSON.stringify([targetKey]))
-    window.location.href = '/checkout'
+    localStorage.setItem('zm_checkout_step', 'checkout')
   }
 
   const handleUpdateCartQuantity = (productId: string, variant: string, quantity: number) => {

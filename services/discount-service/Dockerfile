@@ -7,10 +7,14 @@ COPY package.json package-lock.json ./
 COPY services/discount-service/package.json ./services/discount-service/
 
 # Set npm retry and timeout configs for network stability
-RUN npm config set fetch-retries 5 && npm config set fetch-retry-maxtimeout 120000
+RUN npm config set fetch-retries 10 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set fetch-timeout 600000 && \
+    npm config set prefer-offline true
 
 # Install ALL dependencies (dev + prod) once in builder
-RUN npm ci -w services/discount-service
+RUN npm ci -w services/discount-service --prefer-offline || npm ci -w services/discount-service
 
 # Copy source code and Prisma configurations
 COPY services/discount-service ./services/discount-service/
@@ -44,4 +48,4 @@ EXPOSE 3003
 
 WORKDIR /app/services/discount-service
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "node dist/main.js || node dist/src/main.js"]

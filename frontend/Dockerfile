@@ -7,8 +7,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY frontend/package.json ./frontend/
 
-# Install dependencies using npm workspace scoping
-RUN npm ci -w frontend
+RUN npm config set fetch-retries 10 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set fetch-timeout 600000 && \
+    npm config set prefer-offline true
+RUN npm ci -w frontend --prefer-offline || npm ci -w frontend
 
 # Copy frontend source code
 COPY frontend ./frontend/

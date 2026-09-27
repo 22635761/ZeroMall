@@ -19,6 +19,7 @@
     "dev:all": "concurrently \"npm run dev:frontend\" \"npm run dev:auth\" \"npm run dev:product\" \"npm run dev:discount\" \"npm run dev:order\" \"npm run dev:payment\" \"npm run dev:notification\" \"npm run dev:chat\""
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "concurrently": "^8.2.2",
+    "playwright": "^1.63.0"
   }
 }

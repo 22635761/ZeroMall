@@ -154,6 +154,23 @@ export const getShopeeTypeNumber = (status: string): string => {
   }
 }
 
+export const mapTypeParamToTabId = (type: string | null): string => {
+  if (!type) return 'ALL'
+  if (['ALL', 'PENDING_CONFIRMATION', 'PROCESSING', 'SHIPPED', 'DELIVERED', 'REFUND', 'CANCELLED'].includes(type)) {
+    return type
+  }
+  switch (type) {
+    case '1': return 'PENDING_CONFIRMATION'
+    case '2': return 'PROCESSING'
+    case '3': return 'SHIPPED'
+    case '4': return 'DELIVERED'
+    case '6': return 'DELIVERED'
+    case '7': return 'CANCELLED'
+    case '8': return 'REFUND'
+    default: return 'ALL'
+  }
+}
+
 export const formatMoney = (amount: number): string => {
   return (amount || 0).toLocaleString('vi-VN') + 'đ'
 }

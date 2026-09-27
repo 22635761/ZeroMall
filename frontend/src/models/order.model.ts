@@ -20,6 +20,8 @@ export interface Order {
   shippingFee: number
   paymentMethod: string
   status: string // "PENDING" | "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "DELIVERED" | "COMPLETED" | "CANCELLED"
+  shopId?: string | null
+  checkoutGroupId?: string | null
   shopDiscountAmount?: number
   platformDiscountAmount?: number
   shopVoucherCode?: string | null

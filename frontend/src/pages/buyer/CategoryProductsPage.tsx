@@ -17,6 +17,8 @@ interface Product {
   sales?: number
   sold?: number
   stock?: number
+  total?: number
+  status?: string
   brand?: string
   shopId?: string
   location?: string
@@ -111,6 +113,8 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
               image: p.image || 'https://placehold.co/400x400?text=No+Image',
               sold: p.sales || p.sold || 0,
               sales: p.sales || p.sold || 0,
+              stock: p.stock !== undefined ? p.stock : 0,
+              status: p.status || 'active',
               rating: p.rating && p.rating > 0 ? p.rating : 5.0,
               category: p.category,
               categoryId: p.categoryId,
@@ -119,7 +123,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
               shopId: p.shopId
             }
           })
-          setAllProducts(formatted)
+          setAllProducts(formatted.filter((p: any) => (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) && p.status !== 'hidden'))
         }
       })
       .catch(e => console.error('Error fetching products:', e))
@@ -321,6 +325,9 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
             const ratingVal = p.rating && p.rating > 0 ? p.rating : 5.0
             const soldVal = p.sold ?? p.sales ?? 0
 
+            const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
+            const isOutOfStock = stockVal <= 0 || p.status === 'hidden'
+
             return (
               <div
                 key={p.id}
@@ -332,9 +339,18 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                   <img
                     src={p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'}
                     alt={p.name}
-                    className="w-full h-full object-cover group-hover:scale-101 transition duration-200"
+                    className={`w-full h-full object-cover group-hover:scale-101 transition duration-200 ${isOutOfStock ? 'grayscale-40' : ''}`}
                     loading="lazy"
                   />
+
+                  {/* Out of stock overlay */}
+                  {isOutOfStock && (
+                    <div className="absolute inset-0 bg-black/45 flex items-center justify-center z-20">
+                      <span className="bg-black/80 text-white border border-white/20 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                        Hết Hàng
+                      </span>
+                    </div>
+                  )}
 
                   {/* Left Tags: Mall or Yêu Thích */}
                   <div className="absolute top-2.5 left-0 flex flex-col gap-1 z-10 items-start">
@@ -353,7 +369,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                   </div>
 
                   {/* Right Promo Tag */}
-                  {discountPct > 0 && (
+                  {discountPct > 0 && !isOutOfStock && (
                     <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
                       -{discountPct}% GIẢM
                     </div>

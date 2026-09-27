@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { CartItem } from '../../models/cart.model'
 import { NotificationPopover } from '../common/NotificationPopover'
+import { useLanguage } from '../../context/LanguageContext'
 
 interface HeaderProps {
   cart: CartItem[]
@@ -31,6 +32,7 @@ export const Header: React.FC<HeaderProps> = ({
   onBackToHome
 }) => {
   const navigate = useNavigate()
+  const { t } = useLanguage()
   const [searchParams] = useSearchParams()
   const urlQuery = searchParams.get('q') || searchParams.get('keyword') || ''
 
@@ -64,7 +66,7 @@ export const Header: React.FC<HeaderProps> = ({
   const hotSearches = ['iPhone 15 Pro', 'Tai Nghe Sony', 'Bàn Phím Cơ', 'Son Tint Lì', 'Túi Xách Nữ', 'Áo Thun Nam']
 
   return (
-    <header className="w-full bg-white text-slate-700 text-xs z-50 sticky top-0 shadow-xs border-b border-slate-100">
+    <header className="w-full bg-white text-slate-700 text-xs z-50 sticky top-0 shadow-xs border-b border-slate-100 font-sans">
       {/* Top Utility Bar (Subtle grey) */}
       <div className="bg-slate-50 border-b border-slate-200/40 text-slate-500">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-8 flex items-center justify-between">
@@ -76,7 +78,7 @@ export const Header: React.FC<HeaderProps> = ({
                   onClick={onOpenAdminPortal}
                   className="hover:text-rose-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-rose-500 text-xs"
                 >
-                  🎧 Kênh CSKH Sàn
+                  {t('header.platform_support', '🎧 Kênh CSKH Sàn')}
                 </button>
                 <span className="text-slate-200">|</span>
               </>
@@ -85,7 +87,7 @@ export const Header: React.FC<HeaderProps> = ({
               onClick={onOpenSellerPortal}
               className="hover:text-emerald-600 transition bg-transparent border-none p-0 cursor-pointer font-bold text-slate-500 hover:text-emerald-600 text-xs flex items-center gap-1"
             >
-              🏪 Kênh Người Bán
+              {t('header.seller_centre', '🏪 Kênh Người Bán')}
             </button>
           </div>
 
@@ -108,11 +110,9 @@ export const Header: React.FC<HeaderProps> = ({
               }}
               className="flex items-center gap-1 hover:text-emerald-600 transition bg-transparent border-none p-0 cursor-pointer text-xs font-semibold text-slate-500"
             >
-              <span>❓</span> Hỗ Trợ CSKH
+              {t('header.customer_support', '❓ Hỗ Trợ CSKH')}
             </button>
-            <a href="#" className="flex items-center gap-1 hover:text-emerald-600 transition font-bold">
-              🌐 Tiếng Việt
-            </a>
+
             <span className="text-slate-200">|</span>
             <div className="flex items-center gap-3 font-bold">
               {user ? (
@@ -128,24 +128,24 @@ export const Header: React.FC<HeaderProps> = ({
                   
                   {/* Dropdown menu wrapper */}
                   <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-55 animate-in fade-in slide-in-from-top-1 duration-150">
-                    <div className="w-[140px] bg-white border border-slate-100 rounded-sm shadow-md py-1.5 text-left font-normal text-slate-700">
+                    <div className="w-[150px] bg-white border border-slate-100 rounded-lg shadow-md py-1.5 text-left font-normal text-slate-700">
                       <button
                         onClick={() => navigate('/user/account/profile')}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        Tài Khoản Của Tôi
+                        {t('header.my_account', 'Tài Khoản Của Tôi')}
                       </button>
                       <button
                         onClick={() => navigate('/user/purchase')}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        Đơn Mua
+                        {t('header.my_orders', 'Đơn Mua')}
                       </button>
                       <button
                         onClick={() => navigate('/user/wallet')}
                         className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
                       >
-                        Ví ZeroMall
+                        {t('header.my_wallet', 'Ví ZeroMall')}
                       </button>
                       
                       {(user.role === 'ADMIN' || user.role === 'PLATFORM_SUPPORT') && onOpenAdminPortal ? (
@@ -153,7 +153,7 @@ export const Header: React.FC<HeaderProps> = ({
                           onClick={onOpenAdminPortal}
                           className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs font-bold text-rose-600"
                         >
-                          🎧 Kênh CSKH Sàn
+                          {t('header.platform_support', '🎧 Kênh CSKH Sàn')}
                         </button>
                       ) : null}
                       
@@ -161,9 +161,9 @@ export const Header: React.FC<HeaderProps> = ({
                       
                       <button
                         onClick={onLogout}
-                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs"
+                        className="w-full text-left px-4 py-2 hover:bg-slate-50 hover:text-[#ee4d2d] transition cursor-pointer text-xs font-bold text-rose-500"
                       >
-                        Đăng Xuất
+                        {t('header.logout', 'Đăng Xuất')}
                       </button>
                     </div>
                   </div>
@@ -174,14 +174,14 @@ export const Header: React.FC<HeaderProps> = ({
                     onClick={onOpenRegister} 
                     className="hover:text-emerald-600 transition cursor-pointer bg-transparent border-none p-0 font-bold"
                   >
-                    Đăng Ký
+                    {t('header.register', 'Đăng Ký')}
                   </button>
                   <span className="text-slate-200">|</span>
                   <button 
                     onClick={onOpenLogin} 
                     className="hover:text-emerald-600 transition cursor-pointer bg-transparent border-none p-0 font-bold"
                   >
-                    Đăng Nhập
+                    {t('header.login', 'Đăng Nhập')}
                   </button>
                 </>
               )}
@@ -213,7 +213,7 @@ export const Header: React.FC<HeaderProps> = ({
           <form onSubmit={handleSearchSubmit} className="w-full flex items-center bg-slate-55/35 border border-slate-200 rounded-lg p-0.5 focus-within:border-emerald-500 focus-within:ring-1 focus-within:ring-emerald-500 transition duration-200">
             <input
               type="text"
-              placeholder="Tìm kiếm sản phẩm, thương hiệu..."
+              placeholder={t('header.search_placeholder', 'Tìm kiếm sản phẩm, thương hiệu...')}
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               className="flex-1 px-3.5 text-slate-800 text-sm focus:outline-none placeholder-slate-400 bg-transparent"
@@ -255,13 +255,13 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="absolute top-full right-0 pt-2 hidden group-hover:block z-50 animate-in fade-in slide-in-from-top-2 duration-150">
             <div className="w-96 bg-white rounded-lg border border-slate-200/80 shadow-xl text-slate-800 overflow-hidden">
               <div className="p-3 border-b border-slate-100 text-slate-400 font-bold text-[10px] uppercase tracking-wider">
-                Sản phẩm mới thêm
+                {t('header.cart_new_items', 'Sản phẩm mới thêm')}
               </div>
 
               {cart.length === 0 ? (
                 <div className="p-8 text-center flex flex-col items-center gap-3">
                   <span className="text-3xl">🛒</span>
-                  <p className="text-slate-400 text-xs font-semibold">Chưa có sản phẩm nào</p>
+                  <p className="text-slate-400 text-xs font-semibold">{t('header.cart_empty', 'Chưa có sản phẩm nào')}</p>
                 </div>
               ) : (
                 <>
@@ -277,7 +277,7 @@ export const Header: React.FC<HeaderProps> = ({
                           <div className="min-w-0 flex-1">
                             <p className="text-xs font-bold text-slate-800 truncate">{item.product.name}</p>
                             {item.selectedVariant && (
-                              <p className="text-[10px] text-slate-400 mt-0.5 font-medium">Phân loại: {item.selectedVariant}</p>
+                              <p className="text-[10px] text-slate-400 mt-0.5 font-medium">{t('header.variant', 'Phân loại')}: {item.selectedVariant}</p>
                             )}
                           </div>
                         </div>
@@ -292,7 +292,7 @@ export const Header: React.FC<HeaderProps> = ({
                               }}
                               className="text-[10px] text-red-500 hover:underline mt-1 font-semibold"
                             >
-                              Xóa
+                              {t('header.remove', 'Xóa')}
                             </button>
                           )}
                         </div>
@@ -300,12 +300,12 @@ export const Header: React.FC<HeaderProps> = ({
                     ))}
                   </div>
                   <div className="p-3 bg-slate-50 flex items-center justify-between border-t border-slate-100">
-                    <span className="text-[10px] text-slate-500 font-semibold">{cartCount} sản phẩm trong giỏ</span>
+                    <span className="text-[10px] text-slate-500 font-semibold">{cartCount} {t('header.cart_items_count', 'sản phẩm trong giỏ')}</span>
                     <button
                       onClick={onOpenCart}
                       className="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-1.5 rounded-md font-semibold text-xs shadow-sm transition cursor-pointer"
                     >
-                      Xem Giỏ Hàng
+                      {t('header.view_cart', 'Xem Giỏ Hàng')}
                     </button>
                   </div>
                 </>

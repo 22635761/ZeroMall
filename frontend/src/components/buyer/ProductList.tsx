@@ -16,16 +16,21 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
     { label: 'Xu Hướng Hè', icon: '🌅' }
   ]
 
-  const allProducts: Product[] = products
+  const allProducts: Product[] = products.filter(
+    (p) => (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) && p.status !== 'hidden'
+  )
 
   const getFilteredProducts = () => {
     switch (activeTab) {
       case 1: // Freeship Xtra
         return allProducts.filter((p) => p.sold > 2000)
       case 2: // Hàng Hiệu
-        return allProducts.filter((p) => parseFloat(p.originalPrice) > 500000)
+        return allProducts.filter((p) => {
+          const num = parseInt(String(p.originalPrice || p.flashPrice || '0').replace(/[^0-9]/g, ''), 10) || 0
+          return num > 500000
+        })
       case 3: // Xu Hướng
-        return allProducts.slice(6, 10)
+        return allProducts.slice(0, 10)
       default:
         return allProducts
     }
@@ -68,20 +73,31 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
               const flashVal = parsePrice(p.flashPrice)
               const discountPct = origVal > 0 ? Math.round((1 - flashVal / origVal) * 100) : 0
               const isMall = flashVal > 200000
+              const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
+              const isOutOfStock = stockVal <= 0 || p.status === 'hidden'
               
               return (
                 <div
                   key={p.id}
                   onClick={() => onSelectProduct(p)}
-                  className="bg-white border border-slate-100/80 hover:border-emerald-500/30 rounded-2xl overflow-hidden hover:shadow-lg transition flex flex-col justify-between relative group"
+                  className="bg-white border border-slate-100/80 hover:border-emerald-500/30 rounded-2xl overflow-hidden hover:shadow-lg transition flex flex-col justify-between relative group cursor-pointer"
                 >
                   {/* Product Image */}
                   <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                     <img
                       src={p.image}
                       alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-101 transition duration-200"
+                      className={`w-full h-full object-cover group-hover:scale-101 transition duration-200 ${isOutOfStock ? 'grayscale-40' : ''}`}
                     />
+
+                    {/* Out of stock overlay */}
+                    {isOutOfStock && (
+                      <div className="absolute inset-0 bg-black/45 flex items-center justify-center z-20">
+                        <span className="bg-black/80 text-white border border-white/20 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                          Hết Hàng
+                        </span>
+                      </div>
+                    )}
 
                     {/* Left Tags: Mall or Yêu Thích */}
                     <div className="absolute top-2.5 left-0 flex flex-col gap-1 z-10 items-start">

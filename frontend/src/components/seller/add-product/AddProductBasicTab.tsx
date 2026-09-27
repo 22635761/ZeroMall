@@ -36,7 +36,7 @@ interface AddProductBasicTabProps {
   setProductName: (name: string) => void
   category: string
   setCategory: (cat: string) => void
-  categoriesList: string[]
+  categoriesList: any[]
   brand: string
   setBrand: (brand: string) => void
   description: string
@@ -339,9 +339,15 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
             className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white transition cursor-pointer"
           >
             <option value="">-- Chọn ngành hàng phù hợp --</option>
-            {categoriesList.map((cat, i) => (
-              <option key={i} value={cat}>{cat}</option>
-            ))}
+            {categoriesList.map((cat, i) => {
+              const catName = typeof cat === 'string' ? cat : cat.name
+              const catId = typeof cat === 'string' ? cat : (cat.id || cat.name)
+              return (
+                <option key={catId || i} value={catName}>
+                  {catName}
+                </option>
+              )
+            })}
           </select>
           {errors.category && (
             <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.category}</p>

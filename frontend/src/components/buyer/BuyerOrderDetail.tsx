@@ -426,7 +426,25 @@ export const BuyerOrderDetail: React.FC<BuyerOrderDetailProps> = ({
 
             {/* Timeline Events List */}
             <div className="pt-2 space-y-4">
-              {loadingTracking ? (
+              {order.status === 'CANCELLED' ? (
+                <div className="bg-rose-50 border border-rose-200/80 rounded-xl p-4 space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
+                    <span className="font-bold text-rose-700 text-xs uppercase tracking-wide">
+                      Đơn hàng đã hủy • Yêu cầu lấy hàng đã xóa
+                    </span>
+                    <span className="text-[10px] text-slate-400 ml-auto">{formatDate(order.updatedAt)}</span>
+                  </div>
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    {order.refundDescription || order.refundReason || 'Đơn hàng đã được hủy thành công. Toàn bộ yêu cầu vận chuyển và tài xế lấy hàng đã được xóa khỏi hệ thống ZMX.'}
+                  </p>
+                  {(order.paymentMethod === 'zeropay' || order.paymentMethod === 'sepay') && (
+                    <div className="pt-1 text-[11px] text-emerald-700 font-bold flex items-center gap-1">
+                      <span>✓</span> Tiền thanh toán đã được hoàn 100% về Ví ZeroPay của bạn.
+                    </div>
+                  )}
+                </div>
+              ) : loadingTracking ? (
                 <div className="py-4 text-center text-xs text-slate-400 animate-pulse">
                   Đang tải thông tin hành trình vận chuyển...
                 </div>

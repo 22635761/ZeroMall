@@ -197,26 +197,36 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         <div className="text-xs flex gap-4 items-center">
           <span className="text-slate-400 w-24 shrink-0 font-medium">Số Lượng</span>
           <div className="flex items-center gap-4">
-            <div className="flex items-center border border-slate-200 rounded-sm overflow-hidden bg-slate-50">
+            <div className={`flex items-center border rounded-sm overflow-hidden ${stockAvailable <= 0 ? 'bg-slate-100 border-slate-200 opacity-60' : 'border-slate-200 bg-slate-50'}`}>
               <button
+                type="button"
+                disabled={stockAvailable <= 0}
                 onClick={handleDecrease}
-                className="w-8 h-8 flex items-center justify-center border-r border-slate-200 hover:bg-slate-100 font-bold cursor-pointer select-none text-base"
+                className="w-8 h-8 flex items-center justify-center border-r border-slate-200 hover:bg-slate-100 font-bold cursor-pointer disabled:cursor-not-allowed select-none text-base text-slate-600"
               >
                 -
               </button>
               <span className="w-12 h-8 flex items-center justify-center font-bold text-slate-800 select-none">
-                {quantity}
+                {stockAvailable <= 0 ? 0 : quantity}
               </span>
               <button
+                type="button"
+                disabled={stockAvailable <= 0}
                 onClick={handleIncrease}
-                className="w-8 h-8 flex items-center justify-center border-l border-slate-200 hover:bg-slate-100 font-bold cursor-pointer select-none text-base"
+                className="w-8 h-8 flex items-center justify-center border-l border-slate-200 hover:bg-slate-100 font-bold cursor-pointer disabled:cursor-not-allowed select-none text-base text-slate-600"
               >
                 +
               </button>
             </div>
-            <span className="text-slate-400 font-medium">
-              {stockAvailable} sản phẩm có sẵn
-            </span>
+            {stockAvailable <= 0 ? (
+              <span className="text-rose-600 font-bold bg-rose-50 border border-rose-200 px-2 py-0.5 rounded text-[11px] flex items-center gap-1">
+                <span>⚠️</span> Hết hàng (0 sản phẩm có sẵn)
+              </span>
+            ) : (
+              <span className="text-slate-400 font-medium">
+                {stockAvailable} sản phẩm có sẵn
+              </span>
+            )}
           </div>
         </div>
 
@@ -225,17 +235,29 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
       {/* Action Buttons */}
       <div className="flex gap-4 pt-4 border-t border-slate-100 flex-wrap">
         <button
+          type="button"
+          disabled={stockAvailable <= 0}
           onClick={handleAddToCartClick}
-          className="flex-1 min-w-[200px] py-3.5 px-6 border border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9] hover:bg-[#fdede7] font-bold rounded-sm text-sm flex items-center justify-center gap-2.5 transition cursor-pointer shadow-3xs"
+          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-sm text-sm flex items-center justify-center gap-2.5 transition ${
+            stockAvailable <= 0
+              ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed opacity-60'
+              : 'border border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9] hover:bg-[#fdede7] cursor-pointer shadow-3xs'
+          }`}
         >
-          <span className="text-lg">🛒</span> Thêm Vào Giỏ Hàng
+          <span className="text-lg">🛒</span> {stockAvailable <= 0 ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}
         </button>
         
         <button
+          type="button"
+          disabled={stockAvailable <= 0}
           onClick={() => onBuyNow(product, quantity, selectedVariant)}
-          className="flex-1 min-w-[200px] py-3.5 px-6 bg-[#ee4d2d] hover:bg-[#f05d40] text-white font-bold rounded-sm text-sm flex items-center justify-center gap-1 transition cursor-pointer shadow-md"
+          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-sm text-sm flex items-center justify-center gap-1 transition ${
+            stockAvailable <= 0
+              ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none opacity-60'
+              : 'bg-[#ee4d2d] hover:bg-[#f05d40] text-white cursor-pointer shadow-md'
+          }`}
         >
-          Mua Ngay
+          {stockAvailable <= 0 ? 'Hết Hàng' : 'Mua Ngay'}
         </button>
       </div>
 

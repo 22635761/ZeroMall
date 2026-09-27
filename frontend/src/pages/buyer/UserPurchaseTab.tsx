@@ -11,7 +11,8 @@ import { ReturnRequestModal } from '../../components/buyer/ReturnRequestModal'
 import { returnService, type ReturnData } from '../../services/return.service'
 import {
   mapStatusToTab,
-  getShopeeTypeNumber
+  getShopeeTypeNumber,
+  mapTypeParamToTabId
 } from '../../components/buyer/purchase/types'
 import { PurchaseStatusTabs } from '../../components/buyer/purchase/PurchaseStatusTabs'
 import { PurchaseOrderCard } from '../../components/buyer/purchase/PurchaseOrderCard'
@@ -26,11 +27,11 @@ interface UserPurchaseTabProps {
 export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   const { orderId: routeOrderId } = useParams<{ orderId?: string }>()
   const navigate = useNavigate()
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   const [orders, setOrders] = useState<Order[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState(() => searchParams.get('type') || 'ALL')
+  const [activeTab, setActiveTab] = useState(() => mapTypeParamToTabId(searchParams.get('type')))
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null)
   const [shopsInfo, setShopsInfo] = useState<{ [key: string]: string }>({})
@@ -138,7 +139,19 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
   // Fetch shop names
   useEffect(() => {
     const fetchShopNames = async () => {
-      const uniqueShopIds = Array.from(new Set(orders.flatMap(o => o.items.map((i: any) => i.shopId)).filter(Boolean)))
+      const allShopIds = [
+        ...orders.map((o: any) => o.shopId).filter(Boolean),
+        ...orders.flatMap(o => (o.items || []).map((i: any) => i.shopId)).filter(Boolean)
+      ]
+      if (selectedOrderForDetail) {
+        if (selectedOrderForDetail.shopId) allShopIds.push(selectedOrderForDetail.shopId)
+        if (selectedOrderForDetail.items) {
+          selectedOrderForDetail.items.forEach((i: any) => {
+            if (i.shopId) allShopIds.push(i.shopId)
+          })
+        }
+      }
+      const uniqueShopIds = Array.from(new Set(allShopIds))
       for (const shopId of uniqueShopIds) {
         if (shopId && !shopsInfo[shopId]) {
           try {
@@ -153,10 +166,10 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
         }
       }
     }
-    if (orders.length > 0) {
+    if (orders.length > 0 || selectedOrderForDetail) {
       fetchShopNames()
     }
-  }, [orders])
+  }, [orders, selectedOrderForDetail])
 
   // Polling re-pay status
   useEffect(() => {
@@ -231,7 +244,10 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
       alert('Đã hủy đơn hàng thành công! ' + (order.paymentMethod === 'zeropay' || order.status === 'PROCESSING' ? 'Tiền đã được hoàn về Ví ZeroPay của bạn.' : ''))
       setShowCancelModal(false)
       setSelectedOrderForCancel(null)
-      fetchOrders()
+      if (selectedOrderForDetail && selectedOrderForDetail.id === order.id) {
+        setSelectedOrderForDetail({ ...selectedOrderForDetail, status: 'CANCELLED' })
+      }
+      await fetchOrders()
     } catch (err: any) {
       alert('Lỗi khi hủy đơn hàng: ' + err.message)
     } finally {
@@ -279,9 +295,8 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
 
   const handleConfirmReceived = async (order: Order, isCompleted = true) => {
     const targetStatus = isCompleted ? 'COMPLETED' : 'DELIVERED'
-    const confirmMsg = isCompleted
-      ? 'Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn từ Shop?'
-      : 'Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn?'
+    const confirmMsg =
+      'Bạn xác nhận đã nhận được hàng đầy đủ và nguyên vẹn từ Shop? Sau khi bấm đã nhận được hàng mọi khiếu nại của bạn đều vô nghĩa và không thể đổi trả hàng. Hãy XÁC NHẬN.'
 
     if (window.confirm(confirmMsg)) {
       try {
@@ -380,12 +395,25 @@ export const UserPurchaseTab: React.FC<UserPurchaseTabProps> = ({ user }) => {
     )
   }
 
+  const handleTabChange = (tabId: string) => {
+    setActiveTab(tabId)
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev)
+      if (tabId === 'ALL') {
+        next.delete('type')
+      } else {
+        next.set('type', tabId)
+      }
+      return next
+    }, { replace: true })
+  }
+
   return (
     <>
       <div className="space-y-4 text-left selection:bg-[#ee4d2d] selection:text-white">
         <PurchaseStatusTabs
           activeTab={activeTab}
-          onTabChange={setActiveTab}
+          onTabChange={handleTabChange}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
         />

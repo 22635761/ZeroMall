@@ -141,6 +141,8 @@ export class AuthService {
         responseRate: true,
         responseTime: true,
         status: true,
+        blockedUntil: true,
+        blockReason: true,
         email: true,
         phoneNumber: true,
         pickupAddress: true,
@@ -261,7 +263,7 @@ export class AuthService {
     });
   }
 
-  async approveShop(id: string, status: string) {
+  async approveShop(id: string, status: string, blockedUntil?: string | null, blockReason?: string | null) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },
     });
@@ -269,13 +271,23 @@ export class AuthService {
       throw new NotFoundException(`Cửa hàng với ID ${id} không tồn tại`);
     }
 
-    if (status !== 'APPROVED' && status !== 'REJECTED') {
-      throw new Error('Trạng thái phê duyệt không hợp lệ');
+    const validStatuses = ['APPROVED', 'REJECTED', 'BLOCKED', 'PENDING_APPROVAL'];
+    if (!validStatuses.includes(status)) {
+      throw new BadRequestException('Trạng thái phê duyệt không hợp lệ');
+    }
+
+    const dataToUpdate: any = { status };
+    if (status === 'BLOCKED') {
+      dataToUpdate.blockedUntil = blockedUntil ? new Date(blockedUntil) : null;
+      dataToUpdate.blockReason = blockReason || 'Vi phạm điều khoản hoạt động ZeroMall';
+    } else if (status === 'APPROVED') {
+      dataToUpdate.blockedUntil = null;
+      dataToUpdate.blockReason = null;
     }
 
     const updatedShop = await this.prisma.shop.update({
       where: { id },
-      data: { status },
+      data: dataToUpdate,
     });
 
     if (status === 'APPROVED') {
@@ -288,14 +300,49 @@ export class AuthService {
     return updatedShop;
   }
 
-  async getShops(status?: string) {
-    if (status) {
-      return this.prisma.shop.findMany({
-        where: { status },
-        orderBy: { createdAt: 'desc' },
-      });
+  async deleteShop(id: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+    });
+    if (!shop) {
+      throw new NotFoundException(`Cửa hàng với ID ${id} không tồn tại`);
     }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Unlink shopId from all users (staff & owner)
+      await tx.user.updateMany({
+        where: { shopId: id },
+        data: { shopId: null },
+      });
+
+      // 2. Delete shop followers
+      await tx.shopFollow.deleteMany({
+        where: { shopId: id },
+      });
+
+      // 3. Delete the shop record
+      await tx.shop.delete({
+        where: { id },
+      });
+
+      return { success: true, message: `Đã xóa thành công cửa hàng "${shop.name}"` };
+    });
+  }
+
+  async getShops(status?: string) {
+    const where = status ? { status } : {};
     return this.prisma.shop.findMany({
+      where,
+      include: {
+        owner: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -355,10 +402,79 @@ export class AuthService {
     });
   }
 
-  async updateUserStatus(id: string, status: string) {
+  async updateUserStatus(id: string, status: string, blockedUntil?: string | null, blockReason?: string | null) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
+    if (!user) {
+      throw new NotFoundException(`Người dùng với ID ${id} không tồn tại`);
+    }
+
+    if (user.role === 'ADMIN' && status === 'BLOCKED') {
+      throw new BadRequestException('Không thể khóa tài khoản Quản trị viên (ADMIN)');
+    }
+
+    const dataToUpdate: any = { status };
+    if (status === 'BLOCKED') {
+      dataToUpdate.blockedUntil = blockedUntil ? new Date(blockedUntil) : null;
+      dataToUpdate.blockReason = blockReason || 'Vi phạm điều khoản cộng đồng ZeroMall';
+    } else if (status === 'ACTIVE') {
+      dataToUpdate.blockedUntil = null;
+      dataToUpdate.blockReason = null;
+    }
+
     return this.prisma.user.update({
       where: { id },
-      data: { status }
+      data: dataToUpdate,
+    });
+  }
+
+  async deleteUser(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      include: {
+        ownedShop: true,
+      },
+    });
+    if (!user) {
+      throw new NotFoundException(`Người dùng với ID ${id} không tồn tại`);
+    }
+
+    if (user.role === 'ADMIN') {
+      throw new BadRequestException('Không thể xóa tài khoản Quản trị viên (ADMIN)');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. If user owns a shop, unlink staff and delete follows & shop
+      if (user.ownedShop) {
+        await tx.user.updateMany({
+          where: { shopId: user.ownedShop.id },
+          data: { shopId: null },
+        });
+        await tx.shopFollow.deleteMany({
+          where: { shopId: user.ownedShop.id },
+        });
+        await tx.shop.delete({
+          where: { id: user.ownedShop.id },
+        });
+      }
+
+      // 2. Delete user follows
+      await tx.shopFollow.deleteMany({
+        where: { userId: id },
+      });
+
+      // 3. Delete addresses
+      await tx.userAddress.deleteMany({
+        where: { userId: id },
+      });
+
+      // 4. Delete user
+      await tx.user.delete({
+        where: { id },
+      });
+
+      return { success: true, message: `Đã xóa thành công tài khoản "${user.email}"` };
     });
   }
 

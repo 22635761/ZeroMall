@@ -163,10 +163,12 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
           const shopInfo = shopsInfo[shopId]
           const shopName = shopInfo?.name || (shopId.startsWith('Shop') ? shopId : `Shop ${shopId.substring(0, 8)}`)
           
-          const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice || item.product.price || 0) * item.quantity, 0)
+          const shopItemsTotal = shopItems.reduce((acc, item) => acc + parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0) * item.quantity, 0)
           const shopVoucherDiscount = getShopVoucherDiscount(shopId, shopItemsTotal)
-          const shopShipFee = shopShippingFees[shopId] || 37700
-          const shopSubtotal = shopItemsTotal + shopShipFee - shopVoucherDiscount
+          const rawShopShipFee = shopShippingFees[shopId] || 22000
+
+          // Tổng tiền hàng gốc + ship trước mọi mã giảm giá sàn
+          const shopOriginalTotal = shopItemsTotal + rawShopShipFee - shopVoucherDiscount
 
           // Parse shop pickup address for display
           let shopPickupLocation = ''
@@ -217,7 +219,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               {/* Shop Items List */}
               <div className="divide-y divide-slate-100">
                 {shopItems.map((item, idx) => {
-                  const unitPrice = parsePrice(item.product.flashPrice || item.product.price || 0)
+                  const unitPrice = parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0)
                   const itemTotal = unitPrice * item.quantity
                   
                   return (
@@ -334,7 +336,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-black text-slate-800">
-                            {formatPrice(shopShipFee)}
+                            {formatPrice(rawShopShipFee)}
                           </span>
                         </div>
                       </div>
@@ -366,7 +368,7 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                     Tổng số tiền ({shopItems.reduce((sum, i) => sum + i.quantity, 0)} sản phẩm):
                   </div>
                   <span className="text-base font-black text-emerald-600">
-                    {formatPrice(shopSubtotal)}
+                    {formatPrice(shopOriginalTotal)}
                   </span>
                 </div>
               </div>
@@ -506,9 +508,22 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
 
           {/* Checkout & Back Buttons */}
           <div className="space-y-3 pt-2">
+            {selectedCartItems.some(item => {
+              const stockVal = item.product.stock !== undefined ? item.product.stock : (item.product.total !== undefined ? item.product.total - (item.product.sold || 0) : 99)
+              return stockVal <= 0 || item.product.status === 'hidden'
+            }) && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 flex items-center gap-2">
+                <span>⚠️</span>
+                <span>Có sản phẩm trong đơn đã hết hàng. Vui lòng quay lại Giỏ hàng để gỡ bỏ!</span>
+              </div>
+            )}
+
             <button
               onClick={handlePlaceOrder}
-              disabled={selectedCartItems.length === 0 || isPlacingOrder}
+              disabled={selectedCartItems.length === 0 || isPlacingOrder || selectedCartItems.some(item => {
+                const stockVal = item.product.stock !== undefined ? item.product.stock : (item.product.total !== undefined ? item.product.total - (item.product.sold || 0) : 99)
+                return stockVal <= 0 || item.product.status === 'hidden'
+              })}
               className="w-full py-3.5 bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-extrabold text-sm rounded-xl shadow-md hover:shadow-lg transition duration-200 cursor-pointer disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isPlacingOrder ? (

@@ -5,8 +5,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY services/auth-service/package.json ./services/auth-service/
 
-RUN npm config set fetch-retries 5 && npm config set fetch-retry-maxtimeout 120000
-RUN npm ci -w services/auth-service --prefer-offline
+RUN npm config set fetch-retries 10 && \
+    npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 600000 && \
+    npm config set fetch-timeout 600000 && \
+    npm config set prefer-offline true
+RUN npm ci -w services/auth-service --prefer-offline || npm ci -w services/auth-service
 
 COPY services/auth-service ./services/auth-service/
 
@@ -30,4 +34,4 @@ EXPOSE 3001
 
 WORKDIR /app/services/auth-service
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "node dist/main.js || node dist/src/main.js"]

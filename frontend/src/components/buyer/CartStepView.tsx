@@ -211,6 +211,8 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                   {shopItems.map((item, idx) => {
                     const itemKey = getItemKey(item)
                     const isSelected = selectedKeys.includes(itemKey)
+                    const stockVal = item.product.stock !== undefined ? item.product.stock : (item.product.total !== undefined ? item.product.total - (item.product.sold || 0) : 99)
+                    const isOutOfStock = stockVal <= 0 || item.product.status === 'hidden'
                     const unitPrice = parsePrice(item.product.flashPrice || item.product.price || 0)
                     const rawOrig = parsePrice(item.product.originalPrice)
                     const originalPrice = rawOrig > 0 ? Math.max(rawOrig, unitPrice) : unitPrice
@@ -218,36 +220,52 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                     const itemSubtotal = unitPrice * item.quantity
                     
                     return (
-                      <div key={idx} className={`p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center transition ${isSelected ? 'bg-emerald-50/20' : ''}`}>
+                      <div key={idx} className={`p-5 grid grid-cols-1 lg:grid-cols-12 gap-4 items-center transition ${isOutOfStock ? 'bg-slate-50/70 opacity-75' : isSelected ? 'bg-emerald-50/20' : ''}`}>
                         
                         {/* Product Info Column */}
                         <div className="col-span-6 flex gap-3 items-center min-w-0">
                           <input
                             type="checkbox"
-                            checked={isSelected}
-                            onChange={() => handleSelectItem(itemKey)}
-                            className="w-4.5 h-4.5 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                            disabled={isOutOfStock}
+                            checked={!isOutOfStock && isSelected}
+                            onChange={() => !isOutOfStock && handleSelectItem(itemKey)}
+                            className="w-4.5 h-4.5 rounded-md border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40"
                           />
                           
-                          <img
-                            src={item.product.image}
-                            alt={item.product.name}
-                            className="w-16 h-16 object-cover border border-slate-200/60 rounded-xl shrink-0 shadow-3xs"
-                          />
+                          <div className="relative shrink-0">
+                            <img
+                              src={item.product.image}
+                              alt={item.product.name}
+                              className={`w-16 h-16 object-cover border border-slate-200/60 rounded-xl shadow-3xs ${isOutOfStock ? 'grayscale-50' : ''}`}
+                            />
+                            {isOutOfStock && (
+                              <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center">
+                                <span className="bg-rose-600 text-white text-[9px] font-black px-1 py-0.5 rounded shadow-xs uppercase">Hết hàng</span>
+                              </div>
+                            )}
+                          </div>
                           
                           <div className="min-w-0 flex-1 space-y-1">
                             <h4 className="font-bold text-slate-800 text-xs truncate hover:text-emerald-600 transition cursor-pointer">
                               {item.product.name}
                             </h4>
                             
-                            {item.selectedVariant && (
-                              <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md text-[10px] text-slate-500 font-bold">
-                                <span>Phân Loại:</span>
-                                <span>{item.selectedVariant}</span>
-                              </div>
-                            )}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              {item.selectedVariant && (
+                                <div className="inline-flex items-center gap-1 bg-slate-50 border border-slate-200/60 px-2 py-0.5 rounded-md text-[10px] text-slate-500 font-bold">
+                                  <span>Phân Loại:</span>
+                                  <span>{item.selectedVariant}</span>
+                                </div>
+                              )}
 
-                            {hasDiscount && (
+                              {isOutOfStock && (
+                                <span className="bg-rose-50 border border-rose-200 text-rose-600 text-[10px] font-bold px-2 py-0.5 rounded">
+                                  ⚠️ Hết hàng
+                                </span>
+                              )}
+                            </div>
+
+                            {hasDiscount && !isOutOfStock && (
                               <div className="text-[10px] text-emerald-600 font-bold flex items-center gap-1">
                                 <span>🏷️ Giá ưu đãi</span>
                               </div>
@@ -264,7 +282,7 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                                 {formatPrice(originalPrice)}
                               </span>
                             )}
-                            <span className="font-bold text-slate-700">
+                            <span className={`font-bold ${isOutOfStock ? 'text-slate-400' : 'text-slate-700'}`}>
                               {item.product.flashPrice || formatPrice(unitPrice)}
                             </span>
                           </div>
@@ -273,15 +291,17 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                         {/* Quantity Controls */}
                         <div className="col-span-2 flex lg:justify-center items-center justify-between">
                           <span className="lg:hidden text-slate-400 font-bold">Số lượng:</span>
-                          <div className="flex items-center border border-slate-200 rounded-lg overflow-hidden h-8 bg-slate-50 shadow-3xs">
+                          <div className={`flex items-center border rounded-lg overflow-hidden h-8 shadow-3xs ${isOutOfStock ? 'bg-slate-100 border-slate-200 opacity-60' : 'border-slate-200 bg-slate-50'}`}>
                             <button
+                              disabled={isOutOfStock}
                               onClick={() => onUpdateQuantity(item.product.id, item.selectedVariant || '', item.quantity - 1)}
-                              className="px-3 hover:bg-slate-200 text-slate-600 font-bold transition h-full text-xs cursor-pointer"
+                              className="px-3 hover:bg-slate-200 text-slate-600 font-bold transition h-full text-xs cursor-pointer disabled:cursor-not-allowed"
                             >
                               -
                             </button>
                             <input
                               type="text"
+                              disabled={isOutOfStock}
                               value={item.quantity}
                               onChange={(e) => {
                                 const val = parseInt(e.target.value, 10)
@@ -289,11 +309,12 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                                   onUpdateQuantity(item.product.id, item.selectedVariant || '', val)
                                 }
                               }}
-                              className="w-10 text-center text-xs font-bold bg-white text-slate-700 h-full border-x border-slate-200 focus:outline-none"
+                              className="w-10 text-center text-xs font-bold bg-white text-slate-700 h-full border-x border-slate-200 focus:outline-none disabled:cursor-not-allowed"
                             />
                             <button
+                              disabled={isOutOfStock}
                               onClick={() => onUpdateQuantity(item.product.id, item.selectedVariant || '', item.quantity + 1)}
-                              className="px-3 hover:bg-slate-200 text-slate-600 font-bold transition h-full text-xs cursor-pointer"
+                              className="px-3 hover:bg-slate-200 text-slate-600 font-bold transition h-full text-xs cursor-pointer disabled:cursor-not-allowed"
                             >
                               +
                             </button>
@@ -303,7 +324,7 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                         {/* Subtotal Column */}
                         <div className="col-span-1 flex lg:justify-center items-center justify-between text-xs">
                           <span className="lg:hidden text-slate-400 font-bold">Số tiền:</span>
-                          <span className="font-bold text-slate-900">{formatPrice(itemSubtotal)}</span>
+                          <span className={`font-bold ${isOutOfStock ? 'text-slate-400' : 'text-slate-900'}`}>{formatPrice(itemSubtotal)}</span>
                         </div>
 
                         {/* Actions */}

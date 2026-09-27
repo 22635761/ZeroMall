@@ -16,6 +16,8 @@ interface Product {
   sales?: number
   sold?: number
   stock?: number
+  total?: number
+  status?: string
   brand?: string
   shopId?: string
 }
@@ -38,9 +40,17 @@ interface ShopDetails {
 interface ShopDetailPageProps {
   user?: any
   allProducts?: any[]
+  onOpenLogin?: () => void
+  onOpenRegister?: () => void
+  onRequireLogin?: (title?: string, description?: string, icon?: string) => void
 }
 
-export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProducts: propsProducts }) => {
+export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
+  user,
+  allProducts: propsProducts,
+  onOpenLogin,
+  onRequireLogin
+}) => {
   const { shopId } = useParams<{ shopId: string }>()
   const navigate = useNavigate()
 
@@ -108,16 +118,18 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                 image: p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500',
                 sold: p.sales || p.sold || 0,
                 sales: p.sales || p.sold || 0,
+                stock: p.stock !== undefined ? p.stock : 0,
+                status: p.status || 'active',
                 rating: p.rating && p.rating > 0 ? p.rating : 5.0,
                 category: p.category,
                 shopId: p.shopId
               }
             })
-            setShopProducts(formatted)
+            setShopProducts(formatted.filter((p: any) => p.status !== 'hidden'))
           }
         } else if (propsProducts && propsProducts.length > 0) {
           if (isMounted) {
-            setShopProducts(propsProducts.filter((p: any) => p.shopId === targetShopId || !p.shopId))
+            setShopProducts(propsProducts.filter((p: any) => (p.shopId === targetShopId || !p.shopId) && p.status !== 'hidden'))
           }
         }
 
@@ -170,7 +182,15 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
   // Handle follow toggle
   const handleToggleFollow = async () => {
     if (!user) {
-      alert('Vui lòng đăng nhập để theo dõi gian hàng này!')
+      if (onRequireLogin) {
+        onRequireLogin(
+          'Bạn chưa đăng nhập tài khoản',
+          'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để theo dõi gian hàng này và nhận thông báo ưu đãi độc quyền.',
+          '🏪'
+        )
+      } else if (onOpenLogin) {
+        onOpenLogin()
+      }
       return
     }
 
@@ -245,8 +265,6 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
     return `${(diffDays / 365).toFixed(1)} năm trước`
   }
 
-
-
   const shopProvince = useMemo(() => {
     if (!shopDetails?.pickupAddress) return ''
     try {
@@ -260,6 +278,18 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
   }, [shopDetails?.pickupAddress])
 
   const handleClaimVoucher = (vId: string) => {
+    if (!user) {
+      if (onRequireLogin) {
+        onRequireLogin(
+          'Bạn chưa đăng nhập tài khoản',
+          'Vui lòng đăng nhập để lưu và sử dụng mã giảm giá của gian hàng này.',
+          '🎟️'
+        )
+      } else if (onOpenLogin) {
+        onOpenLogin()
+      }
+      return
+    }
     setClaimedVouchers(prev => ({ ...prev, [vId]: true }))
   }
 
@@ -633,6 +663,9 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                 const ratingVal = p.rating && p.rating > 0 ? p.rating : 5.0
                 const soldVal = p.sold ?? p.sales ?? 0
 
+                const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
+                const isOutOfStock = stockVal <= 0 || p.status === 'hidden'
+
                 return (
                   <div
                     key={p.id}
@@ -644,9 +677,18 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                       <img
                         src={p.image || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=500'}
                         alt={p.name}
-                        className="w-full h-full object-cover group-hover:scale-101 transition duration-200"
+                        className={`w-full h-full object-cover group-hover:scale-101 transition duration-200 ${isOutOfStock ? 'grayscale-40' : ''}`}
                         loading="lazy"
                       />
+
+                      {/* Out of stock overlay */}
+                      {isOutOfStock && (
+                        <div className="absolute inset-0 bg-black/45 flex items-center justify-center z-20">
+                          <span className="bg-black/80 text-white border border-white/20 text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-md">
+                            Hết Hàng
+                          </span>
+                        </div>
+                      )}
 
                       {/* Left Tags: Mall or Yêu Thích */}
                       <div className="absolute top-2.5 left-0 flex flex-col gap-1 z-10 items-start">
@@ -665,7 +707,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({ user, allProduct
                       </div>
 
                       {/* Right Promo Tag */}
-                      {discountPct > 0 && (
+                      {discountPct > 0 && !isOutOfStock && (
                         <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
                           -{discountPct}% GIẢM
                         </div>

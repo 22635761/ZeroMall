@@ -15,6 +15,7 @@ interface ProductDetailPageProps {
   onAddToCart: (product: Product, quantity: number, variant: string) => void
   onBuyNow: (product: Product, quantity: number, variant: string) => void
   onOpenLogin: () => void
+  onRequireLogin?: (title?: string, description?: string, icon?: string) => void
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
@@ -22,7 +23,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onBackToHome,
   onAddToCart,
   onBuyNow,
-  onOpenLogin
+  onOpenLogin,
+  onRequireLogin
 }) => {
   const { slugWithId } = useParams<{ slugWithId: string }>()
   const id = slugWithId?.split('-i.').pop()
@@ -73,7 +75,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             name: p.name,
             originalPrice: originalPriceStr,
             flashPrice: flashPriceStr,
+            price: flashPriceStr,
             image: p.image || 'https://placehold.co/400x400?text=No+Image',
+            stock: p.stock !== undefined ? p.stock : 0,
+            status: p.status || 'active',
             sold: p.sales || 0,
             total: (p.sales || 0) + (p.stock || 0),
             rating: p.rating ?? 0,
@@ -132,6 +137,20 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!product) return
+    const stockVal = product.stock !== undefined ? product.stock : (product.total !== undefined ? product.total - (product.sold || 0) : 0)
+    if (stockVal <= 0 || product.status === 'hidden') {
+      alert('Sản phẩm này hiện đã hết hàng, quý khách vui lòng quay lại sau!')
+      return
+    }
+
+    if (!user) {
+      if (onRequireLogin) {
+        onRequireLogin()
+      } else {
+        onOpenLogin()
+      }
+      return
+    }
     onAddToCart(product, quantity, selectedVariant)
 
     const rect = e.currentTarget.getBoundingClientRect()
@@ -158,6 +177,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         setFlyingItems(prev => prev.filter(item => item.id !== newFlyingItem.id))
       }, 800)
     }
+  }
+
+  const handleBuyNowClick = (prod: any, qty: number, variant: string) => {
+    const stockVal = prod?.stock !== undefined ? prod.stock : (prod?.total !== undefined ? prod.total - (prod?.sold || 0) : 0)
+    if (stockVal <= 0 || prod?.status === 'hidden') {
+      alert('Sản phẩm này hiện đã hết hàng, quý khách vui lòng chọn sản phẩm khác!')
+      return
+    }
+
+    if (!user) {
+      if (onRequireLogin) {
+        onRequireLogin()
+      } else {
+        onOpenLogin()
+      }
+      return
+    }
+    onBuyNow(prod, qty, variant)
   }
 
   const fetchReviews = async () => {
@@ -254,7 +291,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const handleToggleLike = async () => {
     if (!product) return
     if (!user) {
-      onOpenLogin()
+      if (onRequireLogin) onRequireLogin()
+      else onOpenLogin()
       return
     }
 
@@ -281,7 +319,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const handleToggleFollow = async () => {
     if (!product) return
     if (!user) {
-      onOpenLogin()
+      if (onRequireLogin) onRequireLogin()
+      else onOpenLogin()
       return
     }
 
@@ -310,7 +349,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     if (!product) return
     if (!reviewComment.trim()) return
     if (!user) {
-      onOpenLogin()
+      if (onRequireLogin) onRequireLogin()
+      else onOpenLogin()
       return
     }
 
@@ -368,11 +408,11 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
   }
 
-  const stockAvailable = product ? Math.max(0, product.total - product.sold) : 0
+  const stockAvailable = product ? Math.max(0, product.stock !== undefined ? product.stock : (product.total - product.sold)) : 0
   const isMall = Boolean(product?.brand && product.brand.toLowerCase() !== 'no brand' && product.brand !== '')
 
-  const handleDecrease = () => setQuantity(prev => Math.max(1, prev - 1))
-  const handleIncrease = () => setQuantity(prev => Math.min(stockAvailable || 99, prev + 1))
+  const handleDecrease = () => setQuantity(prev => Math.max(stockAvailable > 0 ? 1 : 0, prev - 1))
+  const handleIncrease = () => setQuantity(prev => Math.min(stockAvailable, prev + 1))
 
   const toggleSaveCoupon = (coupon: string) => {
     setSavedCoupons(prev => ({
@@ -447,11 +487,18 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     )
   }
 
-  if (!product) {
+  const isProductOutOfStock = product ? (product.stock !== undefined ? product.stock <= 0 : (product.total - product.sold <= 0)) || product.status === 'hidden' : false
+
+  if (!product || isProductOutOfStock) {
     return (
       <div className="bg-white rounded-2xl border border-slate-200/50 p-20 text-center shadow-3xs flex flex-col items-center gap-4.5">
-        <span className="text-5xl">⚠️</span>
-        <h4 className="font-extrabold text-slate-800 text-sm">Không tìm thấy sản phẩm</h4>
+        <span className="text-5xl">📦</span>
+        <h4 className="font-extrabold text-slate-800 text-sm">
+          {!product ? 'Không tìm thấy sản phẩm' : 'Sản phẩm này hiện đã hết hàng hoặc tạm ngừng kinh doanh'}
+        </h4>
+        <p className="text-xs text-slate-400 max-w-sm">
+          Sản phẩm bạn đang xem hiện không còn tồn kho trong gian hàng. Vui lòng tham khảo các sản phẩm khác trên sàn.
+        </p>
         <button onClick={onBackToHome} className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs shadow-md transition duration-200 cursor-pointer">
           Trở về Trang chủ
         </button>
@@ -500,7 +547,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           handleIncrease={handleIncrease}
           stockAvailable={stockAvailable}
           handleAddToCartClick={handleAddToCartClick}
-          onBuyNow={onBuyNow}
+          onBuyNow={handleBuyNowClick}
           user={user}
         />
       </div>

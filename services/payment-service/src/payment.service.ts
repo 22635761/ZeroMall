@@ -771,8 +771,11 @@ export class PaymentService implements OnModuleInit {
         if (orderRes.ok) {
           const orderData = await orderRes.json();
           const shopId = orderData.shopId || (orderData.items && orderData.items[0]?.shopId) || 'default-shop-id';
-          const amount = orderData.totalAmount || 0;
-          escrow = await this.createEscrow(orderId, shopId, amount);
+          const itemSubtotal = orderData.items?.reduce((s: number, i: any) => s + i.price * i.quantity, 0) ?? (orderData.totalAmount - (orderData.shippingFee || 0));
+          const shopDiscount = orderData.shopDiscountAmount || 0;
+          const amount = Math.max(0, itemSubtotal - shopDiscount);
+          const commRate = orderData.commissionRate ?? 5;
+          escrow = await this.createEscrow(orderId, shopId, amount, commRate);
         }
       } catch (err) {
         console.error(`[Escrow] Error fetching order ${orderId} for auto-creation:`, err);

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
-import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
+import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 import { findProhibitedKeyword } from './banned-words';
 
@@ -8,8 +8,15 @@ import { findProhibitedKeyword } from './banned-words';
 export class ProductService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(shopId?: string, category?: string, search?: string) {
+  async findAll(shopId?: string, category?: string, search?: string, inStockOnly?: string) {
     const andConditions: any[] = [];
+
+    if (inStockOnly === 'true' || (!shopId && inStockOnly !== 'false')) {
+      andConditions.push({
+        stock: { gt: 0 },
+        status: { not: 'hidden' }
+      });
+    }
 
     if (shopId) {
       andConditions.push({ shopId });
@@ -106,7 +113,30 @@ export class ProductService {
     const imagesStr = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
     const variationGroupsStr = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
     const variationRowsStr = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
-    const categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+    let categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+    let categoryId = (dto as any).categoryId || null;
+
+    if (!categoryId && categoryStr) {
+      const foundCat = await this.prisma.category.findFirst({
+        where: {
+          OR: [
+            { name: { equals: categoryStr, mode: 'insensitive' } },
+            { slug: { equals: categoryStr.toLowerCase().replace(/\s+/g, '-'), mode: 'insensitive' } },
+          ],
+        },
+      });
+      if (foundCat) {
+        categoryId = foundCat.id;
+        categoryStr = foundCat.name;
+      }
+    } else if (categoryId) {
+      const foundCat = await this.prisma.category.findUnique({
+        where: { id: categoryId },
+      });
+      if (foundCat) {
+        categoryStr = foundCat.name;
+      }
+    }
 
     const product = await this.prisma.product.create({
       data: {
@@ -116,6 +146,7 @@ export class ProductService {
         images: imagesStr,
         video: dto.video ? String(dto.video) : null,
         category: categoryStr,
+        categoryId: categoryId,
         brand: dto.brand ? String(dto.brand) : 'No Brand',
         description: dto.description ? String(dto.description) : String(dto.name || 'Mô tả sản phẩm'),
         price: String(dto.price || '0'),
@@ -235,10 +266,35 @@ export class ProductService {
       }
       updateData.name = nameStr;
     }
-    if (dto.image !== undefined) updateData.image = dto.image ? String(dto.image) : null;
-    if (dto.images !== undefined) updateData.images = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
     if (dto.video !== undefined) updateData.video = dto.video ? String(dto.video) : null;
-    if (dto.category !== undefined) updateData.category = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+    if (dto.category !== undefined || (dto as any).categoryId !== undefined) {
+      let categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
+      let categoryId = (dto as any).categoryId || null;
+
+      if (!categoryId && categoryStr) {
+        const foundCat = await this.prisma.category.findFirst({
+          where: {
+            OR: [
+              { name: { equals: categoryStr, mode: 'insensitive' } },
+              { slug: { equals: categoryStr.toLowerCase().replace(/\s+/g, '-'), mode: 'insensitive' } },
+            ],
+          },
+        });
+        if (foundCat) {
+          categoryId = foundCat.id;
+          categoryStr = foundCat.name;
+        }
+      } else if (categoryId) {
+        const foundCat = await this.prisma.category.findUnique({
+          where: { id: categoryId },
+        });
+        if (foundCat) {
+          categoryStr = foundCat.name;
+        }
+      }
+      updateData.category = categoryStr;
+      updateData.categoryId = categoryId;
+    }
     if (dto.brand !== undefined) updateData.brand = String(dto.brand);
     if (dto.description !== undefined) {
       const descStr = String(dto.description);
@@ -443,42 +499,129 @@ export class ProductService {
   }
 
   async getAllCategories() {
+    // 1. Tự động đồng bộ các sản phẩm chưa có categoryId hoặc sai tên
+    try {
+      const allCategories = await this.prisma.category.findMany();
+      const unlinkedProducts = await this.prisma.product.findMany({
+        where: { categoryId: null },
+        select: { id: true, category: true },
+      });
+
+      for (const p of unlinkedProducts) {
+        const pCat = (p.category || '').toLowerCase().trim();
+        const matched = allCategories.find((c) => {
+          const cName = c.name.toLowerCase().trim();
+          const cSlug = c.slug.toLowerCase().trim();
+          return (
+            cName === pCat ||
+            cSlug === pCat ||
+            cSlug === pCat.replace(/\s+/g, '-') ||
+            pCat.includes(cName) ||
+            cName.includes(pCat)
+          );
+        });
+
+        if (matched) {
+          await this.prisma.product.update({
+            where: { id: p.id },
+            data: { categoryId: matched.id, category: matched.name },
+          }).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.error('Auto sync categoryId error:', err);
+    }
+
     const list = await this.prisma.category.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { products: true } } }
+      include: {
+        _count: {
+          select: { products: true },
+        },
+      },
     });
-    if (list.length === 0) {
-      const defaults = [
-        { name: 'Thời Thời Trang Nam', slug: 'thoi-trang-nam' },
-        { name: 'Điện Thoại & Phụ Kiện', slug: 'dien-thoai-phu-kien' },
-        { name: 'Thiết Bị Điện Tử', slug: 'thiet-bi-dien-tu' },
-        { name: 'Mẹ & Bé', slug: 'me-va-be' }
-      ];
-      await Promise.all(
-        defaults.map(d => this.prisma.category.create({ data: d }))
-      );
-      const newList = await this.prisma.category.findMany({
-        orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { products: true } } }
-      });
-      return newList.map(c => ({ ...c, productCount: c._count.products }));
-    }
-    return list.map(c => ({ ...c, productCount: c._count.products }));
+
+    return list.map((c) => ({
+      ...c,
+      productCount: c._count.products,
+    }));
   }
 
   async createCategory(name: string) {
-    const slug = name.toLowerCase()
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
       .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-');
-    return this.prisma.category.create({
-      data: { name, slug }
+
+    const created = await this.prisma.category.create({
+      data: { name, slug },
     });
+
+    // Đồng bộ các sản phẩm có cùng tên ngành hàng
+    await this.prisma.product.updateMany({
+      where: {
+        category: { equals: name, mode: 'insensitive' },
+      },
+      data: {
+        categoryId: created.id,
+        category: created.name,
+      },
+    }).catch(() => {});
+
+    return created;
+  }
+
+  async updateCategory(id: string, name: string) {
+    const slug = name
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .replace(/[^a-z0-9\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+
+    const oldCat = await this.prisma.category.findUnique({ where: { id } });
+    const updated = await this.prisma.category.update({
+      where: { id },
+      data: { name, slug },
+    });
+
+    if (oldCat) {
+      await this.prisma.product.updateMany({
+        where: {
+          OR: [
+            { categoryId: id },
+            { category: { equals: oldCat.name, mode: 'insensitive' } },
+          ],
+        },
+        data: {
+          categoryId: id,
+          category: name,
+        },
+      }).catch(() => {});
+    }
+
+    return updated;
   }
 
   async deleteCategory(id: string) {
+    const cat = await this.prisma.category.findUnique({ where: { id } });
+    
+    // Gỡ liên kết categoryId từ các sản phẩm thuộc danh mục này
+    await this.prisma.product.updateMany({
+      where: { categoryId: id },
+      data: { categoryId: null },
+    }).catch(() => {});
+
     return this.prisma.category.delete({
-      where: { id }
+      where: { id },
     });
   }
 
@@ -524,22 +667,32 @@ export class ProductService {
 
   async getFlashSales() {
     const list = await this.prisma.flashSale.findMany({
+      include: {
+        items: true,
+      },
       orderBy: { createdAt: 'desc' }
     });
+
     if (list.length === 0) {
       const defaults = [
-        { timeSlot: '00:00 - 02:00', productsCount: 15, status: 'ENDED' },
-        { timeSlot: '12:00 - 14:00', productsCount: 8, status: 'RUNNING' },
-        { timeSlot: '20:00 - 22:00', productsCount: 25, status: 'UPCOMING' }
+        { timeSlot: '00:00 - 09:00', productsCount: 0, status: 'ENDED' },
+        { timeSlot: '09:00 - 15:00', productsCount: 0, status: 'UPCOMING' },
+        { timeSlot: '15:00 - 21:00', productsCount: 0, status: 'RUNNING' },
+        { timeSlot: '21:00 - 24:00', productsCount: 0, status: 'UPCOMING' },
       ];
       await Promise.all(
         defaults.map(d => this.prisma.flashSale.create({ data: d }))
       );
       return this.prisma.flashSale.findMany({
+        include: { items: true },
         orderBy: { createdAt: 'desc' }
       });
     }
-    return list;
+
+    return list.map(s => ({
+      ...s,
+      productsCount: s.items ? s.items.length : s.productsCount,
+    }));
   }
 
   private parseTimeRange(slot: string): { start: number; end: number } | null {
@@ -553,6 +706,115 @@ export class ProductService {
     } catch (e) {
       return null;
     }
+  }
+
+  async getActiveFlashSale() {
+    // Luôn tính toán chính xác theo Giờ Việt Nam (Asia/Ho_Chi_Minh - UTC+7)
+    const formatter = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Ho_Chi_Minh',
+      hour: 'numeric',
+      minute: 'numeric',
+      second: 'numeric',
+      hour12: false,
+    });
+    const parts = formatter.formatToParts(new Date());
+    const nowHour = parseInt(parts.find(p => p.type === 'hour')?.value || '0', 10);
+    const nowMinutes = parseInt(parts.find(p => p.type === 'minute')?.value || '0', 10);
+    const nowSeconds = parseInt(parts.find(p => p.type === 'second')?.value || '0', 10);
+
+    let allSlots = await this.prisma.flashSale.findMany({
+      include: {
+        items: {
+          include: {
+            product: true,
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (allSlots.length === 0) {
+      await this.getFlashSales();
+      allSlots = await this.prisma.flashSale.findMany({
+        include: {
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+    }
+
+    // Check if any slot is matching current real-time clock
+    let activeSlot = allSlots.find(slot => {
+      const range = this.parseTimeRange(slot.timeSlot);
+      return range && nowHour >= range.start && nowHour < range.end;
+    });
+
+    if (!activeSlot) {
+      activeSlot = allSlots.find(s => s.status === 'RUNNING') || allSlots[0];
+    }
+
+    if (!activeSlot) return null;
+
+    // Calculate remaining seconds to end of slot
+    const range = this.parseTimeRange(activeSlot.timeSlot);
+    let remainingSeconds = 7200; // fallback 2 hours
+    if (range) {
+      const endHour = range.end;
+      const currentSecondsInDay = nowHour * 3600 + nowMinutes * 60 + nowSeconds;
+      const endSecondsInDay = endHour * 3600;
+      if (endSecondsInDay > currentSecondsInDay) {
+        remainingSeconds = endSecondsInDay - currentSecondsInDay;
+      } else {
+        remainingSeconds = 3600;
+      }
+    }
+
+    // Map registered items
+    const flashProducts = (activeSlot.items || [])
+      .filter(item => item.product && item.product.stock > 0 && item.product.status !== 'hidden')
+      .map(item => {
+        const orig = item.originalPrice || parseFloat(String(item.product?.price || 0)) || 0;
+        const flash = item.flashPrice;
+        const discountPct = orig > 0 ? Math.round((1 - flash / orig) * 100) : 0;
+        return {
+          id: item.product.id,
+          name: item.product.name,
+          originalPrice: orig.toLocaleString('vi-VN') + 'đ',
+          flashPrice: flash.toLocaleString('vi-VN') + 'đ',
+          rawPrice: flash,
+          rawOriginalPrice: orig,
+          image: item.product.image || '',
+          sold: item.stockSold || 0,
+          total: item.stockLimit || 10,
+          stock: item.product.stock,
+          status: item.product.status,
+          discountPercent: discountPct,
+          shopId: item.shopId,
+        };
+      });
+
+    return {
+      slotId: activeSlot.id,
+      timeSlot: activeSlot.timeSlot,
+      status: 'RUNNING',
+      remainingSeconds,
+      products: flashProducts,
+    };
+  }
+
+  async getShopFlashSales(shopId: string) {
+    return this.prisma.flashSaleItem.findMany({
+      where: { shopId },
+      include: {
+        flashSale: true,
+        product: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
   }
 
   async createFlashSale(timeSlot: string) {
@@ -575,6 +837,105 @@ export class ProductService {
     return this.prisma.flashSale.create({
       data: { timeSlot }
     });
+  }
+
+  async registerFlashSale(slotId: string, dto: RegisterFlashSaleDto) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: dto.productId },
+    });
+    if (!product) {
+      throw new NotFoundException('Không tìm thấy sản phẩm!');
+    }
+
+    const slot = await this.prisma.flashSale.findUnique({
+      where: { id: slotId },
+    });
+    if (!slot) {
+      throw new NotFoundException('Không tìm thấy khung giờ Flash Sale!');
+    }
+
+    const currentPrice = parseFloat(String(product.price).replace(/[^0-9]/g, '')) || 0;
+    const origPrice = product.originalPrice ? parseFloat(String(product.originalPrice).replace(/[^0-9]/g, '')) : currentPrice;
+
+    // Upsert FlashSaleItem
+    const item = await this.prisma.flashSaleItem.upsert({
+      where: {
+        flashSaleId_productId: {
+          flashSaleId: slotId,
+          productId: dto.productId,
+        },
+      },
+      create: {
+        flashSaleId: slotId,
+        productId: dto.productId,
+        shopId: dto.shopId,
+        flashPrice: dto.flashPrice,
+        originalPrice: origPrice,
+        stockLimit: dto.stockLimit,
+        stockSold: 0,
+        status: 'ACTIVE',
+      },
+      update: {
+        flashPrice: dto.flashPrice,
+        originalPrice: origPrice,
+        stockLimit: dto.stockLimit,
+        status: 'ACTIVE',
+      },
+    });
+
+    // Update Product price to flash price
+    await this.prisma.product.update({
+      where: { id: dto.productId },
+      data: {
+        price: String(dto.flashPrice),
+        originalPrice: String(origPrice),
+      },
+    });
+
+    // Update productsCount on slot
+    const count = await this.prisma.flashSaleItem.count({
+      where: { flashSaleId: slotId },
+    });
+    await this.prisma.flashSale.update({
+      where: { id: slotId },
+      data: { productsCount: count },
+    });
+
+    return item;
+  }
+
+  async deleteFlashSaleItem(itemId: string) {
+    const item = await this.prisma.flashSaleItem.findUnique({
+      where: { id: itemId },
+    });
+    if (!item) {
+      throw new NotFoundException('Không tìm thấy bản ghi Flash Sale!');
+    }
+
+    // Restore product price
+    await this.prisma.product.update({
+      where: { id: item.productId },
+      data: {
+        price: String(item.originalPrice),
+        originalPrice: null,
+      },
+    });
+
+    // Delete item
+    await this.prisma.flashSaleItem.delete({
+      where: { id: itemId },
+    });
+
+    // Update productsCount on slot
+    const count = await this.prisma.flashSaleItem.count({
+      where: { flashSaleId: item.flashSaleId },
+    });
+    await this.prisma.flashSale.update({
+      where: { id: item.flashSaleId },
+      data: { productsCount: count },
+    });
+
+    return { success: true };
   }
 
   async updateFlashSaleStatus(id: string, status: string) {

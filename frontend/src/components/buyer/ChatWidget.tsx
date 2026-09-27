@@ -5,9 +5,10 @@ import { fetchConversations } from '../../services/chat.service';
 interface ChatWidgetProps {
   user?: any;
   onOpenLogin?: () => void;
+  onRequireLogin?: (title?: string, description?: string, icon?: string) => void;
 }
 
-export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, onOpenLogin }) => {
+export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, onOpenLogin, onRequireLogin }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [targetShopId, setTargetShopId] = useState<string | null>(null);
   const [targetShopName, setTargetShopName] = useState<string | null>(null);
@@ -21,10 +22,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, onOpenLogin }) => 
   useEffect(() => {
     const handleOpenChat = (e: any) => {
       if (!user || !buyerId) {
-        if (onOpenLogin) {
+        if (onRequireLogin) {
+          onRequireLogin(
+            'Bạn chưa đăng nhập tài khoản',
+            'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để bắt đầu trò chuyện với Người bán hoặc CSKH sàn.',
+            '💬'
+          );
+        } else if (onOpenLogin) {
           onOpenLogin();
-        } else {
-          alert('Vui lòng đăng nhập để bắt đầu trò chuyện với Người bán hoặc CSKH sàn.');
         }
         return;
       }
@@ -66,10 +71,14 @@ export const ChatWidget: React.FC<ChatWidgetProps> = ({ user, onOpenLogin }) => 
 
   const handleFloatingClick = () => {
     if (!user || !buyerId) {
-      if (onOpenLogin) {
+      if (onRequireLogin) {
+        onRequireLogin(
+          'Bạn chưa đăng nhập tài khoản',
+          'Vui lòng đăng nhập hoặc tạo tài khoản ZeroMall để bắt đầu trò chuyện với Người bán hoặc CSKH sàn.',
+          '💬'
+        );
+      } else if (onOpenLogin) {
         onOpenLogin();
-      } else {
-        alert('Vui lòng đăng nhập để bắt đầu trò chuyện với Người bán hoặc CSKH sàn.');
       }
       return;
     }

@@ -74,3 +74,10 @@ export class ImportBatchDto {
   importedBy: string;
   importDate?: string;
 }
+
+export class RegisterFlashSaleDto {
+  productId: string;
+  shopId: string;
+  flashPrice: number;
+  stockLimit: number;
+}

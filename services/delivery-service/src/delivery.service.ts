@@ -187,9 +187,6 @@ export class DeliveryService {
       return createdShipment;
     });
 
-    // Đồng bộ trạng thái SHIPPED sang order-service
-    await this.syncOrderStatus(dto.orderId, 'SHIPPED', trackingNumber);
-
     // Tự động gán Shipper khu vực đi lấy hàng (Auto-Dispatch Pickup Driver)
     try {
       await this.autoDispatch(shipment.id, 'PICKUP');
@@ -209,6 +206,84 @@ export class DeliveryService {
         codTransaction: true,
       },
     });
+  }
+
+  // Hủy Vận đơn và Hủy toàn bộ yêu cầu lấy/giao hàng khi Đơn hàng bị Hủy
+  async cancelShipmentByOrderId(orderId: string, reason?: string) {
+    const shipment = await this.prisma.shipment.findUnique({
+      where: { orderId },
+      include: { assignments: true },
+    });
+
+    if (!shipment) {
+      console.log(`[SPX-Logistics] cancelShipmentByOrderId: No shipment found for order ${orderId}`);
+      return { success: true, message: 'No shipment to cancel' };
+    }
+
+    const cancelReason = reason || 'Đơn hàng đã bị hủy';
+
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Cập nhật shipment status -> CANCELLED
+      const updatedShipment = await tx.shipment.update({
+        where: { id: shipment.id },
+        data: {
+          status: 'CANCELLED',
+        },
+      });
+
+      // 2. Hủy toàn bộ phân công của tài xế và giải phóng trạng thái tài xế
+      for (const assign of shipment.assignments) {
+        const remainingTasks = await tx.deliveryAssignment.count({
+          where: {
+            driverId: assign.driverId,
+            id: { not: assign.id },
+            status: { in: ['ASSIGNED', 'ACCEPTED', 'IN_PROGRESS'] },
+          },
+        });
+        if (remainingTasks === 0) {
+          await tx.driver.update({
+            where: { id: assign.driverId },
+            data: { status: 'AVAILABLE' },
+          });
+        }
+      }
+
+      await tx.deliveryAssignment.deleteMany({
+        where: { shipmentId: shipment.id },
+      });
+
+      // 3. Xóa các log điều phối / lấy hàng cũ và ghi 1 log hủy duy nhất
+      await tx.shipmentTracking.deleteMany({
+        where: { shipmentId: shipment.id },
+      });
+
+      await tx.shipmentTracking.create({
+        data: {
+          shipmentId: shipment.id,
+          status: 'CANCELLED',
+          title: 'Đơn hàng đã bị hủy',
+          description: `Đơn hàng đã bị hủy (${cancelReason}). Toàn bộ yêu cầu vận chuyển và điều phối tài xế đã được xóa khỏi hệ thống.`,
+          location: 'Hệ thống ZeroMall Express (ZMX)',
+        },
+      });
+
+      // 4. Hủy giao dịch COD nếu có
+      await tx.codTransaction.updateMany({
+        where: { shipmentId: shipment.id, status: { not: 'SETTLED' } },
+        data: { status: 'CANCELLED' },
+      });
+
+      // 5. Hủy yêu cầu trả hàng Return liên quan nếu có
+      await tx.return.updateMany({
+        where: { shipmentId: shipment.id, status: { notIn: ['COMPLETED', 'CANCELLED', 'REJECTED'] } },
+        data: { status: 'CANCELLED' },
+      });
+
+      return updatedShipment;
+    });
+
+    console.log(`[SPX-Logistics] Successfully cancelled shipment and driver tasks for order ${orderId}`);
+    return { success: true, message: 'Shipment and driver assignments cancelled', shipment: result };
   }
 
   // 2. Tra cứu danh sách vận đơn (hỗ trợ lọc theo sellerId, driverId, status)
@@ -324,11 +399,23 @@ export class DeliveryService {
     });
 
     if (!shipment) {
-      // Auto-fallback: Tự động khởi tạo shipment nếu chưa có
+      // Auto-fallback: Tự động khởi tạo shipment nếu chưa có VÀ đơn hàng không bị hủy
       try {
         const orderRes = await fetch(`http://order-service:3004/orders/${identifier}`);
         if (orderRes.ok) {
           const ord = await orderRes.json();
+          if (ord.status === 'CANCELLED') {
+            return {
+              orderId: ord.id,
+              status: 'CANCELLED',
+              trackingLogs: [{
+                status: 'CANCELLED',
+                title: 'Đơn hàng đã bị hủy',
+                description: 'Đơn hàng đã được hủy. Yêu cầu vận chuyển và điều phối tài xế đã được xóa khỏi hệ thống.',
+                timestamp: ord.updatedAt || ord.createdAt,
+              }],
+            };
+          }
           const itemsSummary = ord.items?.map((i: any) => `${i.name} x${i.quantity}`).join(', ');
           return this.createShipment({
             orderId: ord.id,
@@ -359,6 +446,10 @@ export class DeliveryService {
     });
 
     if (!shipment) throw new NotFoundException('Không tìm thấy Vận đơn');
+    if (shipment.status === 'CANCELLED') {
+      console.log(`[SPX-Logistics] autoDispatch: Shipment ${shipmentId} is CANCELLED. Skipping auto-dispatch.`);
+      return { success: false, message: 'Shipment is cancelled' };
+    }
 
     // Trích xuất thông tin địa lý có cấu trúc từ pickupAddress (SellerAddress) hoặc deliveryAddress
     // Ưu tiên dùng province/district có cấu trúc thay vì match chuỗi address thô
@@ -412,41 +503,58 @@ export class DeliveryService {
     );
 
     // === MATCHING STRATEGY ===
-    // Priority 1: Khớp chính xác theo province (dữ liệu có cấu trúc từ SellerAddress)
-    // Priority 2: Khớp theo district
-    // Priority 3: Khớp theo chuỗi địa chỉ đầy đủ (fullAddress text search)
-    // Priority 4: Khớp theo Hub cùng tỉnh/thành
+    // === MATCHING STRATEGY (Chuẩn Logistics Sàn TMĐT) ===
+    // 1. Sắp xếp ưu tiên: Shipper nội thành (Xe máy/Van) trước Xe tải đường dài (TRUCK)
+    // 2. Ưu tiên khớp chính xác Quận/Huyện (assignedDistrict / operatingArea)
+    // 3. Sau đó khớp Tỉnh/Thành (assignedProvince / hub.province)
+    // 4. Cân bằng tải cho tài xế có ít đơn đang nhận nhất
 
     let matchedDriver: any = null;
 
     const eligible = activeDrivers.filter((d) => !d.isBlocked);
     if (eligible.length > 0) {
-      // Priority 1: Khớp province có cấu trúc (chính xác nhất)
-      if (lowerProvince) {
-        matchedDriver = eligible.find((d) => {
-          const driverProvince = (d.assignedProvince || '').toLowerCase();
-          const hubProvince = (d.hub?.province || '').toLowerCase();
-          return (driverProvince && lowerProvince.includes(driverProvince)) ||
-                 (driverProvince && driverProvince.includes(lowerProvince)) ||
-                 (hubProvince && lowerProvince.includes(hubProvince)) ||
-                 (hubProvince && hubProvince.includes(lowerProvince));
-        });
-      }
+      // Đếm số đơn đang xử lý của từng tài xế để cân bằng tải
+      const driversWithLoad = await Promise.all(
+        eligible.map(async (d) => {
+          const activeCount = await this.prisma.deliveryAssignment.count({
+            where: {
+              driverId: d.id,
+              status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
+            },
+          });
+          return { ...d, activeCount };
+        }),
+      );
 
-      // Priority 2: Khớp district có cấu trúc
-      if (!matchedDriver && lowerDistrict) {
-        matchedDriver = eligible.find((d) => {
+      // Sắp xếp: Ưu tiên xe máy/van (vehicleType != 'TRUCK') lên trước, sau đó sắp theo số đơn active tăng dần
+      const sortedDrivers = driversWithLoad.sort((a, b) => {
+        const aIsTruck = a.vehicleType === 'TRUCK' ? 1 : 0;
+        const bIsTruck = b.vehicleType === 'TRUCK' ? 1 : 0;
+        if (aIsTruck !== bIsTruck) return aIsTruck - bIsTruck;
+        return a.activeCount - b.activeCount;
+      });
+
+      // Priority 1: Khớp chính xác theo Quận/Huyện (district có cấu trúc)
+      if (lowerDistrict) {
+        matchedDriver = sortedDrivers.find((d) => {
           const driverDistrict = (d.assignedDistrict || '').toLowerCase();
-          return driverDistrict && (lowerDistrict.includes(driverDistrict) || driverDistrict.includes(lowerDistrict));
+          if (driverDistrict && (lowerDistrict.includes(driverDistrict) || driverDistrict.includes(lowerDistrict))) {
+            return true;
+          }
+          if (d.operatingArea) {
+            const areas = d.operatingArea.toLowerCase().split(',');
+            if (areas.some((a) => lowerDistrict.includes(a.trim()) || a.trim().includes(lowerDistrict))) {
+              return true;
+            }
+          }
+          return false;
         });
       }
 
-      // Priority 3: Text search trên fullAddress (bao gồm cả ward, district, province đã ghép)
+      // Priority 2: Khớp theo chuỗi địa chỉ đầy đủ (fullAddress text search)
       if (!matchedDriver && lowerFullAddr) {
-        matchedDriver = eligible.find((d) => {
-          if (d.assignedProvince && lowerFullAddr.includes(d.assignedProvince.toLowerCase())) return true;
+        matchedDriver = sortedDrivers.find((d) => {
           if (d.assignedDistrict && lowerFullAddr.includes(d.assignedDistrict.toLowerCase())) return true;
-          if (d.hub?.province && lowerFullAddr.includes(d.hub.province.toLowerCase())) return true;
           if (d.operatingArea) {
             const areas = d.operatingArea.toLowerCase().split(',');
             if (areas.some((a) => lowerFullAddr.includes(a.trim()))) return true;
@@ -455,9 +563,23 @@ export class DeliveryService {
         });
       }
 
+      // Priority 3: Khớp theo Tỉnh/Thành (province có cấu trúc)
+      if (!matchedDriver && lowerProvince) {
+        matchedDriver = sortedDrivers.find((d) => {
+          const driverProvince = (d.assignedProvince || '').toLowerCase();
+          const hubProvince = (d.hub?.province || '').toLowerCase();
+          return (
+            (driverProvince && lowerProvince.includes(driverProvince)) ||
+            (driverProvince && driverProvince.includes(lowerProvince)) ||
+            (hubProvince && lowerProvince.includes(hubProvince)) ||
+            (hubProvince && hubProvince.includes(lowerProvince))
+          );
+        });
+      }
+
       // Priority 4: Khớp Hub cùng tỉnh/thành
       if (!matchedDriver && lowerProvince) {
-        matchedDriver = eligible.find((d) => {
+        matchedDriver = sortedDrivers.find((d) => {
           const hubProvince = (d.hub?.province || '').toLowerCase();
           return hubProvince && hubProvince === lowerProvince;
         });
@@ -542,6 +664,10 @@ export class DeliveryService {
 
     if (!shipment || !driver) {
       throw new NotFoundException('Không tìm thấy Vận đơn hoặc Tài xế');
+    }
+
+    if (shipment.status === 'CANCELLED') {
+      throw new BadRequestException('Không thể gán tài xế cho vận đơn đã bị hủy');
     }
 
     const nextStatus = type === 'PICKUP' ? 'PICKUP_ASSIGNED' : 'DELIVERY_ASSIGNED';

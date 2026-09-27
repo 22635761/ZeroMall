@@ -1,6 +1,6 @@
 // Danh sách từ khóa cấm theo quy định kiểm duyệt hàng hóa của ZeroMall
 export const PROHIBITED_KEYWORDS: string[] = [
-  // Hợp chất & thuật ngữ khoa học dài
+  // 1. Ma túy, chất gây nghiện, chất hướng thần & tiền chất
   'methylenedioxymethamphetamine',
   'methylenedioxyamphetamine',
   'chất kích thích thần kinh',
@@ -141,7 +141,213 @@ export const PROHIBITED_KEYWORDS: string[] = [
   'GBL',
   'DXM',
   'N2O',
-  'K2'
+  'K2',
+
+  // 2. Thuốc lá điện tử, Vape, Pod, Nung nóng
+  'electronic cigarette',
+  'pod dùng một lần',
+  'disposable vape',
+  'vape disposable',
+  'heated tobacco',
+  'thuốc nung nóng',
+  'cartridge pod',
+  'tinh dầu vape',
+  'tinh dầu pod',
+  'e-cigarette',
+  'liquid vape',
+  'pod system',
+  'vape juice',
+  'juice vape',
+  'pod 1 lần',
+  'pod 1use',
+  'coil vape',
+  'coil pod',
+  'occ vape',
+  'pod chill',
+  'vape kit',
+  'vape mod',
+  'vape pen',
+  'e-liquid',
+  'eliquid',
+  'đầu pod',
+  'pod kit',
+  'pod mod',
+  'pod mini',
+  'pod vị',
+  'terea',
+  'heets',
+  'e-cig',
+  'IQOS',
+  'HTP',
+
+  // 3. Vũ khí, Vật liệu nổ, Công cụ hỗ trợ, Pháo nổ
+  'súng bắn đạn cao su',
+  'súng bắn đạn chì',
+  'nguyên liệu làm pháo',
+  'khiên chống bạo động',
+  'áo giáp chống đạn',
+  'bình xịt hơi cay',
+  'dùi cui kim loại',
+  'pháo Trung Quốc',
+  'súng quân dụng',
+  'súng tiểu liên',
+  'dùi cui cao su',
+  'súng hoa cải',
+  'súng bắn đạn',
+  'dây cháy chậm',
+  'ống giảm thanh',
+  'còng tay công an',
+  'pháo hoa nổ',
+  'súng bắn điện',
+  'đạn quân dụng',
+  'dùi cui điện',
+  'hộp tiếp đạn',
+  'pepper spray',
+  'pháo 100 quả',
+  'súng trường',
+  'súng tự chế',
+  'bom tự chế',
+  'mìn tự chế',
+  'vật liệu nổ',
+  'pháo tự chế',
+  'pháo 49 quả',
+  'pháo 36 quả',
+  'suppressor',
+  'mace spray',
+  'giảm thanh',
+  'thuốc pháo',
+  'súng ngắn',
+  'súng điện',
+  'thuốc nổ',
+  'pháo bánh',
+  'pháo giàn',
+  'pháo lậu',
+  'kíp pháo',
+  'pháo hoa',
+  'băng đạn',
+  'nòng súng',
+  'silencer',
+  'lựu đạn',
+  'kíp nổ',
+  'dây nổ',
+  'dynamite',
+  'dynamit',
+  'pháo nổ',
+  'pháo dây',
+  'pháo tép',
+  'pháo cối',
+  'roi điện',
+  'gậy điện',
+  'còng số 8',
+  'súng săn',
+  'đạn súng',
+  'đạn thật',
+  'hơi cay',
+  'pháo bi',
+  'taser',
+  'súng',
+  'mìn',
+  'bom',
+  'TNT',
+  'C4',
+
+  // 4. Động vật hoang dã, Quý hiếm, Bộ phận cơ thể người
+  'bộ phận cơ thể người',
+  'mua bán trẻ sơ sinh',
+  'hiến thận lấy tiền',
+  'mua bán nội tạng',
+  'mua bán bào thai',
+  'mua bán mô người',
+  'sừng linh dương',
+  'ngà voi thật',
+  'sừng tê giác',
+  'cao hổ cốt',
+  'mua bán thận',
+  'mua bán gan',
+  'bán giác mạc',
+  'mua giác mạc',
+  'mai rùa biển',
+  'bán nội tạng',
+  'mua nội tạng',
+  'mua bán người',
+  'rhino horn',
+  'xương gấu',
+  'xương hổ',
+  'vảy tê tê',
+  'san hô đen',
+  'bán trẻ em',
+  'mua trẻ em',
+  'xác người',
+  'bào thai',
+  'bán thân',
+  'bán thận',
+  'mua thận',
+  'bán gan',
+  'mua gan',
+  'ngà voi',
+  'pangolin',
+  'đồi mồi',
+  'cao hổ',
+  'cao báo',
+  'mật gấu',
+  'tay gấu',
+  'móng gấu',
+  'nanh hổ',
+  'răng hổ',
+  'vuốt hổ',
+  'móng hổ',
+  'da báo',
+  'da hổ',
+  'mô người',
+  'ivory',
+  'tê tê',
+
+  // 5. Hàng giả, Hàng nhái, Hàng Fake, Hàng cấm sở hữu trí tuệ
+  'căn cước công dân giả',
+  'giấy chứng nhận giả',
+  'giấy khám sức khỏe giả',
+  'giấy phép lái xe giả',
+  'dịch vụ làm giấy tờ giả',
+  'bằng tốt nghiệp giả',
+  'tem chống giả fake',
+  'bản sao thương hiệu',
+  'bằng đại học giả',
+  'copy thương hiệu',
+  'nhái thương hiệu',
+  'làm giấy tờ giả',
+  'giả chính hãng',
+  'like authentic',
+  'căn cước giả',
+  'hộ chiếu giả',
+  'passport giả',
+  'chứng chỉ giả',
+  'hóa đơn giả',
+  'con dấu giả',
+  'fake cao cấp',
+  'bằng lái giả',
+  'replica 1:1',
+  'super fake',
+  'superfake',
+  'like auth',
+  'giống auth',
+  'chuẩn auth',
+  'hàng nhái',
+  'hàng copy',
+  'logo giả',
+  'tem giả',
+  'CMND giả',
+  'CCCD giả',
+  'GPLX giả',
+  'sổ đỏ giả',
+  'fake loại 1',
+  'hàng fake',
+  'hàng giả',
+  'rep 1:1',
+  'replica',
+  'VAT giả',
+  'fake 1',
+  'fake',
+  'rep'
 ];
 
 function removeVietnameseTones(str: string): string {
@@ -164,7 +370,7 @@ function toCompactCleanString(str: string): string {
 
 /**
  * Thay thế ký tự leetspeak thông dụng thành chữ cái tương ứng
- * Ví dụ: "h3r01n" -> "heroin", "m4 tuy" -> "matuy"
+ * Ví dụ: "h3r01n" -> "heroin", "m4 tuy" -> "matuy", "5ung" -> "sung"
  */
 function normalizeLeetSpeak(compactStr: string): string {
   return compactStr
@@ -176,7 +382,9 @@ function normalizeLeetSpeak(compactStr: string): string {
 }
 
 // Danh sách từ cấm kèm dạng dính liền không dấu (compact)
-const COMPACT_PROHIBITED_MAP: { original: string; compact: string }[] = PROHIBITED_KEYWORDS.map((kw) => ({
+const COMPACT_PROHIBITED_MAP: { original: string; compact: string }[] = Array.from(
+  new Set(PROHIBITED_KEYWORDS.map(k => k.trim()))
+).map((kw) => ({
   original: kw,
   compact: toCompactCleanString(kw),
 })).filter((item) => item.compact.length > 0);
@@ -188,9 +396,9 @@ COMPACT_PROHIBITED_MAP.sort((a, b) => b.compact.length - a.compact.length);
  * Tìm từ cấm xuất hiện trong chuỗi văn bản (tên sản phẩm, mô tả)
  * Hỗ trợ toàn diện:
  * 1. Chữ HOA, chữ thường, viết hoa đầu từ
- * 2. Lách bằng ký tự đặc biệt (h*eroin, h.e.r.o.i.n, m_a_t_u_y, c-a-n-s-a, v/a/p/e...)
- * 3. Lách bằng viết không dấu, không khoảng cách (matuy, cansa, thuocphien, thuoclac, bongcuoi...)
- * 4. Lách bằng số leetspeak (h3roin, m4tuy, c4ns4...)
+ * 2. Lách bằng ký tự đặc biệt (h*eroin, h.e.r.o.i.n, m_a_t_u_y, c-a-n-s-a, v/a/p/e, s.u.n.g, b.o.m...)
+ * 3. Lách bằng viết không dấu, không khoảng cách (matuy, cansa, thuocphien, thuoclac, bongcuoi, sungngan, hangfake...)
+ * 4. Lách bằng số leetspeak (h3roin, m4tuy, c4ns4, 5ung...)
  *
  * @param text Chuỗi văn bản cần kiểm tra
  * @returns Tên từ cấm gốc tìm thấy đầu tiên, hoặc null nếu không có vi phạm
@@ -215,13 +423,13 @@ export function findProhibitedKeyword(text: string | undefined | null): string |
 
   for (const item of COMPACT_PROHIBITED_MAP) {
     const target = item.compact;
-    // Đối với các từ có độ dài compact >= 3 ký tự (hoặc các mã chất đặc biệt), kiểm tra chứa chuỗi dính liền
-    if (target.length >= 3 || target === 'k2') {
+    // Đối với các từ có độ dài compact >= 3 ký tự (hoặc các mã chất đặc biệt như k2, c4), kiểm tra chứa chuỗi dính liền
+    if (target.length >= 3 || target === 'k2' || target === 'c4') {
       if (compactText.includes(target) || leetText.includes(target)) {
         return item.original;
       }
     } else {
-      // Đối với từ cực ngắn 2 ký tự (da, co, ke, bu, pin, pod), chỉ kiểm tra khi nó đứng độc lập
+      // Đối với từ cực ngắn 2 ký tự (da, co, ke, bu, pin, pod, c4, k2), chỉ kiểm tra khi nó đứng độc lập
       const shortRegex = new RegExp(`(^|[^a-z0-9])${target}($|[^a-z0-9])`, 'i');
       if (shortRegex.test(removeVietnameseTones(trimmed).toLowerCase())) {
         return item.original;

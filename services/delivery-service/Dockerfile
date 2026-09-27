@@ -39,4 +39,4 @@ COPY --from=builder /app/services/delivery-service/prisma ./prisma
 
 EXPOSE 3008
 
-CMD ["node", "dist/src/main"]
+CMD ["sh", "-c", "node dist/main.js || node dist/src/main.js"]

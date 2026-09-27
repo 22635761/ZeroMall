@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { API_BASE_URL } from '../../config/api.config'
 import { AddProductTipsSidebar } from './add-product/AddProductTipsSidebar'
 import { AddProductBasicTab } from './add-product/AddProductBasicTab'
 import { AddProductSalesTab } from './add-product/AddProductSalesTab'
@@ -121,18 +122,19 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const [toastMessage, setToastMessage] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
-  const categoriesList = [
-    'Điện Thoại & Phụ Kiện',
-    'Thời Trang Nam',
-    'Thời Trang Nữ',
-    'Thiết Bị Điện Gia Dụng',
-    'Máy Tính & Laptop',
-    'Sức Khỏe & Sắc Đẹp',
-    'Nhà Cửa & Đời Sống',
-    'Giày Dép',
-    'Mẹ & Bé',
-    'Thể Thao & Du Lịch'
-  ]
+  // Danh mục ngành hàng được đồng bộ động 100% từ Database
+  const [categoriesList, setCategoriesList] = useState<any[]>([])
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/products/categories`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategoriesList(data)
+        }
+      })
+      .catch((err) => console.error('Error fetching categories from API:', err))
+  }, [])
 
   useEffect(() => {
     if (initialData) {

@@ -20,9 +20,14 @@ export class AuthController {
   @Put('shops/:id/approve')
   async approveShop(
     @Param('id') id: string,
-    @Body('status') status: string
+    @Body() body: { status: string; blockedUntil?: string | null; blockReason?: string | null }
   ) {
-    return this.authService.approveShop(id, status);
+    return this.authService.approveShop(id, body.status, body.blockedUntil, body.blockReason);
+  }
+
+  @Delete('shops/:id')
+  async deleteShop(@Param('id') id: string) {
+    return this.authService.deleteShop(id);
   }
 
   @Get('shops')
@@ -102,8 +107,16 @@ export class AuthController {
   }
 
   @Put('users/:id/status')
-  async updateUserStatus(@Param('id') id: string, @Body('status') status: string) {
-    return this.authService.updateUserStatus(id, status);
+  async updateUserStatus(
+    @Param('id') id: string,
+    @Body() body: { status: string; blockedUntil?: string | null; blockReason?: string | null }
+  ) {
+    return this.authService.updateUserStatus(id, body.status, body.blockedUntil, body.blockReason);
+  }
+
+  @Delete('users/:id')
+  async deleteUser(@Param('id') id: string) {
+    return this.authService.deleteUser(id);
   }
 
   @Get('cs-staff')

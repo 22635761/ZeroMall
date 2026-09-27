@@ -232,11 +232,13 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // Phải có phân công PICKUP đang active (ASSIGNED / ACCEPTED / IN_PROGRESS) của chính tài xế này
   const pickupTasks = shipments.filter(
     (s) =>
+      s.status !== 'CANCELLED' &&
       ['PICKUP_PENDING', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status) &&
       s.assignments?.some(
         (a) =>
           a.type === 'PICKUP' &&
           ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status) &&
+          a.status !== 'CANCELLED' &&
           isMyAssignment(a)
       )
   )
@@ -244,10 +246,12 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // 1.1 Đơn đang giữ trên xe (Đã lấy từ Shop, đang chờ mang về Hub nhập kho)
   const holdingTasks = shipments.filter(
     (s) =>
+      s.status !== 'CANCELLED' &&
       s.status === 'PICKED_UP' &&
       s.assignments?.some(
         (a) =>
           a.type === 'PICKUP' &&
+          a.status !== 'CANCELLED' &&
           isMyAssignment(a)
       )
   )
@@ -257,11 +261,13 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
   // Tuyệt đối không hiển thị nếu đơn được phân công cho tài xế bưu cục khác
   const deliveryTasks = shipments.filter(
     (s) =>
+      s.status !== 'CANCELLED' &&
       ['DELIVERY_ASSIGNED', 'OUT_FOR_DELIVERY'].includes(s.status) &&
       s.assignments?.some(
         (a) =>
           a.type === 'DELIVERY' &&
           ['ASSIGNED', 'IN_PROGRESS', 'ACCEPTED'].includes(a.status) &&
+          a.status !== 'CANCELLED' &&
           isMyAssignment(a)
       )
   )

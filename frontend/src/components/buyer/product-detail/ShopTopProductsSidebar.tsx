@@ -27,7 +27,7 @@ export const ShopTopProductsSidebar: React.FC<ShopTopProductsSidebarProps> = ({ 
           if (Array.isArray(data)) {
             // Filter out current viewing product and sort by sales descending
             const sorted = data
-              .filter((p: any) => p.id !== currentProductId && p.status === 'active')
+              .filter((p: any) => p.id !== currentProductId && p.status !== 'hidden' && (p.stock || 0) > 0)
               .sort((a: any, b: any) => (b.sales || 0) - (a.sales || 0))
               .slice(0, 5)
               .map((p: any) => {

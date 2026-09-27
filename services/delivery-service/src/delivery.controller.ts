@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Query, Patch } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Query, Patch, Delete } from '@nestjs/common';
 import { DeliveryService } from './delivery.service';
 import { ReturnDeliveryService } from './return.service';
 
@@ -266,5 +266,22 @@ export class DeliveryController {
   @Get('seller-address/:sellerId')
   async getSellerAddress(@Param('sellerId') sellerId: string) {
     return this.deliveryService.getSellerAddress(sellerId);
+  }
+
+  // 12. Hủy Vận Đơn theo Mã Đơn Hàng (Order ID)
+  @Patch('shipments/cancel-by-order/:orderId')
+  async cancelShipmentByOrderId(
+    @Param('orderId') orderId: string,
+    @Body('reason') reason?: string,
+  ) {
+    return this.deliveryService.cancelShipmentByOrderId(orderId, reason);
+  }
+
+  @Delete('shipments/order/:orderId')
+  async deleteShipmentByOrderId(
+    @Param('orderId') orderId: string,
+    @Query('reason') reason?: string,
+  ) {
+    return this.deliveryService.cancelShipmentByOrderId(orderId, reason);
   }
 }

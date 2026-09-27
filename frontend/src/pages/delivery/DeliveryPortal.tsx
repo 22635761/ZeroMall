@@ -246,17 +246,21 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
 
   // Bộ lọc dữ liệu theo Tab & Vai trò (DRIVER chỉ thấy đơn của mình và các đơn tại Hub của mình, OPERATOR/ADMIN thấy toàn sàn)
   const roleBaseShipments = isDriver
-    ? shipments.filter((s) => 
-        // 1. Đơn đã gán cho tài xế này
-        s.assignments?.some((a) => 
-          a.driver?.phone === currentUser.phoneNumber || 
-          (currentDriver && (a.driver?.phone === currentDriver.phone || (a as any).driverId === currentDriver.id))
-        ) ||
-        // 2. Đơn tại bưu cục đích của tài xế này (chờ quét nhận đi giao)
-        (currentDriver && ['AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED', 'IN_TRANSIT'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId)) ||
-        // 3. Đơn cần lấy hàng thuộc bưu cục của tài xế này
-        (currentDriver && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId))
-      )
+    ? shipments.filter((s) => {
+        if (s.status === 'CANCELLED') return false
+        return (
+          // 1. Đơn đã gán cho tài xế này
+          s.assignments?.some((a) => 
+            (a.driver?.phone === currentUser.phoneNumber || 
+            (currentDriver && (a.driver?.phone === currentDriver.phone || (a as any).driverId === currentDriver.id))) &&
+            a.status !== 'CANCELLED'
+          ) ||
+          // 2. Đơn tại bưu cục đích của tài xế này (chờ quét nhận đi giao)
+          (currentDriver && ['AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED', 'IN_TRANSIT'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId)) ||
+          // 3. Đơn cần lấy hàng thuộc bưu cục của tài xế này
+          (currentDriver && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED'].includes(s.status) && (s.currentHubId === currentDriver.hubId || !s.currentHubId))
+        )
+      })
     : shipments
 
   const filteredShipments = roleBaseShipments.filter((s) => {
@@ -271,16 +275,16 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     if (!matchesSearch) return false
 
     if (activeTab === 'PICKUP') {
-      return ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
+      return s.status !== 'CANCELLED' && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
     }
     if (activeTab === 'HUB') {
-      return ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED'].includes(s.status)
+      return s.status !== 'CANCELLED' && ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED'].includes(s.status)
     }
     if (activeTab === 'DELIVERY') {
-      return ['OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'RETURNING'].includes(s.status)
+      return s.status !== 'CANCELLED' && ['OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'RETURNING'].includes(s.status)
     }
     if (activeTab === 'COD') {
-      return s.codAmount > 0
+      return s.status !== 'CANCELLED' && s.codAmount > 0
     }
     return true
   })

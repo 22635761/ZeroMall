@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../config/api.config'
 import type { CartItem } from '../../models/cart.model'
@@ -251,14 +251,18 @@ export const CartPage: React.FC<CartPageProps> = ({
     return `${item.product.id}#${item.selectedVariant || ''}`
   }
 
-  // Selected items calculation
-  const selectedCartItems = cart.filter(item => selectedKeys.includes(getItemKey(item)))
+  // Cache refs to prevent duplicate API calls on quantity/selection changes
+  const fetchedShopIdsRef = useRef<Set<string>>(new Set())
+  const fetchedSpecsRef = useRef<Set<string>>(new Set())
+
+  // Selected items calculation (Memoized)
+  const selectedCartItems = useMemo(() => {
+    return cart.filter(item => selectedKeys.includes(getItemKey(item)))
+  }, [cart, selectedKeys])
 
   // Vouchers and payment
   const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
   const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'cod' | 'sepay'>('cod')
-  const [shopShippingFees, setShopShippingFees] = useState<Record<string, number>>({})
-  const [shopPackageInfos, setShopPackageInfos] = useState<Record<string, { weightKg: number; isBulky: boolean; itemCount: number }>>({})
   const [productSpecs, setProductSpecs] = useState<Record<string, { weight?: number; length?: number; width?: number; height?: number }>>({})
   
   // Shop Vouchers State
@@ -348,15 +352,16 @@ export const CartPage: React.FC<CartPageProps> = ({
         setSelectedKeys(allKeys)
       }
     }
-  }, [cart])
+  }, [cart.length])
 
-  // Fetch shop information dynamically for unique shop IDs in the cart
+  // Fetch shop information dynamically for unique shop IDs in the cart (Cached to avoid re-fetching)
   useEffect(() => {
     const fetchShopNames = async () => {
       const uniqueShopIds = Array.from(new Set(cart.map(item => item.product.shopId).filter(Boolean)))
       
       for (const shopId of uniqueShopIds) {
-        if (shopId && !shopsInfo[shopId]) {
+        if (shopId && !fetchedShopIdsRef.current.has(shopId)) {
+          fetchedShopIdsRef.current.add(shopId)
           try {
             const res = await fetch(`${API_BASE_URL}/auth/shops/${shopId}`)
             if (res.ok) {
@@ -382,7 +387,7 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }, [cart])
 
-  // Load active shop and platform vouchers from backend API
+  // Load active shop and platform vouchers from backend API (ONCE on mount)
   useEffect(() => {
     const fetchActiveVouchers = async () => {
       try {
@@ -396,19 +401,18 @@ export const CartPage: React.FC<CartPageProps> = ({
       }
     }
     
-    if (cart.length > 0) {
-      fetchActiveVouchers()
-    }
-  }, [cart])
+    fetchActiveVouchers()
+  }, [])
 
-  // Tự động tải thông số kích thước & cân nặng chuẩn từ CSDL cho các sản phẩm trong giỏ hàng
+  // Tự động tải thông số kích thước & cân nặng chuẩn từ CSDL cho các sản phẩm trong giỏ hàng (Cached)
   useEffect(() => {
     const fetchMissingSpecs = async () => {
       const missingProductIds = cart
         .map((i) => i.product.id)
-        .filter((id) => !productSpecs[id])
+        .filter((id) => !fetchedSpecsRef.current.has(id))
 
       for (const pId of missingProductIds) {
+        fetchedSpecsRef.current.add(pId)
         try {
           const res = await fetch(`${API_BASE_URL}/products/${pId}`)
           if (res.ok) {
@@ -434,45 +438,60 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }, [cart])
 
-  // Group items by shopId
-  const groupedItems = cart.reduce((groups, item) => {
-    const shopId = item.product.shopId || 'unknown'
-    if (!groups[shopId]) {
-      groups[shopId] = []
-    }
-    groups[shopId].push(item)
-    return groups;
-  }, {} as { [key: string]: CartItem[] })
+  // Group items by shopId (Memoized)
+  const groupedItems = useMemo(() => {
+    return cart.reduce((groups, item) => {
+      const shopId = item.product.shopId || 'unknown'
+      if (!groups[shopId]) {
+        groups[shopId] = []
+      }
+      groups[shopId].push(item)
+      return groups;
+    }, {} as { [key: string]: CartItem[] })
+  }, [cart])
 
   // Selection logic
+  const isItemAvailable = (item: CartItem) => {
+    const stockVal = item.product.stock !== undefined ? item.product.stock : (item.product.total !== undefined ? item.product.total - (item.product.sold || 0) : 99)
+    return stockVal > 0 && item.product.status !== 'hidden'
+  }
+
   const handleSelectItem = (key: string) => {
+    const item = cart.find(i => getItemKey(i) === key)
+    if (item && !isItemAvailable(item)) {
+      alert('Sản phẩm này hiện đã hết hàng, không thể chọn để thanh toán!')
+      return
+    }
     setSelectedKeys(prev => 
       prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
     )
   }
 
   const handleSelectShopItems = (items: CartItem[]) => {
-    const itemKeys = items.map(getItemKey)
-    const allSelected = itemKeys.every(k => selectedKeys.includes(k))
+    const availableItems = items.filter(isItemAvailable)
+    const availableItemKeys = availableItems.map(getItemKey)
+    if (availableItemKeys.length === 0) return
+
+    const allSelected = availableItemKeys.every(k => selectedKeys.includes(k))
     
     if (allSelected) {
-      setSelectedKeys(prev => prev.filter(k => !itemKeys.includes(k)))
+      setSelectedKeys(prev => prev.filter(k => !availableItemKeys.includes(k)))
     } else {
       setSelectedKeys(prev => {
-        const filtered = prev.filter(k => !itemKeys.includes(k))
-        return [...filtered, ...itemKeys]
+        const filtered = prev.filter(k => !availableItemKeys.includes(k))
+        return [...filtered, ...availableItemKeys]
       })
     }
   }
 
   const handleSelectAll = () => {
-    const allKeys = cart.map(getItemKey)
-    const isAllSelected = allKeys.length > 0 && allKeys.every(k => selectedKeys.includes(k))
+    const availableKeys = cart.filter(isItemAvailable).map(getItemKey)
+    const isAllSelected = availableKeys.length > 0 && availableKeys.every(k => selectedKeys.includes(k))
     
     if (isAllSelected) {
       setSelectedKeys([])
     } else {
-      setSelectedKeys(allKeys)
+      setSelectedKeys(availableKeys)
     }
   }
 
@@ -488,18 +507,22 @@ export const CartPage: React.FC<CartPageProps> = ({
     }
   }
 
-  // Selected items calculation
-  const itemsTotal = selectedCartItems.reduce((acc, item) => {
-    const itemUnitPrice = parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0)
-    return acc + itemUnitPrice * item.quantity
-  }, 0)
+  // Selected items calculation (Memoized)
+  const itemsTotal = useMemo(() => {
+    return selectedCartItems.reduce((acc, item) => {
+      const itemUnitPrice = parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0)
+      return acc + itemUnitPrice * item.quantity
+    }, 0)
+  }, [selectedCartItems])
 
   // Base shipping fee: Chuẩn vận chuyển nội bộ ZeroMall Express (ZMX)
   // Tính cước theo Tổng trọng lượng / Thể tích quy đổi gộp cho toàn bộ sản phẩm của cùng 1 Shop
-  const uniqueSelectedShops = Array.from(new Set(selectedCartItems.map(item => item.product.shopId).filter(Boolean))) as string[]
+  const uniqueSelectedShops = useMemo(() => {
+    return Array.from(new Set(selectedCartItems.map(item => item.product.shopId).filter(Boolean))) as string[]
+  }, [selectedCartItems])
   
-  // Tính phí ship ZMX cho từng shop dựa trên cân nặng/kích thước và khoảng cách thực tế
-  useEffect(() => {
+  // Tính phí ship ZMX cho từng shop dựa trên cân nặng/kích thước và khoảng cách thực tế (Đồng bộ qua useMemo - không lag)
+  const { shopShippingFees, shopPackageInfos } = useMemo(() => {
     const newFees: Record<string, number> = {}
     const newPackageInfos: Record<string, { weightKg: number; isBulky: boolean; itemCount: number }> = {}
 
@@ -569,9 +592,8 @@ export const CartPage: React.FC<CartPageProps> = ({
       }
     }
 
-    setShopShippingFees(newFees)
-    setShopPackageInfos(newPackageInfos)
-  }, [uniqueSelectedShops.join(','), selectedCartItems, productSpecs, shopsInfo, activeAddress])
+    return { shopShippingFees: newFees, shopPackageInfos: newPackageInfos }
+  }, [uniqueSelectedShops, selectedCartItems, productSpecs, shopsInfo, activeAddress])
 
   const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 22000), 0)
   const baseShippingFee = dynamicShippingTotal
@@ -662,7 +684,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         name: item.product.name,
         image: item.product.image,
         variant: item.selectedVariant || null,
-        price: parsePrice(item.product.flashPrice),
+        price: parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0),
         quantity: item.quantity
       }))
 

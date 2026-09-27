@@ -56,6 +56,29 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
           "importDate" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
           "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS product."FlashSale" (
+          "id" TEXT PRIMARY KEY,
+          "timeSlot" TEXT UNIQUE NOT NULL,
+          "productsCount" INTEGER NOT NULL DEFAULT 0,
+          "status" TEXT NOT NULL DEFAULT 'UPCOMING',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS product."FlashSaleItem" (
+          "id" TEXT PRIMARY KEY,
+          "flashSaleId" TEXT NOT NULL,
+          "productId" TEXT NOT NULL,
+          "shopId" TEXT NOT NULL,
+          "flashPrice" DOUBLE PRECISION NOT NULL,
+          "originalPrice" DOUBLE PRECISION NOT NULL,
+          "stockLimit" INTEGER NOT NULL,
+          "stockSold" INTEGER NOT NULL DEFAULT 0,
+          "status" TEXT NOT NULL DEFAULT 'ACTIVE',
+          "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          CONSTRAINT uq_flashsale_product UNIQUE ("flashSaleId", "productId")
+        );
       `);
 
       // 1. Clean up orphaned records to prevent foreign key errors

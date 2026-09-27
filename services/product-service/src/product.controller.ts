@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { ProductService } from './product.service';
-import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto } from './product.dto';
+import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 
 @Controller('products')
@@ -13,8 +13,9 @@ export class ProductController {
     @Query('category') category?: string,
     @Query('search') search?: string,
     @Query('q') q?: string,
+    @Query('inStockOnly') inStockOnly?: string,
   ) {
-    return this.productService.findAll(shopId, category, search || q);
+    return this.productService.findAll(shopId, category, search || q, inStockOnly);
   }
 
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---
@@ -53,6 +54,11 @@ export class ProductController {
     return this.productService.createCategory(name);
   }
 
+  @Put('categories/:id')
+  async updateCategory(@Param('id') id: string, @Body('name') name: string) {
+    return this.productService.updateCategory(id, name);
+  }
+
   @Delete('categories/:id')
   async deleteCategory(@Param('id') id: string) {
     return this.productService.deleteCategory(id);
@@ -77,9 +83,32 @@ export class ProductController {
     return this.productService.getFlashSales();
   }
 
+  @Get('flash-sales/active')
+  async getActiveFlashSale() {
+    return this.productService.getActiveFlashSale();
+  }
+
+  @Get('flash-sales/shop/:shopId')
+  async getShopFlashSales(@Param('shopId') shopId: string) {
+    return this.productService.getShopFlashSales(shopId);
+  }
+
   @Post('flash-sales')
   async createFlashSale(@Body('timeSlot') timeSlot: string) {
     return this.productService.createFlashSale(timeSlot);
+  }
+
+  @Post('flash-sales/:id/register')
+  async registerFlashSale(
+    @Param('id') id: string,
+    @Body() dto: RegisterFlashSaleDto
+  ) {
+    return this.productService.registerFlashSale(id, dto);
+  }
+
+  @Delete('flash-sales/items/:itemId')
+  async deleteFlashSaleItem(@Param('itemId') itemId: string) {
+    return this.productService.deleteFlashSaleItem(itemId);
   }
 
   @Put('flash-sales/:id/status')

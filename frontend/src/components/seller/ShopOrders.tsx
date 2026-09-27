@@ -180,6 +180,21 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
     }
   }
 
+  const handleCancelOrderBySeller = async (order: Order) => {
+    const reason = window.prompt('Nhập lý do hủy đơn hàng (ví dụ: Hết hàng trong kho, Người mua yêu cầu hủy):', 'Người bán hết hàng trong kho')
+    if (!reason) return
+    setUpdatingOrderId(order.id)
+    try {
+      await orderService.updateOrderStatus(order.id, 'CANCELLED', undefined, token, reason, `Người bán hủy đơn: ${reason}`)
+      alert('Đã hủy đơn hàng và giải phóng yêu cầu vận chuyển thành công!')
+      await fetchOrders()
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi hủy đơn hàng')
+    } finally {
+      setUpdatingOrderId(null)
+    }
+  }
+
   const handleUpdateStatus = async (orderId: string, newStatus: string) => {
     setUpdatingOrderId(orderId)
     try {
@@ -653,30 +668,48 @@ export const ShopOrders: React.FC<ShopOrdersProps> = ({ user, token, activeSubMe
                   {/* Actions buttons */}
                   <div className="flex items-center justify-end gap-2 w-full sm:w-auto">
                     {(order.status === 'PENDING' || order.status === 'PENDING_PAYMENT' || order.status === 'UNPAID') && (
-                      <button
-                        onClick={() => handleUpdateStatus(order.id, 'PROCESSING')}
-                        disabled={updatingOrderId !== null}
-                        className="bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                      >
-                        {updatingOrderId === order.id ? (
-                          <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        ) : (
-                          <span>✅</span>
-                        )}
-                        Xác nhận đơn hàng
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleCancelOrderBySeller(order)}
+                          disabled={updatingOrderId !== null}
+                          className="border border-slate-300 hover:border-rose-400 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold px-3 py-2 rounded-xl text-xs transition duration-200 cursor-pointer disabled:opacity-50"
+                        >
+                          Hủy đơn
+                        </button>
+                        <button
+                          onClick={() => handleUpdateStatus(order.id, 'PROCESSING')}
+                          disabled={updatingOrderId !== null}
+                          className="bg-[#ee4d2d] hover:bg-[#d03d20] text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                        >
+                          {updatingOrderId === order.id ? (
+                            <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                          ) : (
+                            <span>✅</span>
+                          )}
+                          Xác nhận đơn hàng
+                        </button>
+                      </>
                     )}
 
                     {(order.status === 'PROCESSING' || order.status === 'PREPARING' || order.status === 'CONFIRMED') && (
-                      <button
-                        onClick={() => setSelectedHandoverOrder(order)}
-                        disabled={updatingOrderId !== null}
-                        className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
-                        title="Vào chế độ chuẩn bị hàng và bàn giao cho đơn vị vận chuyển ZMX"
-                      >
-                        <span>📦</span>
-                        Chuẩn bị hàng
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleCancelOrderBySeller(order)}
+                          disabled={updatingOrderId !== null}
+                          className="border border-slate-300 hover:border-rose-400 hover:bg-rose-50 text-slate-600 hover:text-rose-600 font-bold px-3 py-2 rounded-xl text-xs transition duration-200 cursor-pointer disabled:opacity-50"
+                        >
+                          Hủy đơn
+                        </button>
+                        <button
+                          onClick={() => setSelectedHandoverOrder(order)}
+                          disabled={updatingOrderId !== null}
+                          className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-4 py-2 rounded-xl text-xs shadow-xs hover:shadow-md transition duration-200 flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+                          title="Vào chế độ chuẩn bị hàng và bàn giao cho đơn vị vận chuyển ZMX"
+                        >
+                          <span>📦</span>
+                          Chuẩn bị hàng
+                        </button>
+                      </>
                     )}
 
                     {(order.status === 'SHIPPING' || order.status === 'SHIPPED' || order.status === 'IN_TRANSIT') && (
