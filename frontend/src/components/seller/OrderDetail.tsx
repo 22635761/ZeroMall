@@ -4,6 +4,7 @@ import type { Order } from '../../models/order.model'
 import { formatOrderId } from '../../utils/orderUtils'
 import { ShopTrackingModal } from './ShopTrackingModal'
 import { ShopHandoverModal } from './ShopHandoverModal'
+import { InvoiceDetailModal } from './InvoiceDetailModal'
 import type { ReturnData } from '../../services/return.service'
 
 interface OrderDetailProps {
@@ -62,6 +63,7 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
   // Handover Modal State (Chế độ bàn giao cho ĐVVC)
   const [showHandoverModal, setShowHandoverModal] = useState(false)
   const [handoverLoading, setHandoverLoading] = useState(false)
+  const [showInvoiceModal, setShowInvoiceModal] = useState(false)
 
   const handleConfirmHandover = async (ord: Order) => {
     setHandoverLoading(true)
@@ -134,6 +136,14 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowInvoiceModal(true)}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-3xs transition cursor-pointer flex items-center gap-1.5"
+            title="Xem và in Hóa đơn bán hàng điện tử (E-Invoice)"
+          >
+            <span>🧾</span> In Hóa Đơn
+          </button>
+
           {nextAction && (
             <button
               onClick={() => onStatusUpdate(order.id, nextAction.status)}
@@ -478,6 +488,16 @@ export const OrderDetail: React.FC<OrderDetailProps> = ({
         trackingLoading={trackingLoading}
         orderId={order.id}
       />
+
+      {/* Official E-Invoice Modal */}
+      {showInvoiceModal && (
+        <InvoiceDetailModal
+          order={order}
+          shopDetails={{ name: shopName, id: shopId }}
+          shopName={shopName}
+          onClose={() => setShowInvoiceModal(false)}
+        />
+      )}
     </div>
   )
 }

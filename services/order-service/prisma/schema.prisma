@@ -39,14 +39,16 @@ model Order {
 }
 
 model OrderItem {
-  id         String   @id @default(uuid())
-  orderId    String
-  order      Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId  String
-  shopId     String
-  name       String
-  image      String
-  variant    String?
-  price      Float
-  quantity   Int
+  id            String   @id @default(uuid())
+  orderId       String
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  shopId        String
+  name          String
+  image         String
+  variant       String?
+  price         Float    // Giá bán thực tế tại thời điểm mua (bảo lưu bất biến)
+  originalPrice Float?   @default(0) // Giá niêm yết tại thời điểm mua
+  costPrice     Float?   @default(0) // Giá vốn tại thời điểm bán để tính lãi/lỗ tài chính
+  quantity      Int
 }

@@ -33,6 +33,8 @@ interface FlashSaleItem {
   stockLimit: number
   stockSold: number
   status: string
+  saleDate?: string
+  createdAt?: string
 }
 
 export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
@@ -45,6 +47,17 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
   const [selectedSlotId, setSelectedSlotId] = useState('')
   const [flashPrice, setFlashPrice] = useState('')
   const [stockLimit, setStockLimit] = useState('')
+
+  const getTodayDateString = () => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
+  const todayStr = getTodayDateString()
+  const [saleDate, setSaleDate] = useState(todayStr)
 
   const fetchShopFlashSales = async () => {
     if (!user?.shopId) return
@@ -85,7 +98,14 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
       const res = await fetch(`${API_BASE_URL}/products?shopId=${user.shopId}`)
       if (res.ok) {
         const data = await res.json()
-        if (Array.isArray(data)) setProducts(data)
+        if (Array.isArray(data)) {
+          // Lọc bỏ hoàn toàn các sản phẩm có số lượng tồn kho <= 0 hoặc trạng thái ẩn
+          const inStockProducts = data.filter((p: any) => {
+            const stockVal = p.stock !== undefined ? p.stock : 0
+            return stockVal > 0 && p.status !== 'hidden'
+          })
+          setProducts(inStockProducts)
+        }
       }
     } catch (err) {
       console.error('Lỗi khi tải sản phẩm của Shop:', err)
@@ -108,6 +128,23 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
       alert('Vui lòng chọn sản phẩm tham gia!')
       return
     }
+
+    const chosenProduct = products.find((x) => x.id === selectedProductId)
+    if (!chosenProduct || (chosenProduct.stock || 0) <= 0) {
+      alert('⚠️ Sản phẩm đã chọn hiện đã hết hàng trong kho (tồn = 0), không thể tham gia Flash Sale!')
+      return
+    }
+
+    const currentToday = getTodayDateString()
+    if (!saleDate) {
+      alert('Vui lòng chọn ngày diễn ra Flash Sale!')
+      return
+    }
+    if (saleDate < currentToday) {
+      alert('⚠️ Ngày diễn ra Flash Sale không được là ngày trong quá khứ (phải từ ngày hiện hành trở đi)!')
+      return
+    }
+
     if (!flashPrice || Number(flashPrice) <= 0) {
       alert('Vui lòng nhập giá Flash Sale hợp lệ!')
       return
@@ -125,7 +162,8 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
           productId: selectedProductId,
           shopId: user.shopId,
           flashPrice: Number(flashPrice),
-          stockLimit: Number(stockLimit)
+          stockLimit: Number(stockLimit),
+          saleDate: saleDate
         })
       })
 
@@ -136,6 +174,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
         setSelectedProductId('')
         setFlashPrice('')
         setStockLimit('')
+        setSaleDate(getTodayDateString())
         fetchShopFlashSales()
         fetchSlots()
         fetchProducts()
@@ -173,6 +212,20 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
 
   const formatVND = (n: number) => (n || 0).toLocaleString('vi-VN') + 'đ'
 
+  const formatDateVN = (dateStr?: string) => {
+    if (!dateStr) return ''
+    try {
+      const parts = dateStr.split('-')
+      if (parts.length === 3) {
+        return `${parts[2]}/${parts[1]}/${parts[0]}`
+      }
+      const d = new Date(dateStr)
+      return `${d.getDate().toString().padStart(2, '0')}/${(d.getMonth() + 1).toString().padStart(2, '0')}/${d.getFullYear()}`
+    } catch (e) {
+      return dateStr
+    }
+  }
+
   return (
     <div className="space-y-6 text-left font-sans">
       {/* HEADER BANNER */}
@@ -190,6 +243,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
           onClick={() => {
             fetchSlots()
             fetchProducts()
+            setSaleDate(getTodayDateString())
             setShowCreateModal(true)
           }}
           className="bg-white text-orange-600 hover:bg-amber-50 font-black text-xs px-5 py-3 rounded-2xl shadow-lg transition cursor-pointer shrink-0"
@@ -228,6 +282,7 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
               const productImage = item.product?.image || ''
               const timeSlot = item.flashSale?.timeSlot || 'Khung giờ Flash Sale'
               const slotStatus = item.flashSale?.status || 'RUNNING'
+              const displayDate = item.saleDate || (item.createdAt ? item.createdAt.split('T')[0] : '')
 
               return (
                 <div key={item.id} className="border border-slate-200/80 rounded-2xl p-5 bg-white shadow-3xs space-y-4 hover:border-orange-300 transition">
@@ -238,7 +293,16 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
                       )}
                       <div className="min-w-0">
                         <h4 className="text-xs font-extrabold text-slate-800 line-clamp-2">{productName}</h4>
-                        <p className="text-[10px] text-slate-400 font-mono mt-1">Khung giờ: {timeSlot}</p>
+                        <div className="flex flex-wrap items-center gap-2 mt-1">
+                          {displayDate && (
+                            <span className="text-[10px] text-orange-700 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                              <span>📅</span> {formatDateVN(displayDate)}
+                            </span>
+                          )}
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            ⏰ {timeSlot}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase shrink-0 ${
@@ -291,34 +355,92 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
             </div>
             <form onSubmit={handleCreateFlashSale} className="space-y-4 text-xs">
               
+              {/* Chọn Ngày Flash Sale */}
+              <div className="space-y-1">
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-600">
+                    Ngày diễn ra Flash Sale <span className="text-red-500">*</span>
+                  </label>
+                  <span className="text-[10px] text-amber-700 font-bold bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                    Tối thiểu từ ngày hôm nay ({formatDateVN(todayStr)})
+                  </span>
+                </div>
+                <input
+                  type="date"
+                  required
+                  min={todayStr}
+                  value={saleDate}
+                  onChange={(e) => {
+                    const val = e.target.value
+                    if (val && val < todayStr) {
+                      alert('⚠️ Ngày diễn ra Flash Sale không được là ngày trước ngày hiện hành!')
+                      setSaleDate(todayStr)
+                      return
+                    }
+                    setSaleDate(val)
+                  }}
+                  className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-orange-500 bg-white cursor-pointer"
+                />
+              </div>
+
               {/* Chọn khung giờ */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-600">Khung giờ Flash Sale (Do Sàn cấu hình)</label>
+                <label className="font-bold text-slate-600">Khung giờ Flash Sale (3 tiếng / khung)</label>
                 <select
                   required
                   value={selectedSlotId}
                   onChange={(e) => setSelectedSlotId(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-orange-500 bg-white cursor-pointer"
                 >
-                  <option value="">-- Chọn khung giờ Flash Sale --</option>
-                  {slots.map(s => (
-                    <option key={s.id} value={s.id}>
-                      {s.timeSlot} ({s.status === 'RUNNING' ? 'Đang chạy' : s.status === 'UPCOMING' ? 'Sắp diễn ra' : 'Đã kết thúc'})
-                    </option>
-                  ))}
+                  <option value="">-- Chọn khung giờ Flash Sale (3 tiếng) --</option>
+                  {[...slots]
+                    .sort((a, b) => {
+                      const getStart = (slot: string) => parseInt(slot.split('-')[0].trim().split(':')[0], 10) || 0
+                      return getStart(a.timeSlot) - getStart(b.timeSlot)
+                    })
+                    .map((s) => {
+                      let statusText = s.status === 'RUNNING' ? '🔥 Đang chạy' : s.status === 'UPCOMING' ? '⏳ Sắp diễn ra' : 'Đã kết thúc'
+                      try {
+                        const parts = s.timeSlot.split('-').map(str => str.trim())
+                        if (parts.length === 2) {
+                          const [startH] = parts[0].split(':').map(Number)
+                          const [endH] = parts[1].split(':').map(Number)
+                          const nowHour = new Date().getHours()
+                          const effEnd = endH === 0 ? 24 : endH
+                          if (nowHour >= startH && nowHour < effEnd) {
+                            statusText = '🔥 Đang diễn ra'
+                          } else if (nowHour < startH) {
+                            statusText = '⏳ Sắp diễn ra'
+                          } else {
+                            statusText = '🔒 Đã kết thúc'
+                          }
+                        }
+                      } catch (e) {}
+
+                      return (
+                        <option key={s.id} value={s.id}>
+                          {s.timeSlot} ({statusText})
+                        </option>
+                      )
+                    })}
                 </select>
               </div>
 
               {/* Chọn sản phẩm */}
               <div className="space-y-1">
-                <label className="font-bold text-slate-600">Chọn sản phẩm tham gia</label>
+                <div className="flex justify-between items-center">
+                  <label className="font-bold text-slate-600">Chọn sản phẩm tham gia</label>
+                  <span className="text-[10px] text-emerald-600 font-bold">
+                    ({products.length} sản phẩm còn hàng)
+                  </span>
+                </div>
                 <select
                   required
                   value={selectedProductId}
                   onChange={(e) => {
                     const pId = e.target.value
                     setSelectedProductId(pId)
-                    const p = products.find(x => x.id === pId)
+                    const p = products.find((x) => x.id === pId)
                     if (p) {
                       const num = parseFloat(String(p.price).replace(/[^0-9]/g, '')) || 0
                       setFlashPrice(String(Math.round(num * 0.8))) // Đề xuất giảm 20%
@@ -327,13 +449,18 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
                   }}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-semibold focus:outline-none focus:border-orange-500 bg-white cursor-pointer"
                 >
-                  <option value="">-- Chọn sản phẩm của Shop --</option>
-                  {products.map(p => (
+                  <option value="">-- Chọn sản phẩm của Shop (Còn hàng) --</option>
+                  {products.map((p) => (
                     <option key={p.id} value={p.id}>
-                      {p.name} (Giá hiện tại: {Number(p.price).toLocaleString('vi-VN')}đ | Tồn: {p.stock})
+                      {p.name} (Giá: {Number(p.price).toLocaleString('vi-VN')}đ | Còn lại: {p.stock} sản phẩm)
                     </option>
                   ))}
                 </select>
+                {products.length === 0 && (
+                  <p className="text-[10px] text-amber-600 italic mt-1">
+                    ⚠️ Gian hàng hiện không có sản phẩm nào còn hàng trong kho để tham gia Flash Sale.
+                  </p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

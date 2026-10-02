@@ -64,6 +64,8 @@ interface AnalyticsData {
 }
 
 export default function AdminPriceAnalyticsTab() {
+  const [shops, setShops] = useState<any[]>([]);
+  const [selectedShopId, setSelectedShopId] = useState<string>('ALL');
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [selectedProductId, setSelectedProductId] = useState<string>('');
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | '90d' | '1y' | 'all'>('30d');
@@ -79,28 +81,32 @@ export default function AdminPriceAnalyticsTab() {
   } | null>(null);
 
   useEffect(() => {
-    fetchAllProducts();
+    fetchAllData();
   }, []);
 
   useEffect(() => {
     if (selectedProductId) {
       fetchAnalytics(selectedProductId, timeRange);
+    } else {
+      setAnalytics(null);
     }
   }, [selectedProductId, timeRange]);
 
-  const fetchAllProducts = async () => {
+  const fetchAllData = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/products`);
-      if (res.ok) {
-        const data = await res.json();
-        const list = Array.isArray(data) ? data : data.data || [];
-        setProducts(list);
-        if (list.length > 0) {
-          setSelectedProductId(prev => prev && list.some((p: any) => p.id === prev) ? prev : list[0].id);
-        }
+      const [shopsRes, prodRes] = await Promise.all([
+        fetch(`${API_BASE_URL}/auth/shops`).then(r => r.ok ? r.json() : []).catch(() => []),
+        fetch(`${API_BASE_URL}/products?inStockOnly=false`).then(r => r.ok ? r.json() : []).catch(() => [])
+      ]);
+      const shopList = Array.isArray(shopsRes) ? shopsRes : [];
+      const prodList = Array.isArray(prodRes) ? prodRes : prodRes.data || [];
+      setShops(shopList);
+      setProducts(prodList);
+      if (prodList.length > 0) {
+        setSelectedProductId(prev => prev && prodList.some((p: any) => p.id === prev) ? prev : prodList[0].id);
       }
     } catch (err) {
-      console.error('Lỗi tải danh sách sản phẩm admin:', err);
+      console.error('Lỗi tải danh sách cửa hàng & sản phẩm admin:', err);
     }
   };
 
@@ -135,10 +141,35 @@ export default function AdminPriceAnalyticsTab() {
     }
   };
 
-  const filteredProducts = useMemo(() => {
-    if (!searchFilter.trim()) return products;
-    return products.filter(p => p.name.toLowerCase().includes(searchFilter.toLowerCase()) || p.id.includes(searchFilter));
-  }, [products, searchFilter]);
+  const productsForSelectedShop = useMemo(() => {
+    let list = products;
+    if (selectedShopId !== 'ALL') {
+      list = list.filter(p => p.shopId === selectedShopId);
+    }
+    if (searchFilter.trim()) {
+      const q = searchFilter.toLowerCase();
+      list = list.filter(p => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+    }
+    return list;
+  }, [products, selectedShopId, searchFilter]);
+
+  const handleShopChange = (newShopId: string) => {
+    setSelectedShopId(newShopId);
+    let candidateProducts = products;
+    if (newShopId !== 'ALL') {
+      candidateProducts = candidateProducts.filter(p => p.shopId === newShopId);
+    }
+    if (searchFilter.trim()) {
+      const q = searchFilter.toLowerCase();
+      candidateProducts = candidateProducts.filter(p => p.name.toLowerCase().includes(q) || p.id.toLowerCase().includes(q));
+    }
+    if (candidateProducts.length > 0) {
+      setSelectedProductId(candidateProducts[0].id);
+    } else {
+      setSelectedProductId('');
+      setAnalytics(null);
+    }
+  };
 
   const chartConfig = useMemo(() => {
     if (!analytics || !analytics.chartData || analytics.chartData.length === 0) {
@@ -214,46 +245,115 @@ export default function AdminPriceAnalyticsTab() {
         </div>
       </div>
 
-      {/* Selector & Filter Bar */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="flex-1 flex flex-col sm:flex-row items-center gap-3">
-          <input
-            type="text"
-            placeholder="Tìm theo tên hoặc ID sản phẩm..."
-            value={searchFilter}
-            onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full sm:w-64 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs focus:ring-2 focus:ring-indigo-500 focus:outline-none"
-          />
-          <select
-            value={selectedProductId}
-            onChange={(e) => setSelectedProductId(e.target.value)}
-            className="w-full sm:max-w-md px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          >
-            {filteredProducts.map(p => (
-              <option key={p.id} value={p.id}>
-                {p.name} (Shop: {p.shopId?.slice(0, 8)}... | Giá: {parseInt(p.price || '0').toLocaleString('vi-VN')}₫)
-              </option>
-            ))}
-          </select>
+      {/* 2 Side-by-side Filter Selectors (Shop & Product) + Time Range */}
+      <div className="bg-white p-5 rounded-2xl shadow-3xs border border-slate-200/80 space-y-4">
+        
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+          
+          {/* BỘ LỌC 1: CỬA HÀNG (SHOP) */}
+          <div className="md:col-span-4 space-y-1.5 text-left">
+            <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏪</span> 1. Chọn Cửa Hàng (Shop)
+            </label>
+            <div className="relative">
+              <select
+                value={selectedShopId}
+                onChange={(e) => handleShopChange(e.target.value)}
+                className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white shadow-3xs cursor-pointer truncate"
+              >
+                <option value="ALL">🌟 Tất Cả Cửa Hàng ({shops.length} Shop)</option>
+                {shops.map((s) => {
+                  const pCount = products.filter(p => p.shopId === s.id).length;
+                  return (
+                    <option key={s.id} value={s.id}>
+                      {s.name || `Shop #${s.id.slice(0, 8)}`} ({pCount} sản phẩm)
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+          </div>
+
+          {/* BỘ LỌC 2: SẢN PHẨM CỦA SHOP (KẾ BÊN) */}
+          <div className="md:col-span-5 space-y-1.5 text-left">
+            <div className="flex justify-between items-center">
+              <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                <span>📦</span> 2. Chọn Sản Phẩm
+              </label>
+              <span className="text-[11px] font-semibold text-slate-400">
+                ({productsForSelectedShop.length} sản phẩm)
+              </span>
+            </div>
+            <div className="relative">
+              <select
+                value={selectedProductId}
+                onChange={(e) => setSelectedProductId(e.target.value)}
+                disabled={productsForSelectedShop.length === 0}
+                className="w-full pl-3.5 pr-8 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-emerald-800 focus:outline-none focus:border-emerald-600 focus:bg-white shadow-3xs cursor-pointer truncate disabled:opacity-50 disabled:bg-slate-100"
+              >
+                {productsForSelectedShop.length === 0 ? (
+                  <option value="">(Cửa hàng này chưa có sản phẩm)</option>
+                ) : (
+                  productsForSelectedShop.map((p) => {
+                    const priceFormatted = parseInt(p.price || '0').toLocaleString('vi-VN') + '₫';
+                    const stockFormatted = p.stock === 0 ? ' [⚠️ Tồn 0 - Hết hàng]' : ` [Tồn: ${p.stock}]`;
+                    const shopObj = shops.find(s => s.id === p.shopId);
+                    const shopNameText = selectedShopId === 'ALL' && shopObj ? `[${shopObj.name}] ` : '';
+                    return (
+                      <option key={p.id} value={p.id}>
+                        {shopNameText}{p.name} — Giá: {priceFormatted}{stockFormatted}
+                      </option>
+                    );
+                  })
+                )}
+              </select>
+            </div>
+          </div>
+
+          {/* TÌM KIẾM NHANH SẢN PHẨM */}
+          <div className="md:col-span-3 space-y-1.5 text-left">
+            <label className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🔍</span> Tìm Nhanh SP
+            </label>
+            <input
+              type="text"
+              placeholder="Gõ tên hoặc mã SP..."
+              value={searchFilter}
+              onChange={(e) => setSearchFilter(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-700 focus:outline-none focus:border-emerald-600 focus:bg-white shadow-3xs"
+            />
+          </div>
+
         </div>
 
-        <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
-          {(['7d', '30d', '90d', '1y', 'all'] as const).map((r) => (
-            <button
-              key={r}
-              onClick={() => setTimeRange(r)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                timeRange === r ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              {r === '7d' && '7 Ngày'}
-              {r === '30d' && '30 Ngày'}
-              {r === '90d' && '3 Tháng'}
-              {r === '1y' && '1 Năm'}
-              {r === 'all' && 'Tất Cả'}
-            </button>
-          ))}
+        {/* Dòng bộ lọc thời gian */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 pt-3 border-t border-slate-100">
+          <div className="text-xs text-slate-500 font-medium flex items-center gap-1.5">
+            <span>📅</span>
+            <span>Khoảng thời gian phân tích:</span>
+          </div>
+
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+            {(['7d', '30d', '90d', '1y', 'all'] as const).map((r) => (
+              <button
+                key={r}
+                onClick={() => setTimeRange(r)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                  timeRange === r
+                    ? 'bg-emerald-600 text-white shadow-3xs'
+                    : 'text-slate-600 hover:text-slate-900 hover:bg-slate-200/60'
+                }`}
+              >
+                {r === '7d' && '7 Ngày'}
+                {r === '30d' && '30 Ngày'}
+                {r === '90d' && '3 Tháng'}
+                {r === '1y' && '1 Năm'}
+                {r === 'all' && 'Tất Cả'}
+              </button>
+            ))}
+          </div>
         </div>
+
       </div>
 
       {/* Metrics */}

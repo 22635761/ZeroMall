@@ -1,12 +1,11 @@
-import React, { useState } from 'react'
-import { API_BASE_URL } from '../../config/api.config'
+import React from 'react'
 
 interface ShopDetailModalProps {
   isOpen: boolean
   shop: any | null
   onClose: () => void
-  onSuccess: () => void
-  triggerAuditLog: (action: string) => Promise<void>
+  onSuccess?: () => void
+  triggerAuditLog?: (action: string) => Promise<void>
   onOpenLockModal?: (shop: any) => void
 }
 
@@ -14,14 +13,8 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
   isOpen,
   shop,
   onClose,
-  onSuccess,
-  triggerAuditLog,
   onOpenLockModal,
 }) => {
-  const [actionLoading, setActionLoading] = useState<boolean>(false)
-  const [rejectReason, setRejectReason] = useState<string>('')
-  const [showRejectInput, setShowRejectInput] = useState<boolean>(false)
-
   if (!isOpen || !shop) return null
 
   // 1. Phân tích địa chỉ lấy hàng động
@@ -55,37 +48,6 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
 
   const shippingData = parseShippingSettings()
 
-  const handleApproveOrReject = async (newStatus: 'APPROVED' | 'REJECTED') => {
-    setActionLoading(true)
-    try {
-      const payload: any = { status: newStatus }
-      if (newStatus === 'REJECTED' && rejectReason.trim()) {
-        payload.blockReason = rejectReason.trim()
-      }
-
-      const res = await fetch(`${API_BASE_URL}/auth/shops/${shop.id}/approve`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.message || 'Lỗi khi cập nhật trạng thái cửa hàng')
-      }
-
-      const actionText = newStatus === 'APPROVED' ? 'Phê duyệt kích hoạt' : 'Từ chối hồ sơ'
-      await triggerAuditLog(`${actionText} cửa hàng "${shop.name}" (Mã: ${shop.id})`)
-
-      onSuccess()
-      onClose()
-    } catch (e: any) {
-      alert(e.message || 'Đã có lỗi xảy ra')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl border border-slate-100 overflow-hidden">
@@ -112,7 +74,7 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
                   {shop.status === 'APPROVED'
                     ? '● Đang hoạt động'
                     : shop.status === 'PENDING_APPROVAL'
-                    ? '⏳ Chờ phê duyệt'
+                    ? '⏳ Chờ CSKH duyệt'
                     : shop.status === 'BLOCKED'
                     ? '🔒 Đang bị khóa'
                     : shop.status === 'REJECTED'
@@ -134,6 +96,19 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
 
         {/* Modal Body - Scrollable */}
         <div className="p-6 overflow-y-auto space-y-5 text-xs text-slate-700">
+          
+          {/* Section 0: Thông báo nếu đang chờ duyệt bên CSKH */}
+          {shop.status === 'PENDING_APPROVAL' && (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 space-y-1 text-amber-800">
+              <div className="font-extrabold flex items-center gap-1.5 text-xs">
+                <span>⏳</span> Hồ Sơ Đang Chờ CSKH Thẩm Định
+              </div>
+              <p className="text-[11px] text-amber-700 leading-relaxed">
+                Hồ sơ đăng ký của cửa hàng đang trong danh sách chờ bộ phận Chăm Sóc Khách Hàng (Platform Support CSKH) kiểm tra thông tin liên hệ, kho bãi và phê duyệt kích hoạt trên Portal CSKH.
+              </p>
+            </div>
+          )}
+
           {/* Section 1: Thông tin liên hệ & Chủ sở hữu */}
           <div className="bg-slate-50/80 border border-slate-200/80 rounded-xl p-4 space-y-3">
             <h4 className="font-extrabold text-slate-800 uppercase text-[11px] tracking-wider flex items-center gap-1.5">
@@ -316,21 +291,6 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
             </div>
           )}
 
-          {/* Reject Reason input if clicking Reject */}
-          {showRejectInput && shop.status === 'PENDING_APPROVAL' && (
-            <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl space-y-2">
-              <label className="font-bold text-amber-900 text-xs">
-                Nhập lý do từ chối hồ sơ đăng ký (để chủ shop biết và sửa lại):
-              </label>
-              <textarea
-                rows={2}
-                placeholder="Ví dụ: Địa chỉ lấy hàng chưa đầy đủ số nhà/tên đường, hoặc số điện thoại không liên lạc được..."
-                value={rejectReason}
-                onChange={(e) => setRejectReason(e.target.value)}
-                className="w-full text-xs p-2 bg-white border border-amber-300 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
-              />
-            </div>
-          )}
         </div>
 
         {/* Modal Footer Actions */}
@@ -344,51 +304,6 @@ export const ShopDetailModal: React.FC<ShopDetailModalProps> = ({
           </button>
 
           <div className="flex items-center gap-2">
-            {shop.status === 'PENDING_APPROVAL' && (
-              <>
-                {!showRejectInput ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowRejectInput(true)}
-                    className="px-4 py-2 text-xs font-bold text-amber-700 bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors cursor-pointer flex items-center gap-1"
-                  >
-                    <span>✕</span> Từ Chối Hồ Sơ
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    disabled={actionLoading}
-                    onClick={() => handleApproveOrReject('REJECTED')}
-                    className="px-4 py-2 text-xs font-extrabold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors cursor-pointer flex items-center gap-1 shadow-xs"
-                  >
-                    {actionLoading ? 'Đang gửi...' : 'Xác Nhận Từ Chối'}
-                  </button>
-                )}
-
-                <button
-                  type="button"
-                  disabled={actionLoading}
-                  onClick={() => handleApproveOrReject('APPROVED')}
-                  className="px-5 py-2 text-xs font-extrabold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  {actionLoading ? (
-                    <>
-                      <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
-                      </svg>
-                      <span>Đang duyệt...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>✓</span>
-                      <span>Phê Duyệt Mở Shop</span>
-                    </>
-                  )}
-                </button>
-              </>
-            )}
-
             {shop.status === 'APPROVED' && onOpenLockModal && (
               <button
                 type="button"

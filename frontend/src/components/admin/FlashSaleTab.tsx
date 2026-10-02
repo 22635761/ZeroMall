@@ -103,8 +103,19 @@ export const FlashSaleTab: React.FC<FlashSaleTabProps> = ({ flashSales, fetchFla
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
-            {flashSales.map((slot, idx) => {
-              const statusInfo = getCalculatedStatus(slot.timeSlot, slot.status)
+            {[...flashSales]
+              .sort((a, b) => {
+                const getStartH = (slot: string) => {
+                  try {
+                    return parseInt(slot.split('-')[0].trim().split(':')[0], 10) || 0
+                  } catch (e) {
+                    return 0
+                  }
+                }
+                return getStartH(a.timeSlot) - getStartH(b.timeSlot)
+              })
+              .map((slot, idx) => {
+                const statusInfo = getCalculatedStatus(slot.timeSlot, slot.status)
               return (
                 <tr key={slot.id} className="hover:bg-slate-50/10">
                   <td className="py-3.5 font-mono text-[11px] font-bold text-slate-800">{formatId(slot.id, idx)}</td>
@@ -167,11 +178,15 @@ export const FlashSaleTab: React.FC<FlashSaleTabProps> = ({ flashSales, fetchFla
                   onChange={(e) => setNewTimeSlot(e.target.value)}
                   className="w-full border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold focus:outline-hidden focus:border-emerald-500 bg-white mb-2"
                 >
-                  <option value="">-- Chọn khung giờ có sẵn --</option>
-                  <option value="00:00 - 09:00">00:00 - 09:00 (Sáng sớm)</option>
-                  <option value="09:00 - 15:00">09:00 - 15:00 (Buổi trưa)</option>
-                  <option value="15:00 - 21:00">15:00 - 21:00 (Giờ vàng chiều tối)</option>
-                  <option value="21:00 - 24:00">21:00 - 24:00 (Đêm muộn)</option>
+                  <option value="">-- Chọn khung giờ 3 tiếng tiêu chuẩn --</option>
+                  <option value="00:00 - 03:00">00:00 - 03:00 (Đêm khuya / 0h - 3h)</option>
+                  <option value="03:00 - 06:00">03:00 - 06:00 (Sáng sớm / 3h - 6h)</option>
+                  <option value="06:00 - 09:00">06:00 - 09:00 (Đầu sáng / 6h - 9h)</option>
+                  <option value="09:00 - 12:00">09:00 - 12:00 (Giờ vàng sáng / 9h - 12h)</option>
+                  <option value="12:00 - 15:00">12:00 - 15:00 (Giờ vàng trưa / 12h - 15h)</option>
+                  <option value="15:00 - 18:00">15:00 - 18:00 (Giờ vàng chiều / 15h - 18h)</option>
+                  <option value="18:00 - 21:00">18:00 - 21:00 (Giờ vàng tối / 18h - 21h)</option>
+                  <option value="21:00 - 24:00">21:00 - 24:00 (Đêm muộn / 21h - 24h)</option>
                 </select>
 
                 <input

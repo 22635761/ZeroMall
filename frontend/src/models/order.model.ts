@@ -6,6 +6,8 @@ export interface OrderItem {
   image: string
   variant: string | null
   price: number
+  originalPrice?: number
+  costPrice?: number
   quantity: number
 }
 

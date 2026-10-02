@@ -685,6 +685,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         image: item.product.image,
         variant: item.selectedVariant || null,
         price: parsePrice(item.product.flashPrice || item.product.price || item.product.originalPrice || 0),
+        originalPrice: parsePrice(item.product.originalPrice || item.product.flashPrice || item.product.price || 0),
+        costPrice: (item.product as any).costPrice ? Number((item.product as any).costPrice) : 0,
         quantity: item.quantity
       }))
 

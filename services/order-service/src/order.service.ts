@@ -242,6 +242,8 @@ export class OrderService implements OnModuleInit {
                   image: item.image,
                   variant: item.variant || null,
                   price: item.price,
+                  originalPrice: item.originalPrice !== undefined && item.originalPrice !== null ? Number(item.originalPrice) : item.price,
+                  costPrice: item.costPrice !== undefined && item.costPrice !== null ? Number(item.costPrice) : 0,
                   quantity: item.quantity,
                 })),
               },

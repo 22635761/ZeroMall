@@ -147,7 +147,7 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
             <option value="ALL">Tất cả trạng thái ({shops.length})</option>
             <option value="APPROVED">Đang hoạt động ({shops.filter((s) => s.status === 'APPROVED').length})</option>
             <option value="BLOCKED">Đang bị khóa ({shops.filter((s) => s.status === 'BLOCKED').length})</option>
-            <option value="PENDING_APPROVAL">Chờ phê duyệt ({shops.filter((s) => s.status === 'PENDING_APPROVAL').length})</option>
+            <option value="PENDING_APPROVAL">Chờ CSKH duyệt ({shops.filter((s) => s.status === 'PENDING_APPROVAL').length})</option>
           </select>
         </div>
       </div>
@@ -236,7 +236,7 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                             : s.status === 'BLOCKED'
                             ? '● Đang bị Khóa'
                             : s.status === 'PENDING_APPROVAL'
-                            ? '● Chờ phê duyệt'
+                            ? '⏳ Chờ CSKH duyệt'
                             : s.status === 'REJECTED'
                             ? '● Bị từ chối'
                             : s.status}
@@ -275,58 +275,7 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                           <span>👁️</span> Chi Tiết
                         </button>
 
-                        {s.status === 'PENDING_APPROVAL' ? (
-                          <>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(`${API_BASE_URL}/auth/shops/${s.id}/approve`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ status: 'APPROVED' })
-                                  })
-                                  if (res.ok) {
-                                    await triggerAuditLog(`Phê duyệt kích hoạt cửa hàng "${s.name}" (Mã: ${s.id})`)
-                                    fetchShops()
-                                  } else {
-                                    const err = await res.json().catch(() => ({}))
-                                    alert(err.message || 'Lỗi phê duyệt')
-                                  }
-                                } catch (e: any) {
-                                  alert(e.message)
-                                }
-                              }}
-                              className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors cursor-pointer flex items-center gap-1 shadow-2xs"
-                              title="Phê duyệt kích hoạt gian hàng"
-                            >
-                              <span>✓</span> Duyệt
-                            </button>
-                            <button
-                              onClick={async () => {
-                                try {
-                                  const res = await fetch(`${API_BASE_URL}/auth/shops/${s.id}/approve`, {
-                                    method: 'PUT',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ status: 'REJECTED' })
-                                  })
-                                  if (res.ok) {
-                                    await triggerAuditLog(`Từ chối hồ sơ cửa hàng "${s.name}" (Mã: ${s.id})`)
-                                    fetchShops()
-                                  } else {
-                                    const err = await res.json().catch(() => ({}))
-                                    alert(err.message || 'Lỗi từ chối')
-                                  }
-                                } catch (e: any) {
-                                  alert(e.message)
-                                }
-                              }}
-                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors cursor-pointer flex items-center gap-0.5"
-                              title="Từ chối duyệt hồ sơ gian hàng"
-                            >
-                              <span>✕</span> Từ Chối
-                            </button>
-                          </>
-                        ) : isBlocked ? (
+                        {isBlocked ? (
                           <>
                             <button
                               onClick={() => handleUnblockShop(s)}
@@ -337,13 +286,13 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                             </button>
                             <button
                               onClick={() => setSelectedLockShop(s)}
-                              className="px-2 py-1 rounded-lg text-[10px] font-bold bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-0.5"
+                              className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-100 transition-colors cursor-pointer flex items-center gap-0.5"
                               title="Thay đổi thời hạn hoặc lý do khóa"
                             >
                               <span>⏱️</span> Đổi Hạn
                             </button>
                           </>
-                        ) : (
+                        ) : s.status === 'APPROVED' ? (
                           <button
                             onClick={() => setSelectedLockShop(s)}
                             className="px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 transition-colors cursor-pointer flex items-center gap-1"
@@ -351,7 +300,7 @@ export const ShopsTab: React.FC<ShopsTabProps> = ({ shops, fetchShops, triggerAu
                           >
                             <span>🔒</span> Khóa Shop
                           </button>
-                        )}
+                        ) : null}
 
                         {/* Delete Shop Button */}
                         <button

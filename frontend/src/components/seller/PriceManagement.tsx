@@ -117,8 +117,8 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
   const fetchProducts = async () => {
     try {
       const url = effectiveShopId
-        ? `${API_BASE_URL}/products?shopId=${effectiveShopId}`
-        : `${API_BASE_URL}/products`;
+        ? `${API_BASE_URL}/products?shopId=${effectiveShopId}&inStockOnly=false`
+        : `${API_BASE_URL}/products?inStockOnly=false`;
       const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
@@ -386,11 +386,14 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
             {products.length === 0 ? (
               <option value="">Chưa có sản phẩm nào</option>
             ) : (
-              products.map(p => (
-                <option key={p.id} value={p.id}>
-                  {p.name} — (Đang bán: {parseInt(p.price || '0').toLocaleString('vi-VN')}₫)
-                </option>
-              ))
+              products.map(p => {
+                const stockText = p.stock === 0 ? ' [⚠️ Tồn 0 - Hết hàng]' : ` [Tồn: ${p.stock}]`;
+                return (
+                  <option key={p.id} value={p.id}>
+                    {p.name} — (Đang bán: {parseInt(p.price || '0').toLocaleString('vi-VN')}₫{stockText})
+                  </option>
+                );
+              })
             )}
           </select>
         </div>

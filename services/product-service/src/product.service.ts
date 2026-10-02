@@ -666,30 +666,61 @@ export class ProductService {
   }
 
   async getFlashSales() {
-    const list = await this.prisma.flashSale.findMany({
+    let list = await this.prisma.flashSale.findMany({
       include: {
         items: true,
       },
-      orderBy: { createdAt: 'desc' }
     });
 
-    if (list.length === 0) {
-      const defaults = [
-        { timeSlot: '00:00 - 09:00', productsCount: 0, status: 'ENDED' },
-        { timeSlot: '09:00 - 15:00', productsCount: 0, status: 'UPCOMING' },
-        { timeSlot: '15:00 - 21:00', productsCount: 0, status: 'RUNNING' },
-        { timeSlot: '21:00 - 24:00', productsCount: 0, status: 'UPCOMING' },
-      ];
-      await Promise.all(
-        defaults.map(d => this.prisma.flashSale.create({ data: d }))
-      );
-      return this.prisma.flashSale.findMany({
+    const targetSlots = [
+      '00:00 - 03:00',
+      '03:00 - 06:00',
+      '06:00 - 09:00',
+      '09:00 - 12:00',
+      '12:00 - 15:00',
+      '15:00 - 18:00',
+      '18:00 - 21:00',
+      '21:00 - 24:00',
+    ];
+
+    const existingSlotNames = new Set(list.map((s) => s.timeSlot));
+    const missingSlots = targetSlots.filter((s) => !existingSlotNames.has(s));
+
+    if (missingSlots.length > 0) {
+      for (const slotName of missingSlots) {
+        try {
+          await this.prisma.flashSale.create({
+            data: {
+              timeSlot: slotName,
+              productsCount: 0,
+              status: 'UPCOMING',
+            },
+          });
+        } catch (e) {}
+      }
+
+      // Clean up legacy non-3-hour empty slots
+      const legacySlots = list.filter((s) => !targetSlots.includes(s.timeSlot));
+      for (const legacy of legacySlots) {
+        if (!legacy.items || legacy.items.length === 0) {
+          try {
+            await this.prisma.flashSale.delete({ where: { id: legacy.id } });
+          } catch (e) {}
+        }
+      }
+
+      list = await this.prisma.flashSale.findMany({
         include: { items: true },
-        orderBy: { createdAt: 'desc' }
       });
     }
 
-    return list.map(s => ({
+    const sorted = [...list].sort((a, b) => {
+      const rangeA = this.parseTimeRange(a.timeSlot);
+      const rangeB = this.parseTimeRange(b.timeSlot);
+      return (rangeA?.start ?? 0) - (rangeB?.start ?? 0);
+    });
+
+    return sorted.map((s) => ({
       ...s,
       productsCount: s.items ? s.items.length : s.productsCount,
     }));
@@ -847,11 +878,22 @@ export class ProductService {
       throw new NotFoundException('Không tìm thấy sản phẩm!');
     }
 
+    if (product.stock <= 0 || product.status === 'hidden') {
+      throw new BadRequestException('Sản phẩm này hiện có số lượng tồn bằng 0 hoặc đang bị ẩn, không thể tham gia Flash Sale!');
+    }
+
     const slot = await this.prisma.flashSale.findUnique({
       where: { id: slotId },
     });
     if (!slot) {
       throw new NotFoundException('Không tìm thấy khung giờ Flash Sale!');
+    }
+
+    if (dto.saleDate) {
+      const today = new Date().toISOString().split('T')[0];
+      if (dto.saleDate < today) {
+        throw new BadRequestException('Ngày diễn ra Flash Sale không được là ngày trong quá khứ (trước ngày hiện hành)!');
+      }
     }
 
     const currentPrice = parseFloat(String(product.price).replace(/[^0-9]/g, '')) || 0;

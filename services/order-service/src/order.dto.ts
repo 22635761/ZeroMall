@@ -5,6 +5,8 @@ export class CreateOrderItemDto {
   image: string;
   variant?: string;
   price: number;
+  originalPrice?: number;
+  costPrice?: number;
   quantity: number;
 }
 

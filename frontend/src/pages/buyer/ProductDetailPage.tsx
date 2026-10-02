@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
 import { useParams } from 'react-router-dom'
-import type { Product } from '../../components/buyer/FlashSale'
+import type { Product, VariationGroup, VariationRow } from '../../components/buyer/FlashSale'
 import { ProductGallery } from '../../components/buyer/product-detail/ProductGallery'
 import { ProductPurchasePanel } from '../../components/buyer/product-detail/ProductPurchasePanel'
 import { ShopInfoCard } from '../../components/buyer/product-detail/ShopInfoCard'
@@ -50,14 +50,31 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             originalPriceStr = flashPriceStr
           }
 
-          let variants: string[] = []
+          let parsedVariationGroups: VariationGroup[] = []
           if (p.hasVariations && p.variationGroups) {
             try {
-              const groups = JSON.parse(p.variationGroups)
-              variants = groups.flatMap((g: any) => g.options || [])
+              parsedVariationGroups = typeof p.variationGroups === 'string'
+                ? JSON.parse(p.variationGroups)
+                : p.variationGroups
             } catch (e) {
-              console.error(e)
+              console.error('Error parsing variationGroups', e)
             }
+          }
+
+          let parsedVariationRows: VariationRow[] = []
+          if (p.hasVariations && p.variationRows) {
+            try {
+              parsedVariationRows = typeof p.variationRows === 'string'
+                ? JSON.parse(p.variationRows)
+                : p.variationRows
+            } catch (e) {
+              console.error('Error parsing variationRows', e)
+            }
+          }
+
+          // Fallback if variationGroups is empty but legacy variants exist
+          if (parsedVariationGroups.length === 0 && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+            parsedVariationGroups = [{ name: 'Phân loại', options: p.variants }]
           }
 
           let parsedImages: string[] = []
@@ -84,7 +101,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             rating: p.rating ?? 0,
             reviewsCount: p.reviewsCount ?? 0,
             description: p.description,
-            variants,
+            hasVariations: Boolean(p.hasVariations || parsedVariationGroups.length > 0),
+            variationGroups: parsedVariationGroups,
+            variationRows: parsedVariationRows,
+            variants: parsedVariationGroups.flatMap((g) => g.options || []),
             images: parsedImages,
             video: p.video || '',
             category: p.category,
@@ -106,7 +126,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     fetchProductDetails()
   }, [id])
 
-  const [selectedVariant, setSelectedVariant] = useState('')
+  // Multi-tier variation selection state
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({})
   const [quantity, setQuantity] = useState(1)
   const [activeImgIdx, setActiveImgIdx] = useState(0)
   const [isLiked, setIsLiked] = useState(false)
@@ -135,11 +156,135 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Flying items state for product add-to-cart animation
   const [flyingItems, setFlyingItems] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number; image: string }[]>([])
 
+  // Initialize selectedOptions with first option of each group when product loads
+  useEffect(() => {
+    if (product?.variationGroups && product.variationGroups.length > 0) {
+      const initial: Record<number, string> = {}
+      product.variationGroups.forEach((g, idx) => {
+        if (g.options && g.options.length > 0) {
+          initial[idx] = g.options[0]
+        }
+      })
+      setSelectedOptions(initial)
+    } else {
+      setSelectedOptions({})
+    }
+  }, [product])
+
+  const handleSelectOption = (groupIdx: number, option: string) => {
+    setSelectedOptions((prev) => ({
+      ...prev,
+      [groupIdx]: option
+    }))
+  }
+
+  // Find matching row for the current selections
+  const selectedRow = useMemo(() => {
+    if (!product?.variationRows || product.variationRows.length === 0) return null
+    const groups = product.variationGroups || []
+    if (groups.length === 0) return null
+
+    const selectedVals: string[] = []
+    for (let i = 0; i < groups.length; i++) {
+      if (!selectedOptions[i]) return null
+      selectedVals.push(selectedOptions[i])
+    }
+
+    return product.variationRows.find((r) => {
+      if (r.key === selectedVals.join(' - ') || r.name === selectedVals.join(' - ')) return true
+      if (r.key === selectedVals.join(', ') || r.name === selectedVals.join(', ')) return true
+      if (r.key === selectedVals.join(' ') || r.name === selectedVals.join(' ')) return true
+      const parts = (r.name || r.key || '').split(/[-,\/]/).map((s: string) => s.trim().toLowerCase())
+      const sel = selectedVals.map((s) => s.trim().toLowerCase())
+      return sel.length === parts.length && sel.every((sv, i) => parts[i] === sv)
+    }) || null
+  }, [product, selectedOptions])
+
+  // Price & stock calculation based on variations
+  const { currentFlashPrice, currentOriginalPrice, stockAvailable, currentVariantName } = useMemo(() => {
+    if (!product) {
+      return { currentFlashPrice: '0đ', currentOriginalPrice: '0đ', stockAvailable: 0, currentVariantName: '' }
+    }
+
+    const groups = product.variationGroups || []
+    const rows = product.variationRows || []
+
+    if (!product.hasVariations || groups.length === 0 || rows.length === 0) {
+      const stockVal = product.stock !== undefined ? product.stock : Math.max(0, product.total - product.sold)
+      return {
+        currentFlashPrice: product.flashPrice || product.price || '0đ',
+        currentOriginalPrice: product.originalPrice || product.flashPrice || '0đ',
+        stockAvailable: stockVal,
+        currentVariantName: ''
+      }
+    }
+
+    if (selectedRow) {
+      const priceNum = parseFloat(String(selectedRow.price).replace(/[^0-9]/g, '')) || 0
+      const origNum = selectedRow.originalPrice ? parseFloat(String(selectedRow.originalPrice).replace(/[^0-9]/g, '')) : 0
+      const stockNum = parseInt(String(selectedRow.stock)) || 0
+      return {
+        currentFlashPrice: priceNum.toLocaleString('vi-VN') + 'đ',
+        currentOriginalPrice: origNum > 0 ? origNum.toLocaleString('vi-VN') + 'đ' : priceNum.toLocaleString('vi-VN') + 'đ',
+        stockAvailable: stockNum,
+        currentVariantName: selectedRow.name || selectedRow.key || Object.values(selectedOptions).join(' - ')
+      }
+    }
+
+    // Partially selected: calculate price range & filtered stock
+    let matchingRows = rows
+    const selectedEntries = Object.entries(selectedOptions).filter(([_, opt]) => Boolean(opt))
+    if (selectedEntries.length > 0) {
+      matchingRows = rows.filter((r) => {
+        const parts = (r.name || r.key || '').split(/[-,\/]/).map((s: string) => s.trim().toLowerCase())
+        return selectedEntries.every(([gIdx, optVal]) => {
+          const idx = Number(gIdx)
+          return parts[idx] === optVal.toLowerCase() || (r.name || r.key || '').toLowerCase().includes(optVal.toLowerCase())
+        })
+      })
+    }
+
+    const prices = matchingRows.map((r) => parseFloat(String(r.price).replace(/[^0-9]/g, '')) || 0).filter((p) => p > 0)
+    const origPrices = matchingRows.map((r) => r.originalPrice ? parseFloat(String(r.originalPrice).replace(/[^0-9]/g, '')) : 0).filter((p) => p > 0)
+    const totalStock = matchingRows.reduce((sum, r) => sum + (parseInt(String(r.stock)) || 0), 0)
+
+    let flashPriceStr = product.flashPrice
+    if (prices.length > 0) {
+      const minP = Math.min(...prices)
+      const maxP = Math.max(...prices)
+      flashPriceStr = minP === maxP ? `${minP.toLocaleString('vi-VN')}đ` : `${minP.toLocaleString('vi-VN')}đ - ${maxP.toLocaleString('vi-VN')}đ`
+    }
+
+    let origPriceStr = product.originalPrice
+    if (origPrices.length > 0) {
+      const minOrig = Math.min(...origPrices)
+      const maxOrig = Math.max(...origPrices)
+      origPriceStr = minOrig === maxOrig ? `${minOrig.toLocaleString('vi-VN')}đ` : `${minOrig.toLocaleString('vi-VN')}đ - ${maxOrig.toLocaleString('vi-VN')}đ`
+    }
+
+    return {
+      currentFlashPrice: flashPriceStr,
+      currentOriginalPrice: origPriceStr,
+      stockAvailable: totalStock,
+      currentVariantName: ''
+    }
+  }, [product, selectedRow, selectedOptions])
+
   const handleAddToCartClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (!product) return
-    const stockVal = product.stock !== undefined ? product.stock : (product.total !== undefined ? product.total - (product.sold || 0) : 0)
-    if (stockVal <= 0 || product.status === 'hidden') {
-      alert('Sản phẩm này hiện đã hết hàng, quý khách vui lòng quay lại sau!')
+
+    const groups = product.variationGroups || []
+    if (groups.length > 0) {
+      for (let i = 0; i < groups.length; i++) {
+        if (!selectedOptions[i]) {
+          alert(`Vui lòng chọn ${groups[i].name}!`)
+          return
+        }
+      }
+    }
+
+    if (stockAvailable <= 0 || product.status === 'hidden') {
+      alert('Sản phẩm với phân loại đã chọn hiện đã hết hàng, quý khách vui lòng chọn phân loại khác!')
       return
     }
 
@@ -151,7 +296,16 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       }
       return
     }
-    onAddToCart(product, quantity, selectedVariant)
+
+    const effectiveProduct = {
+      ...product,
+      price: currentFlashPrice,
+      flashPrice: currentFlashPrice,
+      originalPrice: currentOriginalPrice,
+      stock: stockAvailable
+    }
+
+    onAddToCart(effectiveProduct, quantity, currentVariantName)
 
     const rect = e.currentTarget.getBoundingClientRect()
     const cartIcon = document.getElementById('cart-icon')
@@ -171,10 +325,10 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         image: product.image
       }
 
-      setFlyingItems(prev => [...prev, newFlyingItem])
+      setFlyingItems((prev) => [...prev, newFlyingItem])
 
       setTimeout(() => {
-        setFlyingItems(prev => prev.filter(item => item.id !== newFlyingItem.id))
+        setFlyingItems((prev) => prev.filter((item) => item.id !== newFlyingItem.id))
       }, 800)
     }
   }
@@ -230,12 +384,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
 
     try {
-      const statsRes = await fetch(`${API_BASE_URL}/products/shops/${product.shopId}/stats`)
+      const statsRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/stats`)
       if (statsRes.ok) {
         const statsData = await statsRes.json()
         setShopStats(statsData)
       } else {
-        throw new Error('Failed to fetch shop stats')
+        setShopStats({
+          totalProducts: 0,
+          totalReviews: 0
+        })
       }
     } catch (e) {
       console.error('Error fetching shop stats:', e)
@@ -279,9 +436,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   useEffect(() => {
     if (product) {
-      if (product.variants && product.variants.length > 0) {
-        setSelectedVariant(product.variants[0])
-      }
       fetchReviews()
       fetchShopData()
       fetchProductLikes()
@@ -298,7 +452,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
     const newLikeState = !isLiked
     setIsLiked(newLikeState)
-    setLikeCount(prev => newLikeState ? prev + 1 : Math.max(0, prev - 1))
+    setLikeCount((prev) => (newLikeState ? prev + 1 : Math.max(0, prev - 1)))
 
     try {
       const res = await fetch(`${API_BASE_URL}/products/${product.id}/likes`, {
@@ -326,7 +480,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
     const newFollowState = !isFollowing
     setIsFollowing(newFollowState)
-    setFollowersCount(prev => newFollowState ? prev + 1 : Math.max(0, prev - 1))
+    setFollowersCount((prev) => (newFollowState ? prev + 1 : Math.max(0, prev - 1)))
 
     try {
       const res = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/follow`, {
@@ -367,14 +521,14 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           username: user.name || user.email || 'Người dùng ZeroMall',
           rating: reviewRating,
           comment: reviewComment,
-          variant: selectedVariant || 'Mặc định'
+          variant: currentVariantName || 'Mặc định'
         })
       })
 
       if (!response.ok) throw new Error('Không thể gửi đánh giá')
 
       const newReview = await response.json()
-      setReviews(prev => [newReview, ...prev])
+      setReviews((prev) => [newReview, ...prev])
       setReviewComment('')
       setReviewSuccessMsg(' Cảm ơn bạn! Đánh giá đã được lưu trực tiếp vào cơ sở dữ liệu PostgreSQL.')
       
@@ -402,20 +556,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       mediaItems.push({ type: 'video', url: product.video })
     }
     if (product.images && product.images.length > 0) {
-      product.images.forEach(imgUrl => mediaItems.push({ type: 'image', url: imgUrl }))
+      product.images.forEach((imgUrl) => mediaItems.push({ type: 'image', url: imgUrl }))
     } else if (product.image) {
       mediaItems.push({ type: 'image', url: product.image })
     }
   }
 
-  const stockAvailable = product ? Math.max(0, product.stock !== undefined ? product.stock : (product.total - product.sold)) : 0
   const isMall = Boolean(product?.brand && product.brand.toLowerCase() !== 'no brand' && product.brand !== '')
 
-  const handleDecrease = () => setQuantity(prev => Math.max(stockAvailable > 0 ? 1 : 0, prev - 1))
-  const handleIncrease = () => setQuantity(prev => Math.min(stockAvailable, prev + 1))
+  const handleDecrease = () => setQuantity((prev) => Math.max(stockAvailable > 0 ? 1 : 0, prev - 1))
+  const handleIncrease = () => setQuantity((prev) => Math.min(stockAvailable, prev + 1))
 
   const toggleSaveCoupon = (coupon: string) => {
-    setSavedCoupons(prev => ({
+    setSavedCoupons((prev) => ({
       ...prev,
       [coupon]: !prev[coupon]
     }))
@@ -429,7 +582,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
 
   const averageRating = calculateAverageRating()
 
-  const filteredReviews = reviews.filter(r => {
+  const filteredReviews = reviews.filter((r) => {
     if (activeReviewFilter === 'all') return true
     if (activeReviewFilter === '5star') return r.rating === 5
     if (activeReviewFilter === '4star') return r.rating === 4
@@ -443,8 +596,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     if (!val) return 0
     return parseFloat(String(val).replace(/[^0-9]/g, '')) || 0
   }
-  const origPriceVal = parseNumPrice(product?.originalPrice)
-  const flashPriceVal = parseNumPrice(product?.flashPrice)
+  const origPriceVal = parseNumPrice(currentOriginalPrice)
+  const flashPriceVal = parseNumPrice(currentFlashPrice)
   const discountPct = origPriceVal > flashPriceVal && origPriceVal > 0 
     ? Math.round(((origPriceVal - flashPriceVal) / origPriceVal) * 100) 
     : 0
@@ -540,12 +693,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           discountPct={discountPct}
           savedCoupons={savedCoupons}
           toggleSaveCoupon={toggleSaveCoupon}
-          selectedVariant={selectedVariant}
-          setSelectedVariant={setSelectedVariant}
+          selectedOptions={selectedOptions}
+          onSelectOption={handleSelectOption}
+          selectedVariantName={currentVariantName}
+          currentFlashPrice={currentFlashPrice}
+          currentOriginalPrice={currentOriginalPrice}
+          stockAvailable={stockAvailable}
           quantity={quantity}
           handleDecrease={handleDecrease}
           handleIncrease={handleIncrease}
-          stockAvailable={stockAvailable}
           handleAddToCartClick={handleAddToCartClick}
           onBuyNow={handleBuyNowClick}
           user={user}
@@ -614,7 +770,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         }
       `}</style>
       
-      {flyingItems.map(item => (
+      {flyingItems.map((item) => (
         <div
           key={item.id}
           className="fixed w-10 h-10 rounded-full z-55 pointer-events-none border-2 border-emerald-500 bg-white overflow-hidden shadow-lg shadow-emerald-500/30"

@@ -24,6 +24,10 @@ interface AddProductSalesTabProps {
   addOptionToGroup: (groupIdx: number, option: string) => void
   addVariationGroup: () => void
   variationRows: VariationRow[]
+  removeVariationRow: (key: string) => void
+  restoreVariationRow?: (key: string) => void
+  restoreAllDeletedVariations?: () => void
+  deletedVariationKeys?: string[]
   bulkOriginalPrice: string
   setBulkOriginalPrice: (val: string) => void
   bulkPrice: string
@@ -51,6 +55,10 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
   addOptionToGroup,
   addVariationGroup,
   variationRows,
+  removeVariationRow,
+  restoreVariationRow,
+  restoreAllDeletedVariations,
+  deletedVariationKeys = [],
   bulkOriginalPrice,
   setBulkOriginalPrice,
   bulkPrice,
@@ -102,13 +110,13 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                   Nhóm phân loại {groupIdx + 1}
                 </span>
                 
-                {groupIdx > 0 && (
+                {variationGroups.length > 1 && (
                   <button
                     type="button"
                     onClick={() => removeVariationGroup(groupIdx)}
                     className="text-[10px] font-bold text-red-500 hover:underline cursor-pointer"
                   >
-                    Xóa nhóm
+                    Xóa nhóm {groupIdx + 1}
                   </button>
                 )}
               </div>
@@ -217,6 +225,41 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                 <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.variations}</p>
               )}
 
+              {deletedVariationKeys.length > 0 && (
+                <div className="flex items-center justify-between bg-amber-50 border border-amber-200/80 rounded-xl p-3 text-xs text-amber-800 flex-wrap gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-bold">⚠️ Biến thể đã xóa ({deletedVariationKeys.length}):</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {deletedVariationKeys.map((key) => (
+                        <span
+                          key={key}
+                          className="inline-flex items-center gap-1.5 bg-white border border-amber-300 text-amber-900 font-semibold px-2 py-0.5 rounded-md text-[11px] shadow-3xs"
+                        >
+                          <span>{key}</span>
+                          <button
+                            type="button"
+                            onClick={() => restoreVariationRow ? restoreVariationRow(key) : restoreAllDeletedVariations?.()}
+                            title={`Khôi phục ${key}`}
+                            className="text-emerald-600 hover:text-emerald-700 hover:bg-emerald-50 rounded px-1 text-[10px] font-bold cursor-pointer transition"
+                          >
+                            ↺ Khôi phục
+                          </button>
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  {restoreAllDeletedVariations && deletedVariationKeys.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={restoreAllDeletedVariations}
+                      className="text-xs font-bold text-amber-700 hover:text-amber-900 underline cursor-pointer shrink-0 ml-auto"
+                    >
+                      ↺ Khôi phục tất cả
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="overflow-x-auto border border-slate-200 rounded-xl bg-white shadow-3xs max-h-72 overflow-y-auto">
                 <table className="w-full text-xs">
                   <thead className="bg-slate-50 border-b border-slate-200 sticky top-0 font-bold text-slate-500">
@@ -226,12 +269,27 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                       <th className="text-left p-3 w-1/4">Giá bán (VND) *</th>
                       <th className="text-left p-3 w-1/6">Kho hàng *</th>
                       <th className="text-left p-3 w-1/4">SKU phân loại</th>
+                      <th className="text-center p-3 w-20">Thao tác</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                     {variationRows.map((row) => (
                       <tr key={row.key} className="hover:bg-slate-50/50 transition">
-                        <td className="p-3 font-bold text-slate-800">{row.name}</td>
+                        <td className="p-3 font-bold text-slate-800">
+                          <div className="flex items-center justify-between gap-2">
+                            <span>{row.name}</span>
+                            <button
+                              type="button"
+                              onClick={() => removeVariationRow(row.key)}
+                              title={`Xóa phân loại ${row.name}`}
+                              className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1 rounded-md transition cursor-pointer"
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </td>
                         <td className="p-3">
                           <div className="flex items-center gap-1">
                             <input
@@ -272,6 +330,19 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                             onChange={(e) => updateVariationRow(row.key, 'sku', e.target.value)}
                             className="w-full border border-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-emerald-500"
                           />
+                        </td>
+                        <td className="p-3 text-center">
+                          <button
+                            type="button"
+                            onClick={() => removeVariationRow(row.key)}
+                            title="Xóa phân loại này nếu không kinh doanh"
+                            className="text-slate-400 hover:text-red-500 hover:bg-red-50 p-1.5 rounded-lg transition cursor-pointer inline-flex items-center gap-1 text-[11px] font-semibold"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            <span>Xóa</span>
+                          </button>
                         </td>
                       </tr>
                     ))}

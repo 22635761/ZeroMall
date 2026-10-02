@@ -196,7 +196,7 @@ export const ShopWallet: React.FC<ShopWalletProps> = ({ user, onNavigateToBankAc
                   </div>
                   <div>
                     <p className="text-[10px] font-bold uppercase tracking-wider text-amber-700">Đang tạm giữ (Đóng băng)</p>
-                    <p className="text-[9px] text-amber-600 mt-0.5">Sẽ tự động giải ngân sau 3 ngày nếu khách không khiếu nại,<br/>hoặc ngay khi khách đánh giá sản phẩm.</p>
+                    <p className="text-[9px] text-amber-600 mt-0.5">Sẽ tự động giải ngân sau 7 ngày nếu khách không khiếu nại,<br/>hoặc ngay khi khách đánh giá sản phẩm.</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">

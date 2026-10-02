@@ -12,6 +12,7 @@ import { ShopFlashSale } from '../../components/seller/ShopFlashSale'
 import { ShopOrders } from '../../components/seller/ShopOrders'
 import { ShopWallet } from '../../components/seller/ShopWallet'
 import { ShopRevenue } from '../../components/seller/ShopRevenue'
+import { ShopInvoicesTab } from '../../components/seller/ShopInvoicesTab'
 import { ShopBankAccounts } from '../../components/seller/ShopBankAccounts'
 import { SellerChatManager } from '../../components/seller/SellerChatManager'
 import { ShopReviews } from '../../components/seller/ShopReviews'
@@ -299,6 +300,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       icon: '💳',
       subMenus: [
         { id: 'revenue', title: 'Doanh Thu' },
+        { id: 'invoices', title: 'Hóa Đơn & Báo Cáo Tài Chính' },
         { id: 'balance', title: 'Số Dư Ví ZeroMall' },
         { id: 'bank-accounts', title: 'Tài Khoản Ngân Hàng' }
       ]
@@ -478,6 +480,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             <ShopOrders user={user} token={token || ''} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'finance' && activeSubMenu === 'revenue' ? (
             <ShopRevenue user={user} token={token || ''} shopDetails={shopDetails} />
+          ) : activeMenu === 'finance' && activeSubMenu === 'invoices' ? (
+            <ShopInvoicesTab user={user} token={token || ''} shopDetails={shopDetails} />
           ) : activeMenu === 'finance' && activeSubMenu === 'balance' ? (
             <ShopWallet user={user} onNavigateToBankAccounts={() => selectSubMenu('finance', 'bank-accounts')} />
           ) : activeMenu === 'finance' && activeSubMenu === 'bank-accounts' ? (

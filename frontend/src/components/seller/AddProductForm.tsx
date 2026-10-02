@@ -78,6 +78,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     { name: 'Màu sắc', options: [] }
   ])
   const [variationRows, setVariationRows] = useState<VariationRow[]>([])
+  const [deletedVariationKeys, setDeletedVariationKeys] = useState<string[]>([])
   const [bulkPrice, setBulkPrice] = useState('')
   const [bulkOriginalPrice, setBulkOriginalPrice] = useState('')
   const [bulkStock, setBulkStock] = useState('')
@@ -188,10 +189,34 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       
       if (initialData.hasVariations) {
         setHasVariations(true)
-        setVariationGroups(initialData.variationGroups || [])
-        setVariationRows(initialData.variationRows || [])
+        const groups = initialData.variationGroups || []
+        const rows = initialData.variationRows || []
+        setVariationGroups(groups)
+        setVariationRows(rows)
+
+        if (groups.length > 0 && rows.length > 0) {
+          const validGroups = groups.filter((g: any) => g.name && g.name.trim() && g.options && g.options.length > 0)
+          let combinations: string[][] = [[]]
+          validGroups.forEach((group: any) => {
+            const nextCombos: string[][] = []
+            combinations.forEach((combo) => {
+              group.options.forEach((opt: string) => {
+                nextCombos.push([...combo, opt])
+              })
+            })
+            combinations = nextCombos
+          })
+          const existingKeys = new Set(rows.map((r: any) => r.key || r.name))
+          const deleted = combinations
+            .map((c) => c.join(' - '))
+            .filter((k) => !existingKeys.has(k))
+          setDeletedVariationKeys(deleted)
+        } else {
+          setDeletedVariationKeys([])
+        }
       } else {
         setHasVariations(false)
+        setDeletedVariationKeys([])
         setSimplePrice(String(initialData.price || ''))
         setSimpleOriginalPrice(initialData.originalPrice ? String(initialData.originalPrice) : '')
         setSimpleStock(String(initialData.stock || ''))
@@ -432,6 +457,19 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     )
   }
 
+  const removeVariationRow = (key: string) => {
+    setDeletedVariationKeys((prev) => (prev.includes(key) ? prev : [...prev, key]))
+    setVariationRows((prev) => prev.filter((r) => r.key !== key))
+  }
+
+  const restoreVariationRow = (key: string) => {
+    setDeletedVariationKeys((prev) => prev.filter((k) => k !== key))
+  }
+
+  const restoreAllDeletedVariations = () => {
+    setDeletedVariationKeys([])
+  }
+
   useEffect(() => {
     if (!hasVariations) return
 
@@ -452,23 +490,25 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       combinations = nextCombos
     })
 
-    const newRows: VariationRow[] = combinations.map((combo) => {
-      const key = combo.join(' - ')
-      const existing = variationRows.find((r) => r.key === key)
-      return (
-        existing || {
-          key,
-          name: key,
-          price: simplePrice || '100000',
-          originalPrice: simpleOriginalPrice || '',
-          stock: simpleStock || '50',
-          sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`
-        }
-      )
+    setVariationRows((prevRows) => {
+      return combinations
+        .map((combo) => {
+          const key = combo.join(' - ')
+          const existing = prevRows.find((r) => r.key === key)
+          return (
+            existing || {
+              key,
+              name: key,
+              price: simplePrice || '100000',
+              originalPrice: simpleOriginalPrice || '',
+              stock: simpleStock || '50',
+              sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`
+            }
+          )
+        })
+        .filter((row) => !deletedVariationKeys.includes(row.key))
     })
-
-    setVariationRows(newRows)
-  }, [hasVariations, variationGroups])
+  }, [hasVariations, variationGroups, deletedVariationKeys])
 
   const applyBulkEdit = () => {
     setVariationRows((prev) =>
@@ -744,6 +784,10 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               addOptionToGroup={addOptionToGroup}
               addVariationGroup={addVariationGroup}
               variationRows={variationRows}
+              removeVariationRow={removeVariationRow}
+              restoreVariationRow={restoreVariationRow}
+              restoreAllDeletedVariations={restoreAllDeletedVariations}
+              deletedVariationKeys={deletedVariationKeys}
               bulkOriginalPrice={bulkOriginalPrice}
               setBulkOriginalPrice={setBulkOriginalPrice}
               bulkPrice={bulkPrice}

@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
 
+export interface VariationGroup {
+  name: string
+  options: string[]
+}
+
+export interface VariationRow {
+  key: string
+  name: string
+  price: string
+  originalPrice?: string
+  stock: string | number
+  sku?: string
+  image?: string
+}
+
 export interface Product {
   id: string
   name: string
@@ -15,6 +30,9 @@ export interface Product {
   rating?: number
   reviewsCount?: number
   description?: string
+  hasVariations?: boolean
+  variationGroups?: VariationGroup[]
+  variationRows?: VariationRow[]
   variants?: string[]
   images?: string[]
   video?: string

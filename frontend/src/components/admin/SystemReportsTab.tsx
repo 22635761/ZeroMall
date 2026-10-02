@@ -276,7 +276,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                       <h5 className="text-[10px] font-black text-violet-700 uppercase tracking-wider">Doanh thu chiết khấu sàn thực thu (COMPLETED)</h5>
                       <p className="text-[9px] text-slate-500 mt-0.5 font-bold">
                         Đã giải ngân thực tế: {Math.round(totalCommission).toLocaleString('vi-VN')}đ ({completedOrdersForComm.length} đơn) 
-                        {pendingCommissionCard > 0 && ` • Đang tạm giữ 3 ngày: +${Math.round(pendingCommissionCard).toLocaleString('vi-VN')}đ (${heldOrdersForComm.length} đơn Đã giao)`}
+                        {pendingCommissionCard > 0 && ` • Đang tạm giữ 7 ngày: +${Math.round(pendingCommissionCard).toLocaleString('vi-VN')}đ (${heldOrdersForComm.length} đơn Đã giao)`}
                       </p>
                     </div>
                     <div className="text-right">
@@ -784,7 +784,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                   )}
                 </div>
 
-                {/* 2. ĐANG TẠM GIỮ (ESCROW 3 NGÀY) */}
+                {/* 2. ĐANG TẠM GIỮ (ESCROW 7 NGÀY) */}
                 <div 
                   onClick={() => setCommTabFilter('PENDING')}
                   className={`border rounded-xl p-3.5 relative overflow-hidden cursor-pointer transition-all duration-200 shadow-2xs hover:shadow-md ${
@@ -796,7 +796,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                   <div className="absolute right-2 bottom-2 opacity-10 text-4xl pointer-events-none">🔒</div>
                   <p className="text-[9px] font-black uppercase tracking-wider text-amber-700">Đang Tạm Giữ (Escrow)</p>
                   <p className="text-lg font-black text-amber-700 mt-1">{pendingCommission.toLocaleString('vi-VN')}đ</p>
-                  <p className="text-[8px] text-amber-600 font-bold mt-1">{pendingOrders.length} đơn DELIVERED (Chờ 3 ngày/Đánh giá)</p>
+                  <p className="text-[8px] text-amber-600 font-bold mt-1">{pendingOrders.length} đơn DELIVERED (Chờ 7 ngày/Đánh giá)</p>
                   {commTabFilter === 'PENDING' && (
                     <span className="absolute top-2 right-2 text-[10px] bg-amber-600 text-white rounded-full px-1.5 py-0.5 font-bold">Đang xem</span>
                   )}
@@ -862,7 +862,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                   {pendingCommission > 0 && (
                     <div className="pl-6 text-right">
                       <p className="text-lg font-black text-amber-600">+{pendingCommission.toLocaleString('vi-VN')}đ</p>
-                      <p className="text-[9px] font-extrabold text-amber-600 uppercase">🔒 Đang tạm giữ (3 ngày)</p>
+                      <p className="text-[9px] font-extrabold text-amber-600 uppercase">🔒 Đang tạm giữ (7 ngày)</p>
                     </div>
                   )}
 
@@ -884,12 +884,12 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                       commTabFilter === 'IN_TRANSIT' ? 'bg-blue-600' : 'bg-rose-500'
                     }`}>
                       {commTabFilter === 'EARNED' ? '✅ ĐÃ THU THỰC TẾ' :
-                       commTabFilter === 'PENDING' ? '🔒 ĐANG TẠM GIỮ (3 NGÀY)' :
+                       commTabFilter === 'PENDING' ? '🔒 ĐANG TẠM GIỮ (7 NGÀY)' :
                        commTabFilter === 'IN_TRANSIT' ? '🚚 CHƯA GIAO / ĐANG GIAO' : '❌ BỊ HOÀN (KHÔNG THU)'}
                     </span>
                     <span className="text-slate-700">
                       {commTabFilter === 'EARNED' ? 'Danh sách các đơn hàng đã thu chiết khấu thành công' :
-                       commTabFilter === 'PENDING' ? 'Danh sách các đơn ĐÃ GIAO (DELIVERED) đang tạm giữ 3 ngày hoặc chờ đánh giá' :
+                       commTabFilter === 'PENDING' ? 'Danh sách các đơn ĐÃ GIAO (DELIVERED) đang tạm giữ 7 ngày hoặc chờ đánh giá' :
                        commTabFilter === 'IN_TRANSIT' ? 'Danh sách các đơn đang xử lý/vận chuyển (chưa giao tới khách, chưa tính tạm giữ)' : 'Danh sách các đơn hàng bị hoàn tiền (Không lấy chiết khấu)'}
                     </span>
                   </h5>
@@ -961,7 +961,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                                   return <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-emerald-50 text-emerald-650">✅ Đã thu (Giải ngân)</span>;
                                 }
                                 if (commTabFilter === 'PENDING') {
-                                  return <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-amber-50 text-amber-655">🔒 Tạm giữ (Chờ 3 ngày/Đánh giá)</span>;
+                                  return <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-amber-50 text-amber-655">🔒 Tạm giữ (Chờ 7 ngày/Đánh giá)</span>;
                                 }
                                 if (commTabFilter === 'IN_TRANSIT') {
                                   return <span className="px-2 py-0.5 rounded text-[8px] font-black uppercase bg-blue-50 text-blue-650">🚚 Chưa giao (Chưa tạm giữ)</span>;

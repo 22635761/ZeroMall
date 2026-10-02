@@ -38,7 +38,7 @@ export class PaymentService implements OnModuleInit {
       for (const escrow of escrowsToRelease) {
         try {
           await this.releaseEscrow(escrow.orderId);
-          // Tự động chuyển đơn sang COMPLETED bên order-service sau khi hết hạn 3 ngày tạm giữ Escrow
+          // Tự động chuyển đơn sang COMPLETED bên order-service sau khi hết hạn 7 ngày tạm giữ Escrow
           try {
             await fetch(`http://order-service:3002/orders/${escrow.orderId}/status`, {
               method: 'PATCH',
@@ -730,8 +730,8 @@ export class PaymentService implements OnModuleInit {
       commissionRate = config ? parseFloat(config.value) : 5;
     }
 
-    // Thời gian tạm giữ 3 ngày chuẩn sàn TMĐT
-    const HOLD_DURATION_MS = 3 * 24 * 60 * 60 * 1000;
+    // Thời gian tạm giữ 7 ngày chuẩn sàn TMĐT
+    const HOLD_DURATION_MS = 7 * 24 * 60 * 60 * 1000;
     const releaseAt = new Date(Date.now() + HOLD_DURATION_MS);
 
     return await this.prisma.$transaction(async (tx) => {

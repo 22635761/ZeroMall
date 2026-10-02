@@ -1,19 +1,23 @@
 import React from 'react'
+import type { Product, VariationGroup, VariationRow } from '../FlashSale'
 
 interface ProductPurchasePanelProps {
-  product: any
+  product: Product
   isMall: boolean
   averageRating: string
   reviewsCount: number
   discountPct: number
   savedCoupons: Record<string, boolean>
   toggleSaveCoupon: (coupon: string) => void
-  selectedVariant: string
-  setSelectedVariant: (variant: string) => void
+  selectedOptions: Record<number, string>
+  onSelectOption: (groupIdx: number, option: string) => void
+  selectedVariantName: string
+  currentFlashPrice: string
+  currentOriginalPrice: string
+  stockAvailable: number
   quantity: number
   handleDecrease: () => void
   handleIncrease: () => void
-  stockAvailable: number
   handleAddToCartClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onBuyNow: (product: any, quantity: number, variant: string) => void
   user?: any
@@ -27,16 +31,71 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
   discountPct,
   savedCoupons,
   toggleSaveCoupon,
-  selectedVariant,
-  setSelectedVariant,
+  selectedOptions,
+  onSelectOption,
+  selectedVariantName,
+  currentFlashPrice,
+  currentOriginalPrice,
+  stockAvailable,
   quantity,
   handleDecrease,
   handleIncrease,
-  stockAvailable,
   handleAddToCartClick,
   onBuyNow,
   user
 }) => {
+  const variationGroups: VariationGroup[] = product.variationGroups && product.variationGroups.length > 0
+    ? product.variationGroups
+    : (product.variants && product.variants.length > 0 ? [{ name: 'Phân loại', options: product.variants }] : [])
+
+  const variationRows: VariationRow[] = product.variationRows || []
+
+  // Check if an option has stock > 0 given the current other group selections
+  const isOptionAvailable = (groupIdx: number, optValue: string): boolean => {
+    if (variationRows.length === 0) return true
+
+    return variationRows.some((r) => {
+      const parts = (r.name || r.key || '').split(/[-,\/]/).map((s: string) => s.trim().toLowerCase())
+      const thisOptMatches = parts[groupIdx] === optValue.toLowerCase() || (r.name || r.key || '').toLowerCase().includes(optValue.toLowerCase())
+      if (!thisOptMatches) return false
+
+      // Check if it matches other already selected groups
+      const matchesOtherGroups = Object.entries(selectedOptions).every(([gIdxStr, selectedOptVal]) => {
+        const gIdx = Number(gIdxStr)
+        if (gIdx === groupIdx || !selectedOptVal) return true
+        return parts[gIdx] === selectedOptVal.toLowerCase() || (r.name || r.key || '').toLowerCase().includes(selectedOptVal.toLowerCase())
+      })
+
+      return matchesOtherGroups && (parseInt(String(r.stock)) || 0) > 0
+    })
+  }
+
+  const handleBuyNowClick = () => {
+    if (variationGroups.length > 0) {
+      for (let i = 0; i < variationGroups.length; i++) {
+        if (!selectedOptions[i]) {
+          alert(`Vui lòng chọn ${variationGroups[i].name}!`)
+          return
+        }
+      }
+    }
+
+    if (stockAvailable <= 0) {
+      alert(`Sản phẩm với phân loại đã chọn hiện đã hết hàng, vui lòng chọn phân loại khác!`)
+      return
+    }
+
+    const effectiveProduct = {
+      ...product,
+      price: currentFlashPrice,
+      flashPrice: currentFlashPrice,
+      originalPrice: currentOriginalPrice,
+      stock: stockAvailable
+    }
+
+    onBuyNow(effectiveProduct, quantity, selectedVariantName)
+  }
+
   return (
     <div className="flex-1 flex flex-col justify-between space-y-5">
       <div className="space-y-4">
@@ -68,8 +127,8 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
             <span className="text-[#ee4d2d] font-bold underline text-sm">{averageRating}</span>
             <div className="flex text-xs gap-0.5">
               {Array.from({ length: 5 }).map((_, idx) => {
-                const starVal = idx + 1;
-                const ratingNum = parseFloat(averageRating);
+                const starVal = idx + 1
+                const ratingNum = parseFloat(averageRating)
                 return (
                   <span 
                     key={idx} 
@@ -77,7 +136,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                   >
                     ★
                   </span>
-                );
+                )
               })}
             </div>
           </div>
@@ -91,10 +150,10 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
 
         {/* Price Segment */}
         <div className="bg-slate-50 p-5 rounded-xl flex items-center gap-5 flex-wrap">
-          {discountPct > 0 && product.originalPrice && product.originalPrice !== product.flashPrice && (
-            <span className="text-slate-400 line-through text-sm">{product.originalPrice}</span>
+          {discountPct > 0 && currentOriginalPrice && currentOriginalPrice !== currentFlashPrice && (
+            <span className="text-slate-400 line-through text-sm">{currentOriginalPrice}</span>
           )}
-          <span className="text-3xl font-black text-emerald-600">{product.flashPrice}</span>
+          <span className="text-3xl font-black text-emerald-600">{currentFlashPrice}</span>
           {discountPct > 0 && (
             <span className="bg-emerald-50 border border-emerald-200/60 text-emerald-700 text-[10px] font-bold px-2 py-0.5 rounded-sm uppercase tracking-wide">
               {discountPct}% GIẢM
@@ -107,7 +166,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           <span className="text-slate-400 w-24 shrink-0 font-medium">Mã Giảm Giá Shop</span>
           <div className="flex flex-wrap gap-2">
             {['Mã GIẢM 15K', 'Mã GIẢM 30K', 'GIẢM 10%'].map((coupon) => {
-              const isSaved = !!savedCoupons[coupon];
+              const isSaved = !!savedCoupons[coupon]
               return (
                 <button
                   key={coupon}
@@ -171,25 +230,41 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           </div>
         </div>
 
-        {/* Product Variation Options */}
-        {product.variants && product.variants.length > 0 && (
-          <div className="text-xs flex gap-4 items-center py-1">
-            <span className="text-slate-400 w-24 shrink-0 font-medium">Phân Loại</span>
-            <div className="flex flex-wrap gap-2.5">
-              {product.variants.map((v: string) => (
-                <button
-                  key={v}
-                  onClick={() => setSelectedVariant(v)}
-                  className={`px-4 py-2 border rounded-sm font-semibold cursor-pointer text-slate-700 transition ${
-                    selectedVariant === v
-                      ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9]/30 shadow-3xs'
-                      : 'border-slate-200 hover:border-slate-400 hover:bg-slate-50'
-                  }`}
-                >
-                  {v}
-                </button>
-              ))}
-            </div>
+        {/* Product Variation Options - Multi-tier (Tier 1: Màu sắc, Tier 2: Kích thước, etc.) */}
+        {variationGroups.length > 0 && (
+          <div className="space-y-3 py-1">
+            {variationGroups.map((group, groupIdx) => (
+              <div key={groupIdx} className="text-xs flex gap-4 items-start">
+                <span className="text-slate-400 w-24 shrink-0 font-medium pt-2">
+                  {group.name}
+                </span>
+                <div className="flex flex-wrap gap-2.5 flex-1 items-center">
+                  {group.options.map((opt: string) => {
+                    const isSelected = selectedOptions[groupIdx] === opt
+                    const available = isOptionAvailable(groupIdx, opt)
+
+                    return (
+                      <button
+                        key={opt}
+                        type="button"
+                        onClick={() => onSelectOption(groupIdx, opt)}
+                        className={`px-3.5 py-1.5 border rounded-sm font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9]/40 shadow-2xs ring-1 ring-[#ee4d2d]'
+                            : available
+                            ? 'border-slate-200 text-slate-700 hover:border-[#ee4d2d]/60 hover:bg-slate-50'
+                            : 'border-dashed border-slate-200 text-slate-400 bg-slate-50 opacity-60'
+                        }`}
+                      >
+                        <span>{opt}</span>
+                        {isSelected && <span className="text-[#ee4d2d] text-[10px] font-bold">✓</span>}
+                        {!available && <span className="text-[9px] text-slate-400 italic">(Hết)</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
 
@@ -250,7 +325,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
         <button
           type="button"
           disabled={stockAvailable <= 0}
-          onClick={() => onBuyNow(product, quantity, selectedVariant)}
+          onClick={handleBuyNowClick}
           className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-sm text-sm flex items-center justify-center gap-1 transition ${
             stockAvailable <= 0
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none opacity-60'

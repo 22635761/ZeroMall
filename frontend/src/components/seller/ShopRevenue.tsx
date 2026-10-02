@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
 import { orderService } from '../../services/order.service'
 import type { Order } from '../../models/order.model'
+import { InvoiceDetailModal } from './InvoiceDetailModal'
 
 interface ShopRevenueProps {
   user: any
@@ -23,6 +24,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
   const [activeTab, setActiveTab] = useState<'ALL' | 'RELEASED' | 'HELD' | 'IN_TRANSIT' | 'CANCELLED' | 'DISPUTE'>('ALL')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedOrderForDetail, setSelectedOrderForDetail] = useState<Order | null>(null)
+  const [selectedOrderForInvoice, setSelectedOrderForInvoice] = useState<Order | null>(null)
 
   // Xác định ngày Shop tạo tài khoản để giới hạn dải Tháng/Năm
   const shopCreatedDate = useMemo(() => {
@@ -338,7 +340,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
         {/* Card 4: Tiền Đang Tạm Giữ (Held Escrow) */}
         <div className="bg-amber-50/40 border border-amber-200/70 rounded-2xl p-4.5 shadow-3xs flex flex-col justify-between space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Đang Tạm Giữ 3 Ngày</span>
+            <span className="text-xs font-extrabold text-amber-700 uppercase tracking-wider">Đang Tạm Giữ 7 Ngày</span>
             <span className="text-lg">🔒</span>
           </div>
           <div>
@@ -379,7 +381,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
             {[
               { id: 'ALL', label: `Tất Cả Đơn (${dateFilteredOrders.length})` },
               { id: 'RELEASED', label: `🟢 Đã Giải Ngân (${metrics.releasedCount})` },
-              { id: 'HELD', label: `🔒 Đang Tạm Giữ 3 Ngày (${metrics.heldCount})` },
+              { id: 'HELD', label: `🔒 Đang Tạm Giữ 7 Ngày (${metrics.heldCount})` },
               { id: 'DISPUTE', label: `⚠️ Đang Khiếu Nại / Trả Hàng (${metrics.frozenDisputeCount})` },
               { id: 'IN_TRANSIT', label: `🚚 Đang Vận Chuyển (${metrics.inTransitCount})` },
               { id: 'CANCELLED', label: `❌ Đã Hủy / Hoàn Tiền (${metrics.cancelledCount})` },
@@ -460,7 +462,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
                   } else if (order.status === 'DELIVERED') {
                     statusBadge = (
                       <span className="px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-[10px] font-black inline-flex items-center gap-1">
-                        <span>🔒</span> Tạm Giữ 3 Ngày
+                        <span>🔒</span> Tạm Giữ 7 Ngày
                       </span>
                     )
                   } else if (order.status === 'RETURN_REQUESTED' || order.status === 'RETURN_PENDING') {
@@ -572,12 +574,22 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
 
                       {/* Chi tiết */}
                       <td className="py-3.5 px-3 text-center">
-                        <button
-                          onClick={() => setSelectedOrderForDetail(order)}
-                          className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer transition"
-                        >
-                          Chi Tiết
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setSelectedOrderForDetail(order)}
+                            className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-[10px] font-bold cursor-pointer transition"
+                            title="Bóc tách doanh thu"
+                          >
+                            Doanh Thu
+                          </button>
+                          <button
+                            onClick={() => setSelectedOrderForInvoice(order)}
+                            className="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold cursor-pointer transition flex items-center gap-1"
+                            title="Xem & In Hóa Đơn Điện Tử"
+                          >
+                            <span>📄</span> Hóa Đơn
+                          </button>
+                        </div>
                       </td>
 
                     </tr>
@@ -657,7 +669,7 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
                   <div>
                     <p className="text-[10px] font-extrabold text-emerald-800 uppercase">Tiền Về Ví Shop Thực Thu</p>
                     <p className="text-[10px] text-emerald-600 mt-0.5">
-                      Trạng thái: {selectedOrderForDetail.status === 'COMPLETED' ? '🟢 Đã Giải Ngân' : selectedOrderForDetail.status === 'DELIVERED' ? '🔒 Đang Tạm Giữ 3 Ngày' : selectedOrderForDetail.status === 'RETURN_REQUESTED' ? '⚠️ Đóng Băng Khiếu Nại' : ['CANCELLED', 'REFUNDED', 'RETURNED'].includes(selectedOrderForDetail.status) ? '❌ Đã Hủy / Hoàn Tiền' : '🚚 Đang Giao / Xử Lý'}
+                      Trạng thái: {selectedOrderForDetail.status === 'COMPLETED' ? '🟢 Đã Giải Ngân' : selectedOrderForDetail.status === 'DELIVERED' ? '🔒 Đang Tạm Giữ 7 Ngày' : selectedOrderForDetail.status === 'RETURN_REQUESTED' ? '⚠️ Đóng Băng Khiếu Nại' : ['CANCELLED', 'REFUNDED', 'RETURNED'].includes(selectedOrderForDetail.status) ? '❌ Đã Hủy / Hoàn Tiền' : '🚚 Đang Giao / Xử Lý'}
                     </p>
                   </div>
                   <p className="text-xl font-black text-emerald-600">
@@ -669,7 +681,18 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
 
               </div>
 
-              <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-end">
+              <div className="bg-slate-50 p-4 border-t border-slate-100 flex justify-between items-center">
+                <button
+                  onClick={() => {
+                    const ord = selectedOrderForDetail
+                    setSelectedOrderForDetail(null)
+                    setSelectedOrderForInvoice(ord)
+                  }}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg cursor-pointer transition flex items-center gap-1.5"
+                >
+                  <span>📄</span> Xem Hóa Đơn Điện Tử
+                </button>
+
                 <button
                   onClick={() => setSelectedOrderForDetail(null)}
                   className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-lg cursor-pointer transition"
@@ -681,6 +704,16 @@ export const ShopRevenue: React.FC<ShopRevenueProps> = ({ user, token, shopDetai
           </div>
         )
       })()}
+
+      {/* E-Invoice Modal */}
+      {selectedOrderForInvoice && (
+        <InvoiceDetailModal
+          order={selectedOrderForInvoice}
+          shopDetails={shopDetails}
+          shopName={shopDetails?.name}
+          onClose={() => setSelectedOrderForInvoice(null)}
+        />
+      )}
 
     </div>
   )
