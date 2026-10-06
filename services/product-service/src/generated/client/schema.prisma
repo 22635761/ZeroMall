@@ -19,8 +19,8 @@ model Product {
   categoryRef     Category?          @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   brand           String
   description     String
-  price           String // Can store a simple numeric string like "29990000" or a range like "150.000đ - 200.000đ"
-  originalPrice   String? // Original/old price before discount
+  price           Float // Giá bán thực tế (VND)
+  originalPrice   Float? // Giá niêm yết trước giảm giá (VND)
   costPrice       Float?             @default(0) // Giá nhập / giá vốn hiện tại
   stock           Int
   sales           Int                @default(0)
@@ -42,6 +42,7 @@ model Product {
   reportsCount    Int                @default(0)
   priceHistories  PriceHistory[]
   costHistories   CostPriceHistory[]
+  flashSaleItems  FlashSaleItem[]
   createdAt       DateTime           @default(now())
   updatedAt       DateTime           @updatedAt
 }
@@ -106,9 +107,28 @@ model Category {
 }
 
 model FlashSale {
-  id            String   @id @default(uuid())
-  timeSlot      String   @unique
-  productsCount Int      @default(0)
-  status        String   @default("UPCOMING") // "RUNNING" | "UPCOMING" | "ENDED"
-  createdAt     DateTime @default(now())
+  id            String          @id @default(uuid())
+  timeSlot      String          @unique
+  productsCount Int             @default(0)
+  status        String          @default("UPCOMING") // "RUNNING" | "UPCOMING" | "ENDED"
+  items         FlashSaleItem[]
+  createdAt     DateTime        @default(now())
+}
+
+model FlashSaleItem {
+  id            String    @id @default(uuid())
+  flashSaleId   String
+  flashSale     FlashSale @relation(fields: [flashSaleId], references: [id], onDelete: Cascade)
+  productId     String
+  product       Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  shopId        String
+  flashPrice    Float
+  originalPrice Float
+  stockLimit    Int
+  stockSold     Int       @default(0)
+  status        String    @default("ACTIVE") // "ACTIVE" | "ENDED"
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([flashSaleId, productId])
 }

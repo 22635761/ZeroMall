@@ -23,6 +23,19 @@ model Voucher {
   endDate      DateTime
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  usages       VoucherUsage[]
 
   @@unique([shopId, code])
+}
+
+model VoucherUsage {
+  id        String   @id @default(uuid())
+  voucherId String
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId    String
+  orderId   String?
+  usedAt    DateTime @default(now())
+
+  @@index([voucherId, userId])
+  @@index([userId])
 }

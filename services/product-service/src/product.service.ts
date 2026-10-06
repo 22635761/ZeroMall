@@ -149,9 +149,9 @@ export class ProductService {
         categoryId: categoryId,
         brand: dto.brand ? String(dto.brand) : 'No Brand',
         description: dto.description ? String(dto.description) : String(dto.name || 'Mô tả sản phẩm'),
-        price: String(dto.price || '0'),
-        originalPrice: dto.originalPrice ? String(dto.originalPrice) : null,
-        costPrice: dto.costPrice != null ? Number(dto.costPrice) : (parseFloat(String(dto.price || '0')) * 0.7 || 0),
+        price: typeof dto.price === 'number' ? dto.price : (parseFloat(String(dto.price || '0').replace(/[^0-9.]/g, '')) || 0),
+        originalPrice: dto.originalPrice != null ? (typeof dto.originalPrice === 'number' ? dto.originalPrice : (parseFloat(String(dto.originalPrice).replace(/[^0-9.]/g, '')) || null)) : null,
+        costPrice: dto.costPrice != null ? Number(dto.costPrice) : ((typeof dto.price === 'number' ? dto.price : parseFloat(String(dto.price || '0'))) * 0.7 || 0),
         stock: typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0,
         sales: typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0,
         status: dto.status ? String(dto.status) : 'active',
@@ -304,8 +304,12 @@ export class ProductService {
       }
       updateData.description = descStr;
     }
-    if (dto.price !== undefined) updateData.price = String(dto.price);
-    if (dto.originalPrice !== undefined) updateData.originalPrice = dto.originalPrice ? String(dto.originalPrice) : null;
+    if (dto.price !== undefined) {
+      updateData.price = typeof dto.price === 'number' ? dto.price : (parseFloat(String(dto.price).replace(/[^0-9.]/g, '')) || 0);
+    }
+    if (dto.originalPrice !== undefined) {
+      updateData.originalPrice = dto.originalPrice != null ? (typeof dto.originalPrice === 'number' ? dto.originalPrice : (parseFloat(String(dto.originalPrice).replace(/[^0-9.]/g, '')) || null)) : null;
+    }
     if (dto.stock !== undefined) updateData.stock = typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0;
     if (dto.sales !== undefined) updateData.sales = typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0;
     if (dto.status !== undefined) updateData.status = String(dto.status);
@@ -331,8 +335,8 @@ export class ProductService {
 
     // Tự động ghi lại lịch sử nếu giá bán thay đổi qua form sửa sản phẩm
     if (dto.price !== undefined) {
-      const oldPrice = parseFloat(currentProduct.price) || 0;
-      const newPrice = parseFloat(String(dto.price)) || 0;
+      const oldPrice = Number(currentProduct.price) || 0;
+      const newPrice = Number(updateData.price) || 0;
       if (oldPrice !== newPrice && !isNaN(newPrice)) {
         await this.prisma.priceHistory.create({
           data: {
@@ -929,8 +933,8 @@ export class ProductService {
     await this.prisma.product.update({
       where: { id: dto.productId },
       data: {
-        price: String(dto.flashPrice),
-        originalPrice: String(origPrice),
+        price: Number(dto.flashPrice),
+        originalPrice: Number(origPrice),
       },
     });
 
@@ -958,7 +962,7 @@ export class ProductService {
     await this.prisma.product.update({
       where: { id: item.productId },
       data: {
-        price: String(item.originalPrice),
+        price: Number(item.originalPrice),
         originalPrice: null,
       },
     });
@@ -1031,17 +1035,17 @@ export class ProductService {
       throw new ForbiddenException('Bạn chỉ có quyền cập nhật giá cho sản phẩm thuộc Shop mình quản lý!');
     }
 
-    const oldPrice = parseFloat(product.price) || 0;
+    const oldPrice = Number(product.price) || 0;
     const newPrice = Number(dto.newPrice);
     if (isNaN(newPrice) || newPrice < 0) {
       throw new Error('Giá mới không hợp lệ');
     }
 
     const updateData: any = {
-      price: String(newPrice),
+      price: newPrice,
     };
     if (dto.originalPrice !== undefined && dto.originalPrice !== null) {
-      updateData.originalPrice = String(dto.originalPrice);
+      updateData.originalPrice = Number(dto.originalPrice);
     }
 
     const updatedProduct = await this.prisma.product.update({
@@ -1247,7 +1251,7 @@ export class ProductService {
     for (const ch of costHistories) {
       const dateStr = ch.importDate.toISOString().slice(0, 10);
       const prod = productMap.get(ch.productId);
-      const curSelling = prod ? parseFloat(prod.price) || 0 : 0;
+      const curSelling = prod ? Number(prod.price) || 0 : 0;
       const existing = timelineMap.get(dateStr) || {
         date: dateStr,
         timestamp: ch.importDate.getTime(),
@@ -1273,7 +1277,7 @@ export class ProductService {
     // Nếu là xem 1 sản phẩm cụ thể và chưa có nhiều điểm, đảm bảo có điểm khởi tạo & điểm hiện tại
     if (productId && products.length === 1) {
       const prod = products[0];
-      const curSelling = parseFloat(prod.price) || 0;
+      const curSelling = Number(prod.price) || 0;
       const curCost = prod.costPrice || (curSelling * 0.7);
       const todayStr = now.toISOString().slice(0, 10);
       if (!timelineMap.has(todayStr)) {
@@ -1314,10 +1318,10 @@ export class ProductService {
     let currentSellingPrice = 0;
     let currentCostPrice = 0;
     if (productId && products.length === 1) {
-      currentSellingPrice = parseFloat(products[0].price) || 0;
+      currentSellingPrice = Number(products[0].price) || 0;
       currentCostPrice = products[0].costPrice || 0;
     } else {
-      currentSellingPrice = products.reduce((sum, p) => sum + (parseFloat(p.price) || 0), 0) / (products.length || 1);
+      currentSellingPrice = products.reduce((sum, p) => sum + (Number(p.price) || 0), 0) / (products.length || 1);
       currentCostPrice = products.reduce((sum, p) => sum + (p.costPrice || 0), 0) / (products.length || 1);
     }
     const profitMargin = currentSellingPrice - currentCostPrice;
@@ -1330,7 +1334,7 @@ export class ProductService {
       product: selectedProd ? {
         id: selectedProd.id,
         name: selectedProd.name,
-        currentSellingPrice: parseFloat(selectedProd.price) || 0,
+        currentSellingPrice: Number(selectedProd.price) || 0,
         currentCostPrice: selectedProd.costPrice || 0,
       } : null,
       products,

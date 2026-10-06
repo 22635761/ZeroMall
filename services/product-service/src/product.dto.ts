@@ -7,8 +7,8 @@ export class CreateProductDto {
   category: string;
   brand: string;
   description: string;
-  price: string;
-  originalPrice?: string;
+  price: number | string;
+  originalPrice?: number | string;
   stock: number;
   sales?: number;
   status: string;
@@ -35,8 +35,8 @@ export class UpdateProductDto {
   category?: string;
   brand?: string;
   description?: string;
-  price?: string;
-  originalPrice?: string;
+  price?: number | string;
+  originalPrice?: number | string;
   costPrice?: number;
   stock?: number;
   sales?: number;

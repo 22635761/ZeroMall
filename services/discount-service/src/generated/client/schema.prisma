@@ -8,7 +8,7 @@ generator client {
 }
 
 model Voucher {
-  id           String   @id @default(uuid())
+  id           String         @id @default(uuid())
   shopId       String
   name         String
   code         String
@@ -17,12 +17,25 @@ model Voucher {
   minSpend     Float
   maxDiscount  Float?
   usageLimit   Int
-  usedCount    Int      @default(0)
+  usedCount    Int            @default(0)
   targetUserId String? // ID của user được cấp riêng (Goodwill Compensation Voucher CSKH)
   startDate    DateTime
   endDate      DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  usages       VoucherUsage[]
 
   @@unique([shopId, code])
+}
+
+model VoucherUsage {
+  id        String   @id @default(uuid())
+  voucherId String
+  voucher   Voucher  @relation(fields: [voucherId], references: [id], onDelete: Cascade)
+  userId    String
+  orderId   String?
+  usedAt    DateTime @default(now())
+
+  @@index([voucherId, userId])
+  @@index([userId])
 }

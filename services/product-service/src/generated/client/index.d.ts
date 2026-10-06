@@ -48,6 +48,11 @@ export type Category = $Result.DefaultSelection<Prisma.$CategoryPayload>
  * 
  */
 export type FlashSale = $Result.DefaultSelection<Prisma.$FlashSalePayload>
+/**
+ * Model FlashSaleItem
+ * 
+ */
+export type FlashSaleItem = $Result.DefaultSelection<Prisma.$FlashSaleItemPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -239,6 +244,16 @@ export class PrismaClient<
     * ```
     */
   get flashSale(): Prisma.FlashSaleDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.flashSaleItem`: Exposes CRUD operations for the **FlashSaleItem** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more FlashSaleItems
+    * const flashSaleItems = await prisma.flashSaleItem.findMany()
+    * ```
+    */
+  get flashSaleItem(): Prisma.FlashSaleItemDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -679,7 +694,8 @@ export namespace Prisma {
     Review: 'Review',
     ProductLike: 'ProductLike',
     Category: 'Category',
-    FlashSale: 'FlashSale'
+    FlashSale: 'FlashSale',
+    FlashSaleItem: 'FlashSaleItem'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -695,7 +711,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "product" | "priceHistory" | "costPriceHistory" | "review" | "productLike" | "category" | "flashSale"
+      modelProps: "product" | "priceHistory" | "costPriceHistory" | "review" | "productLike" | "category" | "flashSale" | "flashSaleItem"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1217,6 +1233,80 @@ export namespace Prisma {
           }
         }
       }
+      FlashSaleItem: {
+        payload: Prisma.$FlashSaleItemPayload<ExtArgs>
+        fields: Prisma.FlashSaleItemFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.FlashSaleItemFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.FlashSaleItemFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          findFirst: {
+            args: Prisma.FlashSaleItemFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.FlashSaleItemFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          findMany: {
+            args: Prisma.FlashSaleItemFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>[]
+          }
+          create: {
+            args: Prisma.FlashSaleItemCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          createMany: {
+            args: Prisma.FlashSaleItemCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.FlashSaleItemCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>[]
+          }
+          delete: {
+            args: Prisma.FlashSaleItemDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          update: {
+            args: Prisma.FlashSaleItemUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          deleteMany: {
+            args: Prisma.FlashSaleItemDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.FlashSaleItemUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.FlashSaleItemUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>[]
+          }
+          upsert: {
+            args: Prisma.FlashSaleItemUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$FlashSaleItemPayload>
+          }
+          aggregate: {
+            args: Prisma.FlashSaleItemAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateFlashSaleItem>
+          }
+          groupBy: {
+            args: Prisma.FlashSaleItemGroupByArgs<ExtArgs>
+            result: $Utils.Optional<FlashSaleItemGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.FlashSaleItemCountArgs<ExtArgs>
+            result: $Utils.Optional<FlashSaleItemCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1332,6 +1422,7 @@ export namespace Prisma {
     productLike?: ProductLikeOmit
     category?: CategoryOmit
     flashSale?: FlashSaleOmit
+    flashSaleItem?: FlashSaleItemOmit
   }
 
   /* Types for Logging */
@@ -1414,11 +1505,13 @@ export namespace Prisma {
   export type ProductCountOutputType = {
     priceHistories: number
     costHistories: number
+    flashSaleItems: number
   }
 
   export type ProductCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     priceHistories?: boolean | ProductCountOutputTypeCountPriceHistoriesArgs
     costHistories?: boolean | ProductCountOutputTypeCountCostHistoriesArgs
+    flashSaleItems?: boolean | ProductCountOutputTypeCountFlashSaleItemsArgs
   }
 
   // Custom InputTypes
@@ -1444,6 +1537,13 @@ export namespace Prisma {
    */
   export type ProductCountOutputTypeCountCostHistoriesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: CostPriceHistoryWhereInput
+  }
+
+  /**
+   * ProductCountOutputType without action
+   */
+  export type ProductCountOutputTypeCountFlashSaleItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FlashSaleItemWhereInput
   }
 
 
@@ -1479,6 +1579,37 @@ export namespace Prisma {
 
 
   /**
+   * Count Type FlashSaleCountOutputType
+   */
+
+  export type FlashSaleCountOutputType = {
+    items: number
+  }
+
+  export type FlashSaleCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    items?: boolean | FlashSaleCountOutputTypeCountItemsArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * FlashSaleCountOutputType without action
+   */
+  export type FlashSaleCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleCountOutputType
+     */
+    select?: FlashSaleCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * FlashSaleCountOutputType without action
+   */
+  export type FlashSaleCountOutputTypeCountItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FlashSaleItemWhereInput
+  }
+
+
+  /**
    * Models
    */
 
@@ -1495,6 +1626,8 @@ export namespace Prisma {
   }
 
   export type ProductAvgAggregateOutputType = {
+    price: number | null
+    originalPrice: number | null
     costPrice: number | null
     stock: number | null
     sales: number | null
@@ -1502,6 +1635,8 @@ export namespace Prisma {
   }
 
   export type ProductSumAggregateOutputType = {
+    price: number | null
+    originalPrice: number | null
     costPrice: number | null
     stock: number | null
     sales: number | null
@@ -1519,8 +1654,8 @@ export namespace Prisma {
     categoryId: string | null
     brand: string | null
     description: string | null
-    price: string | null
-    originalPrice: string | null
+    price: number | null
+    originalPrice: number | null
     costPrice: number | null
     stock: number | null
     sales: number | null
@@ -1555,8 +1690,8 @@ export namespace Prisma {
     categoryId: string | null
     brand: string | null
     description: string | null
-    price: string | null
-    originalPrice: string | null
+    price: number | null
+    originalPrice: number | null
     costPrice: number | null
     stock: number | null
     sales: number | null
@@ -1619,6 +1754,8 @@ export namespace Prisma {
 
 
   export type ProductAvgAggregateInputType = {
+    price?: true
+    originalPrice?: true
     costPrice?: true
     stock?: true
     sales?: true
@@ -1626,6 +1763,8 @@ export namespace Prisma {
   }
 
   export type ProductSumAggregateInputType = {
+    price?: true
+    originalPrice?: true
     costPrice?: true
     stock?: true
     sales?: true
@@ -1838,8 +1977,8 @@ export namespace Prisma {
     categoryId: string | null
     brand: string
     description: string
-    price: string
-    originalPrice: string | null
+    price: number
+    originalPrice: number | null
     costPrice: number | null
     stock: number
     sales: number
@@ -1919,6 +2058,7 @@ export namespace Prisma {
     categoryRef?: boolean | Product$categoryRefArgs<ExtArgs>
     priceHistories?: boolean | Product$priceHistoriesArgs<ExtArgs>
     costHistories?: boolean | Product$costHistoriesArgs<ExtArgs>
+    flashSaleItems?: boolean | Product$flashSaleItemsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["product"]>
 
@@ -2037,6 +2177,7 @@ export namespace Prisma {
     categoryRef?: boolean | Product$categoryRefArgs<ExtArgs>
     priceHistories?: boolean | Product$priceHistoriesArgs<ExtArgs>
     costHistories?: boolean | Product$costHistoriesArgs<ExtArgs>
+    flashSaleItems?: boolean | Product$flashSaleItemsArgs<ExtArgs>
     _count?: boolean | ProductCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type ProductIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2052,6 +2193,7 @@ export namespace Prisma {
       categoryRef: Prisma.$CategoryPayload<ExtArgs> | null
       priceHistories: Prisma.$PriceHistoryPayload<ExtArgs>[]
       costHistories: Prisma.$CostPriceHistoryPayload<ExtArgs>[]
+      flashSaleItems: Prisma.$FlashSaleItemPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -2064,8 +2206,8 @@ export namespace Prisma {
       categoryId: string | null
       brand: string
       description: string
-      price: string
-      originalPrice: string | null
+      price: number
+      originalPrice: number | null
       costPrice: number | null
       stock: number
       sales: number
@@ -2484,6 +2626,7 @@ export namespace Prisma {
     categoryRef<T extends Product$categoryRefArgs<ExtArgs> = {}>(args?: Subset<T, Product$categoryRefArgs<ExtArgs>>): Prisma__CategoryClient<$Result.GetResult<Prisma.$CategoryPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
     priceHistories<T extends Product$priceHistoriesArgs<ExtArgs> = {}>(args?: Subset<T, Product$priceHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PriceHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     costHistories<T extends Product$costHistoriesArgs<ExtArgs> = {}>(args?: Subset<T, Product$costHistoriesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$CostPriceHistoryPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
+    flashSaleItems<T extends Product$flashSaleItemsArgs<ExtArgs> = {}>(args?: Subset<T, Product$flashSaleItemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -2523,8 +2666,8 @@ export namespace Prisma {
     readonly categoryId: FieldRef<"Product", 'String'>
     readonly brand: FieldRef<"Product", 'String'>
     readonly description: FieldRef<"Product", 'String'>
-    readonly price: FieldRef<"Product", 'String'>
-    readonly originalPrice: FieldRef<"Product", 'String'>
+    readonly price: FieldRef<"Product", 'Float'>
+    readonly originalPrice: FieldRef<"Product", 'Float'>
     readonly costPrice: FieldRef<"Product", 'Float'>
     readonly stock: FieldRef<"Product", 'Int'>
     readonly sales: FieldRef<"Product", 'Int'>
@@ -3011,6 +3154,30 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: CostPriceHistoryScalarFieldEnum | CostPriceHistoryScalarFieldEnum[]
+  }
+
+  /**
+   * Product.flashSaleItems
+   */
+  export type Product$flashSaleItemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    where?: FlashSaleItemWhereInput
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    cursor?: FlashSaleItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FlashSaleItemScalarFieldEnum | FlashSaleItemScalarFieldEnum[]
   }
 
   /**
@@ -8723,6 +8890,8 @@ export namespace Prisma {
     productsCount?: boolean
     status?: boolean
     createdAt?: boolean
+    items?: boolean | FlashSale$itemsArgs<ExtArgs>
+    _count?: boolean | FlashSaleCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["flashSale"]>
 
   export type FlashSaleSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
@@ -8750,10 +8919,18 @@ export namespace Prisma {
   }
 
   export type FlashSaleOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "timeSlot" | "productsCount" | "status" | "createdAt", ExtArgs["result"]["flashSale"]>
+  export type FlashSaleInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    items?: boolean | FlashSale$itemsArgs<ExtArgs>
+    _count?: boolean | FlashSaleCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type FlashSaleIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
+  export type FlashSaleIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
 
   export type $FlashSalePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "FlashSale"
-    objects: {}
+    objects: {
+      items: Prisma.$FlashSaleItemPayload<ExtArgs>[]
+    }
     scalars: $Extensions.GetPayloadResult<{
       id: string
       timeSlot: string
@@ -9154,6 +9331,7 @@ export namespace Prisma {
    */
   export interface Prisma__FlashSaleClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
+    items<T extends FlashSale$itemsArgs<ExtArgs> = {}>(args?: Subset<T, FlashSale$itemsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -9205,6 +9383,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * Filter, which FlashSale to fetch.
      */
     where: FlashSaleWhereUniqueInput
@@ -9223,6 +9405,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * Filter, which FlashSale to fetch.
      */
     where: FlashSaleWhereUniqueInput
@@ -9240,6 +9426,10 @@ export namespace Prisma {
      * Omit specific fields from the FlashSale
      */
     omit?: FlashSaleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
     /**
      * Filter, which FlashSale to fetch.
      */
@@ -9289,6 +9479,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * Filter, which FlashSale to fetch.
      */
     where?: FlashSaleWhereInput
@@ -9336,6 +9530,10 @@ export namespace Prisma {
      * Omit specific fields from the FlashSale
      */
     omit?: FlashSaleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
     /**
      * Filter, which FlashSales to fetch.
      */
@@ -9385,6 +9583,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * The data needed to create a FlashSale.
      */
     data: XOR<FlashSaleCreateInput, FlashSaleUncheckedCreateInput>
@@ -9432,6 +9634,10 @@ export namespace Prisma {
      * Omit specific fields from the FlashSale
      */
     omit?: FlashSaleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
     /**
      * The data needed to update a FlashSale.
      */
@@ -9499,6 +9705,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * The filter to search for the FlashSale to update in case it exists.
      */
     where: FlashSaleWhereUniqueInput
@@ -9525,6 +9735,10 @@ export namespace Prisma {
      */
     omit?: FlashSaleOmit<ExtArgs> | null
     /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+    /**
      * Filter which FlashSale to delete.
      */
     where: FlashSaleWhereUniqueInput
@@ -9545,6 +9759,30 @@ export namespace Prisma {
   }
 
   /**
+   * FlashSale.items
+   */
+  export type FlashSale$itemsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    where?: FlashSaleItemWhereInput
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    cursor?: FlashSaleItemWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: FlashSaleItemScalarFieldEnum | FlashSaleItemScalarFieldEnum[]
+  }
+
+  /**
    * FlashSale without action
    */
   export type FlashSaleDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -9556,6 +9794,1205 @@ export namespace Prisma {
      * Omit specific fields from the FlashSale
      */
     omit?: FlashSaleOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model FlashSaleItem
+   */
+
+  export type AggregateFlashSaleItem = {
+    _count: FlashSaleItemCountAggregateOutputType | null
+    _avg: FlashSaleItemAvgAggregateOutputType | null
+    _sum: FlashSaleItemSumAggregateOutputType | null
+    _min: FlashSaleItemMinAggregateOutputType | null
+    _max: FlashSaleItemMaxAggregateOutputType | null
+  }
+
+  export type FlashSaleItemAvgAggregateOutputType = {
+    flashPrice: number | null
+    originalPrice: number | null
+    stockLimit: number | null
+    stockSold: number | null
+  }
+
+  export type FlashSaleItemSumAggregateOutputType = {
+    flashPrice: number | null
+    originalPrice: number | null
+    stockLimit: number | null
+    stockSold: number | null
+  }
+
+  export type FlashSaleItemMinAggregateOutputType = {
+    id: string | null
+    flashSaleId: string | null
+    productId: string | null
+    shopId: string | null
+    flashPrice: number | null
+    originalPrice: number | null
+    stockLimit: number | null
+    stockSold: number | null
+    status: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FlashSaleItemMaxAggregateOutputType = {
+    id: string | null
+    flashSaleId: string | null
+    productId: string | null
+    shopId: string | null
+    flashPrice: number | null
+    originalPrice: number | null
+    stockLimit: number | null
+    stockSold: number | null
+    status: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type FlashSaleItemCountAggregateOutputType = {
+    id: number
+    flashSaleId: number
+    productId: number
+    shopId: number
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold: number
+    status: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type FlashSaleItemAvgAggregateInputType = {
+    flashPrice?: true
+    originalPrice?: true
+    stockLimit?: true
+    stockSold?: true
+  }
+
+  export type FlashSaleItemSumAggregateInputType = {
+    flashPrice?: true
+    originalPrice?: true
+    stockLimit?: true
+    stockSold?: true
+  }
+
+  export type FlashSaleItemMinAggregateInputType = {
+    id?: true
+    flashSaleId?: true
+    productId?: true
+    shopId?: true
+    flashPrice?: true
+    originalPrice?: true
+    stockLimit?: true
+    stockSold?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FlashSaleItemMaxAggregateInputType = {
+    id?: true
+    flashSaleId?: true
+    productId?: true
+    shopId?: true
+    flashPrice?: true
+    originalPrice?: true
+    stockLimit?: true
+    stockSold?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type FlashSaleItemCountAggregateInputType = {
+    id?: true
+    flashSaleId?: true
+    productId?: true
+    shopId?: true
+    flashPrice?: true
+    originalPrice?: true
+    stockLimit?: true
+    stockSold?: true
+    status?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type FlashSaleItemAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FlashSaleItem to aggregate.
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FlashSaleItems to fetch.
+     */
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: FlashSaleItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FlashSaleItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FlashSaleItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned FlashSaleItems
+    **/
+    _count?: true | FlashSaleItemCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: FlashSaleItemAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: FlashSaleItemSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: FlashSaleItemMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: FlashSaleItemMaxAggregateInputType
+  }
+
+  export type GetFlashSaleItemAggregateType<T extends FlashSaleItemAggregateArgs> = {
+        [P in keyof T & keyof AggregateFlashSaleItem]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateFlashSaleItem[P]>
+      : GetScalarType<T[P], AggregateFlashSaleItem[P]>
+  }
+
+
+
+
+  export type FlashSaleItemGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: FlashSaleItemWhereInput
+    orderBy?: FlashSaleItemOrderByWithAggregationInput | FlashSaleItemOrderByWithAggregationInput[]
+    by: FlashSaleItemScalarFieldEnum[] | FlashSaleItemScalarFieldEnum
+    having?: FlashSaleItemScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: FlashSaleItemCountAggregateInputType | true
+    _avg?: FlashSaleItemAvgAggregateInputType
+    _sum?: FlashSaleItemSumAggregateInputType
+    _min?: FlashSaleItemMinAggregateInputType
+    _max?: FlashSaleItemMaxAggregateInputType
+  }
+
+  export type FlashSaleItemGroupByOutputType = {
+    id: string
+    flashSaleId: string
+    productId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold: number
+    status: string
+    createdAt: Date
+    updatedAt: Date
+    _count: FlashSaleItemCountAggregateOutputType | null
+    _avg: FlashSaleItemAvgAggregateOutputType | null
+    _sum: FlashSaleItemSumAggregateOutputType | null
+    _min: FlashSaleItemMinAggregateOutputType | null
+    _max: FlashSaleItemMaxAggregateOutputType | null
+  }
+
+  type GetFlashSaleItemGroupByPayload<T extends FlashSaleItemGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<FlashSaleItemGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof FlashSaleItemGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], FlashSaleItemGroupByOutputType[P]>
+            : GetScalarType<T[P], FlashSaleItemGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type FlashSaleItemSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    flashSaleId?: boolean
+    productId?: boolean
+    shopId?: boolean
+    flashPrice?: boolean
+    originalPrice?: boolean
+    stockLimit?: boolean
+    stockSold?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["flashSaleItem"]>
+
+  export type FlashSaleItemSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    flashSaleId?: boolean
+    productId?: boolean
+    shopId?: boolean
+    flashPrice?: boolean
+    originalPrice?: boolean
+    stockLimit?: boolean
+    stockSold?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["flashSaleItem"]>
+
+  export type FlashSaleItemSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    flashSaleId?: boolean
+    productId?: boolean
+    shopId?: boolean
+    flashPrice?: boolean
+    originalPrice?: boolean
+    stockLimit?: boolean
+    stockSold?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["flashSaleItem"]>
+
+  export type FlashSaleItemSelectScalar = {
+    id?: boolean
+    flashSaleId?: boolean
+    productId?: boolean
+    shopId?: boolean
+    flashPrice?: boolean
+    originalPrice?: boolean
+    stockLimit?: boolean
+    stockSold?: boolean
+    status?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type FlashSaleItemOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "flashSaleId" | "productId" | "shopId" | "flashPrice" | "originalPrice" | "stockLimit" | "stockSold" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["flashSaleItem"]>
+  export type FlashSaleItemInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }
+  export type FlashSaleItemIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }
+  export type FlashSaleItemIncludeUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    flashSale?: boolean | FlashSaleDefaultArgs<ExtArgs>
+    product?: boolean | ProductDefaultArgs<ExtArgs>
+  }
+
+  export type $FlashSaleItemPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "FlashSaleItem"
+    objects: {
+      flashSale: Prisma.$FlashSalePayload<ExtArgs>
+      product: Prisma.$ProductPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      flashSaleId: string
+      productId: string
+      shopId: string
+      flashPrice: number
+      originalPrice: number
+      stockLimit: number
+      stockSold: number
+      status: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["flashSaleItem"]>
+    composites: {}
+  }
+
+  type FlashSaleItemGetPayload<S extends boolean | null | undefined | FlashSaleItemDefaultArgs> = $Result.GetResult<Prisma.$FlashSaleItemPayload, S>
+
+  type FlashSaleItemCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<FlashSaleItemFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: FlashSaleItemCountAggregateInputType | true
+    }
+
+  export interface FlashSaleItemDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['FlashSaleItem'], meta: { name: 'FlashSaleItem' } }
+    /**
+     * Find zero or one FlashSaleItem that matches the filter.
+     * @param {FlashSaleItemFindUniqueArgs} args - Arguments to find a FlashSaleItem
+     * @example
+     * // Get one FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends FlashSaleItemFindUniqueArgs>(args: SelectSubset<T, FlashSaleItemFindUniqueArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one FlashSaleItem that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {FlashSaleItemFindUniqueOrThrowArgs} args - Arguments to find a FlashSaleItem
+     * @example
+     * // Get one FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends FlashSaleItemFindUniqueOrThrowArgs>(args: SelectSubset<T, FlashSaleItemFindUniqueOrThrowArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FlashSaleItem that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemFindFirstArgs} args - Arguments to find a FlashSaleItem
+     * @example
+     * // Get one FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends FlashSaleItemFindFirstArgs>(args?: SelectSubset<T, FlashSaleItemFindFirstArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first FlashSaleItem that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemFindFirstOrThrowArgs} args - Arguments to find a FlashSaleItem
+     * @example
+     * // Get one FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends FlashSaleItemFindFirstOrThrowArgs>(args?: SelectSubset<T, FlashSaleItemFindFirstOrThrowArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more FlashSaleItems that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all FlashSaleItems
+     * const flashSaleItems = await prisma.flashSaleItem.findMany()
+     * 
+     * // Get first 10 FlashSaleItems
+     * const flashSaleItems = await prisma.flashSaleItem.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const flashSaleItemWithIdOnly = await prisma.flashSaleItem.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends FlashSaleItemFindManyArgs>(args?: SelectSubset<T, FlashSaleItemFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a FlashSaleItem.
+     * @param {FlashSaleItemCreateArgs} args - Arguments to create a FlashSaleItem.
+     * @example
+     * // Create one FlashSaleItem
+     * const FlashSaleItem = await prisma.flashSaleItem.create({
+     *   data: {
+     *     // ... data to create a FlashSaleItem
+     *   }
+     * })
+     * 
+     */
+    create<T extends FlashSaleItemCreateArgs>(args: SelectSubset<T, FlashSaleItemCreateArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many FlashSaleItems.
+     * @param {FlashSaleItemCreateManyArgs} args - Arguments to create many FlashSaleItems.
+     * @example
+     * // Create many FlashSaleItems
+     * const flashSaleItem = await prisma.flashSaleItem.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends FlashSaleItemCreateManyArgs>(args?: SelectSubset<T, FlashSaleItemCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many FlashSaleItems and returns the data saved in the database.
+     * @param {FlashSaleItemCreateManyAndReturnArgs} args - Arguments to create many FlashSaleItems.
+     * @example
+     * // Create many FlashSaleItems
+     * const flashSaleItem = await prisma.flashSaleItem.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many FlashSaleItems and only return the `id`
+     * const flashSaleItemWithIdOnly = await prisma.flashSaleItem.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends FlashSaleItemCreateManyAndReturnArgs>(args?: SelectSubset<T, FlashSaleItemCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a FlashSaleItem.
+     * @param {FlashSaleItemDeleteArgs} args - Arguments to delete one FlashSaleItem.
+     * @example
+     * // Delete one FlashSaleItem
+     * const FlashSaleItem = await prisma.flashSaleItem.delete({
+     *   where: {
+     *     // ... filter to delete one FlashSaleItem
+     *   }
+     * })
+     * 
+     */
+    delete<T extends FlashSaleItemDeleteArgs>(args: SelectSubset<T, FlashSaleItemDeleteArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one FlashSaleItem.
+     * @param {FlashSaleItemUpdateArgs} args - Arguments to update one FlashSaleItem.
+     * @example
+     * // Update one FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends FlashSaleItemUpdateArgs>(args: SelectSubset<T, FlashSaleItemUpdateArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more FlashSaleItems.
+     * @param {FlashSaleItemDeleteManyArgs} args - Arguments to filter FlashSaleItems to delete.
+     * @example
+     * // Delete a few FlashSaleItems
+     * const { count } = await prisma.flashSaleItem.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends FlashSaleItemDeleteManyArgs>(args?: SelectSubset<T, FlashSaleItemDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FlashSaleItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many FlashSaleItems
+     * const flashSaleItem = await prisma.flashSaleItem.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends FlashSaleItemUpdateManyArgs>(args: SelectSubset<T, FlashSaleItemUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more FlashSaleItems and returns the data updated in the database.
+     * @param {FlashSaleItemUpdateManyAndReturnArgs} args - Arguments to update many FlashSaleItems.
+     * @example
+     * // Update many FlashSaleItems
+     * const flashSaleItem = await prisma.flashSaleItem.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more FlashSaleItems and only return the `id`
+     * const flashSaleItemWithIdOnly = await prisma.flashSaleItem.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends FlashSaleItemUpdateManyAndReturnArgs>(args: SelectSubset<T, FlashSaleItemUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one FlashSaleItem.
+     * @param {FlashSaleItemUpsertArgs} args - Arguments to update or create a FlashSaleItem.
+     * @example
+     * // Update or create a FlashSaleItem
+     * const flashSaleItem = await prisma.flashSaleItem.upsert({
+     *   create: {
+     *     // ... data to create a FlashSaleItem
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the FlashSaleItem we want to update
+     *   }
+     * })
+     */
+    upsert<T extends FlashSaleItemUpsertArgs>(args: SelectSubset<T, FlashSaleItemUpsertArgs<ExtArgs>>): Prisma__FlashSaleItemClient<$Result.GetResult<Prisma.$FlashSaleItemPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of FlashSaleItems.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemCountArgs} args - Arguments to filter FlashSaleItems to count.
+     * @example
+     * // Count the number of FlashSaleItems
+     * const count = await prisma.flashSaleItem.count({
+     *   where: {
+     *     // ... the filter for the FlashSaleItems we want to count
+     *   }
+     * })
+    **/
+    count<T extends FlashSaleItemCountArgs>(
+      args?: Subset<T, FlashSaleItemCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], FlashSaleItemCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a FlashSaleItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends FlashSaleItemAggregateArgs>(args: Subset<T, FlashSaleItemAggregateArgs>): Prisma.PrismaPromise<GetFlashSaleItemAggregateType<T>>
+
+    /**
+     * Group by FlashSaleItem.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {FlashSaleItemGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends FlashSaleItemGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: FlashSaleItemGroupByArgs['orderBy'] }
+        : { orderBy?: FlashSaleItemGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, FlashSaleItemGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetFlashSaleItemGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the FlashSaleItem model
+   */
+  readonly fields: FlashSaleItemFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for FlashSaleItem.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__FlashSaleItemClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    flashSale<T extends FlashSaleDefaultArgs<ExtArgs> = {}>(args?: Subset<T, FlashSaleDefaultArgs<ExtArgs>>): Prisma__FlashSaleClient<$Result.GetResult<Prisma.$FlashSalePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    product<T extends ProductDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ProductDefaultArgs<ExtArgs>>): Prisma__ProductClient<$Result.GetResult<Prisma.$ProductPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions> | Null, Null, ExtArgs, GlobalOmitOptions>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the FlashSaleItem model
+   */
+  interface FlashSaleItemFieldRefs {
+    readonly id: FieldRef<"FlashSaleItem", 'String'>
+    readonly flashSaleId: FieldRef<"FlashSaleItem", 'String'>
+    readonly productId: FieldRef<"FlashSaleItem", 'String'>
+    readonly shopId: FieldRef<"FlashSaleItem", 'String'>
+    readonly flashPrice: FieldRef<"FlashSaleItem", 'Float'>
+    readonly originalPrice: FieldRef<"FlashSaleItem", 'Float'>
+    readonly stockLimit: FieldRef<"FlashSaleItem", 'Int'>
+    readonly stockSold: FieldRef<"FlashSaleItem", 'Int'>
+    readonly status: FieldRef<"FlashSaleItem", 'String'>
+    readonly createdAt: FieldRef<"FlashSaleItem", 'DateTime'>
+    readonly updatedAt: FieldRef<"FlashSaleItem", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * FlashSaleItem findUnique
+   */
+  export type FlashSaleItemFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter, which FlashSaleItem to fetch.
+     */
+    where: FlashSaleItemWhereUniqueInput
+  }
+
+  /**
+   * FlashSaleItem findUniqueOrThrow
+   */
+  export type FlashSaleItemFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter, which FlashSaleItem to fetch.
+     */
+    where: FlashSaleItemWhereUniqueInput
+  }
+
+  /**
+   * FlashSaleItem findFirst
+   */
+  export type FlashSaleItemFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter, which FlashSaleItem to fetch.
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FlashSaleItems to fetch.
+     */
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FlashSaleItems.
+     */
+    cursor?: FlashSaleItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FlashSaleItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FlashSaleItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FlashSaleItems.
+     */
+    distinct?: FlashSaleItemScalarFieldEnum | FlashSaleItemScalarFieldEnum[]
+  }
+
+  /**
+   * FlashSaleItem findFirstOrThrow
+   */
+  export type FlashSaleItemFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter, which FlashSaleItem to fetch.
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FlashSaleItems to fetch.
+     */
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for FlashSaleItems.
+     */
+    cursor?: FlashSaleItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FlashSaleItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FlashSaleItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FlashSaleItems.
+     */
+    distinct?: FlashSaleItemScalarFieldEnum | FlashSaleItemScalarFieldEnum[]
+  }
+
+  /**
+   * FlashSaleItem findMany
+   */
+  export type FlashSaleItemFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter, which FlashSaleItems to fetch.
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of FlashSaleItems to fetch.
+     */
+    orderBy?: FlashSaleItemOrderByWithRelationInput | FlashSaleItemOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing FlashSaleItems.
+     */
+    cursor?: FlashSaleItemWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` FlashSaleItems from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` FlashSaleItems.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of FlashSaleItems.
+     */
+    distinct?: FlashSaleItemScalarFieldEnum | FlashSaleItemScalarFieldEnum[]
+  }
+
+  /**
+   * FlashSaleItem create
+   */
+  export type FlashSaleItemCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * The data needed to create a FlashSaleItem.
+     */
+    data: XOR<FlashSaleItemCreateInput, FlashSaleItemUncheckedCreateInput>
+  }
+
+  /**
+   * FlashSaleItem createMany
+   */
+  export type FlashSaleItemCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many FlashSaleItems.
+     */
+    data: FlashSaleItemCreateManyInput | FlashSaleItemCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * FlashSaleItem createManyAndReturn
+   */
+  export type FlashSaleItemCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * The data used to create many FlashSaleItems.
+     */
+    data: FlashSaleItemCreateManyInput | FlashSaleItemCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FlashSaleItem update
+   */
+  export type FlashSaleItemUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * The data needed to update a FlashSaleItem.
+     */
+    data: XOR<FlashSaleItemUpdateInput, FlashSaleItemUncheckedUpdateInput>
+    /**
+     * Choose, which FlashSaleItem to update.
+     */
+    where: FlashSaleItemWhereUniqueInput
+  }
+
+  /**
+   * FlashSaleItem updateMany
+   */
+  export type FlashSaleItemUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update FlashSaleItems.
+     */
+    data: XOR<FlashSaleItemUpdateManyMutationInput, FlashSaleItemUncheckedUpdateManyInput>
+    /**
+     * Filter which FlashSaleItems to update
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * Limit how many FlashSaleItems to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * FlashSaleItem updateManyAndReturn
+   */
+  export type FlashSaleItemUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * The data used to update FlashSaleItems.
+     */
+    data: XOR<FlashSaleItemUpdateManyMutationInput, FlashSaleItemUncheckedUpdateManyInput>
+    /**
+     * Filter which FlashSaleItems to update
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * Limit how many FlashSaleItems to update.
+     */
+    limit?: number
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemIncludeUpdateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * FlashSaleItem upsert
+   */
+  export type FlashSaleItemUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * The filter to search for the FlashSaleItem to update in case it exists.
+     */
+    where: FlashSaleItemWhereUniqueInput
+    /**
+     * In case the FlashSaleItem found by the `where` argument doesn't exist, create a new FlashSaleItem with this data.
+     */
+    create: XOR<FlashSaleItemCreateInput, FlashSaleItemUncheckedCreateInput>
+    /**
+     * In case the FlashSaleItem was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<FlashSaleItemUpdateInput, FlashSaleItemUncheckedUpdateInput>
+  }
+
+  /**
+   * FlashSaleItem delete
+   */
+  export type FlashSaleItemDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
+    /**
+     * Filter which FlashSaleItem to delete.
+     */
+    where: FlashSaleItemWhereUniqueInput
+  }
+
+  /**
+   * FlashSaleItem deleteMany
+   */
+  export type FlashSaleItemDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which FlashSaleItems to delete
+     */
+    where?: FlashSaleItemWhereInput
+    /**
+     * Limit how many FlashSaleItems to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * FlashSaleItem without action
+   */
+  export type FlashSaleItemDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the FlashSaleItem
+     */
+    select?: FlashSaleItemSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the FlashSaleItem
+     */
+    omit?: FlashSaleItemOmit<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: FlashSaleItemInclude<ExtArgs> | null
   }
 
 
@@ -9692,6 +11129,23 @@ export namespace Prisma {
   export type FlashSaleScalarFieldEnum = (typeof FlashSaleScalarFieldEnum)[keyof typeof FlashSaleScalarFieldEnum]
 
 
+  export const FlashSaleItemScalarFieldEnum: {
+    id: 'id',
+    flashSaleId: 'flashSaleId',
+    productId: 'productId',
+    shopId: 'shopId',
+    flashPrice: 'flashPrice',
+    originalPrice: 'originalPrice',
+    stockLimit: 'stockLimit',
+    stockSold: 'stockSold',
+    status: 'status',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type FlashSaleItemScalarFieldEnum = (typeof FlashSaleItemScalarFieldEnum)[keyof typeof FlashSaleItemScalarFieldEnum]
+
+
   export const SortOrder: {
     asc: 'asc',
     desc: 'desc'
@@ -9801,8 +11255,8 @@ export namespace Prisma {
     categoryId?: StringNullableFilter<"Product"> | string | null
     brand?: StringFilter<"Product"> | string
     description?: StringFilter<"Product"> | string
-    price?: StringFilter<"Product"> | string
-    originalPrice?: StringNullableFilter<"Product"> | string | null
+    price?: FloatFilter<"Product"> | number
+    originalPrice?: FloatNullableFilter<"Product"> | number | null
     costPrice?: FloatNullableFilter<"Product"> | number | null
     stock?: IntFilter<"Product"> | number
     sales?: IntFilter<"Product"> | number
@@ -9827,6 +11281,7 @@ export namespace Prisma {
     categoryRef?: XOR<CategoryNullableScalarRelationFilter, CategoryWhereInput> | null
     priceHistories?: PriceHistoryListRelationFilter
     costHistories?: CostPriceHistoryListRelationFilter
+    flashSaleItems?: FlashSaleItemListRelationFilter
   }
 
   export type ProductOrderByWithRelationInput = {
@@ -9866,6 +11321,7 @@ export namespace Prisma {
     categoryRef?: CategoryOrderByWithRelationInput
     priceHistories?: PriceHistoryOrderByRelationAggregateInput
     costHistories?: CostPriceHistoryOrderByRelationAggregateInput
+    flashSaleItems?: FlashSaleItemOrderByRelationAggregateInput
   }
 
   export type ProductWhereUniqueInput = Prisma.AtLeast<{
@@ -9882,8 +11338,8 @@ export namespace Prisma {
     categoryId?: StringNullableFilter<"Product"> | string | null
     brand?: StringFilter<"Product"> | string
     description?: StringFilter<"Product"> | string
-    price?: StringFilter<"Product"> | string
-    originalPrice?: StringNullableFilter<"Product"> | string | null
+    price?: FloatFilter<"Product"> | number
+    originalPrice?: FloatNullableFilter<"Product"> | number | null
     costPrice?: FloatNullableFilter<"Product"> | number | null
     stock?: IntFilter<"Product"> | number
     sales?: IntFilter<"Product"> | number
@@ -9908,6 +11364,7 @@ export namespace Prisma {
     categoryRef?: XOR<CategoryNullableScalarRelationFilter, CategoryWhereInput> | null
     priceHistories?: PriceHistoryListRelationFilter
     costHistories?: CostPriceHistoryListRelationFilter
+    flashSaleItems?: FlashSaleItemListRelationFilter
   }, "id">
 
   export type ProductOrderByWithAggregationInput = {
@@ -9965,8 +11422,8 @@ export namespace Prisma {
     categoryId?: StringNullableWithAggregatesFilter<"Product"> | string | null
     brand?: StringWithAggregatesFilter<"Product"> | string
     description?: StringWithAggregatesFilter<"Product"> | string
-    price?: StringWithAggregatesFilter<"Product"> | string
-    originalPrice?: StringNullableWithAggregatesFilter<"Product"> | string | null
+    price?: FloatWithAggregatesFilter<"Product"> | number
+    originalPrice?: FloatNullableWithAggregatesFilter<"Product"> | number | null
     costPrice?: FloatNullableWithAggregatesFilter<"Product"> | number | null
     stock?: IntWithAggregatesFilter<"Product"> | number
     sales?: IntWithAggregatesFilter<"Product"> | number
@@ -10345,6 +11802,7 @@ export namespace Prisma {
     productsCount?: IntFilter<"FlashSale"> | number
     status?: StringFilter<"FlashSale"> | string
     createdAt?: DateTimeFilter<"FlashSale"> | Date | string
+    items?: FlashSaleItemListRelationFilter
   }
 
   export type FlashSaleOrderByWithRelationInput = {
@@ -10353,6 +11811,7 @@ export namespace Prisma {
     productsCount?: SortOrder
     status?: SortOrder
     createdAt?: SortOrder
+    items?: FlashSaleItemOrderByRelationAggregateInput
   }
 
   export type FlashSaleWhereUniqueInput = Prisma.AtLeast<{
@@ -10364,6 +11823,7 @@ export namespace Prisma {
     productsCount?: IntFilter<"FlashSale"> | number
     status?: StringFilter<"FlashSale"> | string
     createdAt?: DateTimeFilter<"FlashSale"> | Date | string
+    items?: FlashSaleItemListRelationFilter
   }, "id" | "timeSlot">
 
   export type FlashSaleOrderByWithAggregationInput = {
@@ -10390,6 +11850,97 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"FlashSale"> | Date | string
   }
 
+  export type FlashSaleItemWhereInput = {
+    AND?: FlashSaleItemWhereInput | FlashSaleItemWhereInput[]
+    OR?: FlashSaleItemWhereInput[]
+    NOT?: FlashSaleItemWhereInput | FlashSaleItemWhereInput[]
+    id?: StringFilter<"FlashSaleItem"> | string
+    flashSaleId?: StringFilter<"FlashSaleItem"> | string
+    productId?: StringFilter<"FlashSaleItem"> | string
+    shopId?: StringFilter<"FlashSaleItem"> | string
+    flashPrice?: FloatFilter<"FlashSaleItem"> | number
+    originalPrice?: FloatFilter<"FlashSaleItem"> | number
+    stockLimit?: IntFilter<"FlashSaleItem"> | number
+    stockSold?: IntFilter<"FlashSaleItem"> | number
+    status?: StringFilter<"FlashSaleItem"> | string
+    createdAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+    updatedAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+    flashSale?: XOR<FlashSaleScalarRelationFilter, FlashSaleWhereInput>
+    product?: XOR<ProductScalarRelationFilter, ProductWhereInput>
+  }
+
+  export type FlashSaleItemOrderByWithRelationInput = {
+    id?: SortOrder
+    flashSaleId?: SortOrder
+    productId?: SortOrder
+    shopId?: SortOrder
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    flashSale?: FlashSaleOrderByWithRelationInput
+    product?: ProductOrderByWithRelationInput
+  }
+
+  export type FlashSaleItemWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    flashSaleId_productId?: FlashSaleItemFlashSaleIdProductIdCompoundUniqueInput
+    AND?: FlashSaleItemWhereInput | FlashSaleItemWhereInput[]
+    OR?: FlashSaleItemWhereInput[]
+    NOT?: FlashSaleItemWhereInput | FlashSaleItemWhereInput[]
+    flashSaleId?: StringFilter<"FlashSaleItem"> | string
+    productId?: StringFilter<"FlashSaleItem"> | string
+    shopId?: StringFilter<"FlashSaleItem"> | string
+    flashPrice?: FloatFilter<"FlashSaleItem"> | number
+    originalPrice?: FloatFilter<"FlashSaleItem"> | number
+    stockLimit?: IntFilter<"FlashSaleItem"> | number
+    stockSold?: IntFilter<"FlashSaleItem"> | number
+    status?: StringFilter<"FlashSaleItem"> | string
+    createdAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+    updatedAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+    flashSale?: XOR<FlashSaleScalarRelationFilter, FlashSaleWhereInput>
+    product?: XOR<ProductScalarRelationFilter, ProductWhereInput>
+  }, "id" | "flashSaleId_productId">
+
+  export type FlashSaleItemOrderByWithAggregationInput = {
+    id?: SortOrder
+    flashSaleId?: SortOrder
+    productId?: SortOrder
+    shopId?: SortOrder
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: FlashSaleItemCountOrderByAggregateInput
+    _avg?: FlashSaleItemAvgOrderByAggregateInput
+    _max?: FlashSaleItemMaxOrderByAggregateInput
+    _min?: FlashSaleItemMinOrderByAggregateInput
+    _sum?: FlashSaleItemSumOrderByAggregateInput
+  }
+
+  export type FlashSaleItemScalarWhereWithAggregatesInput = {
+    AND?: FlashSaleItemScalarWhereWithAggregatesInput | FlashSaleItemScalarWhereWithAggregatesInput[]
+    OR?: FlashSaleItemScalarWhereWithAggregatesInput[]
+    NOT?: FlashSaleItemScalarWhereWithAggregatesInput | FlashSaleItemScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"FlashSaleItem"> | string
+    flashSaleId?: StringWithAggregatesFilter<"FlashSaleItem"> | string
+    productId?: StringWithAggregatesFilter<"FlashSaleItem"> | string
+    shopId?: StringWithAggregatesFilter<"FlashSaleItem"> | string
+    flashPrice?: FloatWithAggregatesFilter<"FlashSaleItem"> | number
+    originalPrice?: FloatWithAggregatesFilter<"FlashSaleItem"> | number
+    stockLimit?: IntWithAggregatesFilter<"FlashSaleItem"> | number
+    stockSold?: IntWithAggregatesFilter<"FlashSaleItem"> | number
+    status?: StringWithAggregatesFilter<"FlashSaleItem"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"FlashSaleItem"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"FlashSaleItem"> | Date | string
+  }
+
   export type ProductCreateInput = {
     id?: string
     shopId: string
@@ -10400,8 +11951,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -10426,6 +11977,7 @@ export namespace Prisma {
     categoryRef?: CategoryCreateNestedOneWithoutProductsInput
     priceHistories?: PriceHistoryCreateNestedManyWithoutProductInput
     costHistories?: CostPriceHistoryCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemCreateNestedManyWithoutProductInput
   }
 
   export type ProductUncheckedCreateInput = {
@@ -10439,8 +11991,8 @@ export namespace Prisma {
     categoryId?: string | null
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -10464,6 +12016,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     priceHistories?: PriceHistoryUncheckedCreateNestedManyWithoutProductInput
     costHistories?: CostPriceHistoryUncheckedCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemUncheckedCreateNestedManyWithoutProductInput
   }
 
   export type ProductUpdateInput = {
@@ -10476,8 +12029,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -10502,6 +12055,7 @@ export namespace Prisma {
     categoryRef?: CategoryUpdateOneWithoutProductsNestedInput
     priceHistories?: PriceHistoryUpdateManyWithoutProductNestedInput
     costHistories?: CostPriceHistoryUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUpdateManyWithoutProductNestedInput
   }
 
   export type ProductUncheckedUpdateInput = {
@@ -10515,8 +12069,8 @@ export namespace Prisma {
     categoryId?: NullableStringFieldUpdateOperationsInput | string | null
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -10540,6 +12094,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     priceHistories?: PriceHistoryUncheckedUpdateManyWithoutProductNestedInput
     costHistories?: CostPriceHistoryUncheckedUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUncheckedUpdateManyWithoutProductNestedInput
   }
 
   export type ProductCreateManyInput = {
@@ -10553,8 +12108,8 @@ export namespace Prisma {
     categoryId?: string | null
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -10588,8 +12143,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -10624,8 +12179,8 @@ export namespace Prisma {
     categoryId?: NullableStringFieldUpdateOperationsInput | string | null
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -11035,6 +12590,7 @@ export namespace Prisma {
     productsCount?: number
     status?: string
     createdAt?: Date | string
+    items?: FlashSaleItemCreateNestedManyWithoutFlashSaleInput
   }
 
   export type FlashSaleUncheckedCreateInput = {
@@ -11043,6 +12599,7 @@ export namespace Prisma {
     productsCount?: number
     status?: string
     createdAt?: Date | string
+    items?: FlashSaleItemUncheckedCreateNestedManyWithoutFlashSaleInput
   }
 
   export type FlashSaleUpdateInput = {
@@ -11051,6 +12608,7 @@ export namespace Prisma {
     productsCount?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: FlashSaleItemUpdateManyWithoutFlashSaleNestedInput
   }
 
   export type FlashSaleUncheckedUpdateInput = {
@@ -11059,6 +12617,7 @@ export namespace Prisma {
     productsCount?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    items?: FlashSaleItemUncheckedUpdateManyWithoutFlashSaleNestedInput
   }
 
   export type FlashSaleCreateManyInput = {
@@ -11083,6 +12642,102 @@ export namespace Prisma {
     productsCount?: IntFieldUpdateOperationsInput | number
     status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemCreateInput = {
+    id?: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    flashSale: FlashSaleCreateNestedOneWithoutItemsInput
+    product: ProductCreateNestedOneWithoutFlashSaleItemsInput
+  }
+
+  export type FlashSaleItemUncheckedCreateInput = {
+    id?: string
+    flashSaleId: string
+    productId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FlashSaleItemUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    flashSale?: FlashSaleUpdateOneRequiredWithoutItemsNestedInput
+    product?: ProductUpdateOneRequiredWithoutFlashSaleItemsNestedInput
+  }
+
+  export type FlashSaleItemUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    flashSaleId?: StringFieldUpdateOperationsInput | string
+    productId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemCreateManyInput = {
+    id?: string
+    flashSaleId: string
+    productId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FlashSaleItemUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    flashSaleId?: StringFieldUpdateOperationsInput | string
+    productId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -11113,6 +12768,17 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type FloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type FloatNullableFilter<$PrismaModel = never> = {
@@ -11170,6 +12836,12 @@ export namespace Prisma {
     none?: CostPriceHistoryWhereInput
   }
 
+  export type FlashSaleItemListRelationFilter = {
+    every?: FlashSaleItemWhereInput
+    some?: FlashSaleItemWhereInput
+    none?: FlashSaleItemWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -11180,6 +12852,10 @@ export namespace Prisma {
   }
 
   export type CostPriceHistoryOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type FlashSaleItemOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -11220,6 +12896,8 @@ export namespace Prisma {
   }
 
   export type ProductAvgOrderByAggregateInput = {
+    price?: SortOrder
+    originalPrice?: SortOrder
     costPrice?: SortOrder
     stock?: SortOrder
     sales?: SortOrder
@@ -11299,6 +12977,8 @@ export namespace Prisma {
   }
 
   export type ProductSumOrderByAggregateInput = {
+    price?: SortOrder
+    originalPrice?: SortOrder
     costPrice?: SortOrder
     stock?: SortOrder
     sales?: SortOrder
@@ -11339,6 +13019,22 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type FloatNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -11395,17 +13091,6 @@ export namespace Prisma {
     _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
-  export type FloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type ProductScalarRelationFilter = {
     is?: ProductWhereInput
     isNot?: ProductWhereInput
@@ -11458,22 +13143,6 @@ export namespace Prisma {
   export type PriceHistorySumOrderByAggregateInput = {
     oldPrice?: SortOrder
     newPrice?: SortOrder
-  }
-
-  export type FloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type CostPriceHistoryCountOrderByAggregateInput = {
@@ -11664,6 +13333,72 @@ export namespace Prisma {
     productsCount?: SortOrder
   }
 
+  export type FlashSaleScalarRelationFilter = {
+    is?: FlashSaleWhereInput
+    isNot?: FlashSaleWhereInput
+  }
+
+  export type FlashSaleItemFlashSaleIdProductIdCompoundUniqueInput = {
+    flashSaleId: string
+    productId: string
+  }
+
+  export type FlashSaleItemCountOrderByAggregateInput = {
+    id?: SortOrder
+    flashSaleId?: SortOrder
+    productId?: SortOrder
+    shopId?: SortOrder
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FlashSaleItemAvgOrderByAggregateInput = {
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+  }
+
+  export type FlashSaleItemMaxOrderByAggregateInput = {
+    id?: SortOrder
+    flashSaleId?: SortOrder
+    productId?: SortOrder
+    shopId?: SortOrder
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FlashSaleItemMinOrderByAggregateInput = {
+    id?: SortOrder
+    flashSaleId?: SortOrder
+    productId?: SortOrder
+    shopId?: SortOrder
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+    status?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type FlashSaleItemSumOrderByAggregateInput = {
+    flashPrice?: SortOrder
+    originalPrice?: SortOrder
+    stockLimit?: SortOrder
+    stockSold?: SortOrder
+  }
+
   export type CategoryCreateNestedOneWithoutProductsInput = {
     create?: XOR<CategoryCreateWithoutProductsInput, CategoryUncheckedCreateWithoutProductsInput>
     connectOrCreate?: CategoryCreateOrConnectWithoutProductsInput
@@ -11684,6 +13419,13 @@ export namespace Prisma {
     connect?: CostPriceHistoryWhereUniqueInput | CostPriceHistoryWhereUniqueInput[]
   }
 
+  export type FlashSaleItemCreateNestedManyWithoutProductInput = {
+    create?: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput> | FlashSaleItemCreateWithoutProductInput[] | FlashSaleItemUncheckedCreateWithoutProductInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutProductInput | FlashSaleItemCreateOrConnectWithoutProductInput[]
+    createMany?: FlashSaleItemCreateManyProductInputEnvelope
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+  }
+
   export type PriceHistoryUncheckedCreateNestedManyWithoutProductInput = {
     create?: XOR<PriceHistoryCreateWithoutProductInput, PriceHistoryUncheckedCreateWithoutProductInput> | PriceHistoryCreateWithoutProductInput[] | PriceHistoryUncheckedCreateWithoutProductInput[]
     connectOrCreate?: PriceHistoryCreateOrConnectWithoutProductInput | PriceHistoryCreateOrConnectWithoutProductInput[]
@@ -11698,12 +13440,27 @@ export namespace Prisma {
     connect?: CostPriceHistoryWhereUniqueInput | CostPriceHistoryWhereUniqueInput[]
   }
 
+  export type FlashSaleItemUncheckedCreateNestedManyWithoutProductInput = {
+    create?: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput> | FlashSaleItemCreateWithoutProductInput[] | FlashSaleItemUncheckedCreateWithoutProductInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutProductInput | FlashSaleItemCreateOrConnectWithoutProductInput[]
+    createMany?: FlashSaleItemCreateManyProductInputEnvelope
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+  }
+
   export type StringFieldUpdateOperationsInput = {
     set?: string
   }
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type FloatFieldUpdateOperationsInput = {
+    set?: number
+    increment?: number
+    decrement?: number
+    multiply?: number
+    divide?: number
   }
 
   export type NullableFloatFieldUpdateOperationsInput = {
@@ -11768,6 +13525,20 @@ export namespace Prisma {
     deleteMany?: CostPriceHistoryScalarWhereInput | CostPriceHistoryScalarWhereInput[]
   }
 
+  export type FlashSaleItemUpdateManyWithoutProductNestedInput = {
+    create?: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput> | FlashSaleItemCreateWithoutProductInput[] | FlashSaleItemUncheckedCreateWithoutProductInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutProductInput | FlashSaleItemCreateOrConnectWithoutProductInput[]
+    upsert?: FlashSaleItemUpsertWithWhereUniqueWithoutProductInput | FlashSaleItemUpsertWithWhereUniqueWithoutProductInput[]
+    createMany?: FlashSaleItemCreateManyProductInputEnvelope
+    set?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    disconnect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    delete?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    update?: FlashSaleItemUpdateWithWhereUniqueWithoutProductInput | FlashSaleItemUpdateWithWhereUniqueWithoutProductInput[]
+    updateMany?: FlashSaleItemUpdateManyWithWhereWithoutProductInput | FlashSaleItemUpdateManyWithWhereWithoutProductInput[]
+    deleteMany?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+  }
+
   export type PriceHistoryUncheckedUpdateManyWithoutProductNestedInput = {
     create?: XOR<PriceHistoryCreateWithoutProductInput, PriceHistoryUncheckedCreateWithoutProductInput> | PriceHistoryCreateWithoutProductInput[] | PriceHistoryUncheckedCreateWithoutProductInput[]
     connectOrCreate?: PriceHistoryCreateOrConnectWithoutProductInput | PriceHistoryCreateOrConnectWithoutProductInput[]
@@ -11796,18 +13567,24 @@ export namespace Prisma {
     deleteMany?: CostPriceHistoryScalarWhereInput | CostPriceHistoryScalarWhereInput[]
   }
 
+  export type FlashSaleItemUncheckedUpdateManyWithoutProductNestedInput = {
+    create?: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput> | FlashSaleItemCreateWithoutProductInput[] | FlashSaleItemUncheckedCreateWithoutProductInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutProductInput | FlashSaleItemCreateOrConnectWithoutProductInput[]
+    upsert?: FlashSaleItemUpsertWithWhereUniqueWithoutProductInput | FlashSaleItemUpsertWithWhereUniqueWithoutProductInput[]
+    createMany?: FlashSaleItemCreateManyProductInputEnvelope
+    set?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    disconnect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    delete?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    update?: FlashSaleItemUpdateWithWhereUniqueWithoutProductInput | FlashSaleItemUpdateWithWhereUniqueWithoutProductInput[]
+    updateMany?: FlashSaleItemUpdateManyWithWhereWithoutProductInput | FlashSaleItemUpdateManyWithWhereWithoutProductInput[]
+    deleteMany?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+  }
+
   export type ProductCreateNestedOneWithoutPriceHistoriesInput = {
     create?: XOR<ProductCreateWithoutPriceHistoriesInput, ProductUncheckedCreateWithoutPriceHistoriesInput>
     connectOrCreate?: ProductCreateOrConnectWithoutPriceHistoriesInput
     connect?: ProductWhereUniqueInput
-  }
-
-  export type FloatFieldUpdateOperationsInput = {
-    set?: number
-    increment?: number
-    decrement?: number
-    multiply?: number
-    divide?: number
   }
 
   export type ProductUpdateOneRequiredWithoutPriceHistoriesNestedInput = {
@@ -11874,6 +13651,76 @@ export namespace Prisma {
     deleteMany?: ProductScalarWhereInput | ProductScalarWhereInput[]
   }
 
+  export type FlashSaleItemCreateNestedManyWithoutFlashSaleInput = {
+    create?: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput> | FlashSaleItemCreateWithoutFlashSaleInput[] | FlashSaleItemUncheckedCreateWithoutFlashSaleInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutFlashSaleInput | FlashSaleItemCreateOrConnectWithoutFlashSaleInput[]
+    createMany?: FlashSaleItemCreateManyFlashSaleInputEnvelope
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+  }
+
+  export type FlashSaleItemUncheckedCreateNestedManyWithoutFlashSaleInput = {
+    create?: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput> | FlashSaleItemCreateWithoutFlashSaleInput[] | FlashSaleItemUncheckedCreateWithoutFlashSaleInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutFlashSaleInput | FlashSaleItemCreateOrConnectWithoutFlashSaleInput[]
+    createMany?: FlashSaleItemCreateManyFlashSaleInputEnvelope
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+  }
+
+  export type FlashSaleItemUpdateManyWithoutFlashSaleNestedInput = {
+    create?: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput> | FlashSaleItemCreateWithoutFlashSaleInput[] | FlashSaleItemUncheckedCreateWithoutFlashSaleInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutFlashSaleInput | FlashSaleItemCreateOrConnectWithoutFlashSaleInput[]
+    upsert?: FlashSaleItemUpsertWithWhereUniqueWithoutFlashSaleInput | FlashSaleItemUpsertWithWhereUniqueWithoutFlashSaleInput[]
+    createMany?: FlashSaleItemCreateManyFlashSaleInputEnvelope
+    set?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    disconnect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    delete?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    update?: FlashSaleItemUpdateWithWhereUniqueWithoutFlashSaleInput | FlashSaleItemUpdateWithWhereUniqueWithoutFlashSaleInput[]
+    updateMany?: FlashSaleItemUpdateManyWithWhereWithoutFlashSaleInput | FlashSaleItemUpdateManyWithWhereWithoutFlashSaleInput[]
+    deleteMany?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+  }
+
+  export type FlashSaleItemUncheckedUpdateManyWithoutFlashSaleNestedInput = {
+    create?: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput> | FlashSaleItemCreateWithoutFlashSaleInput[] | FlashSaleItemUncheckedCreateWithoutFlashSaleInput[]
+    connectOrCreate?: FlashSaleItemCreateOrConnectWithoutFlashSaleInput | FlashSaleItemCreateOrConnectWithoutFlashSaleInput[]
+    upsert?: FlashSaleItemUpsertWithWhereUniqueWithoutFlashSaleInput | FlashSaleItemUpsertWithWhereUniqueWithoutFlashSaleInput[]
+    createMany?: FlashSaleItemCreateManyFlashSaleInputEnvelope
+    set?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    disconnect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    delete?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    connect?: FlashSaleItemWhereUniqueInput | FlashSaleItemWhereUniqueInput[]
+    update?: FlashSaleItemUpdateWithWhereUniqueWithoutFlashSaleInput | FlashSaleItemUpdateWithWhereUniqueWithoutFlashSaleInput[]
+    updateMany?: FlashSaleItemUpdateManyWithWhereWithoutFlashSaleInput | FlashSaleItemUpdateManyWithWhereWithoutFlashSaleInput[]
+    deleteMany?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+  }
+
+  export type FlashSaleCreateNestedOneWithoutItemsInput = {
+    create?: XOR<FlashSaleCreateWithoutItemsInput, FlashSaleUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: FlashSaleCreateOrConnectWithoutItemsInput
+    connect?: FlashSaleWhereUniqueInput
+  }
+
+  export type ProductCreateNestedOneWithoutFlashSaleItemsInput = {
+    create?: XOR<ProductCreateWithoutFlashSaleItemsInput, ProductUncheckedCreateWithoutFlashSaleItemsInput>
+    connectOrCreate?: ProductCreateOrConnectWithoutFlashSaleItemsInput
+    connect?: ProductWhereUniqueInput
+  }
+
+  export type FlashSaleUpdateOneRequiredWithoutItemsNestedInput = {
+    create?: XOR<FlashSaleCreateWithoutItemsInput, FlashSaleUncheckedCreateWithoutItemsInput>
+    connectOrCreate?: FlashSaleCreateOrConnectWithoutItemsInput
+    upsert?: FlashSaleUpsertWithoutItemsInput
+    connect?: FlashSaleWhereUniqueInput
+    update?: XOR<XOR<FlashSaleUpdateToOneWithWhereWithoutItemsInput, FlashSaleUpdateWithoutItemsInput>, FlashSaleUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type ProductUpdateOneRequiredWithoutFlashSaleItemsNestedInput = {
+    create?: XOR<ProductCreateWithoutFlashSaleItemsInput, ProductUncheckedCreateWithoutFlashSaleItemsInput>
+    connectOrCreate?: ProductCreateOrConnectWithoutFlashSaleItemsInput
+    upsert?: ProductUpsertWithoutFlashSaleItemsInput
+    connect?: ProductWhereUniqueInput
+    update?: XOR<XOR<ProductUpdateToOneWithWhereWithoutFlashSaleItemsInput, ProductUpdateWithoutFlashSaleItemsInput>, ProductUncheckedUpdateWithoutFlashSaleItemsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -11900,6 +13747,17 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedFloatFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatFilter<$PrismaModel> | number
   }
 
   export type NestedFloatNullableFilter<$PrismaModel = never> = {
@@ -11985,6 +13843,22 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: number | FloatFieldRefInput<$PrismaModel>
+    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
+    lt?: number | FloatFieldRefInput<$PrismaModel>
+    lte?: number | FloatFieldRefInput<$PrismaModel>
+    gt?: number | FloatFieldRefInput<$PrismaModel>
+    gte?: number | FloatFieldRefInput<$PrismaModel>
+    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
+    _count?: NestedIntFilter<$PrismaModel>
+    _avg?: NestedFloatFilter<$PrismaModel>
+    _sum?: NestedFloatFilter<$PrismaModel>
+    _min?: NestedFloatFilter<$PrismaModel>
+    _max?: NestedFloatFilter<$PrismaModel>
+  }
+
   export type NestedFloatNullableWithAggregatesFilter<$PrismaModel = never> = {
     equals?: number | FloatFieldRefInput<$PrismaModel> | null
     in?: number[] | ListFloatFieldRefInput<$PrismaModel> | null
@@ -12017,17 +13891,6 @@ export namespace Prisma {
     _max?: NestedIntFilter<$PrismaModel>
   }
 
-  export type NestedFloatFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatFilter<$PrismaModel> | number
-  }
-
   export type NestedBoolWithAggregatesFilter<$PrismaModel = never> = {
     equals?: boolean | BooleanFieldRefInput<$PrismaModel>
     not?: NestedBoolWithAggregatesFilter<$PrismaModel> | boolean
@@ -12048,22 +13911,6 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedDateTimeFilter<$PrismaModel>
     _max?: NestedDateTimeFilter<$PrismaModel>
-  }
-
-  export type NestedFloatWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: number | FloatFieldRefInput<$PrismaModel>
-    in?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    notIn?: number[] | ListFloatFieldRefInput<$PrismaModel>
-    lt?: number | FloatFieldRefInput<$PrismaModel>
-    lte?: number | FloatFieldRefInput<$PrismaModel>
-    gt?: number | FloatFieldRefInput<$PrismaModel>
-    gte?: number | FloatFieldRefInput<$PrismaModel>
-    not?: NestedFloatWithAggregatesFilter<$PrismaModel> | number
-    _count?: NestedIntFilter<$PrismaModel>
-    _avg?: NestedFloatFilter<$PrismaModel>
-    _sum?: NestedFloatFilter<$PrismaModel>
-    _min?: NestedFloatFilter<$PrismaModel>
-    _max?: NestedFloatFilter<$PrismaModel>
   }
 
   export type CategoryCreateWithoutProductsInput = {
@@ -12152,6 +13999,42 @@ export namespace Prisma {
 
   export type CostPriceHistoryCreateManyProductInputEnvelope = {
     data: CostPriceHistoryCreateManyProductInput | CostPriceHistoryCreateManyProductInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FlashSaleItemCreateWithoutProductInput = {
+    id?: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    flashSale: FlashSaleCreateNestedOneWithoutItemsInput
+  }
+
+  export type FlashSaleItemUncheckedCreateWithoutProductInput = {
+    id?: string
+    flashSaleId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FlashSaleItemCreateOrConnectWithoutProductInput = {
+    where: FlashSaleItemWhereUniqueInput
+    create: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput>
+  }
+
+  export type FlashSaleItemCreateManyProductInputEnvelope = {
+    data: FlashSaleItemCreateManyProductInput | FlashSaleItemCreateManyProductInput[]
     skipDuplicates?: boolean
   }
 
@@ -12245,6 +14128,39 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"CostPriceHistory"> | Date | string
   }
 
+  export type FlashSaleItemUpsertWithWhereUniqueWithoutProductInput = {
+    where: FlashSaleItemWhereUniqueInput
+    update: XOR<FlashSaleItemUpdateWithoutProductInput, FlashSaleItemUncheckedUpdateWithoutProductInput>
+    create: XOR<FlashSaleItemCreateWithoutProductInput, FlashSaleItemUncheckedCreateWithoutProductInput>
+  }
+
+  export type FlashSaleItemUpdateWithWhereUniqueWithoutProductInput = {
+    where: FlashSaleItemWhereUniqueInput
+    data: XOR<FlashSaleItemUpdateWithoutProductInput, FlashSaleItemUncheckedUpdateWithoutProductInput>
+  }
+
+  export type FlashSaleItemUpdateManyWithWhereWithoutProductInput = {
+    where: FlashSaleItemScalarWhereInput
+    data: XOR<FlashSaleItemUpdateManyMutationInput, FlashSaleItemUncheckedUpdateManyWithoutProductInput>
+  }
+
+  export type FlashSaleItemScalarWhereInput = {
+    AND?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+    OR?: FlashSaleItemScalarWhereInput[]
+    NOT?: FlashSaleItemScalarWhereInput | FlashSaleItemScalarWhereInput[]
+    id?: StringFilter<"FlashSaleItem"> | string
+    flashSaleId?: StringFilter<"FlashSaleItem"> | string
+    productId?: StringFilter<"FlashSaleItem"> | string
+    shopId?: StringFilter<"FlashSaleItem"> | string
+    flashPrice?: FloatFilter<"FlashSaleItem"> | number
+    originalPrice?: FloatFilter<"FlashSaleItem"> | number
+    stockLimit?: IntFilter<"FlashSaleItem"> | number
+    stockSold?: IntFilter<"FlashSaleItem"> | number
+    status?: StringFilter<"FlashSaleItem"> | string
+    createdAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+    updatedAt?: DateTimeFilter<"FlashSaleItem"> | Date | string
+  }
+
   export type ProductCreateWithoutPriceHistoriesInput = {
     id?: string
     shopId: string
@@ -12255,8 +14171,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12280,6 +14196,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     categoryRef?: CategoryCreateNestedOneWithoutProductsInput
     costHistories?: CostPriceHistoryCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemCreateNestedManyWithoutProductInput
   }
 
   export type ProductUncheckedCreateWithoutPriceHistoriesInput = {
@@ -12293,8 +14210,8 @@ export namespace Prisma {
     categoryId?: string | null
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12317,6 +14234,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     costHistories?: CostPriceHistoryUncheckedCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemUncheckedCreateNestedManyWithoutProductInput
   }
 
   export type ProductCreateOrConnectWithoutPriceHistoriesInput = {
@@ -12345,8 +14263,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12370,6 +14288,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categoryRef?: CategoryUpdateOneWithoutProductsNestedInput
     costHistories?: CostPriceHistoryUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUpdateManyWithoutProductNestedInput
   }
 
   export type ProductUncheckedUpdateWithoutPriceHistoriesInput = {
@@ -12383,8 +14302,8 @@ export namespace Prisma {
     categoryId?: NullableStringFieldUpdateOperationsInput | string | null
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12407,6 +14326,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     costHistories?: CostPriceHistoryUncheckedUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUncheckedUpdateManyWithoutProductNestedInput
   }
 
   export type ProductCreateWithoutCostHistoriesInput = {
@@ -12419,8 +14339,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12444,6 +14364,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     categoryRef?: CategoryCreateNestedOneWithoutProductsInput
     priceHistories?: PriceHistoryCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemCreateNestedManyWithoutProductInput
   }
 
   export type ProductUncheckedCreateWithoutCostHistoriesInput = {
@@ -12457,8 +14378,8 @@ export namespace Prisma {
     categoryId?: string | null
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12481,6 +14402,7 @@ export namespace Prisma {
     createdAt?: Date | string
     updatedAt?: Date | string
     priceHistories?: PriceHistoryUncheckedCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemUncheckedCreateNestedManyWithoutProductInput
   }
 
   export type ProductCreateOrConnectWithoutCostHistoriesInput = {
@@ -12509,8 +14431,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12534,6 +14456,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     categoryRef?: CategoryUpdateOneWithoutProductsNestedInput
     priceHistories?: PriceHistoryUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUpdateManyWithoutProductNestedInput
   }
 
   export type ProductUncheckedUpdateWithoutCostHistoriesInput = {
@@ -12547,8 +14470,8 @@ export namespace Prisma {
     categoryId?: NullableStringFieldUpdateOperationsInput | string | null
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12571,6 +14494,7 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     priceHistories?: PriceHistoryUncheckedUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUncheckedUpdateManyWithoutProductNestedInput
   }
 
   export type ProductCreateWithoutCategoryRefInput = {
@@ -12583,8 +14507,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12608,6 +14532,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     priceHistories?: PriceHistoryCreateNestedManyWithoutProductInput
     costHistories?: CostPriceHistoryCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemCreateNestedManyWithoutProductInput
   }
 
   export type ProductUncheckedCreateWithoutCategoryRefInput = {
@@ -12620,8 +14545,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12645,6 +14570,7 @@ export namespace Prisma {
     updatedAt?: Date | string
     priceHistories?: PriceHistoryUncheckedCreateNestedManyWithoutProductInput
     costHistories?: CostPriceHistoryUncheckedCreateNestedManyWithoutProductInput
+    flashSaleItems?: FlashSaleItemUncheckedCreateNestedManyWithoutProductInput
   }
 
   export type ProductCreateOrConnectWithoutCategoryRefInput = {
@@ -12687,8 +14613,8 @@ export namespace Prisma {
     categoryId?: StringNullableFilter<"Product"> | string | null
     brand?: StringFilter<"Product"> | string
     description?: StringFilter<"Product"> | string
-    price?: StringFilter<"Product"> | string
-    originalPrice?: StringNullableFilter<"Product"> | string | null
+    price?: FloatFilter<"Product"> | number
+    originalPrice?: FloatNullableFilter<"Product"> | number | null
     costPrice?: FloatNullableFilter<"Product"> | number | null
     stock?: IntFilter<"Product"> | number
     sales?: IntFilter<"Product"> | number
@@ -12710,6 +14636,274 @@ export namespace Prisma {
     reportsCount?: IntFilter<"Product"> | number
     createdAt?: DateTimeFilter<"Product"> | Date | string
     updatedAt?: DateTimeFilter<"Product"> | Date | string
+  }
+
+  export type FlashSaleItemCreateWithoutFlashSaleInput = {
+    id?: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    product: ProductCreateNestedOneWithoutFlashSaleItemsInput
+  }
+
+  export type FlashSaleItemUncheckedCreateWithoutFlashSaleInput = {
+    id?: string
+    productId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FlashSaleItemCreateOrConnectWithoutFlashSaleInput = {
+    where: FlashSaleItemWhereUniqueInput
+    create: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput>
+  }
+
+  export type FlashSaleItemCreateManyFlashSaleInputEnvelope = {
+    data: FlashSaleItemCreateManyFlashSaleInput | FlashSaleItemCreateManyFlashSaleInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type FlashSaleItemUpsertWithWhereUniqueWithoutFlashSaleInput = {
+    where: FlashSaleItemWhereUniqueInput
+    update: XOR<FlashSaleItemUpdateWithoutFlashSaleInput, FlashSaleItemUncheckedUpdateWithoutFlashSaleInput>
+    create: XOR<FlashSaleItemCreateWithoutFlashSaleInput, FlashSaleItemUncheckedCreateWithoutFlashSaleInput>
+  }
+
+  export type FlashSaleItemUpdateWithWhereUniqueWithoutFlashSaleInput = {
+    where: FlashSaleItemWhereUniqueInput
+    data: XOR<FlashSaleItemUpdateWithoutFlashSaleInput, FlashSaleItemUncheckedUpdateWithoutFlashSaleInput>
+  }
+
+  export type FlashSaleItemUpdateManyWithWhereWithoutFlashSaleInput = {
+    where: FlashSaleItemScalarWhereInput
+    data: XOR<FlashSaleItemUpdateManyMutationInput, FlashSaleItemUncheckedUpdateManyWithoutFlashSaleInput>
+  }
+
+  export type FlashSaleCreateWithoutItemsInput = {
+    id?: string
+    timeSlot: string
+    productsCount?: number
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type FlashSaleUncheckedCreateWithoutItemsInput = {
+    id?: string
+    timeSlot: string
+    productsCount?: number
+    status?: string
+    createdAt?: Date | string
+  }
+
+  export type FlashSaleCreateOrConnectWithoutItemsInput = {
+    where: FlashSaleWhereUniqueInput
+    create: XOR<FlashSaleCreateWithoutItemsInput, FlashSaleUncheckedCreateWithoutItemsInput>
+  }
+
+  export type ProductCreateWithoutFlashSaleItemsInput = {
+    id?: string
+    shopId: string
+    name: string
+    image?: string | null
+    images?: string | null
+    video?: string | null
+    category: string
+    brand: string
+    description: string
+    price: number
+    originalPrice?: number | null
+    costPrice?: number | null
+    stock: number
+    sales?: number
+    status: string
+    sku?: string | null
+    variationsText?: string | null
+    hasVariations?: boolean
+    variationGroups?: string | null
+    variationRows?: string | null
+    weight?: string | null
+    length?: string | null
+    width?: string | null
+    height?: string | null
+    condition?: string
+    isPreOrder?: boolean
+    preOrderDays?: string | null
+    isViolated?: boolean
+    violationReason?: string | null
+    reportsCount?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    categoryRef?: CategoryCreateNestedOneWithoutProductsInput
+    priceHistories?: PriceHistoryCreateNestedManyWithoutProductInput
+    costHistories?: CostPriceHistoryCreateNestedManyWithoutProductInput
+  }
+
+  export type ProductUncheckedCreateWithoutFlashSaleItemsInput = {
+    id?: string
+    shopId: string
+    name: string
+    image?: string | null
+    images?: string | null
+    video?: string | null
+    category: string
+    categoryId?: string | null
+    brand: string
+    description: string
+    price: number
+    originalPrice?: number | null
+    costPrice?: number | null
+    stock: number
+    sales?: number
+    status: string
+    sku?: string | null
+    variationsText?: string | null
+    hasVariations?: boolean
+    variationGroups?: string | null
+    variationRows?: string | null
+    weight?: string | null
+    length?: string | null
+    width?: string | null
+    height?: string | null
+    condition?: string
+    isPreOrder?: boolean
+    preOrderDays?: string | null
+    isViolated?: boolean
+    violationReason?: string | null
+    reportsCount?: number
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    priceHistories?: PriceHistoryUncheckedCreateNestedManyWithoutProductInput
+    costHistories?: CostPriceHistoryUncheckedCreateNestedManyWithoutProductInput
+  }
+
+  export type ProductCreateOrConnectWithoutFlashSaleItemsInput = {
+    where: ProductWhereUniqueInput
+    create: XOR<ProductCreateWithoutFlashSaleItemsInput, ProductUncheckedCreateWithoutFlashSaleItemsInput>
+  }
+
+  export type FlashSaleUpsertWithoutItemsInput = {
+    update: XOR<FlashSaleUpdateWithoutItemsInput, FlashSaleUncheckedUpdateWithoutItemsInput>
+    create: XOR<FlashSaleCreateWithoutItemsInput, FlashSaleUncheckedCreateWithoutItemsInput>
+    where?: FlashSaleWhereInput
+  }
+
+  export type FlashSaleUpdateToOneWithWhereWithoutItemsInput = {
+    where?: FlashSaleWhereInput
+    data: XOR<FlashSaleUpdateWithoutItemsInput, FlashSaleUncheckedUpdateWithoutItemsInput>
+  }
+
+  export type FlashSaleUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    timeSlot?: StringFieldUpdateOperationsInput | string
+    productsCount?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleUncheckedUpdateWithoutItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    timeSlot?: StringFieldUpdateOperationsInput | string
+    productsCount?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type ProductUpsertWithoutFlashSaleItemsInput = {
+    update: XOR<ProductUpdateWithoutFlashSaleItemsInput, ProductUncheckedUpdateWithoutFlashSaleItemsInput>
+    create: XOR<ProductCreateWithoutFlashSaleItemsInput, ProductUncheckedCreateWithoutFlashSaleItemsInput>
+    where?: ProductWhereInput
+  }
+
+  export type ProductUpdateToOneWithWhereWithoutFlashSaleItemsInput = {
+    where?: ProductWhereInput
+    data: XOR<ProductUpdateWithoutFlashSaleItemsInput, ProductUncheckedUpdateWithoutFlashSaleItemsInput>
+  }
+
+  export type ProductUpdateWithoutFlashSaleItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    brand?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    stock?: IntFieldUpdateOperationsInput | number
+    sales?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    variationsText?: NullableStringFieldUpdateOperationsInput | string | null
+    hasVariations?: BoolFieldUpdateOperationsInput | boolean
+    variationGroups?: NullableStringFieldUpdateOperationsInput | string | null
+    variationRows?: NullableStringFieldUpdateOperationsInput | string | null
+    weight?: NullableStringFieldUpdateOperationsInput | string | null
+    length?: NullableStringFieldUpdateOperationsInput | string | null
+    width?: NullableStringFieldUpdateOperationsInput | string | null
+    height?: NullableStringFieldUpdateOperationsInput | string | null
+    condition?: StringFieldUpdateOperationsInput | string
+    isPreOrder?: BoolFieldUpdateOperationsInput | boolean
+    preOrderDays?: NullableStringFieldUpdateOperationsInput | string | null
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reportsCount?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    categoryRef?: CategoryUpdateOneWithoutProductsNestedInput
+    priceHistories?: PriceHistoryUpdateManyWithoutProductNestedInput
+    costHistories?: CostPriceHistoryUpdateManyWithoutProductNestedInput
+  }
+
+  export type ProductUncheckedUpdateWithoutFlashSaleItemsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    image?: NullableStringFieldUpdateOperationsInput | string | null
+    images?: NullableStringFieldUpdateOperationsInput | string | null
+    video?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    categoryId?: NullableStringFieldUpdateOperationsInput | string | null
+    brand?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
+    stock?: IntFieldUpdateOperationsInput | number
+    sales?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    sku?: NullableStringFieldUpdateOperationsInput | string | null
+    variationsText?: NullableStringFieldUpdateOperationsInput | string | null
+    hasVariations?: BoolFieldUpdateOperationsInput | boolean
+    variationGroups?: NullableStringFieldUpdateOperationsInput | string | null
+    variationRows?: NullableStringFieldUpdateOperationsInput | string | null
+    weight?: NullableStringFieldUpdateOperationsInput | string | null
+    length?: NullableStringFieldUpdateOperationsInput | string | null
+    width?: NullableStringFieldUpdateOperationsInput | string | null
+    height?: NullableStringFieldUpdateOperationsInput | string | null
+    condition?: StringFieldUpdateOperationsInput | string
+    isPreOrder?: BoolFieldUpdateOperationsInput | boolean
+    preOrderDays?: NullableStringFieldUpdateOperationsInput | string | null
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationReason?: NullableStringFieldUpdateOperationsInput | string | null
+    reportsCount?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    priceHistories?: PriceHistoryUncheckedUpdateManyWithoutProductNestedInput
+    costHistories?: CostPriceHistoryUncheckedUpdateManyWithoutProductNestedInput
   }
 
   export type PriceHistoryCreateManyProductInput = {
@@ -12735,6 +14929,19 @@ export namespace Prisma {
     importedBy: string
     importDate?: Date | string
     createdAt?: Date | string
+  }
+
+  export type FlashSaleItemCreateManyProductInput = {
+    id?: string
+    flashSaleId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type PriceHistoryUpdateWithoutProductInput = {
@@ -12812,6 +15019,45 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type FlashSaleItemUpdateWithoutProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    flashSale?: FlashSaleUpdateOneRequiredWithoutItemsNestedInput
+  }
+
+  export type FlashSaleItemUncheckedUpdateWithoutProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    flashSaleId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemUncheckedUpdateManyWithoutProductInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    flashSaleId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type ProductCreateManyCategoryRefInput = {
     id?: string
     shopId: string
@@ -12822,8 +15068,8 @@ export namespace Prisma {
     category: string
     brand: string
     description: string
-    price: string
-    originalPrice?: string | null
+    price: number
+    originalPrice?: number | null
     costPrice?: number | null
     stock: number
     sales?: number
@@ -12857,8 +15103,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12882,6 +15128,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     priceHistories?: PriceHistoryUpdateManyWithoutProductNestedInput
     costHistories?: CostPriceHistoryUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUpdateManyWithoutProductNestedInput
   }
 
   export type ProductUncheckedUpdateWithoutCategoryRefInput = {
@@ -12894,8 +15141,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12919,6 +15166,7 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     priceHistories?: PriceHistoryUncheckedUpdateManyWithoutProductNestedInput
     costHistories?: CostPriceHistoryUncheckedUpdateManyWithoutProductNestedInput
+    flashSaleItems?: FlashSaleItemUncheckedUpdateManyWithoutProductNestedInput
   }
 
   export type ProductUncheckedUpdateManyWithoutCategoryRefInput = {
@@ -12931,8 +15179,8 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     brand?: StringFieldUpdateOperationsInput | string
     description?: StringFieldUpdateOperationsInput | string
-    price?: StringFieldUpdateOperationsInput | string
-    originalPrice?: NullableStringFieldUpdateOperationsInput | string | null
+    price?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     costPrice?: NullableFloatFieldUpdateOperationsInput | number | null
     stock?: IntFieldUpdateOperationsInput | number
     sales?: IntFieldUpdateOperationsInput | number
@@ -12952,6 +15200,58 @@ export namespace Prisma {
     isViolated?: BoolFieldUpdateOperationsInput | boolean
     violationReason?: NullableStringFieldUpdateOperationsInput | string | null
     reportsCount?: IntFieldUpdateOperationsInput | number
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemCreateManyFlashSaleInput = {
+    id?: string
+    productId: string
+    shopId: string
+    flashPrice: number
+    originalPrice: number
+    stockLimit: number
+    stockSold?: number
+    status?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type FlashSaleItemUpdateWithoutFlashSaleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    product?: ProductUpdateOneRequiredWithoutFlashSaleItemsNestedInput
+  }
+
+  export type FlashSaleItemUncheckedUpdateWithoutFlashSaleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type FlashSaleItemUncheckedUpdateManyWithoutFlashSaleInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    productId?: StringFieldUpdateOperationsInput | string
+    shopId?: StringFieldUpdateOperationsInput | string
+    flashPrice?: FloatFieldUpdateOperationsInput | number
+    originalPrice?: FloatFieldUpdateOperationsInput | number
+    stockLimit?: IntFieldUpdateOperationsInput | number
+    stockSold?: IntFieldUpdateOperationsInput | number
+    status?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

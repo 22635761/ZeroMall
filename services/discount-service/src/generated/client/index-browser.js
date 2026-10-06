@@ -138,6 +138,14 @@ exports.Prisma.VoucherScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.VoucherUsageScalarFieldEnum = {
+  id: 'id',
+  voucherId: 'voucherId',
+  userId: 'userId',
+  orderId: 'orderId',
+  usedAt: 'usedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -155,7 +163,8 @@ exports.Prisma.NullsOrder = {
 
 
 exports.Prisma.ModelName = {
-  Voucher: 'Voucher'
+  Voucher: 'Voucher',
+  VoucherUsage: 'VoucherUsage'
 };
 
 /**

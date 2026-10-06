@@ -218,6 +218,20 @@ exports.Prisma.FlashSaleScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.FlashSaleItemScalarFieldEnum = {
+  id: 'id',
+  flashSaleId: 'flashSaleId',
+  productId: 'productId',
+  shopId: 'shopId',
+  flashPrice: 'flashPrice',
+  originalPrice: 'originalPrice',
+  stockLimit: 'stockLimit',
+  stockSold: 'stockSold',
+  status: 'status',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -241,7 +255,8 @@ exports.Prisma.ModelName = {
   Review: 'Review',
   ProductLike: 'ProductLike',
   Category: 'Category',
-  FlashSale: 'FlashSale'
+  FlashSale: 'FlashSale',
+  FlashSaleItem: 'FlashSaleItem'
 };
 
 /**
