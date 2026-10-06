@@ -76,6 +76,7 @@ import { DeliveryAuthForm } from '../../components/delivery/DeliveryAuthForm'
 import { DriverAppView } from '../../components/delivery/driver/DriverAppView'
 import { HubOperatorStation } from '../../components/delivery/HubOperatorStation'
 import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
+import { LogisticsFinanceTab } from '../../components/delivery/LogisticsFinanceTab'
 
 interface DeliveryPortalProps {
   user?: any
@@ -118,8 +119,8 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     if (onLogout) onLogout()
   }
 
-  // Navigation Tabs: Đơn cần lấy, Đơn tại kho, Tuyến giao khách, Quản lý COD, Trạm Hub & Tài xế
-  const [activeTab, setActiveTab] = useState<'ALL' | 'MY_TASKS' | 'PICKUP' | 'HUB' | 'DELIVERY' | 'COD' | 'HUBS_DRIVERS'>('ALL')
+  // Navigation Tabs: Đơn cần lấy, Đơn tại kho, Tuyến giao khách, Quản lý COD, Trạm Hub & Tài xế, Hạch toán tài chính
+  const [activeTab, setActiveTab] = useState<'ALL' | 'MY_TASKS' | 'PICKUP' | 'HUB' | 'DELIVERY' | 'COD' | 'HUBS_DRIVERS' | 'FINANCE'>('ALL')
   const [shipments, setShipments] = useState<Shipment[]>([])
   const [returns, setReturns] = useState<ReturnData[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
@@ -520,6 +521,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                   { id: 'DELIVERY', label: `🛵 Tuyến Giao Hàng (${stats.delivering})` },
                   { id: 'COD', label: `💵 Đối Soát COD` },
                   { id: 'HUBS_DRIVERS', label: `📍 Trạm Hubs & Shipper (${hubs.length}/${drivers.length})` },
+                  { id: 'FINANCE', label: `📊 Hạch Toán Cước & Lợi Nhuận` },
                 ].map((tab) => (
                   <button
                     key={tab.id}
@@ -562,6 +564,8 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
               }
               actionLoading={actionLoading}
             />
+          ) : activeTab === 'FINANCE' ? (
+            <LogisticsFinanceTab shipments={shipments} />
           ) : activeTab === 'HUBS_DRIVERS' ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
               {/* Danh sách Hub */}

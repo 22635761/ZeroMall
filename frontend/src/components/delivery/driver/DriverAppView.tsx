@@ -272,22 +272,35 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
       )
   )
 
-  // 3. Đơn đã hoàn tất bởi tài xế này (hoàn thành giao hàng tận nơi)
+  // 3. Đơn đã lấy hàng thành công bởi tài xế này (First-Mile: 8.000đ/đơn)
+  const completedPickupTasks = shipments.filter(
+    (s) =>
+      s.status !== 'CANCELLED' &&
+      ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(s.status) &&
+      s.assignments?.some(
+        (a) => a.type === 'PICKUP' && isMyAssignment(a)
+      )
+  )
+
+  // 4. Đơn đã giao hàng thành công bởi tài xế này (Last-Mile: 8.000đ/đơn)
   const completedTasks = shipments.filter(
     (s) =>
       ['DELIVERED', 'COMPLETED'].includes(s.status) &&
       s.assignments?.some(
         (a) =>
           a.type === 'DELIVERY' &&
-          a.status === 'COMPLETED' &&
+          (a.status === 'COMPLETED' || ['DELIVERED', 'COMPLETED'].includes(s.status)) &&
           isMyAssignment(a)
       )
   )
 
   // Tổng tiền COD tài xế đang giữ
   const codInWallet = completedTasks.reduce((sum, s) => sum + (s.codAmount || 0), 0)
-  // Ước tính thu nhập (15.000đ / cuốc giao)
-  const driverEarnings = completedTasks.length * 15000
+
+  // Thu nhập tài xế theo chuẩn SPX Logistics: 8.000đ/lượt lấy + 8.000đ/lượt giao
+  const pickupEarnings = completedPickupTasks.length * 8000
+  const deliveryEarnings = completedTasks.length * 8000
+  const driverEarnings = pickupEarnings + deliveryEarnings
 
   // Badge cho tab Đơn Hàng: Khi Offline thì ẩn badge (0) theo chuẩn SPX
   const ordersBadge =
@@ -397,6 +410,10 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
               }))}
               codInWallet={codInWallet}
               driverEarnings={driverEarnings}
+              completedPickupCount={completedPickupTasks.length}
+              completedDeliveryCount={completedTasks.length}
+              pickupEarnings={pickupEarnings}
+              deliveryEarnings={deliveryEarnings}
               onRefresh={onRefresh}
             />
           )}

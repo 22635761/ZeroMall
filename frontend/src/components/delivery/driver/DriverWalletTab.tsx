@@ -19,6 +19,10 @@ export interface DriverWalletTabProps {
   completedTasks: CompletedShipment[]
   codInWallet: number
   driverEarnings: number
+  completedPickupCount?: number
+  completedDeliveryCount?: number
+  pickupEarnings?: number
+  deliveryEarnings?: number
   onRefresh: () => void
 }
 
@@ -32,6 +36,10 @@ export const DriverWalletTab: React.FC<DriverWalletTabProps> = ({
   completedTasks,
   codInWallet,
   driverEarnings,
+  completedPickupCount = 0,
+  completedDeliveryCount = 0,
+  pickupEarnings = 0,
+  deliveryEarnings = 0,
   onRefresh,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -190,29 +198,66 @@ export const DriverWalletTab: React.FC<DriverWalletTabProps> = ({
         </div>
       </div>
 
-      {/* Thẻ ước tính thu nhập */}
-      <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-            Ước Tính Thu Nhập
-          </span>
-          <span className="text-xl">💰</span>
-        </div>
-        <div className="flex items-baseline justify-between">
-          <div>
-            <div className="text-2xl font-extrabold text-emerald-600">
-              {formatMoney(driverEarnings)}
-            </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              Đã hoàn thành <span className="font-semibold text-slate-800">{completedTasks.length}</span> đơn giao
-            </p>
-          </div>
-          <div className="text-right">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              ⚡ 15.000đ / đơn
+      {/* Thẻ ước tính thu nhập (Chuẩn SPX Logistics Unit Economics) */}
+      <div className="bg-white p-4.5 rounded-2xl shadow-sm border border-slate-200/80 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center text-xs font-bold">
+              💰
+            </span>
+            <span className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Ước Tính Thu Nhập Tài Xế
             </span>
           </div>
+          <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md">
+            Chuẩn SPX Express
+          </span>
         </div>
+
+        <div className="flex items-baseline justify-between border-b border-slate-100 pb-3">
+          <div>
+            <div className="text-3xl font-black text-emerald-600 tracking-tight">
+              {formatMoney(driverEarnings)}
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Tổng thù lao từ các lượt lấy & giao bưu kiện thành công
+            </p>
+          </div>
+        </div>
+
+        {/* Bóc tách 2 chặng: Lấy hàng 8k & Giao hàng 8k */}
+        <div className="grid grid-cols-2 gap-2 pt-0.5">
+          <div className="bg-slate-50 border border-slate-200/80 p-2.5 rounded-xl space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+              <span className="flex items-center gap-1">
+                <span>📦</span> Lấy từ Shop
+              </span>
+              <span className="text-emerald-700 font-bold">8.000đ/đơn</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-bold text-slate-800">{completedPickupCount} đơn</span>
+              <span className="text-xs font-black text-emerald-700">{formatMoney(pickupEarnings)}</span>
+            </div>
+          </div>
+
+          <div className="bg-slate-50 border border-slate-200/80 p-2.5 rounded-xl space-y-1">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-600">
+              <span className="flex items-center gap-1">
+                <span>🛵</span> Giao tới Khách
+              </span>
+              <span className="text-emerald-700 font-bold">8.000đ/đơn</span>
+            </div>
+            <div className="flex items-baseline justify-between">
+              <span className="text-xs font-bold text-slate-800">{completedDeliveryCount || completedTasks.length} đơn</span>
+              <span className="text-xs font-black text-emerald-700">{formatMoney(deliveryEarnings)}</span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-[10px] text-slate-400 bg-emerald-50/40 p-2 rounded-lg border border-emerald-100 flex items-center gap-1.5">
+          <span>💡</span>
+          <span>Mỗi đơn lấy hàng từ Shop về Hub: <b>8.000đ</b>. Mỗi đơn giao tận tay khách: <b>8.000đ</b>.</span>
+        </p>
       </div>
 
       {/* Thẻ lịch sử giao hàng gần nhất */}
