@@ -196,10 +196,7 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
     <div className="space-y-4">
       {/* Goong Autocomplete Search */}
       {goongApiKey && goongApiKey !== 'YOUR_GOONG_API_KEY_HERE' ? (
-        <div className="relative space-y-1.5 text-xs">
-          <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-            🔎 Tìm nhanh bằng bản đồ (Goong Map)
-          </label>
+        <div className="relative text-xs">
           <input
             type="text"
             placeholder={searchPlaceholder}
@@ -209,11 +206,11 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
             className={`w-full border border-slate-200 rounded-lg p-3 pr-10 ${theme === 'emerald' ? 'focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600' : 'focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]'} focus:outline-none font-medium text-slate-800 bg-white transition-all text-xs`}
           />
           {loadingSuggestions && (
-            <div className={`absolute right-3.5 top-[30px] w-4 h-4 border-2 ${theme === 'emerald' ? 'border-emerald-600' : 'border-[#ee4d2d]'} border-t-transparent rounded-full animate-spin`}></div>
+            <div className={`absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 border-2 ${theme === 'emerald' ? 'border-emerald-600' : 'border-[#ee4d2d]'} border-t-transparent rounded-full animate-spin`}></div>
           )}
 
           {suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-16 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
+            <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
               {suggestions.map((p: any) => (
                 <div
                   key={p.place_id}
