@@ -39,6 +39,11 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
   const [detailAddress, setDetailAddress] = useState('')
   const [phoneError, setPhoneError] = useState('')
 
+  // Detail address smart autocomplete states (Shopee style)
+  const [detailSuggestions, setDetailSuggestions] = useState<any[]>([])
+  const [loadingDetailSuggestions, setLoadingDetailSuggestions] = useState(false)
+  const [isDetailFocused, setIsDetailFocused] = useState(false)
+
   // Map states
   const [mapCoords, setMapCoords] = useState<LatLngCoords>({ lat: 10.762622, lng: 106.660172 })
   const [mapZoom, setMapZoom] = useState<number>(15)
@@ -150,6 +155,86 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
     if (fullAddress) setDetailAddress(fullAddress)
     autoMatchAddressComponents(prov, dist, ward)
     setMapZoom(16)
+  }
+
+  // 5. Gợi ý địa chỉ chi tiết theo chuẩn Shopee (Goong Places Autocomplete)
+  useEffect(() => {
+    if (
+      !detailAddress.trim() ||
+      detailAddress.trim().length < 2 ||
+      !goongApiKey ||
+      goongApiKey === 'YOUR_GOONG_API_KEY_HERE'
+    ) {
+      setDetailSuggestions([])
+      return
+    }
+
+    const timer = setTimeout(() => {
+      setLoadingDetailSuggestions(true)
+      const locParam =
+        mapCoords?.lat && mapCoords?.lng
+          ? `&location=${mapCoords.lat},${mapCoords.lng}`
+          : ''
+      fetch(
+        `https://rsapi.goong.io/Place/AutoComplete?api_key=${goongApiKey}&input=${encodeURIComponent(
+          detailAddress
+        )}${locParam}`
+      )
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.status === 'OK' && data.predictions) {
+            setDetailSuggestions(data.predictions)
+          } else {
+            setDetailSuggestions([])
+          }
+        })
+        .catch((err) => {
+          console.error('Lỗi lấy gợi ý địa chỉ chi tiết:', err)
+          setDetailSuggestions([])
+        })
+        .finally(() => {
+          setLoadingDetailSuggestions(false)
+        })
+    }, 350)
+
+    return () => clearTimeout(timer)
+  }, [detailAddress, goongApiKey, mapCoords.lat, mapCoords.lng])
+
+  // Chọn gợi ý địa chỉ chi tiết -> Bay map và khớp 3 cấp hành chính
+  const handleSelectDetailSuggestion = (placeId: string, mainText: string) => {
+    setDetailSuggestions([])
+    setDetailAddress(mainText)
+
+    if (!goongApiKey) return
+
+    fetch(`https://rsapi.goong.io/Place/Detail?api_key=${goongApiKey}&place_id=${placeId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.status === 'OK' && data.result) {
+          const result = data.result
+          const compound = result.compound || {}
+
+          const prov = compound.province || ''
+          const dist = compound.district || ''
+          const wrd = compound.commune || ''
+
+          if (prov || dist || wrd) {
+            autoMatchAddressComponents(prov, dist, wrd)
+          }
+
+          if (result.geometry?.location) {
+            const loc = {
+              lat: result.geometry.location.lat,
+              lng: result.geometry.location.lng
+            }
+            setMapCoords(loc)
+            setMapZoom(16)
+          }
+        }
+      })
+      .catch((err) => {
+        console.error('Lỗi lấy chi tiết vị trí gợi ý:', err)
+      })
   }
 
   // Xử lý lưu địa chỉ
@@ -294,19 +379,66 @@ export const ShopAddressModal: React.FC<ShopAddressModalProps> = ({
               />
             </div>
 
-            {/* 4. Địa chỉ chi tiết (Số nhà, đường...) */}
-            <div className="space-y-1 text-left">
-              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                Địa Chỉ Chi Tiết (Số nhà, ngõ, tên đường...) <span className="text-red-500">*</span>
-              </label>
-              <textarea
-                required
-                rows={2}
-                placeholder="Ví dụ: 123 Đường Lê Lợi, Khu phố 4..."
-                value={detailAddress}
-                onChange={(e) => setDetailAddress(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition resize-none font-medium text-slate-800 bg-white"
-              />
+            {/* 4. Địa chỉ chi tiết (Số nhà, đường...) kèm Gợi ý thông minh kiểu Shopee */}
+            <div className="space-y-1 text-left relative">
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  Địa Chỉ Chi Tiết (Số nhà, ngõ, tên đường...) <span className="text-red-500">*</span>
+                </label>
+                {loadingDetailSuggestions && (
+                  <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1 animate-pulse">
+                    <span className="w-2.5 h-2.5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></span>
+                    Đang tìm gợi ý...
+                  </span>
+                )}
+              </div>
+
+              <div className="relative">
+                <textarea
+                  required
+                  rows={2}
+                  placeholder="Ví dụ: 4 Nguyễn Văn Bảo, hoặc nhập số nhà, ngõ, tên đường để hiện gợi ý..."
+                  value={detailAddress}
+                  onChange={(e) => setDetailAddress(e.target.value)}
+                  onFocus={() => setIsDetailFocused(true)}
+                  onBlur={() => setTimeout(() => setIsDetailFocused(false), 250)}
+                  className="w-full border border-slate-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 transition resize-none font-medium text-slate-800 bg-white"
+                />
+
+                {/* Dropdown Gợi ý địa chỉ chi tiết theo chuẩn Shopee */}
+                {isDetailFocused && detailSuggestions.length > 0 && (
+                  <div className="absolute left-0 right-0 top-full mt-1.5 bg-white border border-slate-200 rounded-xl shadow-xl z-50 overflow-hidden divide-y divide-slate-100 max-h-52 overflow-y-auto animate-in fade-in zoom-in-95 duration-150">
+                    <div className="bg-slate-50 px-3 py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                      <span>💡 Gợi ý địa điểm chính xác (Click để ghim bản đồ)</span>
+                      <span className="text-emerald-600 font-semibold">{detailSuggestions.length} kết quả</span>
+                    </div>
+                    {detailSuggestions.map((p: any) => (
+                      <div
+                        key={p.place_id}
+                        onMouseDown={() =>
+                          handleSelectDetailSuggestion(
+                            p.place_id,
+                            p.structured_formatting?.main_text || p.description
+                          )
+                        }
+                        className="px-3.5 py-2.5 hover:bg-emerald-50/60 text-xs font-semibold text-slate-700 cursor-pointer transition text-left flex items-start gap-2.5"
+                      >
+                        <span className="text-emerald-600 text-sm mt-0.5 shrink-0">📍</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-extrabold text-slate-800 text-xs truncate">
+                            {p.structured_formatting?.main_text || p.description}
+                          </p>
+                          {p.structured_formatting?.secondary_text && (
+                            <p className="text-slate-400 text-[11px] font-normal truncate mt-0.5">
+                              {p.structured_formatting.secondary_text}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* 5. Live GPS Coordinates Badge */}
