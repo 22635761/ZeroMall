@@ -144,7 +144,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
           )}
 
           {/* Bảng quy đổi & Ma trận biến thể */}
-          {variationRows.length > 0 && (
+          {variationRows.length > 0 ? (
             <div className="border-t border-slate-200 pt-5 space-y-4">
               {/* Batch Edit Bar */}
               <VariationBatchBar onApply={applyBulkEditWithParams} />
@@ -167,6 +167,43 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                 onRestoreAll={restoreAllDeletedVariations}
                 onRowImageChange={handleRowImageChange}
               />
+            </div>
+          ) : (
+            /* Hướng dẫn khi chưa thêm phân loại nào */
+            <div className="border-t border-slate-200 pt-5">
+              <div className="bg-gradient-to-br from-slate-50 via-white to-emerald-50/30 border-2 border-dashed border-emerald-300/70 rounded-2xl p-6 text-center space-y-3.5 shadow-3xs">
+                <div className="w-12 h-12 bg-emerald-100 text-emerald-700 rounded-2xl flex items-center justify-center text-2xl mx-auto shadow-xs">
+                  📋
+                </div>
+                <div className="max-w-md mx-auto space-y-1">
+                  <h4 className="text-xs font-bold text-slate-800">
+                    Bảng thiết lập Giá bán, Tồn kho & Hình ảnh sẽ tự động hiển thị tại đây
+                  </h4>
+                  <p className="text-[11px] text-slate-500 leading-relaxed">
+                    👉 Hãy <b>nhập tên tùy chọn</b> (hoặc bấm vào các nút <b>gợi ý nhanh</b> ở Nhóm phân loại phía trên) rồi nhấn <b>Thêm</b>. Hệ thống sẽ ngay lập tức sinh bảng giá chi tiết cho từng phân loại!
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (variationGroups[0]?.name.toLowerCase().includes('size') || variationGroups[0]?.name.toLowerCase().includes('kích')) {
+                        addOptionToGroup(0, 'Size S')
+                        addOptionToGroup(0, 'Size M')
+                        addOptionToGroup(0, 'Size L')
+                      } else {
+                        addOptionToGroup(0, 'Đen')
+                        addOptionToGroup(0, 'Trắng')
+                      }
+                    }}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer shadow-xs active:scale-95 flex items-center gap-1.5"
+                  >
+                    <span>⚡</span>
+                    <span>Tạo nhanh các tùy chọn mẫu</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
         </div>
