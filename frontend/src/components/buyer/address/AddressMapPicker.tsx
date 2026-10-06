@@ -8,6 +8,9 @@ interface AddressMapPickerProps {
   mapZoom?: number
   onAddressMatched: (prov: string, dist: string, ward: string, fullAddress?: string) => void
   isActiveTab: boolean
+  mapContainerId?: string
+  theme?: 'orange' | 'emerald'
+  searchPlaceholder?: string
 }
 
 export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
@@ -16,7 +19,10 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
   setMapCoords,
   mapZoom = 15,
   onAddressMatched,
-  isActiveTab
+  isActiveTab,
+  mapContainerId = 'leaflet-map-selector-modal',
+  theme = 'orange',
+  searchPlaceholder = 'Nhập tên địa điểm, số nhà, tên đường...'
 }) => {
   const [searchQuery, setSearchQuery] = useState('')
   const [suggestions, setSuggestions] = useState<any[]>([])
@@ -72,7 +78,7 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
         return
       }
 
-      const container = document.getElementById('leaflet-map-selector-modal')
+      const container = document.getElementById(mapContainerId)
       if (!container) return
 
       const map = L.map(container, {
@@ -196,14 +202,14 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
           </label>
           <input
             type="text"
-            placeholder="Nhập tên địa điểm, số nhà, tên đường..."
+            placeholder={searchPlaceholder}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onBlur={() => setTimeout(() => setSuggestions([]), 200)}
-            className="w-full border border-slate-200 rounded-lg p-3 pr-10 focus:border-[#ee4d2d] focus:outline-none font-medium text-slate-800 bg-white transition-all text-xs"
+            className={`w-full border border-slate-200 rounded-lg p-3 pr-10 ${theme === 'emerald' ? 'focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600' : 'focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]'} focus:outline-none font-medium text-slate-800 bg-white transition-all text-xs`}
           />
           {loadingSuggestions && (
-            <div className="absolute right-3.5 top-[30px] w-4 h-4 border-2 border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
+            <div className={`absolute right-3.5 top-[30px] w-4 h-4 border-2 ${theme === 'emerald' ? 'border-emerald-600' : 'border-[#ee4d2d]'} border-t-transparent rounded-full animate-spin`}></div>
           )}
 
           {suggestions.length > 0 && (
@@ -231,19 +237,19 @@ export const AddressMapPicker: React.FC<AddressMapPickerProps> = ({
 
       {/* Map Pin Alert & Leaflet Map Container */}
       <div className="space-y-3 pt-1">
-        <div className="bg-[#fff9e6] border border-[#ffe699] rounded-xl p-4 flex items-start gap-3 text-xs text-[#b38600] leading-normal text-left">
+        <div className="bg-[#fff9e6] border border-[#ffe699] rounded-xl p-3 flex items-start gap-3 text-xs text-[#b38600] leading-normal text-left">
           <span className="text-base mt-0.5">🔔</span>
           <div className="space-y-0.5">
-            <p className="font-bold text-[#997300] text-sm">Vui lòng ghim địa chỉ chính xác</p>
-            <p className="text-[#806000]/90 font-medium">
-              Hãy chắc chắn vị trí trên bản đồ được ghim đúng để Shopee gửi hàng cho bạn nhé!
+            <p className="font-bold text-[#997300] text-xs">Vui lòng ghim địa chỉ chính xác</p>
+            <p className="text-[#806000]/90 font-medium text-[11px]">
+              Hãy chắc chắn vị trí trên bản đồ được ghim đúng để tài xế ZeroMall Express (ZMX) đến nhận hoặc giao kiện hàng chuẩn xác nhất nhé!
             </p>
           </div>
         </div>
 
         {/* Leaflet Interactive Map Selector */}
         <div
-          id="leaflet-map-selector-modal"
+          id={mapContainerId}
           className="relative h-44 bg-slate-100 rounded-xl overflow-hidden border border-slate-202 z-10"
         />
       </div>

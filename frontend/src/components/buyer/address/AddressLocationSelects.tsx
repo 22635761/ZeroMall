@@ -13,6 +13,8 @@ interface AddressLocationSelectsProps {
   wards: WardItem[]
   selectedWardCode: number | ''
   onSelectWard: (code: number | '') => void
+
+  theme?: 'orange' | 'emerald'
 }
 
 export const AddressLocationSelects: React.FC<AddressLocationSelectsProps> = ({
@@ -24,15 +26,24 @@ export const AddressLocationSelects: React.FC<AddressLocationSelectsProps> = ({
   onSelectDistrict,
   wards,
   selectedWardCode,
-  onSelectWard
+  onSelectWard,
+  theme = 'orange'
 }) => {
+  const focusRingClass = theme === 'emerald'
+    ? 'focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600'
+    : 'focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d]'
+
+  const badgeClass = theme === 'emerald'
+    ? 'bg-emerald-50 text-emerald-600'
+    : 'bg-red-50 text-[#ee4d2d]'
+
   return (
     <div className="space-y-3 bg-slate-50 p-3.5 rounded-xl border border-slate-200">
       <div className="flex items-center justify-between">
         <p className="text-[10px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
           <span>🏛️</span> Khu vực hành chính (Tỉnh / Quận / Phường)
         </p>
-        <span className="text-[9px] bg-red-50 text-[#ee4d2d] px-2 py-0.5 rounded-full font-bold">
+        <span className={`text-[9px] ${badgeClass} px-2 py-0.5 rounded-full font-bold`}>
           Bắt buộc
         </span>
       </div>
@@ -47,7 +58,7 @@ export const AddressLocationSelects: React.FC<AddressLocationSelectsProps> = ({
             required
             value={selectedProvinceCode}
             onChange={(e) => onSelectProvince(e.target.value ? Number(e.target.value) : '')}
-            className="w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d] transition cursor-pointer text-slate-800 font-medium"
+            className={`w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none ${focusRingClass} transition cursor-pointer text-slate-800 font-medium`}
           >
             <option value="">-- Chọn Tỉnh / TP --</option>
             {provinces.map((p) => (
@@ -68,7 +79,7 @@ export const AddressLocationSelects: React.FC<AddressLocationSelectsProps> = ({
             value={selectedDistrictCode}
             onChange={(e) => onSelectDistrict(e.target.value ? Number(e.target.value) : '')}
             disabled={!selectedProvinceCode}
-            className="w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d] transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+            className={`w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none ${focusRingClass} transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed`}
           >
             <option value="">
               {!selectedProvinceCode ? '-- Chọn Tỉnh/TP trước --' : '-- Chọn Quận / Huyện --'}
@@ -91,7 +102,7 @@ export const AddressLocationSelects: React.FC<AddressLocationSelectsProps> = ({
             value={selectedWardCode}
             onChange={(e) => onSelectWard(e.target.value ? Number(e.target.value) : '')}
             disabled={!selectedDistrictCode}
-            className="w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none focus:border-[#ee4d2d] focus:ring-1 focus:ring-[#ee4d2d] transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+            className={`w-full border border-slate-200 bg-white rounded-lg px-2.5 py-2.5 text-xs focus:outline-none ${focusRingClass} transition cursor-pointer text-slate-800 font-medium disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed`}
           >
             <option value="">
               {!selectedDistrictCode ? '-- Chọn Quận/Huyện trước --' : '-- Chọn Phường / Xã --'}
