@@ -32,6 +32,7 @@ interface UploadedVideo {
 interface VariationGroup {
   name: string
   options: string[]
+  images?: Record<string, string>
 }
 
 interface VariationRow {
@@ -41,6 +42,7 @@ interface VariationRow {
   originalPrice: string
   stock: string
   sku: string
+  image?: string
 }
 
 export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCancel, initialData, shopDetails }) => {
@@ -79,9 +81,6 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   ])
   const [variationRows, setVariationRows] = useState<VariationRow[]>([])
   const [deletedVariationKeys, setDeletedVariationKeys] = useState<string[]>([])
-  const [bulkPrice, setBulkPrice] = useState('')
-  const [bulkOriginalPrice, setBulkOriginalPrice] = useState('')
-  const [bulkStock, setBulkStock] = useState('')
   const [simplePrice, setSimplePrice] = useState('')
   const [simpleOriginalPrice, setSimpleOriginalPrice] = useState('')
   const [simpleStock, setSimpleStock] = useState('')
@@ -189,8 +188,22 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       
       if (initialData.hasVariations) {
         setHasVariations(true)
-        const groups = initialData.variationGroups || []
-        const rows = initialData.variationRows || []
+        let groups: VariationGroup[] = []
+        let rows: VariationRow[] = []
+        try {
+          groups = typeof initialData.variationGroups === 'string'
+            ? JSON.parse(initialData.variationGroups)
+            : (initialData.variationGroups || [])
+        } catch (e) {
+          groups = []
+        }
+        try {
+          rows = typeof initialData.variationRows === 'string'
+            ? JSON.parse(initialData.variationRows)
+            : (initialData.variationRows || [])
+        } catch (e) {
+          rows = []
+        }
         setVariationGroups(groups)
         setVariationRows(rows)
 
@@ -470,6 +483,64 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     setDeletedVariationKeys([])
   }
 
+  const handleOptionImageChange = (groupIdx: number, optionName: string, imageUrl: string) => {
+    setVariationGroups((prev) =>
+      prev.map((g, idx) => {
+        if (idx === groupIdx) {
+          return {
+            ...g,
+            images: { ...(g.images || {}), [optionName]: imageUrl }
+          }
+        }
+        return g
+      })
+    )
+
+    // Tự động gán ảnh vào các dòng biến thể có option này ở nhóm 1
+    if (groupIdx === 0) {
+      setVariationRows((prev) =>
+        prev.map((r) => {
+          const parts = (r.name || r.key).split(' - ')
+          if (parts[0] === optionName) {
+            return { ...r, image: imageUrl }
+          }
+          return r
+        })
+      )
+    }
+  }
+
+  const handleOptionImageRemove = (groupIdx: number, optionName: string) => {
+    setVariationGroups((prev) =>
+      prev.map((g, idx) => {
+        if (idx === groupIdx && g.images) {
+          const updated = { ...g.images }
+          delete updated[optionName]
+          return { ...g, images: updated }
+        }
+        return g
+      })
+    )
+
+    if (groupIdx === 0) {
+      setVariationRows((prev) =>
+        prev.map((r) => {
+          const parts = (r.name || r.key).split(' - ')
+          if (parts[0] === optionName) {
+            return { ...r, image: undefined }
+          }
+          return r
+        })
+      )
+    }
+  }
+
+  const handleRowImageChange = (key: string, imageUrl: string) => {
+    setVariationRows((prev) =>
+      prev.map((r) => (r.key === key ? { ...r, image: imageUrl } : r))
+    )
+  }
+
   useEffect(() => {
     if (!hasVariations) return
 
@@ -490,34 +561,54 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       combinations = nextCombos
     })
 
+    const group1Images = validGroups[0]?.images || {}
+
     setVariationRows((prevRows) => {
       return combinations
         .map((combo) => {
           const key = combo.join(' - ')
           const existing = prevRows.find((r) => r.key === key)
+          const opt1 = combo[0]
+          const inheritedImage = group1Images[opt1] || undefined
+
           return (
-            existing || {
-              key,
-              name: key,
-              price: simplePrice || '100000',
-              originalPrice: simpleOriginalPrice || '',
-              stock: simpleStock || '50',
-              sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`
-            }
+            existing
+              ? {
+                  ...existing,
+                  image: existing.image || inheritedImage
+                }
+              : {
+                  key,
+                  name: key,
+                  price: simplePrice || '100000',
+                  originalPrice: simpleOriginalPrice || '',
+                  stock: simpleStock || '50',
+                  sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`,
+                  image: inheritedImage
+                }
           )
         })
         .filter((row) => !deletedVariationKeys.includes(row.key))
     })
   }, [hasVariations, variationGroups, deletedVariationKeys])
 
-  const applyBulkEdit = () => {
+  const applyBulkEditWithParams = (params: {
+    price: string
+    originalPrice: string
+    stock: string
+    skuPrefix: string
+  }) => {
     setVariationRows((prev) =>
-      prev.map((row) => ({
-        ...row,
-        price: bulkPrice || row.price,
-        originalPrice: bulkOriginalPrice || row.originalPrice,
-        stock: bulkStock || row.stock
-      }))
+      prev.map((row) => {
+        const updated = { ...row }
+        if (params.price) updated.price = params.price
+        if (params.originalPrice) updated.originalPrice = params.originalPrice
+        if (params.stock) updated.stock = params.stock
+        if (params.skuPrefix) {
+          updated.sku = `${params.skuPrefix}-${row.key.replace(/\s+/g, '').toUpperCase()}`
+        }
+        return updated
+      })
     )
   }
 
@@ -783,18 +874,15 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               removeOptionFromGroup={removeOptionFromGroup}
               addOptionToGroup={addOptionToGroup}
               addVariationGroup={addVariationGroup}
+              handleOptionImageChange={handleOptionImageChange}
+              handleOptionImageRemove={handleOptionImageRemove}
               variationRows={variationRows}
               removeVariationRow={removeVariationRow}
               restoreVariationRow={restoreVariationRow}
               restoreAllDeletedVariations={restoreAllDeletedVariations}
               deletedVariationKeys={deletedVariationKeys}
-              bulkOriginalPrice={bulkOriginalPrice}
-              setBulkOriginalPrice={setBulkOriginalPrice}
-              bulkPrice={bulkPrice}
-              setBulkPrice={setBulkPrice}
-              bulkStock={bulkStock}
-              setBulkStock={setBulkStock}
-              applyBulkEdit={applyBulkEdit}
+              handleRowImageChange={handleRowImageChange}
+              applyBulkEditWithParams={applyBulkEditWithParams}
               updateVariationRow={updateVariationRow}
               errors={errors}
               simpleOriginalPrice={simpleOriginalPrice}

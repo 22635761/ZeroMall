@@ -20,6 +20,7 @@ interface ProductPurchasePanelProps {
   handleIncrease: () => void
   handleAddToCartClick: (e: React.MouseEvent<HTMLButtonElement>) => void
   onBuyNow: (product: any, quantity: number, variant: string) => void
+  onSelectOptionImage?: (imageUrl: string) => void
   user?: any
 }
 
@@ -42,6 +43,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
   handleIncrease,
   handleAddToCartClick,
   onBuyNow,
+  onSelectOptionImage,
   user
 }) => {
   const variationGroups: VariationGroup[] = product.variationGroups && product.variationGroups.length > 0
@@ -70,6 +72,22 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
     })
   }
 
+  const selectedRow = React.useMemo(() => {
+    if (variationRows.length === 0 || variationGroups.length === 0) return null
+    const selectedVals: string[] = []
+    for (let i = 0; i < variationGroups.length; i++) {
+      if (!selectedOptions[i]) return null
+      selectedVals.push(selectedOptions[i])
+    }
+    return (
+      variationRows.find((r) => {
+        const parts = (r.name || r.key || '').split(/[-,\/]/).map((s: string) => s.trim().toLowerCase())
+        const sel = selectedVals.map((s) => s.trim().toLowerCase())
+        return sel.length === parts.length && sel.every((sv, i) => parts[i] === sv)
+      }) || null
+    )
+  }, [variationRows, variationGroups, selectedOptions])
+
   const handleBuyNowClick = () => {
     if (variationGroups.length > 0) {
       for (let i = 0; i < variationGroups.length; i++) {
@@ -90,7 +108,8 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
       price: currentFlashPrice,
       flashPrice: currentFlashPrice,
       originalPrice: currentOriginalPrice,
-      stock: stockAvailable
+      stock: stockAvailable,
+      image: selectedRow?.image || product.image
     }
 
     onBuyNow(effectiveProduct, quantity, selectedVariantName)
@@ -243,12 +262,31 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                     const isSelected = selectedOptions[groupIdx] === opt
                     const available = isOptionAvailable(groupIdx, opt)
 
+                    // Tìm ảnh của tùy chọn này (từ group.images hoặc từ dòng variationRows tương ứng)
+                    const optImage =
+                      (groupIdx === 0 && (group as any).images?.[opt]) ||
+                      variationRows.find((r) => {
+                        const parts = (r.name || r.key || '')
+                          .split(/[-,\/]/)
+                          .map((s: string) => s.trim().toLowerCase())
+                        return (
+                          (parts[groupIdx] === opt.toLowerCase() ||
+                            (r.name || r.key || '').toLowerCase().includes(opt.toLowerCase())) &&
+                          r.image
+                        )
+                      })?.image
+
                     return (
                       <button
                         key={opt}
                         type="button"
-                        onClick={() => onSelectOption(groupIdx, opt)}
-                        className={`px-3.5 py-1.5 border rounded-sm font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 ${
+                        onClick={() => {
+                          onSelectOption(groupIdx, opt)
+                          if (optImage && onSelectOptionImage) {
+                            onSelectOptionImage(optImage)
+                          }
+                        }}
+                        className={`px-3 py-1.5 border rounded-sm font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 ${
                           isSelected
                             ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9]/40 shadow-2xs ring-1 ring-[#ee4d2d]'
                             : available
@@ -256,6 +294,13 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                             : 'border-dashed border-slate-200 text-slate-400 bg-slate-50 opacity-60'
                         }`}
                       >
+                        {optImage && (
+                          <img
+                            src={optImage}
+                            alt={opt}
+                            className="w-5 h-5 rounded-xs object-cover border border-slate-200 shrink-0"
+                          />
+                        )}
                         <span>{opt}</span>
                         {isSelected && <span className="text-[#ee4d2d] text-[10px] font-bold">✓</span>}
                         {!available && <span className="text-[9px] text-slate-400 italic">(Hết)</span>}

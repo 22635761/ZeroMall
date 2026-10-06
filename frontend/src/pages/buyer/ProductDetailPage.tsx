@@ -302,7 +302,8 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       price: currentFlashPrice,
       flashPrice: currentFlashPrice,
       originalPrice: currentOriginalPrice,
-      stock: stockAvailable
+      stock: stockAvailable,
+      image: selectedRow?.image || product.image
     }
 
     onAddToCart(effectiveProduct, quantity, currentVariantName)
@@ -322,7 +323,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
         startY,
         endX,
         endY,
-        image: product.image
+        image: selectedRow?.image || product.image
       }
 
       setFlyingItems((prev) => [...prev, newFlyingItem])
@@ -555,12 +556,56 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     if (product.video) {
       mediaItems.push({ type: 'video', url: product.video })
     }
+    const addedUrls = new Set<string>()
     if (product.images && product.images.length > 0) {
-      product.images.forEach((imgUrl) => mediaItems.push({ type: 'image', url: imgUrl }))
+      product.images.forEach((imgUrl) => {
+        if (!addedUrls.has(imgUrl)) {
+          mediaItems.push({ type: 'image', url: imgUrl })
+          addedUrls.add(imgUrl)
+        }
+      })
     } else if (product.image) {
       mediaItems.push({ type: 'image', url: product.image })
+      addedUrls.add(product.image)
+    }
+
+    // Tự động bổ sung ảnh của các biến thể vào gallery nếu chưa có
+    if (product.variationRows && product.variationRows.length > 0) {
+      product.variationRows.forEach((r: any) => {
+        if (r.image && !addedUrls.has(r.image)) {
+          mediaItems.push({ type: 'image', url: r.image })
+          addedUrls.add(r.image)
+        }
+      })
+    }
+    if (product.variationGroups && product.variationGroups.length > 0) {
+      const g0Images = (product.variationGroups[0] as any)?.images || {}
+      Object.values(g0Images).forEach((imgUrl: any) => {
+        if (typeof imgUrl === 'string' && imgUrl && !addedUrls.has(imgUrl)) {
+          mediaItems.push({ type: 'image', url: imgUrl })
+          addedUrls.add(imgUrl)
+        }
+      })
     }
   }
+
+  const handleSelectOptionImage = (imageUrl: string) => {
+    if (!imageUrl) return
+    const targetIdx = mediaItems.findIndex((m) => m.url === imageUrl)
+    if (targetIdx >= 0) {
+      setActiveImgIdx(targetIdx)
+    }
+  }
+
+  // Tự động chuyển ảnh lớn sang ảnh của biến thể khi người dùng chọn phân loại
+  useEffect(() => {
+    if (selectedRow?.image && mediaItems.length > 0) {
+      const idx = mediaItems.findIndex((m) => m.url === selectedRow.image)
+      if (idx >= 0) {
+        setActiveImgIdx(idx)
+      }
+    }
+  }, [selectedRow, mediaItems])
 
   const isMall = Boolean(product?.brand && product.brand.toLowerCase() !== 'no brand' && product.brand !== '')
 
@@ -704,6 +749,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           handleIncrease={handleIncrease}
           handleAddToCartClick={handleAddToCartClick}
           onBuyNow={handleBuyNowClick}
+          onSelectOptionImage={handleSelectOptionImage}
           user={user}
         />
       </div>
