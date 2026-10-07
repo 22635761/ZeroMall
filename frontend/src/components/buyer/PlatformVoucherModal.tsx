@@ -1,10 +1,14 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
 interface PlatformVoucherModalProps {
   isOpen: boolean
   onClose: () => void
-  selectedVoucher: string
-  onSelectVoucher: (voucherCode: string) => void
+  selectedShippingVoucher?: string
+  selectedOrderVoucher?: string
+  onSelectVouchers?: (shippingVoucher: string, orderVoucher: string) => void
+  // Hỗ trợ backward compatibility
+  selectedVoucher?: string
+  onSelectVoucher?: (voucherCode: string) => void
   itemsTotal: number
   platformVouchers: any[]
   formatPrice: (price: number) => string
@@ -13,6 +17,9 @@ interface PlatformVoucherModalProps {
 export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
   isOpen,
   onClose,
+  selectedShippingVoucher,
+  selectedOrderVoucher,
+  onSelectVouchers,
   selectedVoucher,
   onSelectVoucher,
   itemsTotal,
@@ -21,7 +28,27 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
 }) => {
   const [inputCode, setInputCode] = useState('')
   const [codeError, setCodeError] = useState<string | null>(null)
-  const [tempSelected, setTempSelected] = useState<string>(selectedVoucher || 'none')
+  
+  // Quản lý riêng biệt 2 loại mã: Miễn phí vận chuyển & Giảm giá đơn hàng
+  const [tempShipping, setTempShipping] = useState<string>('none')
+  const [tempOrder, setTempOrder] = useState<string>('none')
+
+  // Đồng bộ lại khi modal mở
+  useEffect(() => {
+    if (isOpen) {
+      const initShipping = selectedShippingVoucher 
+        ? selectedShippingVoucher 
+        : (selectedVoucher === 'freeship' ? 'freeship' : 'none')
+      const initOrder = selectedOrderVoucher 
+        ? selectedOrderVoucher 
+        : (selectedVoucher && selectedVoucher !== 'freeship' ? selectedVoucher : 'none')
+
+      setTempShipping(initShipping)
+      setTempOrder(initOrder)
+      setInputCode('')
+      setCodeError(null)
+    }
+  }, [isOpen, selectedShippingVoucher, selectedOrderVoucher, selectedVoucher])
 
   if (!isOpen) return null
 
@@ -31,12 +58,12 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
     if (!code) return
 
     if (code === 'FREESHIP' || code === 'FREESHIPXTRA') {
-      setTempSelected('freeship')
+      setTempShipping('freeship')
       setInputCode('')
       return
     }
     if (code === 'ZERO10' || code === 'DISCOUNT10' || code === 'ZEROPROMO10') {
-      setTempSelected('discount10')
+      setTempOrder('discount10')
       setInputCode('')
       return
     }
@@ -45,7 +72,7 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
         setCodeError('Voucher này yêu cầu đơn hàng tối thiểu 300.000đ!')
         return
       }
-      setTempSelected('discount50k')
+      setTempOrder('discount50k')
       setInputCode('')
       return
     }
@@ -57,7 +84,12 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
         setCodeError(`Đơn hàng chưa đạt mức tối thiểu ${formatPrice(matched.minSpend)}!`)
         return
       }
-      setTempSelected(matched.code)
+      // Nếu voucher tên/code có chữ ship thì gán vào freeship, ngược lại gán vào order discount
+      if (matched.code.toUpperCase().includes('SHIP')) {
+        setTempShipping(matched.code)
+      } else {
+        setTempOrder(matched.code)
+      }
       setInputCode('')
       return
     }
@@ -66,9 +98,16 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
   }
 
   const handleConfirm = () => {
-    onSelectVoucher(tempSelected)
+    if (onSelectVouchers) {
+      onSelectVouchers(tempShipping, tempOrder)
+    } else if (onSelectVoucher) {
+      // Fallback cho luồng cũ
+      onSelectVoucher(tempOrder !== 'none' ? tempOrder : tempShipping)
+    }
     onClose()
   }
+
+  const hasAnySelected = tempShipping !== 'none' || tempOrder !== 'none'
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/40 backdrop-blur-xs text-slate-800 animate-in fade-in duration-200">
@@ -80,7 +119,9 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
             <span className="text-xl">🏷️</span>
             <div>
               <h3 className="font-extrabold text-sm sm:text-base text-slate-900">Chọn ZeroMall Voucher</h3>
-              <p className="text-[11px] text-emerald-600 font-bold">Ưu đãi giảm giá & miễn phí vận chuyển toàn sàn</p>
+              <p className="text-[11px] text-emerald-600 font-bold">
+                Chọn tối đa 1 Mã miễn phí vận chuyển và 1 Mã giảm giá đơn hàng
+              </p>
             </div>
           </div>
           <button 
@@ -119,15 +160,19 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
         {/* Vouchers List */}
         <div className="p-4 overflow-y-auto space-y-4 flex-1 bg-slate-50/20">
           
-          {/* Section: Freeship */}
+          {/* SECTION 1: MÃ MIỄN PHÍ VẬN CHUYỂN */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>🚚</span> Mã Miễn Phí Vận Chuyển
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🚚</span> Mã Miễn Phí Vận Chuyển
+              </h4>
+              <span className="text-[10px] text-slate-400 font-medium">Tối đa chọn 1 mã</span>
+            </div>
+            
             <div
-              onClick={() => setTempSelected(tempSelected === 'freeship' ? 'none' : 'freeship')}
+              onClick={() => setTempShipping(tempShipping === 'freeship' ? 'none' : 'freeship')}
               className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition cursor-pointer ${
-                tempSelected === 'freeship'
+                tempShipping === 'freeship'
                   ? 'border-emerald-500 bg-emerald-50/30 shadow-2xs'
                   : 'border-slate-200 hover:border-slate-300 bg-white'
               }`}
@@ -148,25 +193,29 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
                 </div>
               </div>
               <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
-                tempSelected === 'freeship' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                tempShipping === 'freeship' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
               }`}>
-                {tempSelected === 'freeship' && <span className="text-[10px] font-bold">✓</span>}
+                {tempShipping === 'freeship' && <span className="text-[10px] font-bold">✓</span>}
               </div>
             </div>
           </div>
 
-          {/* Section: Discount Vouchers */}
+          {/* SECTION 2: MÃ GIẢM GIÁ ĐƠN HÀNG */}
           <div>
-            <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-              <span>🎁</span> Mã Giảm Giá Đơn Hàng
-            </h4>
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                <span>🎁</span> Mã Giảm Giá Đơn Hàng
+              </h4>
+              <span className="text-[10px] text-slate-400 font-medium">Tối đa chọn 1 mã</span>
+            </div>
+            
             <div className="space-y-2.5">
               
               {/* Discount 10% */}
               <div
-                onClick={() => setTempSelected(tempSelected === 'discount10' ? 'none' : 'discount10')}
+                onClick={() => setTempOrder(tempOrder === 'discount10' ? 'none' : 'discount10')}
                 className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition cursor-pointer ${
-                  tempSelected === 'discount10'
+                  tempOrder === 'discount10'
                     ? 'border-emerald-500 bg-emerald-50/30 shadow-2xs'
                     : 'border-slate-200 hover:border-slate-300 bg-white'
                 }`}
@@ -187,24 +236,25 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
                   </div>
                 </div>
                 <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
-                  tempSelected === 'discount10' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                  tempOrder === 'discount10' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
                 }`}>
-                  {tempSelected === 'discount10' && <span className="text-[10px] font-bold">✓</span>}
+                  {tempOrder === 'discount10' && <span className="text-[10px] font-bold">✓</span>}
                 </div>
               </div>
 
               {/* Discount 50k */}
               {(() => {
                 const isMinSpendMet = itemsTotal >= 300000
+                const isSelected = tempOrder === 'discount50k'
                 return (
                   <div
                     onClick={() => {
                       if (isMinSpendMet) {
-                        setTempSelected(tempSelected === 'discount50k' ? 'none' : 'discount50k')
+                        setTempOrder(isSelected ? 'none' : 'discount50k')
                       }
                     }}
                     className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition cursor-pointer ${
-                      tempSelected === 'discount50k'
+                      isSelected
                         ? 'border-emerald-500 bg-emerald-50/30 shadow-2xs'
                         : isMinSpendMet
                           ? 'border-slate-200 hover:border-slate-300 bg-white'
@@ -233,9 +283,9 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
                     </div>
                     {isMinSpendMet && (
                       <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 transition ${
-                        tempSelected === 'discount50k' ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
+                        isSelected ? 'bg-emerald-600 border-emerald-600 text-white' : 'border-slate-300 bg-white'
                       }`}>
-                        {tempSelected === 'discount50k' && <span className="text-[10px] font-bold">✓</span>}
+                        {isSelected && <span className="text-[10px] font-bold">✓</span>}
                       </div>
                     )}
                   </div>
@@ -244,7 +294,7 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
 
               {/* DB Platform Vouchers */}
               {platformVouchers.map((v) => {
-                const isSelected = tempSelected === v.code || tempSelected === v.id
+                const isSelected = tempOrder === v.code || tempOrder === v.id
                 const isMinSpendMet = itemsTotal >= (v.minSpend || 0)
 
                 return (
@@ -252,7 +302,7 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
                     key={v.id}
                     onClick={() => {
                       if (isMinSpendMet) {
-                        setTempSelected(isSelected ? 'none' : v.code)
+                        setTempOrder(isSelected ? 'none' : v.code)
                       }
                     }}
                     className={`p-3.5 border rounded-xl flex items-center justify-between gap-3 transition cursor-pointer ${
@@ -306,13 +356,18 @@ export const PlatformVoucherModal: React.FC<PlatformVoucherModalProps> = ({
         
         {/* Footer */}
         <div className="p-4 bg-slate-50 border-t border-slate-100 flex items-center justify-between gap-3 shrink-0">
-          {tempSelected !== 'none' && (
+          {hasAnySelected ? (
             <button
-              onClick={() => setTempSelected('none')}
+              onClick={() => {
+                setTempShipping('none')
+                setTempOrder('none')
+              }}
               className="text-xs text-slate-500 hover:text-rose-500 font-bold transition cursor-pointer"
             >
-              Bỏ chọn
+              Bỏ chọn tất cả
             </button>
+          ) : (
+            <div />
           )}
           <div className="flex gap-2 ml-auto">
             <button

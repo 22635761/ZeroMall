@@ -260,8 +260,10 @@ export const CartPage: React.FC<CartPageProps> = ({
     return cart.filter(item => selectedKeys.includes(getItemKey(item)))
   }, [cart, selectedKeys])
 
-  // Vouchers and payment
-  const [selectedVoucher, setSelectedVoucher] = useState<'none' | 'freeship' | 'discount10' | 'discount50k'>('none')
+  // Vouchers and payment: Hỗ trợ áp dụng đồng thời 1 Mã Freeship + 1 Mã Giảm giá đơn hàng sàn
+  const [selectedShippingVoucher, setSelectedShippingVoucher] = useState<string>('none')
+  const [selectedOrderVoucher, setSelectedOrderVoucher] = useState<string>('none')
+  const [selectedVoucher, setSelectedVoucher] = useState<string>('none')
   const [paymentMethod, setPaymentMethod] = useState<'zeropay' | 'cod' | 'sepay'>('cod')
   const [productSpecs, setProductSpecs] = useState<Record<string, { weight?: number; length?: number; width?: number; height?: number }>>({})
   
@@ -598,19 +600,24 @@ export const CartPage: React.FC<CartPageProps> = ({
   const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 22000), 0)
   const baseShippingFee = dynamicShippingTotal
 
-  // Shipping discount and vouchers
-  const shippingDiscount = selectedVoucher === 'freeship' ? Math.min(baseShippingFee, 35000) : 0
-  const finalShippingFee = baseShippingFee - shippingDiscount
+  // Shipping discount and vouchers (Chuẩn Shopee: Cho phép áp đồng thời Freeship + Giảm giá đơn hàng)
+  const isFreeshipActive = selectedShippingVoucher === 'freeship' || selectedVoucher === 'freeship'
+  const shippingDiscount = isFreeshipActive ? Math.min(baseShippingFee, 35000) : 0
+  const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount)
 
-  // Platform voucher discount calculation
+  // Platform voucher discount calculation (Tính trên mã giảm giá đơn hàng)
+  const effectiveOrderVoucher = selectedOrderVoucher !== 'none' 
+    ? selectedOrderVoucher 
+    : (selectedVoucher && selectedVoucher !== 'freeship' ? selectedVoucher : 'none')
+
   let voucherDiscount = 0
-  if (selectedVoucher === 'discount10') {
+  if (effectiveOrderVoucher === 'discount10') {
     voucherDiscount = Math.round(itemsTotal * 0.1)
-  } else if (selectedVoucher === 'discount50k') {
+  } else if (effectiveOrderVoucher === 'discount50k') {
     voucherDiscount = Math.min(itemsTotal, 50000)
-  } else if (selectedVoucher !== 'none' && selectedVoucher !== 'freeship') {
+  } else if (effectiveOrderVoucher !== 'none') {
     const dbPlatVoucher = allShopVouchers.find(
-      v => (v.code === selectedVoucher || v.id === selectedVoucher) && v.shopId === 'PLATFORM'
+      v => (v.code === effectiveOrderVoucher || v.id === effectiveOrderVoucher) && v.shopId === 'PLATFORM'
     )
     if (dbPlatVoucher && itemsTotal >= (dbPlatVoucher.minSpend || 0)) {
       if (dbPlatVoucher.type === 'percentage') {
@@ -663,12 +670,12 @@ export const CartPage: React.FC<CartPageProps> = ({
 
   // Giảm giá sản phẩm = GIÁ GỐC SẢN PHẨM - GIÁ BÁN SẢN PHẨM
   const productDiscountTotal = Math.max(0, itemsOriginalTotal - itemsTotal)
-  const voucherDiscountTotal = (selectedVoucher !== 'freeship' ? voucherDiscount : 0) + shopVoucherDiscountTotal
-  // Tiết kiệm = Giảm giá sản phẩm + Voucher
-  const totalSavings = productDiscountTotal + voucherDiscountTotal + (selectedVoucher === 'freeship' ? shippingDiscount : 0)
-  const cartFinalPayable = Math.max(0, itemsTotal - (selectedVoucher !== 'freeship' ? voucherDiscount : 0) - shopVoucherDiscountTotal)
+  const voucherDiscountTotal = voucherDiscount + shopVoucherDiscountTotal
+  // Tiết kiệm = Giảm giá sản phẩm + Voucher sàn + Voucher shop + Miễn phí vận chuyển
+  const totalSavings = productDiscountTotal + voucherDiscountTotal + shippingDiscount
+  const cartFinalPayable = Math.max(0, itemsTotal - voucherDiscount - shopVoucherDiscountTotal)
 
-  const grandTotal = itemsTotal + finalShippingFee - (selectedVoucher !== 'freeship' ? voucherDiscount : 0) - shopVoucherDiscountTotal
+  const grandTotal = Math.max(0, itemsTotal + finalShippingFee - voucherDiscount - shopVoucherDiscountTotal)
 
   const handlePlaceOrder = async () => {
     if (selectedCartItems.length === 0) return
@@ -698,6 +705,11 @@ export const CartPage: React.FC<CartPageProps> = ({
         return acc
       }, {} as Record<string, number>)
 
+      const appliedPlatformCodes = [
+        selectedShippingVoucher !== 'none' ? selectedShippingVoucher.toUpperCase() : null,
+        effectiveOrderVoucher !== 'none' ? effectiveOrderVoucher.toUpperCase() : null
+      ].filter(Boolean)
+
       const orderData = {
         buyerId: user?.id || 'guest-buyer-id',
         buyerEmail: user?.email || 'buyer@zeromall.com',
@@ -709,7 +721,7 @@ export const CartPage: React.FC<CartPageProps> = ({
         paymentMethod: paymentMethod,
         shopDiscountAmount: shopVoucherDiscountTotal || 0,
         platformDiscountAmount: voucherDiscount || 0,
-        platformVoucherCode: selectedVoucher !== 'none' ? selectedVoucher.toUpperCase() : null,
+        platformVoucherCode: appliedPlatformCodes.length > 0 ? appliedPlatformCodes.join(', ') : null,
         appliedVoucherIds: appliedVoucherIds.length > 0 ? JSON.stringify(appliedVoucherIds) : null,
         shopShippingFees: shopShippingFees,
         shopDiscounts: shopDiscounts,
@@ -855,6 +867,8 @@ export const CartPage: React.FC<CartPageProps> = ({
           getShopVoucherDiscount={getShopVoucherDiscount}
           allShopVouchers={allShopVouchers}
           selectedVoucher={selectedVoucher}
+          selectedShippingVoucher={selectedShippingVoucher}
+          selectedOrderVoucher={selectedOrderVoucher}
           onOpenPlatformVoucherModal={() => setShowVoucherModal(true)}
           voucherDiscount={voucherDiscount}
           shopVoucherDiscountTotal={shopVoucherDiscountTotal}
@@ -884,6 +898,14 @@ export const CartPage: React.FC<CartPageProps> = ({
           setActiveShopVoucherModalId={setActiveShopVoucherModalId}
           selectedVoucher={selectedVoucher}
           setSelectedVoucher={setSelectedVoucher}
+          selectedShippingVoucher={selectedShippingVoucher}
+          selectedOrderVoucher={selectedOrderVoucher}
+          shippingDiscount={shippingDiscount}
+          onClearPlatformVouchers={() => {
+            setSelectedShippingVoucher('none')
+            setSelectedOrderVoucher('none')
+            setSelectedVoucher('none')
+          }}
           paymentMethod={paymentMethod}
           setPaymentMethod={setPaymentMethod}
           itemsTotal={itemsTotal}
@@ -994,8 +1016,13 @@ export const CartPage: React.FC<CartPageProps> = ({
       <PlatformVoucherModal
         isOpen={showVoucherModal}
         onClose={() => setShowVoucherModal(false)}
-        selectedVoucher={selectedVoucher}
-        onSelectVoucher={(vCode) => setSelectedVoucher(vCode as any)}
+        selectedShippingVoucher={selectedShippingVoucher}
+        selectedOrderVoucher={selectedOrderVoucher}
+        onSelectVouchers={(shippingV, orderV) => {
+          setSelectedShippingVoucher(shippingV)
+          setSelectedOrderVoucher(orderV)
+          setSelectedVoucher(orderV !== 'none' ? orderV : shippingV)
+        }}
         itemsTotal={itemsTotal}
         platformVouchers={allShopVouchers.filter(v => v.shopId === 'PLATFORM')}
         formatPrice={formatPrice}

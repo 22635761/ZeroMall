@@ -28,6 +28,8 @@ interface CartStepViewProps {
   getShopVoucherDiscount: (shopId: string, shopItemsTotal: number) => number
   allShopVouchers: any[]
   selectedVoucher: string
+  selectedShippingVoucher?: string
+  selectedOrderVoucher?: string
   onOpenPlatformVoucherModal: () => void
   voucherDiscount: number
   shopVoucherDiscountTotal: number
@@ -63,6 +65,8 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
   getShopVoucherDiscount,
   allShopVouchers,
   selectedVoucher,
+  selectedShippingVoucher,
+  selectedOrderVoucher,
   onOpenPlatformVoucherModal,
   voucherDiscount,
   shopVoucherDiscountTotal,
@@ -387,10 +391,34 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
             
             {/* ZeroMall Platform Voucher Row */}
             <div className="border-b border-slate-100 pb-3 mb-3 flex items-center justify-between text-xs">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-base text-emerald-600">🏷️</span>
                 <span className="font-extrabold text-slate-800">ZeroMall Voucher</span>
-                {selectedVoucher !== 'none' && (
+                
+                {/* 1. Badge Miễn Phí Vận Chuyển */}
+                {selectedShippingVoucher && selectedShippingVoucher !== 'none' && (
+                  <span className="bg-teal-50 text-teal-700 border border-teal-200 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-3xs">
+                    <span>🚚</span>
+                    <span>{selectedShippingVoucher === 'freeship' ? 'Miễn phí vận chuyển (tối đa 35k)' : selectedShippingVoucher}</span>
+                  </span>
+                )}
+
+                {/* 2. Badge Giảm Giá Đơn Hàng */}
+                {selectedOrderVoucher && selectedOrderVoucher !== 'none' && (
+                  <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-3xs">
+                    <span>🎁</span>
+                    <span>
+                      {selectedOrderVoucher === 'discount10' && 'Giảm 10% toàn sàn'}
+                      {selectedOrderVoucher === 'discount50k' && 'Giảm 50.000đ'}
+                      {!['discount10', 'discount50k'].includes(selectedOrderVoucher) && `Mã: ${selectedOrderVoucher}`}
+                    </span>
+                  </span>
+                )}
+
+                {/* Fallback nếu chỉ có selectedVoucher đơn lẻ */}
+                {(!selectedShippingVoucher || selectedShippingVoucher === 'none') &&
+                  (!selectedOrderVoucher || selectedOrderVoucher === 'none') &&
+                  selectedVoucher && selectedVoucher !== 'none' && (
                   <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-bold px-2.5 py-0.5 rounded-md">
                     {selectedVoucher === 'freeship' && 'Miễn phí vận chuyển (tối đa 35k)'}
                     {selectedVoucher === 'discount10' && 'Giảm 10% toàn sàn'}
@@ -404,7 +432,13 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                 onClick={onOpenPlatformVoucherModal}
                 className="text-emerald-600 hover:text-emerald-700 font-bold flex items-center gap-1 cursor-pointer text-xs"
               >
-                <span>{selectedVoucher !== 'none' ? 'Thay đổi voucher' : 'Chọn hoặc nhập mã'}</span>
+                <span>
+                  {(selectedShippingVoucher && selectedShippingVoucher !== 'none') ||
+                  (selectedOrderVoucher && selectedOrderVoucher !== 'none') ||
+                  (selectedVoucher && selectedVoucher !== 'none')
+                    ? 'Thay đổi voucher'
+                    : 'Chọn hoặc nhập mã'}
+                </span>
                 <span className="text-[10px]">›</span>
               </button>
             </div>

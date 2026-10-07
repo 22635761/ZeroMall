@@ -18,8 +18,12 @@ interface CheckoutStepViewProps {
   setShopMessages: React.Dispatch<React.SetStateAction<Record<string, string>>>
   setSelectedShopVouchers: React.Dispatch<React.SetStateAction<Record<string, string>>>
   setActiveShopVoucherModalId: (id: string | null) => void
-  selectedVoucher: 'none' | 'freeship' | 'discount10' | 'discount50k'
-  setSelectedVoucher: (v: 'none' | 'freeship' | 'discount10' | 'discount50k') => void
+  selectedVoucher: 'none' | 'freeship' | 'discount10' | 'discount50k' | string
+  setSelectedVoucher: (v: any) => void
+  selectedShippingVoucher?: string
+  selectedOrderVoucher?: string
+  shippingDiscount?: number
+  onClearPlatformVouchers?: () => void
   paymentMethod: 'zeropay' | 'cod' | 'sepay'
   setPaymentMethod: (m: 'zeropay' | 'cod' | 'sepay') => void
   itemsTotal: number
@@ -58,6 +62,10 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
   setActiveShopVoucherModalId,
   selectedVoucher,
   setSelectedVoucher,
+  selectedShippingVoucher,
+  selectedOrderVoucher,
+  shippingDiscount = 0,
+  onClearPlatformVouchers,
   paymentMethod,
   setPaymentMethod,
   itemsTotal,
@@ -421,9 +429,17 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
           <div className="space-y-3.5 pb-5 border-b border-slate-100">
             <div className="flex justify-between items-center text-xs uppercase font-extrabold text-slate-400 tracking-wider">
               <span>🎟️ ZeroMall Voucher</span>
-              {selectedVoucher !== 'none' && (
+              {((selectedShippingVoucher && selectedShippingVoucher !== 'none') ||
+                (selectedOrderVoucher && selectedOrderVoucher !== 'none') ||
+                (selectedVoucher && selectedVoucher !== 'none')) && (
                 <button 
-                  onClick={() => setSelectedVoucher('none')}
+                  onClick={() => {
+                    if (onClearPlatformVouchers) {
+                      onClearPlatformVouchers()
+                    } else {
+                      setSelectedVoucher('none')
+                    }
+                  }}
                   className="text-emerald-600 hover:underline normal-case cursor-pointer font-bold"
                 >
                   Xóa
@@ -435,17 +451,47 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
               onClick={() => setShowVoucherModal(true)}
               className="flex justify-between items-center p-3.5 border border-dashed border-emerald-400/60 bg-emerald-50/20 rounded-xl cursor-pointer hover:bg-emerald-50/40 transition"
             >
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-700">
-                <span>🎁</span>
-                <span>
-                  {selectedVoucher === 'freeship' && 'Miễn Phí Vận Chuyển Extra'}
-                  {selectedVoucher === 'discount10' && 'Giảm 10% Tổng Đơn'}
-                  {selectedVoucher === 'discount50k' && 'Giảm 50.000đ'}
-                  {selectedVoucher === 'none' && 'Chọn hoặc nhập mã giảm giá'}
-                </span>
+              <div className="flex flex-col gap-1 text-xs font-bold text-slate-700 min-w-0 pr-2">
+                {/* 1. Badge Freeship */}
+                {selectedShippingVoucher && selectedShippingVoucher !== 'none' && (
+                  <div className="flex items-center gap-1.5 text-teal-700">
+                    <span>🚚</span>
+                    <span className="truncate">
+                      {selectedShippingVoucher === 'freeship' ? 'Miễn Phí Vận Chuyển Extra (-35k)' : selectedShippingVoucher}
+                    </span>
+                  </div>
+                )}
+                {/* 2. Badge Giảm giá */}
+                {selectedOrderVoucher && selectedOrderVoucher !== 'none' && (
+                  <div className="flex items-center gap-1.5 text-emerald-700">
+                    <span>🎁</span>
+                    <span className="truncate">
+                      {selectedOrderVoucher === 'discount10' && 'Giảm 10% Tổng Đơn'}
+                      {selectedOrderVoucher === 'discount50k' && 'Giảm 50.000đ'}
+                      {!['discount10', 'discount50k'].includes(selectedOrderVoucher) && `Mã: ${selectedOrderVoucher}`}
+                    </span>
+                  </div>
+                )}
+                {/* Fallback */}
+                {(!selectedShippingVoucher || selectedShippingVoucher === 'none') &&
+                  (!selectedOrderVoucher || selectedOrderVoucher === 'none') && (
+                  <div className="flex items-center gap-2 text-slate-500">
+                    <span>🎁</span>
+                    <span>
+                      {selectedVoucher === 'freeship' && 'Miễn Phí Vận Chuyển Extra'}
+                      {selectedVoucher === 'discount10' && 'Giảm 10% Tổng Đơn'}
+                      {selectedVoucher === 'discount50k' && 'Giảm 50.000đ'}
+                      {(!selectedVoucher || selectedVoucher === 'none') && 'Chọn hoặc nhập mã giảm giá'}
+                    </span>
+                  </div>
+                )}
               </div>
-              <span className="text-emerald-600 hover:text-emerald-500 font-bold text-xs">
-                {selectedVoucher !== 'none' ? 'Thay Đổi' : 'Chọn Mã'}
+              <span className="text-emerald-600 hover:text-emerald-500 font-bold text-xs shrink-0">
+                {(selectedShippingVoucher && selectedShippingVoucher !== 'none') ||
+                (selectedOrderVoucher && selectedOrderVoucher !== 'none') ||
+                (selectedVoucher && selectedVoucher !== 'none')
+                  ? 'Thay Đổi'
+                  : 'Chọn Mã'}
               </span>
             </div>
           </div>
@@ -467,7 +513,14 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
             <div className="space-y-2">
               <div className="flex justify-between items-center">
                 <span className="text-slate-400 font-semibold">Phí vận chuyển:</span>
-                <span className="text-slate-800 text-sm">{formatPrice(finalShippingFee)}</span>
+                <div className="text-right">
+                  <span className="text-slate-800 text-sm">{formatPrice(finalShippingFee)}</span>
+                  {shippingDiscount > 0 && (
+                    <span className="block text-[10px] text-teal-600 font-bold">
+                      (Đã giảm {formatPrice(shippingDiscount)} freeship)
+                    </span>
+                  )}
+                </div>
               </div>
               {uniqueSelectedShops.length > 1 && (
                 <div className="pl-3 space-y-1.5 border-l-2 border-slate-100 ml-1">
