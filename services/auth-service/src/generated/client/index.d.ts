@@ -1326,6 +1326,8 @@ export namespace Prisma {
     name: string | null
     role: string | null
     status: string | null
+    blockedUntil: Date | null
+    blockReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
     avatar: string | null
@@ -1342,6 +1344,8 @@ export namespace Prisma {
     name: string | null
     role: string | null
     status: string | null
+    blockedUntil: Date | null
+    blockReason: string | null
     createdAt: Date | null
     updatedAt: Date | null
     avatar: string | null
@@ -1358,6 +1362,8 @@ export namespace Prisma {
     name: number
     role: number
     status: number
+    blockedUntil: number
+    blockReason: number
     createdAt: number
     updatedAt: number
     avatar: number
@@ -1376,6 +1382,8 @@ export namespace Prisma {
     name?: true
     role?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     createdAt?: true
     updatedAt?: true
     avatar?: true
@@ -1392,6 +1400,8 @@ export namespace Prisma {
     name?: true
     role?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     createdAt?: true
     updatedAt?: true
     avatar?: true
@@ -1408,6 +1418,8 @@ export namespace Prisma {
     name?: true
     role?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     createdAt?: true
     updatedAt?: true
     avatar?: true
@@ -1497,6 +1509,8 @@ export namespace Prisma {
     name: string
     role: string
     status: string
+    blockedUntil: Date | null
+    blockReason: string | null
     createdAt: Date
     updatedAt: Date
     avatar: string | null
@@ -1530,6 +1544,8 @@ export namespace Prisma {
     name?: boolean
     role?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     avatar?: boolean
@@ -1551,6 +1567,8 @@ export namespace Prisma {
     name?: boolean
     role?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     avatar?: boolean
@@ -1568,6 +1586,8 @@ export namespace Prisma {
     name?: boolean
     role?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     avatar?: boolean
@@ -1585,6 +1605,8 @@ export namespace Prisma {
     name?: boolean
     role?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     avatar?: boolean
@@ -1594,7 +1616,7 @@ export namespace Prisma {
     shopId?: boolean
   }
 
-  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "name" | "role" | "status" | "createdAt" | "updatedAt" | "avatar" | "gender" | "birthday" | "phoneNumber" | "shopId", ExtArgs["result"]["user"]>
+  export type UserOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "email" | "password" | "name" | "role" | "status" | "blockedUntil" | "blockReason" | "createdAt" | "updatedAt" | "avatar" | "gender" | "birthday" | "phoneNumber" | "shopId", ExtArgs["result"]["user"]>
   export type UserInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     shop?: boolean | User$shopArgs<ExtArgs>
     ownedShop?: boolean | User$ownedShopArgs<ExtArgs>
@@ -1624,6 +1646,8 @@ export namespace Prisma {
       name: string
       role: string
       status: string
+      blockedUntil: Date | null
+      blockReason: string | null
       createdAt: Date
       updatedAt: Date
       avatar: string | null
@@ -2064,6 +2088,8 @@ export namespace Prisma {
     readonly name: FieldRef<"User", 'String'>
     readonly role: FieldRef<"User", 'String'>
     readonly status: FieldRef<"User", 'String'>
+    readonly blockedUntil: FieldRef<"User", 'DateTime'>
+    readonly blockReason: FieldRef<"User", 'String'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
     readonly avatar: FieldRef<"User", 'String'>
@@ -2605,6 +2631,8 @@ export namespace Prisma {
     responseRate: number | null
     responseTime: string | null
     status: string | null
+    blockedUntil: Date | null
+    blockReason: string | null
     email: string | null
     phoneNumber: string | null
     pickupAddress: string | null
@@ -2622,6 +2650,8 @@ export namespace Prisma {
     responseRate: number | null
     responseTime: string | null
     status: string | null
+    blockedUntil: Date | null
+    blockReason: string | null
     email: string | null
     phoneNumber: string | null
     pickupAddress: string | null
@@ -2639,6 +2669,8 @@ export namespace Prisma {
     responseRate: number
     responseTime: number
     status: number
+    blockedUntil: number
+    blockReason: number
     email: number
     phoneNumber: number
     pickupAddress: number
@@ -2666,6 +2698,8 @@ export namespace Prisma {
     responseRate?: true
     responseTime?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     email?: true
     phoneNumber?: true
     pickupAddress?: true
@@ -2683,6 +2717,8 @@ export namespace Prisma {
     responseRate?: true
     responseTime?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     email?: true
     phoneNumber?: true
     pickupAddress?: true
@@ -2700,6 +2736,8 @@ export namespace Prisma {
     responseRate?: true
     responseTime?: true
     status?: true
+    blockedUntil?: true
+    blockReason?: true
     email?: true
     phoneNumber?: true
     pickupAddress?: true
@@ -2804,6 +2842,8 @@ export namespace Prisma {
     responseRate: number
     responseTime: string
     status: string
+    blockedUntil: Date | null
+    blockReason: string | null
     email: string | null
     phoneNumber: string | null
     pickupAddress: string | null
@@ -2840,6 +2880,8 @@ export namespace Prisma {
     responseRate?: boolean
     responseTime?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     email?: boolean
     phoneNumber?: boolean
     pickupAddress?: boolean
@@ -2861,6 +2903,8 @@ export namespace Prisma {
     responseRate?: boolean
     responseTime?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     email?: boolean
     phoneNumber?: boolean
     pickupAddress?: boolean
@@ -2879,6 +2923,8 @@ export namespace Prisma {
     responseRate?: boolean
     responseTime?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     email?: boolean
     phoneNumber?: boolean
     pickupAddress?: boolean
@@ -2897,6 +2943,8 @@ export namespace Prisma {
     responseRate?: boolean
     responseTime?: boolean
     status?: boolean
+    blockedUntil?: boolean
+    blockReason?: boolean
     email?: boolean
     phoneNumber?: boolean
     pickupAddress?: boolean
@@ -2905,7 +2953,7 @@ export namespace Prisma {
     updatedAt?: boolean
   }
 
-  export type ShopOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logo" | "description" | "ownerId" | "responseRate" | "responseTime" | "status" | "email" | "phoneNumber" | "pickupAddress" | "shippingSettings" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
+  export type ShopOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "name" | "logo" | "description" | "ownerId" | "responseRate" | "responseTime" | "status" | "blockedUntil" | "blockReason" | "email" | "phoneNumber" | "pickupAddress" | "shippingSettings" | "createdAt" | "updatedAt", ExtArgs["result"]["shop"]>
   export type ShopInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
     staff?: boolean | Shop$staffArgs<ExtArgs>
@@ -2935,6 +2983,8 @@ export namespace Prisma {
       responseRate: number
       responseTime: string
       status: string
+      blockedUntil: Date | null
+      blockReason: string | null
       email: string | null
       phoneNumber: string | null
       pickupAddress: string | null
@@ -3375,6 +3425,8 @@ export namespace Prisma {
     readonly responseRate: FieldRef<"Shop", 'Int'>
     readonly responseTime: FieldRef<"Shop", 'String'>
     readonly status: FieldRef<"Shop", 'String'>
+    readonly blockedUntil: FieldRef<"Shop", 'DateTime'>
+    readonly blockReason: FieldRef<"Shop", 'String'>
     readonly email: FieldRef<"Shop", 'String'>
     readonly phoneNumber: FieldRef<"Shop", 'String'>
     readonly pickupAddress: FieldRef<"Shop", 'String'>
@@ -7123,6 +7175,8 @@ export namespace Prisma {
     name: 'name',
     role: 'role',
     status: 'status',
+    blockedUntil: 'blockedUntil',
+    blockReason: 'blockReason',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt',
     avatar: 'avatar',
@@ -7144,6 +7198,8 @@ export namespace Prisma {
     responseRate: 'responseRate',
     responseTime: 'responseTime',
     status: 'status',
+    blockedUntil: 'blockedUntil',
+    blockReason: 'blockReason',
     email: 'email',
     phoneNumber: 'phoneNumber',
     pickupAddress: 'pickupAddress',
@@ -7299,6 +7355,8 @@ export namespace Prisma {
     name?: StringFilter<"User"> | string
     role?: StringFilter<"User"> | string
     status?: StringFilter<"User"> | string
+    blockedUntil?: DateTimeNullableFilter<"User"> | Date | string | null
+    blockReason?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     avatar?: StringNullableFilter<"User"> | string | null
@@ -7319,6 +7377,8 @@ export namespace Prisma {
     name?: SortOrder
     role?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrderInput | SortOrder
+    blockReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     avatar?: SortOrderInput | SortOrder
@@ -7342,6 +7402,8 @@ export namespace Prisma {
     name?: StringFilter<"User"> | string
     role?: StringFilter<"User"> | string
     status?: StringFilter<"User"> | string
+    blockedUntil?: DateTimeNullableFilter<"User"> | Date | string | null
+    blockReason?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     avatar?: StringNullableFilter<"User"> | string | null
@@ -7362,6 +7424,8 @@ export namespace Prisma {
     name?: SortOrder
     role?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrderInput | SortOrder
+    blockReason?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     avatar?: SortOrderInput | SortOrder
@@ -7384,6 +7448,8 @@ export namespace Prisma {
     name?: StringWithAggregatesFilter<"User"> | string
     role?: StringWithAggregatesFilter<"User"> | string
     status?: StringWithAggregatesFilter<"User"> | string
+    blockedUntil?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+    blockReason?: StringNullableWithAggregatesFilter<"User"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     avatar?: StringNullableWithAggregatesFilter<"User"> | string | null
@@ -7405,6 +7471,8 @@ export namespace Prisma {
     responseRate?: IntFilter<"Shop"> | number
     responseTime?: StringFilter<"Shop"> | string
     status?: StringFilter<"Shop"> | string
+    blockedUntil?: DateTimeNullableFilter<"Shop"> | Date | string | null
+    blockReason?: StringNullableFilter<"Shop"> | string | null
     email?: StringNullableFilter<"Shop"> | string | null
     phoneNumber?: StringNullableFilter<"Shop"> | string | null
     pickupAddress?: StringNullableFilter<"Shop"> | string | null
@@ -7425,6 +7493,8 @@ export namespace Prisma {
     responseRate?: SortOrder
     responseTime?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrderInput | SortOrder
+    blockReason?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     phoneNumber?: SortOrderInput | SortOrder
     pickupAddress?: SortOrderInput | SortOrder
@@ -7448,6 +7518,8 @@ export namespace Prisma {
     responseRate?: IntFilter<"Shop"> | number
     responseTime?: StringFilter<"Shop"> | string
     status?: StringFilter<"Shop"> | string
+    blockedUntil?: DateTimeNullableFilter<"Shop"> | Date | string | null
+    blockReason?: StringNullableFilter<"Shop"> | string | null
     email?: StringNullableFilter<"Shop"> | string | null
     phoneNumber?: StringNullableFilter<"Shop"> | string | null
     pickupAddress?: StringNullableFilter<"Shop"> | string | null
@@ -7468,6 +7540,8 @@ export namespace Prisma {
     responseRate?: SortOrder
     responseTime?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrderInput | SortOrder
+    blockReason?: SortOrderInput | SortOrder
     email?: SortOrderInput | SortOrder
     phoneNumber?: SortOrderInput | SortOrder
     pickupAddress?: SortOrderInput | SortOrder
@@ -7493,6 +7567,8 @@ export namespace Prisma {
     responseRate?: IntWithAggregatesFilter<"Shop"> | number
     responseTime?: StringWithAggregatesFilter<"Shop"> | string
     status?: StringWithAggregatesFilter<"Shop"> | string
+    blockedUntil?: DateTimeNullableWithAggregatesFilter<"Shop"> | Date | string | null
+    blockReason?: StringNullableWithAggregatesFilter<"Shop"> | string | null
     email?: StringNullableWithAggregatesFilter<"Shop"> | string | null
     phoneNumber?: StringNullableWithAggregatesFilter<"Shop"> | string | null
     pickupAddress?: StringNullableWithAggregatesFilter<"Shop"> | string | null
@@ -7706,6 +7782,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -7725,6 +7803,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -7744,6 +7824,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7763,6 +7845,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7782,6 +7866,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -7798,6 +7884,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7813,6 +7901,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7830,6 +7920,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -7850,6 +7942,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -7868,6 +7962,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7888,6 +7984,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7907,6 +8005,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -7923,6 +8023,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -7940,6 +8042,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -8170,15 +8274,15 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type DateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type StringNullableFilter<$PrismaModel = never> = {
@@ -8194,6 +8298,17 @@ export namespace Prisma {
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     mode?: QueryMode
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type DateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
   export type ShopNullableScalarRelationFilter = {
@@ -8233,6 +8348,8 @@ export namespace Prisma {
     name?: SortOrder
     role?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     avatar?: SortOrder
@@ -8249,6 +8366,8 @@ export namespace Prisma {
     name?: SortOrder
     role?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     avatar?: SortOrder
@@ -8265,6 +8384,8 @@ export namespace Prisma {
     name?: SortOrder
     role?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     avatar?: SortOrder
@@ -8292,18 +8413,18 @@ export namespace Prisma {
     _max?: NestedStringFilter<$PrismaModel>
   }
 
-  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type StringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -8322,6 +8443,20 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedStringNullableFilter<$PrismaModel>
     _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
+  export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type IntFilter<$PrismaModel = never> = {
@@ -8359,6 +8494,8 @@ export namespace Prisma {
     responseRate?: SortOrder
     responseTime?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     email?: SortOrder
     phoneNumber?: SortOrder
     pickupAddress?: SortOrder
@@ -8380,6 +8517,8 @@ export namespace Prisma {
     responseRate?: SortOrder
     responseTime?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     email?: SortOrder
     phoneNumber?: SortOrder
     pickupAddress?: SortOrder
@@ -8397,6 +8536,8 @@ export namespace Prisma {
     responseRate?: SortOrder
     responseTime?: SortOrder
     status?: SortOrder
+    blockedUntil?: SortOrder
+    blockReason?: SortOrder
     email?: SortOrder
     phoneNumber?: SortOrder
     pickupAddress?: SortOrder
@@ -8654,12 +8795,16 @@ export namespace Prisma {
     set?: string
   }
 
-  export type DateTimeFieldUpdateOperationsInput = {
-    set?: Date | string
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type NullableStringFieldUpdateOperationsInput = {
     set?: string | null
+  }
+
+  export type DateTimeFieldUpdateOperationsInput = {
+    set?: Date | string
   }
 
   export type ShopUpdateOneWithoutStaffNestedInput = {
@@ -8930,15 +9075,15 @@ export namespace Prisma {
     not?: NestedStringFilter<$PrismaModel> | string
   }
 
-  export type NestedDateTimeFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
   }
 
   export type NestedStringNullableFilter<$PrismaModel = never> = {
@@ -8953,6 +9098,17 @@ export namespace Prisma {
     startsWith?: string | StringFieldRefInput<$PrismaModel>
     endsWith?: string | StringFieldRefInput<$PrismaModel>
     not?: NestedStringNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedDateTimeFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeFilter<$PrismaModel> | Date | string
   }
 
   export type NestedStringWithAggregatesFilter<$PrismaModel = never> = {
@@ -8983,18 +9139,29 @@ export namespace Prisma {
     not?: NestedIntFilter<$PrismaModel> | number
   }
 
-  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
     lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
-    _count?: NestedIntFilter<$PrismaModel>
-    _min?: NestedDateTimeFilter<$PrismaModel>
-    _max?: NestedDateTimeFilter<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
+  export type NestedIntNullableFilter<$PrismaModel = never> = {
+    equals?: number | IntFieldRefInput<$PrismaModel> | null
+    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
+    lt?: number | IntFieldRefInput<$PrismaModel>
+    lte?: number | IntFieldRefInput<$PrismaModel>
+    gt?: number | IntFieldRefInput<$PrismaModel>
+    gte?: number | IntFieldRefInput<$PrismaModel>
+    not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
   export type NestedStringNullableWithAggregatesFilter<$PrismaModel = never> = {
@@ -9014,15 +9181,18 @@ export namespace Prisma {
     _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
-  export type NestedIntNullableFilter<$PrismaModel = never> = {
-    equals?: number | IntFieldRefInput<$PrismaModel> | null
-    in?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    notIn?: number[] | ListIntFieldRefInput<$PrismaModel> | null
-    lt?: number | IntFieldRefInput<$PrismaModel>
-    lte?: number | IntFieldRefInput<$PrismaModel>
-    gt?: number | IntFieldRefInput<$PrismaModel>
-    gte?: number | IntFieldRefInput<$PrismaModel>
-    not?: NestedIntNullableFilter<$PrismaModel> | number | null
+  export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeWithAggregatesFilter<$PrismaModel> | Date | string
+    _count?: NestedIntFilter<$PrismaModel>
+    _min?: NestedDateTimeFilter<$PrismaModel>
+    _max?: NestedDateTimeFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -9116,6 +9286,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9135,6 +9307,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9157,6 +9331,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9175,6 +9351,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9271,6 +9449,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9290,6 +9470,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9318,6 +9500,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9336,6 +9520,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9414,6 +9600,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9432,6 +9620,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9455,6 +9645,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9473,6 +9665,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9534,6 +9728,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9552,6 +9748,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9589,6 +9787,8 @@ export namespace Prisma {
     name?: StringFilter<"User"> | string
     role?: StringFilter<"User"> | string
     status?: StringFilter<"User"> | string
+    blockedUntil?: DateTimeNullableFilter<"User"> | Date | string | null
+    blockReason?: StringNullableFilter<"User"> | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     avatar?: StringNullableFilter<"User"> | string | null
@@ -9621,6 +9821,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9639,6 +9841,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9663,6 +9867,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9682,6 +9888,8 @@ export namespace Prisma {
     responseRate?: number
     responseTime?: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     email?: string | null
     phoneNumber?: string | null
     pickupAddress?: string | null
@@ -9714,6 +9922,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9732,6 +9942,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9762,6 +9974,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9781,6 +9995,8 @@ export namespace Prisma {
     responseRate?: IntFieldUpdateOperationsInput | number
     responseTime?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     email?: NullableStringFieldUpdateOperationsInput | string | null
     phoneNumber?: NullableStringFieldUpdateOperationsInput | string | null
     pickupAddress?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9797,6 +10013,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9815,6 +10033,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9849,6 +10069,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9867,6 +10089,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -9969,6 +10193,8 @@ export namespace Prisma {
     name: string
     role: string
     status?: string
+    blockedUntil?: Date | string | null
+    blockReason?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     avatar?: string | null
@@ -9990,6 +10216,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10008,6 +10236,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null
@@ -10026,6 +10256,8 @@ export namespace Prisma {
     name?: StringFieldUpdateOperationsInput | string
     role?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    blockedUntil?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    blockReason?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     avatar?: NullableStringFieldUpdateOperationsInput | string | null

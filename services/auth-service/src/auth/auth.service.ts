@@ -263,6 +263,22 @@ export class AuthService {
     });
   }
 
+  async updateShopShippingSettings(id: string, shippingSettings: string) {
+    const shop = await this.prisma.shop.findUnique({
+      where: { id },
+    });
+    if (!shop) {
+      throw new NotFoundException(`Cửa hàng với ID ${id} không tồn tại`);
+    }
+
+    return this.prisma.shop.update({
+      where: { id },
+      data: {
+        shippingSettings,
+      },
+    });
+  }
+
   async approveShop(id: string, status: string, blockedUntil?: string | null, blockReason?: string | null) {
     const shop = await this.prisma.shop.findUnique({
       where: { id },

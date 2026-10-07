@@ -17,6 +17,14 @@ export class AuthController {
     return this.authService.updateShopOnboarding(id, dto);
   }
 
+  @Put('shops/:id/shipping-settings')
+  async updateShippingSettings(
+    @Param('id') id: string,
+    @Body() body: { shippingSettings: string }
+  ) {
+    return this.authService.updateShopShippingSettings(id, body.shippingSettings);
+  }
+
   @Put('shops/:id/approve')
   async approveShop(
     @Param('id') id: string,

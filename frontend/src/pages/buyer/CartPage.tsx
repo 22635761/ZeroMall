@@ -600,9 +600,21 @@ export const CartPage: React.FC<CartPageProps> = ({
   const dynamicShippingTotal = uniqueSelectedShops.reduce((sum, shopId) => sum + (shopShippingFees[shopId] || 22000), 0)
   const baseShippingFee = dynamicShippingTotal
 
-  // Shipping discount and vouchers (Chuẩn Shopee: Cho phép áp đồng thời Freeship + Giảm giá đơn hàng)
-  const isFreeshipActive = selectedShippingVoucher === 'freeship' || selectedVoucher === 'freeship'
-  const shippingDiscount = isFreeshipActive ? Math.min(baseShippingFee, 35000) : 0
+  // Kiểm tra giỏ hàng có Shop nào đã đăng ký gói Freeship Xtra không (100% dữ liệu thật từ DB)
+  const hasFreeshipXtraEligible = useMemo(() => {
+    return uniqueSelectedShops.some(shopId => {
+      const settings = shopsInfo[shopId]?.shippingSettings
+      return Boolean(settings?.hasFreeshipXtra)
+    })
+  }, [uniqueSelectedShops, shopsInfo])
+
+  // Shipping discount and vouchers (Chuẩn Shopee: Phân định Freeship Xtra 35k vs Freeship Toàn Sàn 20k)
+  let shippingDiscount = 0
+  if (selectedShippingVoucher === 'freeship_xtra' || selectedShippingVoucher === 'freeship') {
+    shippingDiscount = Math.min(baseShippingFee, 35000)
+  } else if (selectedShippingVoucher === 'freeship_all') {
+    shippingDiscount = Math.min(baseShippingFee, 20000)
+  }
   const finalShippingFee = Math.max(0, baseShippingFee - shippingDiscount)
 
   // Platform voucher discount calculation (Tính trên mã giảm giá đơn hàng)
@@ -1023,6 +1035,7 @@ export const CartPage: React.FC<CartPageProps> = ({
           setSelectedOrderVoucher(orderV)
           setSelectedVoucher(orderV !== 'none' ? orderV : shippingV)
         }}
+        hasFreeshipXtraEligible={hasFreeshipXtraEligible}
         itemsTotal={itemsTotal}
         platformVouchers={allShopVouchers.filter(v => v.shopId === 'PLATFORM')}
         formatPrice={formatPrice}

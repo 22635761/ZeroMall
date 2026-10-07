@@ -751,6 +751,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           onBuyNow={handleBuyNowClick}
           onSelectOptionImage={handleSelectOptionImage}
           user={user}
+          shopDetails={shopDetails}
         />
       </div>
 

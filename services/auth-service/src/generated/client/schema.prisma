@@ -8,14 +8,16 @@ generator client {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String // "BUYER", "ADMIN", "SHOP_OWNER", "SHOP_STAFF", "PLATFORM_SUPPORT"
-  status    String   @default("ACTIVE") // "ACTIVE" | "BLOCKED"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String    @id @default(uuid())
+  email        String    @unique
+  password     String
+  name         String
+  role         String // "BUYER", "ADMIN", "SHOP_OWNER", "SHOP_STAFF", "PLATFORM_SUPPORT"
+  status       String    @default("ACTIVE") // "ACTIVE" | "BLOCKED"
+  blockedUntil DateTime?
+  blockReason  String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   avatar      String?
   gender      String?
@@ -35,22 +37,24 @@ model User {
 }
 
 model Shop {
-  id               String   @id @default(uuid())
+  id               String    @id @default(uuid())
   name             String
   logo             String?
   description      String?
-  ownerId          String   @unique
-  owner            User     @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  staff            User[]   @relation("ShopStaff")
-  responseRate     Int      @default(100)
-  responseTime     String   @default("trong vài giờ")
-  status           String   @default("DRAFT") // "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED"
+  ownerId          String    @unique
+  owner            User      @relation("ShopOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  staff            User[]    @relation("ShopStaff")
+  responseRate     Int       @default(100)
+  responseTime     String    @default("trong vài giờ")
+  status           String    @default("DRAFT") // "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "REJECTED" | "BLOCKED"
+  blockedUntil     DateTime?
+  blockReason      String?
   email            String?
   phoneNumber      String?
-  pickupAddress    String?  @db.Text
-  shippingSettings String?  @db.Text
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  pickupAddress    String?   @db.Text
+  shippingSettings String?   @db.Text
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   // Người dùng theo dõi shop này
   followers ShopFollow[]

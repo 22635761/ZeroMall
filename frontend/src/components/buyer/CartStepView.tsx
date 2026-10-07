@@ -399,7 +399,11 @@ export const CartStepView: React.FC<CartStepViewProps> = ({
                 {selectedShippingVoucher && selectedShippingVoucher !== 'none' && (
                   <span className="bg-teal-50 text-teal-700 border border-teal-200 text-[11px] font-bold px-2.5 py-0.5 rounded-md flex items-center gap-1 shadow-3xs">
                     <span>🚚</span>
-                    <span>{selectedShippingVoucher === 'freeship' ? 'Miễn phí vận chuyển (tối đa 35k)' : selectedShippingVoucher}</span>
+                    <span>
+                      {(selectedShippingVoucher === 'freeship_xtra' || selectedShippingVoucher === 'freeship') && 'Freeship Extra (-35k)'}
+                      {selectedShippingVoucher === 'freeship_all' && 'Freeship Toàn Sàn (-20k)'}
+                      {!['freeship_xtra', 'freeship', 'freeship_all'].includes(selectedShippingVoucher) && selectedShippingVoucher}
+                    </span>
                   </span>
                 )}
 

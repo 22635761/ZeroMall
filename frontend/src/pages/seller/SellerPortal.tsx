@@ -17,6 +17,7 @@ import { ShopBankAccounts } from '../../components/seller/ShopBankAccounts'
 import { SellerChatManager } from '../../components/seller/SellerChatManager'
 import { ShopReviews } from '../../components/seller/ShopReviews'
 import { ShopLogisticsManager } from '../../components/seller/ShopLogisticsManager'
+import { ShopFreeshipXtraTab } from '../../components/seller/ShopFreeshipXtraTab'
 import PriceManagement from '../../components/seller/PriceManagement'
 import { ShopReturnsTab } from '../../components/seller/ShopReturnsTab'
 import { NotificationPopover } from '../../components/common/NotificationPopover'
@@ -263,7 +264,8 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       icon: '🚚',
       subMenus: [
         { id: 'spx-shipments', title: 'Quản Lý Vận Đơn' },
-        { id: 'spx-settlement', title: 'Đối Soát COD' }
+        { id: 'spx-settlement', title: 'Đối Soát COD' },
+        { id: 'freeship-xtra', title: 'Gói Freeship Xtra' }
       ]
     },
     {
@@ -472,6 +474,15 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
             <ShopVouchers user={user} />
           ) : activeMenu === 'marketing' && activeSubMenu === 'shop-flashsale' ? (
             <ShopFlashSale user={user} />
+          ) : activeMenu === 'logistics' && activeSubMenu === 'freeship-xtra' ? (
+            <ShopFreeshipXtraTab
+              shopDetails={shopDetails}
+              onShopUpdated={(updatedShop) => {
+                setShopDetails(updatedShop)
+                setLoadedShopName(updatedShop.name)
+              }}
+              productsCount={productsList.length}
+            />
           ) : activeMenu === 'logistics' ? (
             <ShopLogisticsManager user={user} shopDetails={shopDetails} activeSubMenu={activeSubMenu} />
           ) : activeMenu === 'orders' && activeSubMenu === 'refunds' ? (

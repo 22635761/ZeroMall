@@ -22,6 +22,7 @@ interface ProductPurchasePanelProps {
   onBuyNow: (product: any, quantity: number, variant: string) => void
   onSelectOptionImage?: (imageUrl: string) => void
   user?: any
+  shopDetails?: any
 }
 
 export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
@@ -44,7 +45,8 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
   handleAddToCartClick,
   onBuyNow,
   onSelectOptionImage,
-  user
+  user,
+  shopDetails
 }) => {
   const variationGroups: VariationGroup[] = product.variationGroups && product.variationGroups.length > 0
     ? product.variationGroups
@@ -131,9 +133,25 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                 Yêu thích+
               </span>
             )}
-            <span className="text-[10px] text-red-500 border border-red-500/35 px-2 rounded-sm font-semibold bg-red-50/20">
-              Freeship Xtra
-            </span>
+            {(() => {
+              let hasXtra = false
+              try {
+                if (shopDetails?.shippingSettings) {
+                  const parsed = typeof shopDetails.shippingSettings === 'string'
+                    ? JSON.parse(shopDetails.shippingSettings)
+                    : shopDetails.shippingSettings
+                  hasXtra = Boolean(parsed.hasFreeshipXtra)
+                }
+              } catch (_) {}
+
+              if (!hasXtra) return null
+
+              return (
+                <span className="text-[10px] text-teal-700 border border-teal-500/40 px-2 rounded-sm font-bold bg-teal-50 flex items-center gap-1 shadow-3xs">
+                  <span>🚚</span> Freeship Xtra
+                </span>
+              )
+            })()}
           </div>
           <h1 className="text-xl font-bold text-slate-800 leading-tight">
             {product.name}

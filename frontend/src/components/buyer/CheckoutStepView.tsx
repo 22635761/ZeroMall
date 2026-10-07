@@ -457,7 +457,9 @@ export const CheckoutStepView: React.FC<CheckoutStepViewProps> = ({
                   <div className="flex items-center gap-1.5 text-teal-700">
                     <span>🚚</span>
                     <span className="truncate">
-                      {selectedShippingVoucher === 'freeship' ? 'Miễn Phí Vận Chuyển Extra (-35k)' : selectedShippingVoucher}
+                      {(selectedShippingVoucher === 'freeship_xtra' || selectedShippingVoucher === 'freeship') && 'Miễn Phí Vận Chuyển Extra (-35k)'}
+                      {selectedShippingVoucher === 'freeship_all' && 'Miễn Phí Vận Chuyển Toàn Sàn (-20k)'}
+                      {!['freeship_xtra', 'freeship', 'freeship_all'].includes(selectedShippingVoucher) && selectedShippingVoucher}
                     </span>
                   </div>
                 )}
