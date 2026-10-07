@@ -33,6 +33,7 @@ interface ShopDetails {
   email?: string
   phoneNumber?: string
   pickupAddress?: string
+  shippingSettings?: any
   createdAt?: string
   followers?: number
 }
@@ -219,6 +220,19 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
     return Array.from(set)
   }, [shopProducts])
 
+  // Check if shop is enrolled in Freeship Xtra
+  const hasFreeshipXtra = useMemo(() => {
+    if (!shopDetails?.shippingSettings) return false
+    try {
+      const parsed = typeof shopDetails.shippingSettings === 'string'
+        ? JSON.parse(shopDetails.shippingSettings)
+        : shopDetails.shippingSettings
+      return parsed?.hasFreeshipXtra === true
+    } catch {
+      return false
+    }
+  }, [shopDetails])
+
   // Filtered & Sorted products
   const filteredProducts = useMemo(() => {
     let list = [...shopProducts]
@@ -346,6 +360,11 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
             <div className="space-y-1.5 flex-1">
               <h1 className="text-lg sm:text-xl font-black text-white tracking-tight flex items-center gap-2">
                 {shopDetails?.name || 'ZeroMall Store'}
+                {hasFreeshipXtra && (
+                  <span className="text-[10px] bg-teal-500/90 text-white font-extrabold px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 border border-teal-300/40">
+                    🚚 Freeship Xtra
+                  </span>
+                )}
               </h1>
               <p className="text-[11px] text-emerald-300 font-bold flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -701,9 +720,11 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                             Yêu thích
                           </span>
                         )}
-                        <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                          Freeship Xtra
-                        </span>
+                        {hasFreeshipXtra && (
+                          <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
+                            Freeship Xtra
+                          </span>
+                        )}
                       </div>
 
                       {/* Right Promo Tag */}

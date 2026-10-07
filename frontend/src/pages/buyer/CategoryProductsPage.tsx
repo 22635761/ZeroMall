@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
 import { useParams, useNavigate, Link } from 'react-router-dom'
+import { getFreeshipShopIds } from '../../services/shop.service'
 
 interface Product {
   id: string
@@ -70,6 +71,15 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
   const [loading, setLoading] = useState(!propsProducts || propsProducts.length === 0)
   const [sortBy, setSortBy] = useState<'NEWEST' | 'SALES' | 'PRICE_ASC' | 'PRICE_DESC'>('NEWEST')
   const [searchTerm, setSearchTerm] = useState('')
+  const [freeshipShopIds, setFreeshipShopIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let isMounted = true
+    getFreeshipShopIds().then(ids => {
+      if (isMounted) setFreeshipShopIds(ids)
+    })
+    return () => { isMounted = false }
+  }, [])
 
   // 1. Fetch categories
   useEffect(() => {
@@ -363,9 +373,11 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                         Yêu thích
                       </span>
                     )}
-                    <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                      Freeship Xtra
-                    </span>
+                    {p.shopId && freeshipShopIds.has(p.shopId) && (
+                      <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
+                        Freeship Xtra
+                      </span>
+                    )}
                   </div>
 
                   {/* Right Promo Tag */}

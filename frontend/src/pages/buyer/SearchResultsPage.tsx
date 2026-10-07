@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../config/api.config'
 import { toSlug } from '../../utils/slug'
+import { getFreeshipShopIds } from '../../services/shop.service'
 
 interface Product {
   id: string
@@ -50,6 +51,15 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
   const [filterFreeship, setFilterFreeship] = useState(false)
   const [filterMall, setFilterMall] = useState(false)
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'NEWEST' | 'SALES' | 'PRICE_ASC' | 'PRICE_DESC'>('RELEVANCE')
+  const [freeshipShopIds, setFreeshipShopIds] = useState<Set<string>>(new Set())
+
+  useEffect(() => {
+    let isMounted = true
+    getFreeshipShopIds().then(ids => {
+      if (isMounted) setFreeshipShopIds(ids)
+    })
+    return () => { isMounted = false }
+  }, [])
 
   // 1. Fetch categories
   useEffect(() => {
@@ -170,7 +180,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
 
     // Freeship Xtra filter
     if (filterFreeship) {
-      list = list.filter(p => (p.sold || 0) > 0 || parsePrice(p.price) > 50000)
+      list = list.filter(p => !!p.shopId && freeshipShopIds.has(p.shopId))
     }
 
     // Mall filter
@@ -189,7 +199,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
       if (sortBy === 'NEWEST') return b.id.localeCompare(a.id)
       return 0 // RELEVANCE
     })
-  }, [allProducts, query, selectedCategory, appliedMinPrice, appliedMaxPrice, minRating, filterFreeship, filterMall, sortBy])
+  }, [allProducts, query, selectedCategory, appliedMinPrice, appliedMaxPrice, minRating, filterFreeship, filterMall, sortBy, freeshipShopIds])
 
   const handleApplyPrice = (e: React.FormEvent) => {
     e.preventDefault()
@@ -499,9 +509,11 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
                             Yêu thích
                           </span>
                         )}
-                        <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                          Freeship Xtra
-                        </span>
+                        {p.shopId && freeshipShopIds.has(p.shopId) && (
+                          <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
+                            Freeship Xtra
+                          </span>
+                        )}
                       </div>
 
                       {/* Right Promo Tag */}

@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import type { Product } from './FlashSale'
+import { getFreeshipShopIds } from '../../services/shop.service'
 
 interface ProductListProps {
   products: Product[]
@@ -8,6 +9,18 @@ interface ProductListProps {
 
 export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProduct }) => {
   const [activeTab, setActiveTab] = useState(0)
+  const [freeshipShopIds, setFreeshipShopIds] = useState<Set<string>>(new Set())
+
+  // Tải danh sách Shop đã đăng ký Freeship Xtra động từ database thực tế
+  useEffect(() => {
+    let isMounted = true
+    getFreeshipShopIds().then((enrolledSet) => {
+      if (isMounted) setFreeshipShopIds(enrolledSet)
+    })
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   const tabs = [
     { label: 'Gợi Ý Cho Bạn', icon: '✨' },
@@ -22,8 +35,8 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
 
   const getFilteredProducts = () => {
     switch (activeTab) {
-      case 1: // Freeship Xtra
-        return allProducts.filter((p) => p.sold > 2000)
+      case 1: // Freeship Xtra: Lọc ĐÚNG các sản phẩm thuộc Shop CÓ ĐĂNG KÝ Freeship Xtra
+        return allProducts.filter((p) => p.shopId && freeshipShopIds.has(p.shopId))
       case 2: // Hàng Hiệu
         return allProducts.filter((p) => {
           const num = parseInt(String(p.originalPrice || p.flashPrice || '0').replace(/[^0-9]/g, ''), 10) || 0
@@ -62,7 +75,9 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
       {/* Grid of Product Cards */}
       {filteredList.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/60 text-slate-400 text-xs font-medium">
-          Không tìm thấy sản phẩm nào phù hợp.
+          {activeTab === 1
+            ? 'Hiện chưa có sản phẩm nào thuộc Shop đăng ký Gói Freeship Xtra.'
+            : 'Không tìm thấy sản phẩm nào phù hợp.'}
         </div>
       ) : (
         <>
@@ -75,6 +90,7 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
               const isMall = flashVal > 200000
               const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
               const isOutOfStock = stockVal <= 0 || p.status === 'hidden'
+              const hasFreeship = Boolean(p.shopId && freeshipShopIds.has(p.shopId))
               
               return (
                 <div
@@ -110,15 +126,21 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                           Yêu thích
                         </span>
                       )}
-                      <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                        Freeship Xtra
-                      </span>
+                      
+                      {/* CHỈ HIỂN THỊ NẾU SHOP ĐÃ ĐĂNG KÝ FREESHIP XTRA */}
+                      {hasFreeship && (
+                        <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
+                          Freeship Xtra
+                        </span>
+                      )}
                     </div>
 
                     {/* Right Promo Tag */}
-                    <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
-                      -{discountPct}% GIẢM
-                    </div>
+                    {discountPct > 0 && !isOutOfStock && (
+                      <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                        -{discountPct}% GIẢM
+                      </div>
+                    )}
                   </div>
 
                   {/* Product details */}
@@ -129,10 +151,12 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                       </h3>
                       {/* Badges row */}
                       <div className="flex flex-wrap gap-1">
+                        {hasFreeship && (
+                          <span className="text-[8px] text-teal-600 border border-teal-500/30 px-1 rounded-sm font-bold bg-teal-50/20">
+                            FREESHIP XTRA
+                          </span>
+                        )}
                         <span className="text-[8px] text-emerald-600 border border-emerald-500/30 px-1 rounded-sm font-bold bg-emerald-50/20">
-                          MUA ĐỂ FREESHIP
-                        </span>
-                        <span className="text-[8px] text-teal-600 border border-teal-500/30 px-1 rounded-sm font-bold bg-teal-50/20">
                           GIẢM ĐẾN 30K
                         </span>
                       </div>
