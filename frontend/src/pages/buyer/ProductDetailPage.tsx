@@ -156,26 +156,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   // Flying items state for product add-to-cart animation
   const [flyingItems, setFlyingItems] = useState<{ id: number; startX: number; startY: number; endX: number; endY: number; image: string }[]>([])
 
-  // Initialize selectedOptions with first option of each group when product loads
+  // Reset variation selection when product changes
   useEffect(() => {
-    if (product?.variationGroups && product.variationGroups.length > 0) {
-      const initial: Record<number, string> = {}
-      product.variationGroups.forEach((g, idx) => {
-        if (g.options && g.options.length > 0) {
-          initial[idx] = g.options[0]
-        }
-      })
-      setSelectedOptions(initial)
-    } else {
-      setSelectedOptions({})
-    }
-  }, [product])
+    setSelectedOptions({})
+    setActiveImgIdx(0)
+  }, [product?.id])
 
   const handleSelectOption = (groupIdx: number, option: string) => {
-    setSelectedOptions((prev) => ({
-      ...prev,
-      [groupIdx]: option
-    }))
+    setSelectedOptions((prev) => {
+      if (prev[groupIdx] === option) {
+        const next = { ...prev }
+        delete next[groupIdx]
+        return next
+      }
+      return {
+        ...prev,
+        [groupIdx]: option
+      }
+    })
   }
 
   // Find matching row for the current selections
@@ -551,43 +549,58 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     return (match && match[2].length === 11) ? match[2] : null
   }
 
-  const mediaItems: { type: 'image' | 'video'; url: string }[] = []
-  if (product) {
+  const mediaItems: { type: 'image' | 'video'; url: string }[] = useMemo(() => {
+    const items: { type: 'image' | 'video'; url: string }[] = []
+    if (!product) return items
+
     if (product.video) {
-      mediaItems.push({ type: 'video', url: product.video })
-    }
-    const addedUrls = new Set<string>()
-    if (product.images && product.images.length > 0) {
-      product.images.forEach((imgUrl) => {
-        if (!addedUrls.has(imgUrl)) {
-          mediaItems.push({ type: 'image', url: imgUrl })
-          addedUrls.add(imgUrl)
-        }
-      })
-    } else if (product.image) {
-      mediaItems.push({ type: 'image', url: product.image })
-      addedUrls.add(product.image)
+      items.push({ type: 'video', url: product.video })
     }
 
-    // Tự động bổ sung ảnh của các biến thể vào gallery nếu chưa có
-    if (product.variationRows && product.variationRows.length > 0) {
+    const addedUrls = new Set<string>()
+
+    // 1. Toàn bộ hình ảnh chung của sản phẩm (ảnh bìa & ảnh chi tiết)
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      product.images.forEach((imgUrl) => {
+        if (typeof imgUrl === 'string' && imgUrl.trim() && !addedUrls.has(imgUrl.trim())) {
+          items.push({ type: 'image', url: imgUrl.trim() })
+          addedUrls.add(imgUrl.trim())
+        }
+      })
+    }
+    
+    // Nếu ảnh đại diện chính chưa có trong danh sách images, bổ sung vào đầu
+    if (product.image && typeof product.image === 'string' && product.image.trim() && !addedUrls.has(product.image.trim())) {
+      items.unshift({ type: 'image', url: product.image.trim() })
+      addedUrls.add(product.image.trim())
+    }
+
+    // 2. Hình ảnh của từng nhóm biến thể (chỉ khi có biến thể và chỉ lấy option còn tồn tại)
+    if (product.hasVariations && product.variationGroups && Array.isArray(product.variationGroups)) {
+      product.variationGroups.forEach((group: any) => {
+        const gImages = group?.images || {}
+        const validOptions = new Set((group?.options || []).map((o: string) => String(o).trim().toLowerCase()))
+        Object.entries(gImages).forEach(([optName, imgUrl]: [string, any]) => {
+          if (validOptions.has(optName.trim().toLowerCase()) && typeof imgUrl === 'string' && imgUrl.trim() && !addedUrls.has(imgUrl.trim())) {
+            items.push({ type: 'image', url: imgUrl.trim() })
+            addedUrls.add(imgUrl.trim())
+          }
+        })
+      })
+    }
+
+    // 3. Hình ảnh của các dòng biến thể chi tiết
+    if (product.hasVariations && product.variationRows && Array.isArray(product.variationRows)) {
       product.variationRows.forEach((r: any) => {
-        if (r.image && !addedUrls.has(r.image)) {
-          mediaItems.push({ type: 'image', url: r.image })
-          addedUrls.add(r.image)
+        if (r.image && typeof r.image === 'string' && r.image.trim() && !addedUrls.has(r.image.trim())) {
+          items.push({ type: 'image', url: r.image.trim() })
+          addedUrls.add(r.image.trim())
         }
       })
     }
-    if (product.variationGroups && product.variationGroups.length > 0) {
-      const g0Images = (product.variationGroups[0] as any)?.images || {}
-      Object.values(g0Images).forEach((imgUrl: any) => {
-        if (typeof imgUrl === 'string' && imgUrl && !addedUrls.has(imgUrl)) {
-          mediaItems.push({ type: 'image', url: imgUrl })
-          addedUrls.add(imgUrl)
-        }
-      })
-    }
-  }
+
+    return items
+  }, [product])
 
   const handleSelectOptionImage = (imageUrl: string) => {
     if (!imageUrl) return
@@ -596,16 +609,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       setActiveImgIdx(targetIdx)
     }
   }
-
-  // Tự động chuyển ảnh lớn sang ảnh của biến thể khi người dùng chọn phân loại
-  useEffect(() => {
-    if (selectedRow?.image && mediaItems.length > 0) {
-      const idx = mediaItems.findIndex((m) => m.url === selectedRow.image)
-      if (idx >= 0) {
-        setActiveImgIdx(idx)
-      }
-    }
-  }, [selectedRow, mediaItems])
 
   const isMall = Boolean(product?.brand && product.brand.toLowerCase() !== 'no brand' && product.brand !== '')
 

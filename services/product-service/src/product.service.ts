@@ -111,8 +111,13 @@ export class ProductService {
     }
 
     const imagesStr = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
-    const variationGroupsStr = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
-    const variationRowsStr = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
+    const isHasVariations = Boolean(dto.hasVariations);
+    const variationGroupsStr = isHasVariations && dto.variationGroups && dto.variationGroups !== '[]' && dto.variationGroups !== 'null'
+      ? (typeof dto.variationGroups === 'string' ? dto.variationGroups : JSON.stringify(dto.variationGroups))
+      : null;
+    const variationRowsStr = isHasVariations && dto.variationRows && dto.variationRows !== '[]' && dto.variationRows !== 'null'
+      ? (typeof dto.variationRows === 'string' ? dto.variationRows : JSON.stringify(dto.variationRows))
+      : null;
     let categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
     let categoryId = (dto as any).categoryId || null;
 
@@ -266,6 +271,8 @@ export class ProductService {
       }
       updateData.name = nameStr;
     }
+    if (dto.image !== undefined) updateData.image = dto.image ? String(dto.image) : null;
+    if (dto.images !== undefined) updateData.images = typeof dto.images === 'string' ? dto.images : (dto.images ? JSON.stringify(dto.images) : '[]');
     if (dto.video !== undefined) updateData.video = dto.video ? String(dto.video) : null;
     if (dto.category !== undefined || (dto as any).categoryId !== undefined) {
       let categoryStr = typeof dto.category === 'string' ? dto.category : ((dto.category as any)?.name || 'Tổng Hợp');
@@ -312,12 +319,31 @@ export class ProductService {
     }
     if (dto.stock !== undefined) updateData.stock = typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0;
     if (dto.sales !== undefined) updateData.sales = typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0;
-    if (dto.status !== undefined) updateData.status = String(dto.status);
-    if (dto.sku !== undefined) updateData.sku = dto.sku ? String(dto.sku) : null;
-    if (dto.variationsText !== undefined) updateData.variationsText = dto.variationsText ? String(dto.variationsText) : null;
-    if (dto.hasVariations !== undefined) updateData.hasVariations = Boolean(dto.hasVariations);
-    if (dto.variationGroups !== undefined) updateData.variationGroups = typeof dto.variationGroups === 'string' ? dto.variationGroups : (dto.variationGroups ? JSON.stringify(dto.variationGroups) : null);
-    if (dto.variationRows !== undefined) updateData.variationRows = typeof dto.variationRows === 'string' ? dto.variationRows : (dto.variationRows ? JSON.stringify(dto.variationRows) : null);
+    if (dto.hasVariations !== undefined) {
+      updateData.hasVariations = Boolean(dto.hasVariations);
+      if (!updateData.hasVariations) {
+        updateData.variationGroups = null;
+        updateData.variationRows = null;
+        updateData.variationsText = null;
+      }
+    }
+    if (dto.variationGroups !== undefined && updateData.hasVariations !== false) {
+      if (!dto.variationGroups || dto.variationGroups === '[]' || dto.variationGroups === 'null') {
+        updateData.variationGroups = null;
+      } else {
+        updateData.variationGroups = typeof dto.variationGroups === 'string' ? dto.variationGroups : JSON.stringify(dto.variationGroups);
+      }
+    }
+    if (dto.variationRows !== undefined && updateData.hasVariations !== false) {
+      if (!dto.variationRows || dto.variationRows === '[]' || dto.variationRows === 'null') {
+        updateData.variationRows = null;
+      } else {
+        updateData.variationRows = typeof dto.variationRows === 'string' ? dto.variationRows : JSON.stringify(dto.variationRows);
+      }
+    }
+    if (dto.variationsText !== undefined && updateData.hasVariations !== false) {
+      updateData.variationsText = dto.variationsText ? String(dto.variationsText) : null;
+    }
     if (dto.weight !== undefined) updateData.weight = dto.weight != null ? String(dto.weight) : null;
     if (dto.length !== undefined) updateData.length = dto.length != null ? String(dto.length) : null;
     if (dto.width !== undefined) updateData.width = dto.width != null ? String(dto.width) : null;

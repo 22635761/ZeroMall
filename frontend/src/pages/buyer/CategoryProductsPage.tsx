@@ -109,10 +109,41 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
               if (typeof val === 'number') return val
               return parseInt(String(val).replace(/\D/g, ''), 10) || 0
             }
-            const origNum = parseNum(p.originalPrice)
-            const priceNum = parseNum(p.price)
-            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : priceNum.toLocaleString('vi-VN') + 'đ'
+            let priceNum = parseNum(p.price)
+            let origNum = parseNum(p.originalPrice)
+
+            // Parse variationRows if hasVariations
+            let parsedVariationRows: any[] = []
+            if (p.hasVariations && p.variationRows) {
+              try {
+                parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
+              } catch (e) {
+                console.error('Failed to parse variationRows', e)
+              }
+            }
+
+            if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
+              const validVariationPrices: { price: number; originalPrice: number }[] = []
+              for (const row of parsedVariationRows) {
+                const rPrice = parseNum(row.price)
+                const rOrig = parseNum(row.originalPrice)
+                if (rPrice > 0) {
+                  validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
+                }
+              }
+
+              if (validVariationPrices.length > 0) {
+                validVariationPrices.sort((a, b) => a.price - b.price)
+                const cheapest = validVariationPrices[0]
+                priceNum = cheapest.price
+                if (cheapest.originalPrice > 0) {
+                  origNum = cheapest.originalPrice
+                }
+              }
+            }
+
             const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
+            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : ''
 
             return {
               id: p.id,
@@ -405,15 +436,15 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <div className="flex items-baseline flex-wrap gap-1">
-                      <span className="text-sm font-bold text-emerald-600">{displayPriceStr}</span>
-                      {p.originalPrice && (
-                        <span className="text-[10px] text-slate-400 line-through font-semibold">
-                          {typeof p.originalPrice === 'number' ? p.originalPrice.toLocaleString('vi-VN') + 'đ' : p.originalPrice}
-                        </span>
-                      )}
-                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-baseline flex-wrap gap-1.5">
+                        <span className="text-sm font-bold text-emerald-600">{displayPriceStr}</span>
+                        {p.originalPrice && p.originalPrice !== displayPriceStr && (
+                          <span className="text-[10px] text-slate-400 line-through font-semibold">
+                            {typeof p.originalPrice === 'number' ? p.originalPrice.toLocaleString('vi-VN') + 'đ' : p.originalPrice}
+                          </span>
+                        )}
+                      </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                       <div className="flex items-center text-yellow-400">
                         ★ <span className="text-slate-600 ml-0.5">{ratingVal}</span>

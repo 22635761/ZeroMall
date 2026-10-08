@@ -5,11 +5,13 @@ $env:DOCKER_BUILDKIT = "1"
 $services = @(
     "auth-service",
     "product-service",
-    "order-service",
     "discount-service",
+    "order-service",
     "payment-service",
+    "delivery-service",
     "notification-service",
-    "chat-service"
+    "chat-service",
+    "frontend"
 )
 
 $maxRetries = 3

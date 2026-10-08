@@ -83,10 +83,10 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
         <>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
             {filteredList.map((p) => {
-              const parsePrice = (priceStr: string) => parseInt(priceStr.replace(/[^0-9]/g, ''), 10) || 0
+              const parsePrice = (priceStr?: string | number) => parseInt(String(priceStr || '0').replace(/[^0-9]/g, ''), 10) || 0
               const origVal = parsePrice(p.originalPrice)
-              const flashVal = parsePrice(p.flashPrice)
-              const discountPct = origVal > 0 ? Math.round((1 - flashVal / origVal) * 100) : 0
+              const flashVal = parsePrice(p.flashPrice || p.price)
+              const discountPct = origVal > flashVal && origVal > 0 ? Math.round((1 - flashVal / origVal) * 100) : 0
               const isMall = flashVal > 200000
               const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
               const isOutOfStock = stockVal <= 0 || p.status === 'hidden'
@@ -163,8 +163,11 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                     </div>
 
                     <div className="space-y-2">
-                      <div className="flex items-baseline flex-wrap gap-1">
-                        <span className="text-sm font-bold text-emerald-600">{p.flashPrice}</span>
+                      <div className="flex items-baseline flex-wrap gap-1.5">
+                        <span className="text-sm font-bold text-emerald-600">{p.flashPrice || p.price}</span>
+                        {p.originalPrice && p.originalPrice !== p.flashPrice && p.originalPrice !== p.price && (
+                          <span className="text-[10px] text-slate-400 line-through font-medium">{p.originalPrice}</span>
+                        )}
                       </div>
                       <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                         <div className="flex items-center text-yellow-400">

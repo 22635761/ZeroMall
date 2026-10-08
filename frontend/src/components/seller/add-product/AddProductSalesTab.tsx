@@ -22,6 +22,7 @@ interface AddProductSalesTabProps {
   restoreAllDeletedVariations?: () => void
   deletedVariationKeys?: string[]
   handleRowImageChange?: (key: string, imageUrl: string) => void
+  onRowImageRemove?: (key: string) => void
   applyBulkEditWithParams: (params: {
     price: string
     originalPrice: string
@@ -55,6 +56,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
   restoreAllDeletedVariations,
   deletedVariationKeys = [],
   handleRowImageChange,
+  onRowImageRemove,
   applyBulkEditWithParams,
   updateVariationRow,
   errors,
@@ -166,6 +168,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
                 onRestoreRow={restoreVariationRow}
                 onRestoreAll={restoreAllDeletedVariations}
                 onRowImageChange={handleRowImageChange}
+                onRowImageRemove={onRowImageRemove}
               />
             </div>
           ) : (

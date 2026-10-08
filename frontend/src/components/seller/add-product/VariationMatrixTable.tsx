@@ -19,6 +19,7 @@ interface VariationMatrixTableProps {
   onRestoreRow?: (key: string) => void
   onRestoreAll?: () => void
   onRowImageChange?: (key: string, imageUrl: string) => void
+  onRowImageRemove?: (key: string) => void
 }
 
 export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
@@ -28,7 +29,8 @@ export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
   onRemoveRow,
   onRestoreRow,
   onRestoreAll,
-  onRowImageChange
+  onRowImageChange,
+  onRowImageRemove
 }) => {
   const [activeUploadRowKey, setActiveUploadRowKey] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -120,17 +122,35 @@ export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
                     <div className="relative inline-block">
                       {row.image ? (
                         <div
-                          onClick={() => handleTriggerUpload(row.key)}
-                          title="Bấm để đổi ảnh riêng cho biến thể này"
-                          className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-500 cursor-pointer group/img transition shadow-3xs"
+                          className="relative w-10 h-10 rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-500 group/img transition shadow-3xs"
                         >
                           <img
                             src={row.image}
                             alt={row.name}
                             className="w-full h-full object-cover"
                           />
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 flex items-center justify-center text-white text-[9px] font-bold transition">
-                            Đổi
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/img:opacity-100 flex items-center justify-center gap-1 transition">
+                            <button
+                              type="button"
+                              onClick={() => handleTriggerUpload(row.key)}
+                              title="Đổi ảnh"
+                              className="p-1 bg-white hover:bg-slate-100 text-slate-800 rounded text-[9px] font-bold cursor-pointer transition shadow-xs"
+                            >
+                              ✎
+                            </button>
+                            {onRowImageRemove && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  onRowImageRemove(row.key)
+                                }}
+                                title="Xóa ảnh"
+                                className="p-1 bg-red-600 hover:bg-red-700 text-white rounded text-[9px] font-bold cursor-pointer transition shadow-xs"
+                              >
+                                ✕
+                              </button>
+                            )}
                           </div>
                         </div>
                       ) : (

@@ -437,6 +437,8 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
 
   const removeVariationGroup = (index: number) => {
     setVariationGroups((prev) => prev.filter((_, i) => i !== index))
+    setVariationRows([])
+    setDeletedVariationKeys([])
   }
 
   const handleGroupNameChange = (index: number, name: string) => {
@@ -460,19 +462,101 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   }
 
   const removeOptionFromGroup = (groupIdx: number, optIdx: number) => {
+    const targetGroup = variationGroups[groupIdx]
+    const optNameToRemove = targetGroup?.options?.[optIdx]
+    if (!optNameToRemove) return
+
     setVariationGroups((prev) =>
       prev.map((g, i) => {
         if (i === groupIdx) {
-          return { ...g, options: g.options.filter((_, idx) => idx !== optIdx) }
+          const updatedImages = g.images ? { ...g.images } : {}
+          delete updatedImages[optNameToRemove]
+          return {
+            ...g,
+            options: g.options.filter((_, idx) => idx !== optIdx),
+            images: Object.keys(updatedImages).length > 0 ? updatedImages : undefined
+          }
         }
         return g
+      })
+    )
+
+    // Xóa sạch toàn bộ dòng biến thể và thông số liên quan đến option này
+    const optLower = optNameToRemove.trim().toLowerCase()
+    setVariationRows((prev) =>
+      prev.filter((r) => {
+        const parts = (r.name || r.key).split(' - ').map((s) => s.trim().toLowerCase())
+        return !parts.includes(optLower) && !(r.name || r.key).toLowerCase().includes(optLower)
+      })
+    )
+
+    setDeletedVariationKeys((prev) =>
+      prev.filter((k) => {
+        const parts = k.split(' - ').map((s) => s.trim().toLowerCase())
+        return !parts.includes(optLower) && !k.toLowerCase().includes(optLower)
       })
     )
   }
 
   const removeVariationRow = (key: string) => {
+    const rowParts = key.split(' - ').map((s) => s.trim())
+    const nextRows = variationRows.filter((r) => r.key !== key && r.name !== key)
+    setVariationRows(nextRows)
     setDeletedVariationKeys((prev) => (prev.includes(key) ? prev : [...prev, key]))
-    setVariationRows((prev) => prev.filter((r) => r.key !== key))
+
+    if (variationGroups.length === 1) {
+      const optNameToRemove = rowParts[0] || key
+      setVariationGroups((prev) =>
+        prev.map((g) => {
+          const updatedImages = g.images ? { ...g.images } : {}
+          delete updatedImages[optNameToRemove]
+          return {
+            ...g,
+            options: g.options.filter((opt) => opt.toLowerCase() !== optNameToRemove.toLowerCase()),
+            images: Object.keys(updatedImages).length > 0 ? updatedImages : undefined
+          }
+        })
+      )
+    } else if (variationGroups.length === 2) {
+      const opt0 = rowParts[0]
+      const opt1 = rowParts[1]
+
+      // Kiểm tra xem opt0 có còn dòng nào khác trong danh sách đang sử dụng không
+      const isOpt0StillUsed = nextRows.some((r) => {
+        const parts = (r.name || r.key).split(' - ').map((s) => s.trim().toLowerCase())
+        return parts[0] === opt0.toLowerCase()
+      })
+
+      // Kiểm tra xem opt1 có còn dòng nào khác trong danh sách đang sử dụng không
+      const isOpt1StillUsed = nextRows.some((r) => {
+        const parts = (r.name || r.key).split(' - ').map((s) => s.trim().toLowerCase())
+        return parts[1] === opt1.toLowerCase()
+      })
+
+      setVariationGroups((prev) =>
+        prev.map((g, idx) => {
+          if (idx === 0 && !isOpt0StillUsed) {
+            const updatedImages = g.images ? { ...g.images } : {}
+            delete updatedImages[opt0]
+            return {
+              ...g,
+              options: g.options.filter((opt) => opt.toLowerCase() !== opt0.toLowerCase()),
+              images: Object.keys(updatedImages).length > 0 ? updatedImages : undefined
+            }
+          }
+          if (idx === 1 && !isOpt1StillUsed) {
+            const updatedImages = g.images ? { ...g.images } : {}
+            delete updatedImages[opt1]
+            return {
+              ...g,
+              options: g.options.filter((opt) => opt.toLowerCase() !== opt1.toLowerCase()),
+              images: Object.keys(updatedImages).length > 0 ? updatedImages : undefined
+            }
+          }
+          return g
+        })
+      )
+    }
   }
 
   const restoreVariationRow = (key: string) => {
@@ -516,7 +600,10 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         if (idx === groupIdx && g.images) {
           const updated = { ...g.images }
           delete updated[optionName]
-          return { ...g, images: updated }
+          return {
+            ...g,
+            images: Object.keys(updated).length > 0 ? updated : undefined
+          }
         }
         return g
       })
@@ -525,9 +612,11 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     if (groupIdx === 0) {
       setVariationRows((prev) =>
         prev.map((r) => {
-          const parts = (r.name || r.key).split(' - ')
-          if (parts[0] === optionName) {
-            return { ...r, image: undefined }
+          const parts = (r.name || r.key).split(' - ').map((s) => s.trim())
+          if (parts[0].toLowerCase() === optionName.trim().toLowerCase()) {
+            const rowCopy = { ...r }
+            delete rowCopy.image
+            return rowCopy
           }
           return r
         })
@@ -538,6 +627,19 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const handleRowImageChange = (key: string, imageUrl: string) => {
     setVariationRows((prev) =>
       prev.map((r) => (r.key === key ? { ...r, image: imageUrl } : r))
+    )
+  }
+
+  const handleRowImageRemove = (key: string) => {
+    setVariationRows((prev) =>
+      prev.map((r) => {
+        if (r.key === key || r.name === key) {
+          const rowCopy = { ...r }
+          delete rowCopy.image
+          return rowCopy
+        }
+        return r
+      })
     )
   }
 
@@ -567,28 +669,39 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       return combinations
         .map((combo) => {
           const key = combo.join(' - ')
-          const existing = prevRows.find((r) => r.key === key)
+          const existing = prevRows.find((r) => r.key === key || r.name === key)
           const opt1 = combo[0]
-          const inheritedImage = group1Images[opt1] || undefined
+          const groupImg = group1Images[opt1]?.trim() || undefined
 
-          return (
-            existing
-              ? {
-                  ...existing,
-                  image: existing.image || inheritedImage
-                }
-              : {
-                  key,
-                  name: key,
-                  price: simplePrice || '100000',
-                  originalPrice: simpleOriginalPrice || '',
-                  stock: simpleStock || '50',
-                  sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`,
-                  image: inheritedImage
-                }
-          )
+          if (existing) {
+            const updatedRow: VariationRow = {
+              ...existing,
+              key,
+              name: key
+            }
+            const effectiveImage = existing.image?.trim() || groupImg
+            if (effectiveImage) {
+              updatedRow.image = effectiveImage
+            } else {
+              delete updatedRow.image
+            }
+            return updatedRow
+          }
+
+          const newRow: VariationRow = {
+            key,
+            name: key,
+            price: simplePrice || '100000',
+            originalPrice: simpleOriginalPrice || '',
+            stock: simpleStock || '50',
+            sku: `${parentSku ? parentSku + '-' : ''}${key.replace(/\s+/g, '').toUpperCase()}`
+          }
+          if (groupImg) {
+            newRow.image = groupImg
+          }
+          return newRow
         })
-        .filter((row) => !deletedVariationKeys.includes(row.key))
+        .filter((row) => !deletedVariationKeys.includes(row.key) && !deletedVariationKeys.includes(row.name))
     })
   }, [hasVariations, variationGroups, deletedVariationKeys])
 
@@ -733,6 +846,59 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
 
     const finalVideoUrl = videoMode === 'upload' ? videoFile.url : videoLink
 
+    // Làm sạch ảnh & thông số biến thể: chỉ lưu khi bật phân loại và có dữ liệu hợp lệ
+    let finalVariationGroups: string | null = null
+    let finalVariationRows: string | null = null
+
+    if (hasVariations) {
+      const validGroups = variationGroups.filter((g) => g.name.trim() && g.options && g.options.length > 0)
+      if (validGroups.length > 0) {
+        const cleanedGroups = validGroups.map((g) => {
+          const cleanedImages: Record<string, string> = {}
+          if (g.images) {
+            g.options.forEach((opt) => {
+              const url = g.images?.[opt]
+              if (typeof url === 'string' && url.trim()) {
+                cleanedImages[opt] = url.trim()
+              }
+            })
+          }
+          const groupCopy: any = {
+            name: g.name.trim(),
+            options: g.options.map((o) => o.trim()).filter(Boolean)
+          }
+          if (Object.keys(cleanedImages).length > 0) {
+            groupCopy.images = cleanedImages
+          }
+          return groupCopy
+        })
+
+        const cleanedRows = variationRows
+          .filter((r) => !deletedVariationKeys.includes(r.key) && !deletedVariationKeys.includes(r.name))
+          .map((r) => {
+            const rowCopy: any = {
+              key: r.key,
+              name: r.name || r.key,
+              price: String(r.price || '0'),
+              originalPrice: r.originalPrice ? String(r.originalPrice) : '',
+              stock: String(r.stock || '0'),
+              sku: r.sku || ''
+            }
+            if (r.image && typeof r.image === 'string' && r.image.trim()) {
+              rowCopy.image = r.image.trim()
+            }
+            return rowCopy
+          })
+
+        if (cleanedGroups.length > 0 && cleanedRows.length > 0) {
+          finalVariationGroups = JSON.stringify(cleanedGroups)
+          finalVariationRows = JSON.stringify(cleanedRows)
+        }
+      }
+    }
+
+    const hasEffectiveVariations = Boolean(hasVariations && finalVariationGroups && finalVariationRows)
+
     const newProduct = {
       ...(initialData?.id ? { id: initialData.id } : {}),
       name: productName,
@@ -745,9 +911,10 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       image: coverImageUrl,
       images: JSON.stringify(allImageUrls),
       video: finalVideoUrl,
-      hasVariations,
-      variationGroups: hasVariations ? JSON.stringify(variationGroups) : null,
-      variationRows: hasVariations ? JSON.stringify(variationRows) : null,
+      hasVariations: hasEffectiveVariations,
+      variationGroups: hasEffectiveVariations ? finalVariationGroups : null,
+      variationRows: hasEffectiveVariations ? finalVariationRows : null,
+      variationsText: hasEffectiveVariations ? variationGroups.map((g) => g.name).join(', ') : null,
       weight: parseFloat(weight),
       length: parseFloat(length) || 0,
       width: parseFloat(width) || 0,
@@ -882,6 +1049,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               restoreAllDeletedVariations={restoreAllDeletedVariations}
               deletedVariationKeys={deletedVariationKeys}
               handleRowImageChange={handleRowImageChange}
+              onRowImageRemove={handleRowImageRemove}
               applyBulkEditWithParams={applyBulkEditWithParams}
               updateVariationRow={updateVariationRow}
               errors={errors}

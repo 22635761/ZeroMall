@@ -31,11 +31,21 @@ export const ShopTopProductsSidebar: React.FC<ShopTopProductsSidebarProps> = ({ 
               .sort((a: any, b: any) => (b.sales || 0) - (a.sales || 0))
               .slice(0, 5)
               .map((p: any) => {
-                let displayPrice = '0đ'
-                if (p.price) {
-                  const num = typeof p.price === 'number' ? p.price : parseFloat(String(p.price).replace(/[^0-9]/g, ''))
-                  displayPrice = num ? num.toLocaleString('vi-VN') + 'đ' : String(p.price)
+                let displayPriceNum = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
+                if (p.hasVariations && p.variationRows) {
+                  try {
+                    const rows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
+                    if (Array.isArray(rows) && rows.length > 0) {
+                      const prices = rows
+                        .map((r: any) => parseFloat(String(r.price || 0).replace(/[^0-9]/g, '')) || 0)
+                        .filter((v: number) => v > 0)
+                      if (prices.length > 0) {
+                        displayPriceNum = Math.min(...prices)
+                      }
+                    }
+                  } catch (e) {}
                 }
+                const displayPrice = displayPriceNum > 0 ? displayPriceNum.toLocaleString('vi-VN') + 'đ' : String(p.price || '0đ')
 
                 // Format cover image
                 let coverImg = p.image || ''

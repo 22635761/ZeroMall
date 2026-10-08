@@ -174,10 +174,13 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
         sales: Number(productData.sales || 0),
         status: productData.status || 'active',
         sku: productData.sku || '',
-        variationsText: productData.variationsText || '',
         hasVariations: Boolean(productData.hasVariations),
-        variationGroups: typeof productData.variationGroups === 'string' ? productData.variationGroups : JSON.stringify(productData.variationGroups || []),
-        variationRows: typeof productData.variationRows === 'string' ? productData.variationRows : JSON.stringify(productData.variationRows || []),
+        variationGroups: productData.hasVariations && productData.variationGroups && productData.variationGroups !== '[]' && productData.variationGroups !== 'null'
+          ? (typeof productData.variationGroups === 'string' ? productData.variationGroups : JSON.stringify(productData.variationGroups))
+          : null,
+        variationRows: productData.hasVariations && productData.variationRows && productData.variationRows !== '[]' && productData.variationRows !== 'null'
+          ? (typeof productData.variationRows === 'string' ? productData.variationRows : JSON.stringify(productData.variationRows))
+          : null,
         weight: productData.weight != null ? String(productData.weight) : null,
         length: productData.length != null ? String(productData.length) : null,
         width: productData.width != null ? String(productData.width) : null,

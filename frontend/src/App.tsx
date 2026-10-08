@@ -538,21 +538,53 @@ function App() {
 
       const raw = await response.json()
       const formatted = raw.map((p: any) => {
-        const sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
-        let flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
+        let sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
+        let origPriceForMin = p.originalPrice ? (parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) || 0) : 0
+
+        // Parse variationRows if hasVariations
+        let parsedVariationRows: any[] = []
+        if (p.hasVariations && p.variationRows) {
+          try {
+            parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
+          } catch (e) {
+            console.error('Failed to parse variationRows', e)
+          }
+        }
+
+        if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
+          const validVariationPrices: { price: number; originalPrice: number }[] = []
+          for (const row of parsedVariationRows) {
+            const rPrice = parseFloat(String(row.price || 0).replace(/[^0-9]/g, '')) || 0
+            const rOrig = row.originalPrice ? (parseFloat(String(row.originalPrice).replace(/[^0-9]/g, '')) || 0) : 0
+            if (rPrice > 0) {
+              validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
+            }
+          }
+
+          if (validVariationPrices.length > 0) {
+            validVariationPrices.sort((a, b) => a.price - b.price)
+            const cheapest = validVariationPrices[0]
+            sellingPriceNum = cheapest.price
+            if (cheapest.originalPrice > 0) {
+              origPriceForMin = cheapest.originalPrice
+            }
+          }
+        }
+
+        const flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
         let originalPriceStr = ''
-        const rawOrigNum = p.originalPrice ? parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) : 0
-        if (rawOrigNum > 0) {
-          originalPriceStr = rawOrigNum.toLocaleString('vi-VN') + 'đ'
-        } else {
-          originalPriceStr = flashPriceStr
+        if (origPriceForMin > sellingPriceNum) {
+          originalPriceStr = origPriceForMin.toLocaleString('vi-VN') + 'đ'
         }
 
         let variants: string[] = []
+        let parsedVariationGroups: any[] = []
         if (p.hasVariations && p.variationGroups) {
           try {
-            const groups = JSON.parse(p.variationGroups)
-            variants = groups.flatMap((g: any) => g.options || [])
+            parsedVariationGroups = typeof p.variationGroups === 'string' ? JSON.parse(p.variationGroups) : p.variationGroups
+            if (Array.isArray(parsedVariationGroups)) {
+              variants = parsedVariationGroups.flatMap((g: any) => g.options || [])
+            }
           } catch (e) {
             console.error(e)
           }
@@ -560,7 +592,7 @@ function App() {
 
         let parsedImages: string[] = []
         try {
-          parsedImages = p.images ? JSON.parse(p.images) : []
+          parsedImages = p.images ? (typeof p.images === 'string' ? JSON.parse(p.images) : p.images) : []
         } catch (e) {
           console.error('Failed to parse images', e)
         }
@@ -582,6 +614,9 @@ function App() {
           rating: p.rating ?? 0,
           reviewsCount: p.reviewsCount ?? 0,
           description: p.description,
+          hasVariations: p.hasVariations,
+          variationGroups: parsedVariationGroups,
+          variationRows: parsedVariationRows,
           variants,
           images: parsedImages,
           video: p.video || '',
