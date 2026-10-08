@@ -363,9 +363,9 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
 
   // 5. Main Seller Dashboard
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col text-slate-800 font-sans text-left">
+    <div className="h-screen flex flex-col overflow-hidden bg-slate-50 text-slate-800 font-sans text-left">
       {/* Top Navbar */}
-      <header className="bg-white border-b border-slate-200/80 h-16 flex items-center justify-between px-6 z-40 sticky top-0 shadow-3xs">
+      <header className="bg-white border-b border-slate-200/80 h-16 shrink-0 flex items-center justify-between px-6 z-40 sticky top-0 shadow-3xs">
         <div className="flex items-center gap-3 cursor-pointer" onClick={onBackToHome}>
           <span className="text-2xl">🌱</span>
           <span className="text-lg font-black tracking-tight text-slate-800">
@@ -423,7 +423,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
         />
 
         {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto p-8 relative">
+        <main className="flex-1 overflow-y-auto p-6 sm:p-8 relative w-full">
           {/* Active Title Banner */}
           <div className="mb-6 flex justify-between items-center">
             <div>
@@ -505,7 +505,7 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
           ) : activeSubMenu === 'reviews-mgmt' ? (
             <ShopReviews user={user} shopId={shopDetails?.id} />
           ) : (
-            <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm min-h-[450px]">
+            <div className="w-full bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm min-h-[450px]">
               {activeMenu === 'dashboard' && (() => {
                 const validOrders = shopOrders.filter(o => o.status !== 'CANCELLED' && o.status !== 'CANCELED')
                 const totalRevenue = validOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0)

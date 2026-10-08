@@ -7,9 +7,10 @@ interface VariationBatchBarProps {
     stock: string
     skuPrefix: string
   }) => void
+  isEditMode?: boolean
 }
 
-export const VariationBatchBar: React.FC<VariationBatchBarProps> = ({ onApply }) => {
+export const VariationBatchBar: React.FC<VariationBatchBarProps> = ({ onApply, isEditMode = false }) => {
   const [bulkPrice, setBulkPrice] = useState('')
   const [bulkOriginalPrice, setBulkOriginalPrice] = useState('')
   const [bulkStock, setBulkStock] = useState('')
@@ -51,15 +52,20 @@ export const VariationBatchBar: React.FC<VariationBatchBarProps> = ({ onApply })
         {/* Giá gốc chung */}
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wide">
-            Giá gốc (VND)
+            Giá gốc (VND) {isEditMode && <span className="text-amber-600 font-bold">🔒</span>}
           </label>
           <div className="relative">
             <input
               type="number"
-              placeholder="Ví dụ: 250000"
+              disabled={isEditMode}
+              placeholder={isEditMode ? "🔒 Sửa tại QL Giá" : "Ví dụ: 250000"}
               value={bulkOriginalPrice}
               onChange={(e) => setBulkOriginalPrice(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 pr-7"
+              className={`w-full border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none pr-7 ${
+                isEditMode
+                  ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                  : 'bg-white border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+              }`}
             />
             <span className="absolute right-2.5 top-1.5 text-[11px] text-slate-400 font-bold">đ</span>
           </div>
@@ -68,17 +74,22 @@ export const VariationBatchBar: React.FC<VariationBatchBarProps> = ({ onApply })
         {/* Giá bán chung */}
         <div className="space-y-1">
           <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wide">
-            * Giá bán chung (VND)
+            * Giá bán chung (VND) {isEditMode && <span className="text-amber-600 font-bold">🔒</span>}
           </label>
           <div className="relative">
             <input
               type="number"
-              placeholder="Ví dụ: 199000"
+              disabled={isEditMode}
+              placeholder={isEditMode ? "🔒 Sửa tại QL Giá" : "Ví dụ: 199000"}
               value={bulkPrice}
               onChange={(e) => setBulkPrice(e.target.value)}
-              className="w-full bg-white border border-emerald-300 rounded-xl px-3 py-1.5 text-xs font-bold text-emerald-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 pr-7"
+              className={`w-full border rounded-xl px-3 py-1.5 text-xs font-bold pr-7 focus:outline-none ${
+                isEditMode
+                  ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                  : 'bg-white border-emerald-300 text-emerald-700 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+              }`}
             />
-            <span className="absolute right-2.5 top-1.5 text-[11px] text-emerald-600 font-bold">đ</span>
+            <span className={`absolute right-2.5 top-1.5 text-[11px] font-bold ${isEditMode ? 'text-slate-400' : 'text-emerald-600'}`}>đ</span>
           </div>
         </div>
 

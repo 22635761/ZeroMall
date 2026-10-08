@@ -116,7 +116,7 @@ export const ShopLogisticsManager: React.FC<ShopLogisticsManagerProps> = ({ user
   const formatMoney = (val: number) => val.toLocaleString('vi-VN') + 'đ'
 
   return (
-    <div className="space-y-6 text-left">
+    <div className="w-full space-y-6 text-left">
       {/* Sub-view: COD & SETTLEMENT */}
       {activeSubMenu === 'spx-settlement' ? (
         <div className="bg-white border border-slate-200/60 rounded-3xl p-6 shadow-sm space-y-6">

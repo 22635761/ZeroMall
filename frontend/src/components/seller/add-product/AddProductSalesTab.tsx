@@ -31,6 +31,7 @@ interface AddProductSalesTabProps {
   }) => void
   updateVariationRow: (key: string, field: keyof VariationRow, value: string) => void
   errors: Record<string, string>
+  isEditMode?: boolean
   simpleOriginalPrice: string
   setSimpleOriginalPrice: (val: string) => void
   simplePrice: string
@@ -60,6 +61,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
   applyBulkEditWithParams,
   updateVariationRow,
   errors,
+  isEditMode = false,
   simpleOriginalPrice,
   setSimpleOriginalPrice,
   simplePrice,
@@ -77,6 +79,21 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
           Cấu hình giá bán, tồn kho và các phân loại hàng hóa
         </span>
       </div>
+
+      {/* Notice Banner when in Edit Mode */}
+      {isEditMode && (
+        <div className="bg-amber-50 border border-amber-200/90 rounded-2xl p-4 flex items-start gap-3">
+          <span className="text-xl shrink-0">🔒</span>
+          <div className="space-y-1 text-xs">
+            <p className="font-extrabold text-amber-900">
+              Giá bán bị khóa khi chỉnh sửa sản phẩm
+            </p>
+            <p className="text-amber-800/85 leading-relaxed font-medium">
+              Để đảm bảo tính toàn vẹn và bất biến của các đơn hàng đã phát sinh, bạn không thể sửa trực tiếp giá bán tại đây. Vui lòng sử dụng mục <strong>Quản Lý Giá & Biến Động</strong> để điều chỉnh giá bán hoặc ghi nhận đợt nhập hàng.
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Variations Toggle Switch */}
       <div className="flex items-center justify-between bg-slate-50 border border-slate-200 p-4 rounded-2xl hover:border-slate-300 transition">
@@ -149,7 +166,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
           {variationRows.length > 0 ? (
             <div className="border-t border-slate-200 pt-5 space-y-4">
               {/* Batch Edit Bar */}
-              <VariationBatchBar onApply={applyBulkEditWithParams} />
+              <VariationBatchBar onApply={applyBulkEditWithParams} isEditMode={isEditMode} />
 
               {/* Lỗi biến thể */}
               {errors.variations && (
@@ -163,6 +180,7 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
               <VariationMatrixTable
                 variationRows={variationRows}
                 deletedVariationKeys={deletedVariationKeys}
+                isEditMode={isEditMode}
                 onUpdateRow={updateVariationRow}
                 onRemoveRow={removeVariationRow}
                 onRestoreRow={restoreVariationRow}
@@ -214,35 +232,51 @@ export const AddProductSalesTab: React.FC<AddProductSalesTabProps> = ({
         /* Simple Pricing Mode (Không có biến thể) */
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border border-slate-200/80 p-5 rounded-2xl bg-slate-50/30">
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-              Giá gốc sản phẩm (VND)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                Giá gốc sản phẩm (VND)
+              </label>
+              {isEditMode && <span className="text-[9px] font-bold text-amber-600">🔒 Khóa khi sửa</span>}
+            </div>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
-                placeholder="Giá gốc (ví dụ: 200000)"
+                disabled={isEditMode}
+                placeholder={isEditMode ? "Chỉnh tại QL Giá" : "Giá gốc (ví dụ: 200000)"}
                 value={simpleOriginalPrice}
                 onChange={(e) => setSimpleOriginalPrice(e.target.value)}
-                className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-xs focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white transition"
+                className={`w-full border rounded-xl px-4 py-2.5 text-xs transition ${
+                  isEditMode
+                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                    : 'border-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white'
+                }`}
               />
               <span className="text-xs font-extrabold text-slate-400">đ</span>
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-              * Giá bán sản phẩm (VND)
-            </label>
+            <div className="flex items-center justify-between">
+              <label className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">
+                * Giá bán sản phẩm (VND)
+              </label>
+              {isEditMode && <span className="text-[9px] font-bold text-amber-600">🔒 Khóa khi sửa</span>}
+            </div>
             <div className="flex items-center gap-1.5">
               <input
                 type="number"
                 required
-                placeholder="Nhập giá bán (ví dụ: 150000)"
+                disabled={isEditMode}
+                placeholder={isEditMode ? "Chỉnh tại QL Giá" : "Nhập giá bán (ví dụ: 150000)"}
                 value={simplePrice}
                 onChange={(e) => setSimplePrice(e.target.value)}
-                className="w-full border border-emerald-300 rounded-xl px-4 py-2.5 text-xs font-bold text-emerald-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white transition"
+                className={`w-full border rounded-xl px-4 py-2.5 text-xs font-bold transition ${
+                  isEditMode
+                    ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                    : 'border-emerald-300 text-emerald-700 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white'
+                }`}
               />
-              <span className="text-xs font-extrabold text-emerald-600">đ</span>
+              <span className={`text-xs font-extrabold ${isEditMode ? 'text-slate-400' : 'text-emerald-600'}`}>đ</span>
             </div>
             {errors.price && (
               <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.price}</p>

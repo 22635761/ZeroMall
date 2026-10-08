@@ -1053,6 +1053,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               applyBulkEditWithParams={applyBulkEditWithParams}
               updateVariationRow={updateVariationRow}
               errors={errors}
+              isEditMode={Boolean(initialData)}
               simpleOriginalPrice={simpleOriginalPrice}
               setSimpleOriginalPrice={setSimpleOriginalPrice}
               simplePrice={simplePrice}

@@ -6,14 +6,29 @@ interface PriceManagementProps {
   shopDetails?: any;
 }
 
+interface VariationRowItem {
+  key: string;
+  name: string;
+  price: string;
+  originalPrice?: string;
+  costPrice?: number | string | null;
+  stock: string | number;
+  sku?: string;
+  image?: string;
+}
+
 interface ProductOption {
   id: string;
   name: string;
   price: string;
+  originalPrice?: string;
   costPrice?: number | null;
   image?: string;
   images?: string;
   stock: number;
+  hasVariations?: boolean;
+  variationGroups?: string;
+  variationRows?: string | VariationRowItem[];
 }
 
 interface PricePoint {
@@ -82,10 +97,13 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
   const [showImportBatchModal, setShowImportBatchModal] = useState<boolean>(false);
 
   // Form states
+  const [selectedVariantKeyForPrice, setSelectedVariantKeyForPrice] = useState<string>('ALL');
   const [newSellingPrice, setNewSellingPrice] = useState<string>('');
+  const [newOriginalPrice, setNewOriginalPrice] = useState<string>('');
   const [priceReason, setPriceReason] = useState<string>('');
   const [updatingPrice, setUpdatingPrice] = useState<boolean>(false);
 
+  const [selectedVariantKeyForImport, setSelectedVariantKeyForImport] = useState<string>('ALL');
   const [invoiceCode, setInvoiceCode] = useState<string>('');
   const [supplier, setSupplier] = useState<string>('');
   const [batchQuantity, setBatchQuantity] = useState<string>('');
@@ -170,30 +188,91 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
     setTimeout(() => setNotification(null), 4000);
   };
 
+  const selectedProduct = useMemo(() => {
+    return products.find(p => p.id === selectedProductId);
+  }, [products, selectedProductId]);
+
+  const parsedVariationRows = useMemo<VariationRowItem[]>(() => {
+    if (!selectedProduct) return [];
+    let rows = selectedProduct.variationRows;
+    if (typeof rows === 'string') {
+      try {
+        rows = JSON.parse(rows);
+      } catch {
+        rows = [];
+      }
+    }
+    return Array.isArray(rows) ? rows : [];
+  }, [selectedProduct]);
+
+  const openUpdatePriceModal = (variantKey?: string) => {
+    if (!selectedProduct) return;
+    if (variantKey && variantKey !== 'ALL') {
+      const targetRow = parsedVariationRows.find(r => r.key === variantKey);
+      setSelectedVariantKeyForPrice(variantKey);
+      setNewSellingPrice(targetRow?.price || '');
+      setNewOriginalPrice(targetRow?.originalPrice || '');
+    } else {
+      setSelectedVariantKeyForPrice('ALL');
+      setNewSellingPrice(analytics?.metrics?.currentSellingPrice?.toString() || selectedProduct?.price || '');
+      setNewOriginalPrice(selectedProduct?.originalPrice || '');
+    }
+    setPriceReason('');
+    setShowUpdatePriceModal(true);
+  };
+
+  const openImportBatchModal = (variantKey?: string) => {
+    if (!selectedProduct) return;
+    if (variantKey && variantKey !== 'ALL') {
+      const targetRow = parsedVariationRows.find(r => r.key === variantKey);
+      setSelectedVariantKeyForImport(variantKey);
+      setBatchCostPrice(targetRow?.costPrice ? String(targetRow.costPrice) : (selectedProduct?.costPrice ? String(selectedProduct.costPrice) : ''));
+    } else {
+      setSelectedVariantKeyForImport(parsedVariationRows.length > 0 ? parsedVariationRows[0].key : 'ALL');
+      setBatchCostPrice(selectedProduct?.costPrice ? String(selectedProduct.costPrice) : '');
+    }
+    setBatchQuantity('');
+    setInvoiceCode('');
+    setSupplier('');
+    setBatchNotes('');
+    setShowImportBatchModal(true);
+  };
+
   const handleUpdatePrice = async (e: FormEvent) => {
     e.preventDefault();
     if (!selectedProductId || !newSellingPrice) return;
 
     setUpdatingPrice(true);
     try {
+      const payload: any = {
+        newPrice: parseFloat(newSellingPrice),
+        reason: priceReason || undefined,
+        changedBy: user?.name || user?.email || 'Người bán',
+        changedByRole: 'SELLER',
+        shopId: effectiveShopId,
+      };
+
+      if (newOriginalPrice) {
+        payload.originalPrice = parseFloat(newOriginalPrice);
+      }
+
+      if (selectedVariantKeyForPrice && selectedVariantKeyForPrice !== 'ALL') {
+        payload.variantKey = selectedVariantKeyForPrice;
+      }
+
       const res = await fetch(`${API_BASE_URL}/products/${selectedProductId}/update-price`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          newPrice: parseFloat(newSellingPrice),
-          reason: priceReason || undefined,
-          changedBy: user?.name || user?.email || 'Người bán',
-          changedByRole: 'SELLER',
-          shopId: effectiveShopId,
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
         showToast('success', 'Cập nhật giá bán thành công!');
         setShowUpdatePriceModal(false);
         setNewSellingPrice('');
+        setNewOriginalPrice('');
         setPriceReason('');
         await fetchAnalytics(selectedProductId, timeRange);
         await fetchProducts();
@@ -214,20 +293,26 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
 
     setImportingBatch(true);
     try {
+      const payload: any = {
+        invoiceCode: invoiceCode || undefined,
+        supplier: supplier || undefined,
+        quantity: parseInt(batchQuantity),
+        costPrice: parseFloat(batchCostPrice),
+        note: batchNotes || undefined,
+        importedBy: user?.name || user?.email || 'Quản lý kho',
+        shopId: effectiveShopId,
+      };
+
+      if (selectedVariantKeyForImport && selectedVariantKeyForImport !== 'ALL') {
+        payload.variantKey = selectedVariantKeyForImport;
+      }
+
       const res = await fetch(`${API_BASE_URL}/products/${selectedProductId}/import-batch`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          invoiceCode: invoiceCode || undefined,
-          supplier: supplier || undefined,
-          quantity: parseInt(batchQuantity),
-          costPrice: parseFloat(batchCostPrice),
-          note: batchNotes || undefined,
-          importedBy: user?.name || user?.email || 'Quản lý kho',
-          shopId: effectiveShopId,
-        })
+        body: JSON.stringify(payload)
       });
 
       if (res.ok) {
@@ -250,10 +335,6 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
       setImportingBatch(false);
     }
   };
-
-  const selectedProduct = useMemo(() => {
-    return products.find(p => p.id === selectedProductId);
-  }, [products, selectedProductId]);
 
   // SVG Line Chart Coordinate Calculations
   const chartConfig = useMemo(() => {
@@ -325,7 +406,7 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
   }, [analytics]);
 
   return (
-    <div className="p-6 bg-slate-50 min-h-screen">
+    <div className="w-full space-y-6 text-left">
       {/* Toast Notification */}
       {notification && (
         <div
@@ -351,21 +432,14 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
 
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setShowImportBatchModal(true)}
+            onClick={() => openImportBatchModal()}
             disabled={!selectedProductId}
             className="px-4 py-2 bg-slate-800 hover:bg-slate-900 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
             <span>📥</span> Ghi Nhận Nhập Hàng
           </button>
           <button
-            onClick={() => {
-              if (analytics?.metrics?.currentSellingPrice) {
-                setNewSellingPrice(analytics.metrics.currentSellingPrice.toString());
-              } else if (selectedProduct?.price) {
-                setNewSellingPrice(selectedProduct.price);
-              }
-              setShowUpdatePriceModal(true);
-            }}
+            onClick={() => openUpdatePriceModal('ALL')}
             disabled={!selectedProductId}
             className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white rounded-xl text-sm font-semibold transition-all shadow-sm flex items-center gap-2 cursor-pointer"
           >
@@ -388,9 +462,10 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
             ) : (
               products.map(p => {
                 const stockText = p.stock === 0 ? ' [⚠️ Tồn 0 - Hết hàng]' : ` [Tồn: ${p.stock}]`;
+                const varCount = p.hasVariations ? ' [Có biến thể]' : '';
                 return (
                   <option key={p.id} value={p.id}>
-                    {p.name} — (Đang bán: {parseInt(p.price || '0').toLocaleString('vi-VN')}₫{stockText})
+                    {p.name} — (Đang bán: {parseInt(p.price || '0').toLocaleString('vi-VN')}₫{stockText}){varCount}
                   </option>
                 );
               })
@@ -475,6 +550,164 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
             <div className="text-xs text-slate-400 mt-1">
               Tổng {analytics.metrics?.totalBatches || 0} đợt nhập hàng
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Variant Pricing & Margin Table (when product has variations) */}
+      {parsedVariationRows.length > 0 && (
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 mb-6 space-y-4">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2.5">
+              <span className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold text-base shadow-3xs">
+                🧩
+              </span>
+              <div>
+                <h3 className="text-sm font-bold text-slate-800">
+                  Bảng Giá Bán & Giá Vốn Chi Tiết Theo Phân Loại Biến Thể ({parsedVariationRows.length})
+                </h3>
+                <p className="text-xs text-slate-500 font-medium">
+                  Quản lý giá bán, giá vốn (cost price) và biên lợi nhuận riêng biệt cho từng phân loại mặt hàng
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => openUpdatePriceModal('ALL')}
+                className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-emerald-200"
+              >
+                <span>⚡</span>
+                <span>Đổi giá đồng loạt</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => openImportBatchModal()}
+                className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer border border-blue-200"
+              >
+                <span>📥</span>
+                <span>Nhập hàng phân loại</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="overflow-x-auto border border-slate-200/80 rounded-2xl">
+            <table className="w-full text-xs text-left border-collapse">
+              <thead className="bg-slate-50/90 text-slate-600 font-bold border-b border-slate-200">
+                <tr>
+                  <th className="p-3 text-center w-14">Hình</th>
+                  <th className="p-3 min-w-[140px]">Tên Phân Loại</th>
+                  <th className="p-3 w-28">Mã SKU</th>
+                  <th className="p-3 w-32 text-right">Giá gốc</th>
+                  <th className="p-3 w-36 text-right">Giá bán</th>
+                  <th className="p-3 w-36 text-right">Giá vốn (Cost)</th>
+                  <th className="p-3 w-28 text-center">Biên Lợi Nhuận</th>
+                  <th className="p-3 w-24 text-center">Tồn Kho</th>
+                  <th className="p-3 w-44 text-center">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700 font-medium">
+                {parsedVariationRows.map((row) => {
+                  const salePrice = parseFloat(row.price) || 0;
+                  const origPrice = parseFloat(row.originalPrice || '0') || 0;
+                  const costPrice = parseFloat(String(row.costPrice || '0')) || 0;
+                  const profit = salePrice - costPrice;
+                  const margin = salePrice > 0 && costPrice > 0 ? Math.round((profit / salePrice) * 100) : null;
+                  const stockNum = parseInt(String(row.stock || '0'), 10) || 0;
+
+                  return (
+                    <tr key={row.key} className="hover:bg-slate-50/60 transition">
+                      <td className="p-2.5 text-center">
+                        {row.image ? (
+                          <img
+                            src={row.image}
+                            alt={row.name}
+                            className="w-9 h-9 rounded-lg object-cover border border-slate-200 mx-auto shadow-3xs"
+                          />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400 mx-auto text-xs">
+                            📷
+                          </div>
+                        )}
+                      </td>
+                      <td className="p-3 font-bold text-slate-800">
+                        <span className="bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg">
+                          {row.name}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-[11px] text-slate-500 uppercase">
+                        {row.sku || '—'}
+                      </td>
+                      <td className="p-3 text-right text-slate-400 font-semibold line-through">
+                        {origPrice > 0 ? `${origPrice.toLocaleString('vi-VN')}₫` : '—'}
+                      </td>
+                      <td className="p-3 text-right">
+                        <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          {salePrice > 0 ? `${salePrice.toLocaleString('vi-VN')}₫` : 'Chưa đặt'}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right font-bold text-blue-600">
+                        {costPrice > 0 ? `${costPrice.toLocaleString('vi-VN')}₫` : <span className="text-slate-400 font-normal">Chưa nhập</span>}
+                      </td>
+                      <td className="p-3 text-center">
+                        {margin !== null ? (
+                          <span
+                            className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${
+                              margin >= 30
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : margin >= 15
+                                ? 'bg-blue-100 text-blue-800'
+                                : margin > 0
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-rose-100 text-rose-800'
+                            }`}
+                          >
+                            {margin > 0 ? `+${margin}%` : `${margin}%`}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 text-[11px]">—</span>
+                        )}
+                      </td>
+                      <td className="p-3 text-center">
+                        <span
+                          className={`font-bold px-2 py-0.5 rounded-md text-[11px] ${
+                            stockNum <= 0
+                              ? 'bg-rose-50 text-rose-600 border border-rose-200'
+                              : stockNum < 10
+                              ? 'bg-amber-50 text-amber-600 border border-amber-200'
+                              : 'bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          {stockNum.toLocaleString('vi-VN')}
+                        </span>
+                      </td>
+                      <td className="p-3 text-center">
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => openUpdatePriceModal(row.key)}
+                            title={`Chỉnh giá bán biến thể ${row.name}`}
+                            className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold text-[11px] shadow-3xs transition cursor-pointer flex items-center gap-1"
+                          >
+                            <span>🏷️</span>
+                            <span>Đổi giá</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openImportBatchModal(row.key)}
+                            title={`Nhập hàng cho biến thể ${row.name}`}
+                            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-bold text-[11px] shadow-3xs transition cursor-pointer flex items-center gap-1"
+                          >
+                            <span>📥</span>
+                            <span>Nhập</span>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -814,7 +1047,7 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
       {/* MODAL 1: Update Selling Price */}
       {showUpdatePriceModal && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100 mb-4">
               <h3 className="text-lg font-bold text-slate-800">Cập Nhật Giá Bán Sản Phẩm</h3>
               <button
@@ -835,29 +1068,70 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
                 </div>
               </div>
 
-              <div>
-                <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
-                  Giá bán hiện tại
-                </label>
-                <div className="text-sm font-semibold text-emerald-600 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                  {analytics?.metrics?.currentSellingPrice?.toLocaleString('vi-VN') || selectedProduct?.price} ₫
+              {/* Variant Selector (if product has variations) */}
+              {parsedVariationRows.length > 0 && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1">
+                    Phân loại áp dụng *
+                  </label>
+                  <select
+                    value={selectedVariantKeyForPrice}
+                    onChange={(e) => {
+                      const vKey = e.target.value;
+                      setSelectedVariantKeyForPrice(vKey);
+                      if (vKey === 'ALL') {
+                        setNewSellingPrice(analytics?.metrics?.currentSellingPrice?.toString() || selectedProduct?.price || '');
+                        setNewOriginalPrice(selectedProduct?.originalPrice || '');
+                      } else {
+                        const v = parsedVariationRows.find(r => r.key === vKey);
+                        if (v) {
+                          setNewSellingPrice(v.price || '');
+                          setNewOriginalPrice(v.originalPrice || '');
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="ALL">⚡ Tất cả biến thể (Đồng loạt)</option>
+                    {parsedVariationRows.map((r) => (
+                      <option key={r.key} value={r.key}>
+                        🔹 {r.name} (Đang bán: {parseInt(r.price || '0').toLocaleString('vi-VN')}₫)
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              </div>
+              )}
 
-              <div>
-                <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1">
-                  Giá bán mới (VNĐ) *
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  step="1000"
-                  value={newSellingPrice}
-                  onChange={(e) => setNewSellingPrice(e.target.value)}
-                  placeholder="Nhập giá mới..."
-                  className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm focus:ring-2 focus:ring-emerald-500 focus:outline-none"
-                />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1">
+                    Giá bán mới (VNĐ) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    min="0"
+                    step="1000"
+                    value={newSellingPrice}
+                    onChange={(e) => setNewSellingPrice(e.target.value)}
+                    placeholder="Nhập giá mới..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-bold text-emerald-700 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-slate-500 uppercase tracking-wider block mb-1">
+                    Giá gốc niêm yết (VNĐ)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1000"
+                    value={newOriginalPrice}
+                    onChange={(e) => setNewOriginalPrice(e.target.value)}
+                    placeholder="Giá trước giảm..."
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-sm font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  />
+                </div>
               </div>
 
               <div>
@@ -917,6 +1191,36 @@ export default function PriceManagement({ user, shopDetails }: PriceManagementPr
                   {selectedProduct?.name || 'Đang chọn'}
                 </div>
               </div>
+
+              {/* Variant Selector for Import Batch (if product has variations) */}
+              {parsedVariationRows.length > 0 && (
+                <div>
+                  <label className="text-xs font-semibold text-slate-700 uppercase tracking-wider block mb-1">
+                    Chọn phân loại nhập hàng *
+                  </label>
+                  <select
+                    value={selectedVariantKeyForImport}
+                    onChange={(e) => {
+                      const vKey = e.target.value;
+                      setSelectedVariantKeyForImport(vKey);
+                      if (vKey !== 'ALL') {
+                        const v = parsedVariationRows.find(r => r.key === vKey);
+                        if (v && v.costPrice) {
+                          setBatchCostPrice(String(v.costPrice));
+                        }
+                      }
+                    }}
+                    className="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs font-bold bg-white text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none"
+                  >
+                    <option value="ALL">📦 Nhập chung toàn bộ sản phẩm</option>
+                    {parsedVariationRows.map((r) => (
+                      <option key={r.key} value={r.key}>
+                        🔹 {r.name} (Tồn hiện tại: {r.stock || 0})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-3">
                 <div>

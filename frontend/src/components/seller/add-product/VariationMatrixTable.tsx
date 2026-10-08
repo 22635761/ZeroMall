@@ -20,6 +20,7 @@ interface VariationMatrixTableProps {
   onRestoreAll?: () => void
   onRowImageChange?: (key: string, imageUrl: string) => void
   onRowImageRemove?: (key: string) => void
+  isEditMode?: boolean
 }
 
 export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
@@ -30,7 +31,8 @@ export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
   onRestoreRow,
   onRestoreAll,
   onRowImageChange,
-  onRowImageRemove
+  onRowImageRemove,
+  isEditMode = false
 }) => {
   const [activeUploadRowKey, setActiveUploadRowKey] = useState<string | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -182,9 +184,14 @@ export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
                       <input
                         type="number"
                         placeholder="0"
+                        disabled={isEditMode}
                         value={row.originalPrice}
                         onChange={(e) => onUpdateRow(row.key, 'originalPrice', e.target.value)}
-                        className="w-full border border-slate-200 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 bg-white font-medium pr-6"
+                        className={`w-full border rounded-lg px-2.5 py-1.5 focus:outline-none pr-6 font-medium ${
+                          isEditMode
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                            : 'border-slate-200 bg-white focus:border-emerald-500'
+                        }`}
                       />
                       <span className="absolute right-2 top-1.5 text-[10px] text-slate-400 font-bold">đ</span>
                     </div>
@@ -196,12 +203,17 @@ export const VariationMatrixTable: React.FC<VariationMatrixTableProps> = ({
                       <input
                         type="number"
                         required
+                        disabled={isEditMode}
                         placeholder="Nhập giá bán"
                         value={row.price}
                         onChange={(e) => onUpdateRow(row.key, 'price', e.target.value)}
-                        className="w-full border border-emerald-300 rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white font-bold text-emerald-700 pr-6"
+                        className={`w-full border rounded-lg px-2.5 py-1.5 focus:outline-none pr-6 font-bold ${
+                          isEditMode
+                            ? 'bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed select-none'
+                            : 'border-emerald-300 rounded-lg focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white text-emerald-700'
+                        }`}
                       />
-                      <span className="absolute right-2 top-1.5 text-[10px] text-emerald-600 font-bold">đ</span>
+                      <span className={`absolute right-2 top-1.5 text-[10px] font-bold ${isEditMode ? 'text-slate-400' : 'text-emerald-600'}`}>đ</span>
                     </div>
                     {discount > 0 && (
                       <span className="text-[10px] text-red-500 font-bold mt-0.5 inline-block">

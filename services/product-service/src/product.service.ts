@@ -1062,16 +1062,88 @@ export class ProductService {
     }
 
     const oldPrice = Number(product.price) || 0;
-    const newPrice = Number(dto.newPrice);
-    if (isNaN(newPrice) || newPrice < 0) {
-      throw new Error('Giá mới không hợp lệ');
-    }
+    const updateData: any = {};
+    let recordedReason = dto.reason || 'Cập nhật giá bán sản phẩm';
 
-    const updateData: any = {
-      price: newPrice,
-    };
-    if (dto.originalPrice !== undefined && dto.originalPrice !== null) {
-      updateData.originalPrice = Number(dto.originalPrice);
+    // 1. Trường hợp cập nhật mảng variationRows trực tiếp
+    if (dto.variationRows) {
+      let rows: any[] = [];
+      try {
+        rows = typeof dto.variationRows === 'string' ? JSON.parse(dto.variationRows) : dto.variationRows;
+      } catch (e) {
+        throw new BadRequestException('variationRows không hợp lệ');
+      }
+
+      if (Array.isArray(rows) && rows.length > 0) {
+        const validPrices = rows.map((r: any) => parseFloat(String(r.price || 0).replace(/[^0-9]/g, '')) || 0).filter((v: number) => v > 0);
+        if (validPrices.length === 0) {
+          throw new BadRequestException('Vui lòng nhập giá bán hợp lệ cho các biến thể');
+        }
+        const minPrice = Math.min(...validPrices);
+        updateData.variationRows = JSON.stringify(rows);
+        updateData.price = minPrice;
+        
+        const origPrices = rows.map((r: any) => parseFloat(String(r.originalPrice || 0).replace(/[^0-9]/g, '')) || 0).filter((v: number) => v > 0);
+        if (origPrices.length > 0) {
+          updateData.originalPrice = Math.min(...origPrices);
+        }
+        recordedReason = dto.reason || 'Cập nhật bảng giá biến thể sản phẩm';
+      }
+    } 
+    // 2. Trường hợp cập nhật 1 biến thể cụ thể (dto.variantKey)
+    else if (dto.variantKey && product.hasVariations && product.variationRows) {
+      let rows: any[] = [];
+      try {
+        rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
+      } catch (e) {}
+
+      const targetRow = rows.find((r: any) => r.key === dto.variantKey || r.name === dto.variantKey);
+      if (!targetRow) {
+        throw new NotFoundException(`Không tìm thấy biến thể ${dto.variantKey}`);
+      }
+
+      const newP = Number(dto.newPrice);
+      if (isNaN(newP) || newP < 0) {
+        throw new BadRequestException('Giá bán mới không hợp lệ');
+      }
+      const oldRowPrice = targetRow.price;
+      targetRow.price = String(newP);
+      if (dto.originalPrice !== undefined) {
+        targetRow.originalPrice = String(dto.originalPrice);
+      }
+
+      const validPrices = rows.map((r: any) => parseFloat(String(r.price || 0).replace(/[^0-9]/g, '')) || 0).filter((v: number) => v > 0);
+      const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : newP;
+
+      updateData.variationRows = JSON.stringify(rows);
+      updateData.price = minPrice;
+      recordedReason = dto.reason || `Cập nhật giá biến thể [${targetRow.name || targetRow.key}]: ${oldRowPrice}₫ -> ${newP.toLocaleString('vi-VN')}₫`;
+    }
+    // 3. Trường hợp cập nhật giá cho sản phẩm đơn lẻ (hoặc cập nhật đồng loạt cho tất cả biến thể)
+    else {
+      const newPrice = Number(dto.newPrice);
+      if (isNaN(newPrice) || newPrice < 0) {
+        throw new BadRequestException('Giá mới không hợp lệ');
+      }
+      updateData.price = newPrice;
+      if (dto.originalPrice !== undefined && dto.originalPrice !== null) {
+        updateData.originalPrice = Number(dto.originalPrice);
+      }
+
+      // Nếu sản phẩm có biến thể và cập nhật đồng loạt giá chung:
+      if (product.hasVariations && product.variationRows) {
+        try {
+          const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
+          if (Array.isArray(rows)) {
+            const updatedRows = rows.map((r: any) => ({
+              ...r,
+              price: String(newPrice),
+              originalPrice: dto.originalPrice !== undefined ? String(dto.originalPrice) : r.originalPrice,
+            }));
+            updateData.variationRows = JSON.stringify(updatedRows);
+          }
+        } catch (e) {}
+      }
     }
 
     const updatedProduct = await this.prisma.product.update({
@@ -1085,11 +1157,11 @@ export class ProductService {
         productId: product.id,
         shopId: product.shopId,
         oldPrice: oldPrice,
-        newPrice: newPrice,
+        newPrice: Number(updateData.price) || Number(dto.newPrice) || oldPrice,
         changeType: 'MANUAL',
         changedBy: dto.changedBy || 'Người bán',
         changedByRole: dto.changedByRole || 'SELLER',
-        reason: dto.reason || 'Cập nhật giá bán sản phẩm',
+        reason: recordedReason,
       },
     });
 
@@ -1114,10 +1186,54 @@ export class ProductService {
     const costPrice = Number(dto.costPrice);
     const quantity = Number(dto.quantity);
     if (isNaN(costPrice) || costPrice < 0 || isNaN(quantity) || quantity <= 0) {
-      throw new Error('Giá nhập và số lượng nhập phải lớn hơn 0');
+      throw new BadRequestException('Giá nhập và số lượng nhập phải lớn hơn 0');
     }
 
     const importDate = dto.importDate ? new Date(dto.importDate) : new Date();
+    const updateData: any = {
+      costPrice: costPrice,
+    };
+
+    let variantLabel = '';
+
+    // Nếu nhập hàng theo biến thể cụ thể
+    if (dto.variantKey && product.hasVariations && product.variationRows) {
+      try {
+        const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
+        const targetRow = rows.find((r: any) => r.key === dto.variantKey || r.name === dto.variantKey);
+        if (targetRow) {
+          targetRow.stock = String((parseInt(String(targetRow.stock || 0), 10) || 0) + quantity);
+          targetRow.costPrice = costPrice;
+          variantLabel = ` (Biến thể: ${targetRow.name || targetRow.key})`;
+          updateData.variationRows = JSON.stringify(rows);
+          updateData.stock = rows.reduce((sum: number, r: any) => sum + (parseInt(String(r.stock || 0), 10) || 0), 0);
+        } else {
+          updateData.stock = { increment: quantity };
+        }
+      } catch (e) {
+        updateData.stock = { increment: quantity };
+      }
+    } else if (dto.variationRows) {
+      try {
+        const rows = typeof dto.variationRows === 'string' ? JSON.parse(dto.variationRows) : dto.variationRows;
+        updateData.variationRows = JSON.stringify(rows);
+        updateData.stock = rows.reduce((sum: number, r: any) => sum + (parseInt(String(r.stock || 0), 10) || 0), 0);
+      } catch (e) {
+        updateData.stock = { increment: quantity };
+      }
+    } else {
+      updateData.stock = { increment: quantity };
+      // Nếu sản phẩm có biến thể mà nhập chung: cập nhật costPrice cho các dòng
+      if (product.hasVariations && product.variationRows) {
+        try {
+          const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
+          if (Array.isArray(rows) && rows.length > 0) {
+            rows.forEach((r: any) => { r.costPrice = costPrice; });
+            updateData.variationRows = JSON.stringify(rows);
+          }
+        } catch (e) {}
+      }
+    }
 
     const costHistory = await this.prisma.costPriceHistory.create({
       data: {
@@ -1127,19 +1243,15 @@ export class ProductService {
         quantity: quantity,
         invoiceCode: dto.invoiceCode || `HD-NK-${Date.now().toString().slice(-6)}`,
         supplier: dto.supplier || 'Nhà cung cấp',
-        note: dto.note || 'Nhập hàng vào kho',
+        note: (dto.note || 'Nhập hàng vào kho') + variantLabel,
         importedBy: dto.importedBy || 'Quản lý kho',
         importDate: importDate,
       },
     });
 
-    // Cập nhật giá vốn hiện tại và cộng dồn số lượng tồn kho
     const updatedProduct = await this.prisma.product.update({
       where: { id },
-      data: {
-        costPrice: costPrice,
-        stock: { increment: quantity },
-      },
+      data: updateData,
     });
 
     return {

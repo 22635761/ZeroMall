@@ -57,8 +57,10 @@ export class UpdateProductDto {
 
 export class UpdatePriceDto {
   shopId?: string; // Optional for validation (if seller)
-  newPrice: number;
+  newPrice?: number;
   originalPrice?: number;
+  variantKey?: string; // Tùy chọn: Khóa biến thể nếu cập nhật riêng 1 biến thể
+  variationRows?: string | any[]; // Tùy chọn: Toàn bộ danh sách biến thể cập nhật
   changedBy: string; // Email or name
   changedByRole?: string; // "SELLER" | "ADMIN"
   reason?: string;
@@ -68,6 +70,8 @@ export class ImportBatchDto {
   shopId?: string; // Optional for validation (if seller)
   costPrice: number;
   quantity: number;
+  variantKey?: string; // Tùy chọn: Khóa biến thể được nhập hàng
+  variationRows?: string | any[]; // Tùy chọn: Danh sách biến thể cập nhật
   invoiceCode?: string;
   supplier?: string;
   note?: string;
