@@ -8,15 +8,16 @@ generator client {
 }
 
 model Order {
-  id              String      @id @default(uuid())
-  buyerId         String
-  buyerEmail      String
-  buyerName       String
-  buyerPhone      String
-  shippingAddress String
-  totalAmount     Float
-  shippingFee     Float
-  paymentMethod   String      // "cod" | "zeropay" | "card" | "gpay" | "napas"
+  id                    String      @id @default(uuid())
+  invoiceNo             String?     // Mã hóa đơn điện tử chính quy (VD: HD20261008-123456)
+  buyerId               String
+  buyerEmail            String
+  buyerName             String
+  buyerPhone            String
+  shippingAddress       String
+  totalAmount           Float
+  shippingFee           Float
+  paymentMethod         String      // "cod" | "zeropay" | "card" | "gpay" | "napas"
   status                String      @default("PENDING_PAYMENT") // "PENDING_PAYMENT" | "PROCESSING" | "SHIPPING" | "COMPLETED" | "CANCELLED"
   shopId                String?     // Shop sở hữu đơn hàng (1 Order = 1 Shop)
   checkoutGroupId       String?     // Nhóm các đơn cùng 1 lần checkout
@@ -35,7 +36,14 @@ model Order {
   commissionRate        Float       @default(5) // Tỷ lệ chiết khấu bảo lưu tại thời điểm đặt hàng
   createdAt             DateTime    @default(now())
   updatedAt             DateTime    @updatedAt
-  items           OrderItem[]
+  items                 OrderItem[]
+
+  @@index([shopId, status, createdAt])
+  @@index([buyerId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([checkoutGroupId])
+  @@index([invoiceNo])
 }
 
 model OrderItem {
@@ -51,4 +59,8 @@ model OrderItem {
   originalPrice Float?   @default(0) // Giá niêm yết tại thời điểm mua
   costPrice     Float?   @default(0) // Giá vốn tại thời điểm bán để tính lãi/lỗ tài chính
   quantity      Int
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([shopId])
 }

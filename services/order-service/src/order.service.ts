@@ -211,10 +211,14 @@ export class OrderService implements OnModuleInit {
             allocatedShopDiscount,
         );
 
+        const invoiceDateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+        const customInvoiceNo = `HD${invoiceDateStr}-${customOrderId.slice(-6).toUpperCase()}`;
+
         const order = await this.prisma.$transaction(async (tx) => {
           return await tx.order.create({
             data: {
               id: customOrderId,
+              invoiceNo: customInvoiceNo,
               shopId: shopId,
               checkoutGroupId: checkoutGroupId,
               buyerId: dto.buyerId,
@@ -654,5 +658,103 @@ export class OrderService implements OnModuleInit {
     }
 
     return order;
+  }
+
+  async getFinancialSummary(shopId?: string, year?: number, quarter?: string, month?: number) {
+    const targetYear = year || new Date().getFullYear();
+    let startDate = new Date(targetYear, 0, 1);
+    let endDate = new Date(targetYear + 1, 0, 1);
+
+    if (month && month >= 1 && month <= 12) {
+      startDate = new Date(targetYear, month - 1, 1);
+      endDate = new Date(targetYear, month, 1);
+    } else if (quarter) {
+      if (quarter === 'Q1') {
+        startDate = new Date(targetYear, 0, 1);
+        endDate = new Date(targetYear, 3, 1);
+      } else if (quarter === 'Q2') {
+        startDate = new Date(targetYear, 3, 1);
+        endDate = new Date(targetYear, 6, 1);
+      } else if (quarter === 'Q3') {
+        startDate = new Date(targetYear, 6, 1);
+        endDate = new Date(targetYear, 9, 1);
+      } else if (quarter === 'Q4') {
+        startDate = new Date(targetYear, 9, 1);
+        endDate = new Date(targetYear + 1, 0, 1);
+      }
+    }
+
+    const whereClause: any = {
+      createdAt: {
+        gte: startDate,
+        lt: endDate,
+      },
+    };
+
+    if (shopId && shopId !== 'ALL') {
+      whereClause.shopId = shopId;
+    }
+
+    const orders = await this.prisma.order.findMany({
+      where: whereClause,
+      include: {
+        items: true,
+      },
+    });
+
+    let totalGMV = 0;
+    let totalShopDiscount = 0;
+    let totalPlatformFee = 0;
+    let totalNetPayout = 0;
+    let totalCOGS = 0;
+    let totalGrossProfit = 0;
+    const totalInvoices = orders.length;
+    let completedInvoices = 0;
+    let cancelledInvoices = 0;
+
+    for (const order of orders) {
+      const isCancelled = ['CANCELLED', 'REFUNDED', 'RETURNED', 'PENDING', 'PENDING_PAYMENT', 'UNPAID'].includes(order.status);
+      if (isCancelled) {
+        cancelledInvoices++;
+        continue;
+      }
+
+      completedInvoices++;
+      const itemSubtotal = order.items.reduce((sum, it) => sum + (it.price || 0) * (it.quantity || 1), 0);
+      const itemCOGS = order.items.reduce((sum, it) => sum + (it.costPrice || 0) * (it.quantity || 1), 0);
+      const shopDiscount = order.shopDiscountAmount || 0;
+      const netSubtotal = Math.max(0, itemSubtotal - shopDiscount);
+      const commRate = order.commissionRate ?? 5;
+      const commAmount = Math.round(netSubtotal * (commRate / 100));
+      const netPayout = Math.max(0, netSubtotal - commAmount);
+
+      totalGMV += itemSubtotal;
+      totalShopDiscount += shopDiscount;
+      totalPlatformFee += commAmount;
+      totalNetPayout += netPayout;
+      totalCOGS += itemCOGS;
+      totalGrossProfit += (netPayout - itemCOGS);
+    }
+
+    return {
+      period: {
+        year: targetYear,
+        quarter: quarter || null,
+        month: month || null,
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString(),
+      },
+      summary: {
+        totalInvoices,
+        completedInvoices,
+        cancelledInvoices,
+        totalGMV,
+        totalShopDiscount,
+        totalPlatformFee,
+        totalNetPayout,
+        totalCOGS,
+        totalGrossProfit,
+      },
+    };
   }
 }

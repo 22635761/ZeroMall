@@ -26,6 +26,21 @@ export class OrderController {
     return this.orderService.getOrdersBySeller(shopId);
   }
 
+  @Get('analytics/financial-summary')
+  async getFinancialSummary(
+    @Param('shopId') _shopId?: string,
+    @Body() _body?: any,
+  ) {
+    return this.orderService.getFinancialSummary();
+  }
+
+  @Get('analytics/financial-summary/:shopId')
+  async getShopFinancialSummary(
+    @Param('shopId') shopId: string,
+  ) {
+    return this.orderService.getFinancialSummary(shopId);
+  }
+
   @Get(':id')
   async getOrderById(@Param('id') id: string) {
     return this.orderService.getOrderById(id);
