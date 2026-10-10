@@ -9,6 +9,7 @@ generator client {
 
 model Order {
   id                     String      @id @default(uuid())
+  invoiceNo              String? // Mã hóa đơn điện tử chính quy (VD: HD20261008-123456)
   buyerId                String
   buyerEmail             String
   buyerName              String
@@ -36,17 +37,30 @@ model Order {
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
   items                  OrderItem[]
+
+  @@index([shopId, status, createdAt])
+  @@index([buyerId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
+  @@index([checkoutGroupId])
+  @@index([invoiceNo])
 }
 
 model OrderItem {
-  id        String  @id @default(uuid())
-  orderId   String
-  order     Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId String
-  shopId    String
-  name      String
-  image     String
-  variant   String?
-  price     Float
-  quantity  Int
+  id            String  @id @default(uuid())
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId     String
+  shopId        String
+  name          String
+  image         String
+  variant       String?
+  price         Float // Giá bán thực tế tại thời điểm mua (bảo lưu bất biến)
+  originalPrice Float?  @default(0) // Giá niêm yết tại thời điểm mua
+  costPrice     Float?  @default(0) // Giá vốn tại thời điểm bán để tính lãi/lỗ tài chính
+  quantity      Int
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([shopId])
 }
