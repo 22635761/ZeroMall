@@ -112,22 +112,66 @@ export class DeliveryService {
     const rand = Math.floor(1000 + Math.random() * 9000);
     const trackingNumber = `ZMX${yy}${mm}${dd}${rand}`;
 
-    // Tìm Hub gốc tương ứng với địa chỉ lấy hàng của Shop (dynamic matching theo province từ DB)
+    // Tìm Hub gốc tương ứng với địa chỉ lấy hàng của Shop (Ưu tiên Quận/Huyện trước, sau đó Tỉnh/Thành)
     let originHub: any = null;
     if (pickupAddressId) {
       const pAddr = await this.prisma.sellerAddress.findUnique({ where: { id: pickupAddressId } });
-      if (pAddr && pAddr.province) {
-        const sellerProvince = pAddr.province.toLowerCase();
-        // Tìm Hub có province khớp với province của SellerAddress
+      if (pAddr) {
+        const sellerProvince = (pAddr.province || '').toLowerCase().trim();
+        const sellerDistrict = (pAddr.district || '').toLowerCase().trim();
+        const sellerFullAddr = [pAddr.address, pAddr.ward, pAddr.district, pAddr.province]
+          .filter(Boolean)
+          .join(', ')
+          .toLowerCase();
+
         const allHubs = await this.prisma.hub.findMany({ where: { status: 'ACTIVE' } });
-        originHub = allHubs.find((h) => {
-          const hubProvince = (h.province || '').toLowerCase();
-          return hubProvince && (hubProvince.includes(sellerProvince) || sellerProvince.includes(hubProvince));
-        });
+
+        // 1. Ưu tiên 1: Khớp chính xác Quận/Huyện (District Geofencing)
+        if (sellerDistrict || sellerFullAddr) {
+          originHub = allHubs.find((h) => {
+            const hubDistrict = (h.district || '').toLowerCase().trim();
+            const hubName = (h.name || '').toLowerCase();
+            const hubAddr = (h.address || '').toLowerCase();
+            const hubProvince = (h.province || '').toLowerCase().trim();
+
+            const provinceMatch =
+              !sellerProvince ||
+              !hubProvince ||
+              hubProvince.includes(sellerProvince) ||
+              sellerProvince.includes(hubProvince);
+
+            if (!provinceMatch) return false;
+
+            // Khớp theo hubDistrict hoặc Tên bưu cục có chứa tên quận (VD: "HUD Gò Vấp", "Gò Vấp")
+            if (sellerDistrict && hubDistrict) {
+              if (sellerDistrict.includes(hubDistrict) || hubDistrict.includes(sellerDistrict)) {
+                return true;
+              }
+            }
+
+            if (sellerDistrict && (hubName.includes(sellerDistrict) || hubAddr.includes(sellerDistrict))) {
+              return true;
+            }
+
+            if (hubDistrict && sellerFullAddr.includes(hubDistrict)) {
+              return true;
+            }
+
+            return false;
+          });
+        }
+
+        // 2. Ưu tiên 2: Khớp theo Tỉnh/Thành (nếu Quận chưa có Bưu cục riêng)
+        if (!originHub && sellerProvince) {
+          originHub = allHubs.find((h) => {
+            const hubProvince = (h.province || '').toLowerCase().trim();
+            return hubProvince && (hubProvince.includes(sellerProvince) || sellerProvince.includes(hubProvince));
+          });
+        }
       }
     }
     if (!originHub) {
-      // Fallback: chọn Hub active đầu tiên (không ưu tiên HCM cố định)
+      // Fallback: chọn Hub active đầu tiên
       originHub = await this.prisma.hub.findFirst({ where: { status: 'ACTIVE' } });
     }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
+import { HubCreateEditModal } from './HubCreateEditModal'
 
 interface Driver {
   id: string
@@ -47,14 +48,6 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({ tr
   // Modals state
   const [isHubModalOpen, setIsHubModalOpen] = useState(false)
   const [editingHub, setEditingHub] = useState<Hub | null>(null)
-  const [hubFormData, setHubFormData] = useState({
-    code: '',
-    name: '',
-    type: 'DESTINATION_HUB',
-    province: '',
-    district: '',
-    address: ''
-  })
 
   const [selectedHubForDrivers, setSelectedHubForDrivers] = useState<Hub | null>(null)
   const [isDriverModalOpen, setIsDriverModalOpen] = useState(false)
@@ -142,45 +135,7 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({ tr
   const totalSocCount = hubs.filter(h => h.type === 'SORTING_CENTER').length
   const totalDeliveryHubCount = hubs.filter(h => h.type !== 'SORTING_CENTER').length
 
-  // Handle Hub Form Submit
-  const handleSaveHub = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!hubFormData.code.trim() || !hubFormData.name.trim() || !hubFormData.province.trim() || !hubFormData.address.trim()) {
-      alert('Vui lòng điền đầy đủ các thông tin bắt buộc của Bưu cục!')
-      return
-    }
 
-    setSubmitting(true)
-    try {
-      const url = editingHub 
-        ? `${API_BASE_URL}/delivery/hubs/${editingHub.id}` 
-        : `${API_BASE_URL}/delivery/hubs`
-      const method = editingHub ? 'PATCH' : 'POST'
-
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(hubFormData)
-      })
-
-      if (!res.ok) {
-        const errJson = await res.json().catch(() => ({}))
-        throw new Error(errJson.message || 'Không thể lưu bưu cục')
-      }
-
-      alert(editingHub ? 'Cập nhật bưu cục thành công!' : 'Tạo mới bưu cục thành công!')
-      if (triggerAuditLog) {
-        await triggerAuditLog(`${editingHub ? 'Cập nhật' : 'Tạo mới'} Bưu cục [${hubFormData.code}] ${hubFormData.name}`)
-      }
-      setIsHubModalOpen(false)
-      setEditingHub(null)
-      fetchData()
-    } catch (err: any) {
-      alert('Lỗi: ' + (err.message || 'Đã xảy ra lỗi'))
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
   // Handle Delete Hub
   const handleDeleteHub = async (hub: Hub) => {
@@ -272,27 +227,11 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({ tr
 
   const openAddHubModal = () => {
     setEditingHub(null)
-    setHubFormData({
-      code: `HUB${Math.floor(100 + Math.random() * 900)}`,
-      name: '',
-      type: 'DESTINATION_HUB',
-      province: '',
-      district: '',
-      address: ''
-    })
     setIsHubModalOpen(true)
   }
 
   const openEditHubModal = (hub: Hub) => {
     setEditingHub(hub)
-    setHubFormData({
-      code: hub.code,
-      name: hub.name,
-      type: hub.type,
-      province: hub.province,
-      district: hub.district || '',
-      address: hub.address
-    })
     setIsHubModalOpen(true)
   }
 
@@ -780,118 +719,14 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({ tr
         </div>
       )}
 
-      {/* MODAL 1: Thêm / Sửa Bưu Cục */}
-      {isHubModalOpen && (
-        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-lg w-full shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 text-left">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-              <h3 className="text-base font-black text-slate-900 flex items-center gap-2">
-                <span>🏢</span> {editingHub ? 'Cập Nhật Thông Tin Bưu Cục' : 'Tạo Bưu Cục Vận Chuyển Mới'}
-              </h3>
-              <button
-                onClick={() => setIsHubModalOpen(false)}
-                className="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center font-bold text-sm cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleSaveHub} className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Mã Bưu Cục (Mã Code) *</label>
-                  <input
-                    type="text"
-                    required
-                    value={hubFormData.code}
-                    onChange={(e) => setHubFormData({ ...hubFormData, code: e.target.value.toUpperCase() })}
-                    placeholder="VD: HB01, HCM01..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-mono font-bold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Loại Bưu Cục *</label>
-                  <select
-                    value={hubFormData.type}
-                    onChange={(e) => setHubFormData({ ...hubFormData, type: e.target.value })}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white cursor-pointer transition"
-                  >
-                    <option value="DESTINATION_HUB">🏢 Bưu Cục Giao Hàng (Hub)</option>
-                    <option value="SORTING_CENTER">🏭 Trung Tâm Khai Thác (SOC)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Tên Bưu Cục Đầy Đủ *</label>
-                <input
-                  type="text"
-                  required
-                  value={hubFormData.name}
-                  onChange={(e) => setHubFormData({ ...hubFormData, name: e.target.value })}
-                  placeholder="VD: Bưu Cục SPX Hòa Bình Hub, Tân Bình SOC..."
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 font-semibold focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Tỉnh / Thành Phố *</label>
-                  <input
-                    type="text"
-                    required
-                    value={hubFormData.province}
-                    onChange={(e) => setHubFormData({ ...hubFormData, province: e.target.value })}
-                    placeholder="VD: Hòa Bình, TP. Hồ Chí Minh..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Quận / Huyện / Thị Xã</label>
-                  <input
-                    type="text"
-                    value={hubFormData.district}
-                    onChange={(e) => setHubFormData({ ...hubFormData, district: e.target.value })}
-                    placeholder="VD: TP. Hòa Bình, Tân Bình..."
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Địa Chỉ Cụ Thể (Số nhà, Đường, Phường/Xã) *</label>
-                <input
-                  type="text"
-                  required
-                  value={hubFormData.address}
-                  onChange={(e) => setHubFormData({ ...hubFormData, address: e.target.value })}
-                  placeholder="VD: Số 123 Đường Cù Chính Lan, Phường Đồng Tiến, TP. Hòa Bình"
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600 focus:bg-white transition"
-                />
-              </div>
-
-              <div className="pt-4 border-t border-slate-100 flex justify-end gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setIsHubModalOpen(false)}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
-                >
-                  Hủy Bỏ
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-3xs transition cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {submitting ? 'Đang lưu...' : (editingHub ? 'Lưu Thay Đổi' : 'Tạo Bưu Cục')}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* MODAL 1: Thêm / Sửa Bưu Cục Tích Hợp Bản Đồ & 3 Cấp Hành Chính (Chuẩn Checkout) */}
+      <HubCreateEditModal
+        isOpen={isHubModalOpen}
+        onClose={() => setIsHubModalOpen(false)}
+        editingHub={editingHub}
+        onSuccess={fetchData}
+        triggerAuditLog={triggerAuditLog}
+      />
 
       {/* MODAL 2: Thêm / Sửa Tài Xế */}
       {isDriverModalOpen && (
