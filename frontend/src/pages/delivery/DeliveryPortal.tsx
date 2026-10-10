@@ -120,17 +120,14 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     if (onLogout) onLogout()
   }
 
-  // Navigation Tabs: Đơn cần lấy, Đơn tại kho, Tuyến giao khách, Quản lý COD, Trạm Hub & Tài xế, Hạch toán tài chính
-  const [activeTab, setActiveTab] = useState<'ALL' | 'MY_TASKS' | 'PICKUP' | 'HUB' | 'DELIVERY' | 'COD' | 'HUBS_DRIVERS' | 'FINANCE'>('ALL')
+  // Navigation Tabs: Quản lý bưu cục & đội xe, Hạch toán tài chính, Đối soát COD, Tra cứu vận đơn
+  const [activeTab, setActiveTab] = useState<'HUBS_DRIVERS' | 'FINANCE' | 'COD' | 'ALL'>('HUBS_DRIVERS')
   const [shipments, setShipments] = useState<Shipment[]>([])
   const [returns, setReturns] = useState<ReturnData[]>([])
   const [drivers, setDrivers] = useState<Driver[]>([])
   const [hubs, setHubs] = useState<Hub[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
-  const [assignModalShipment, setAssignModalShipment] = useState<Shipment | null>(null)
-  const [assignType, setAssignType] = useState<'PICKUP' | 'DELIVERY'>('PICKUP')
-  const [selectedDriverId, setSelectedDriverId] = useState('')
   const [actionLoading, setActionLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
 
@@ -209,31 +206,6 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
     }
   }
 
-  const handleAssignDriver = async () => {
-    if (!assignModalShipment || !selectedDriverId) return
-    setActionLoading(true)
-    try {
-      const res = await fetch(`${API_BASE_URL}/delivery/shipments/${assignModalShipment.id}/assign`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          driverId: selectedDriverId,
-          type: assignType,
-        }),
-      })
-      if (res.ok) {
-        alert(`Đã phân công tài xế ${assignType === 'PICKUP' ? 'lấy hàng' : 'giao hàng'} thành công!`)
-        await fetchAllData()
-        setAssignModalShipment(null)
-      }
-    } catch (e) {
-      console.error(e)
-      alert('Lỗi phân công tài xế')
-    } finally {
-      setActionLoading(false)
-    }
-  }
-
   const formatMoney = (val: number) => (val || 0).toLocaleString('vi-VN') + 'đ'
 
   // If not logged in as delivery staff/driver, show login form
@@ -276,15 +248,6 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
 
     if (!matchesSearch) return false
 
-    if (activeTab === 'PICKUP') {
-      return s.status !== 'CANCELLED' && ['CREATED', 'WAITING_PICKUP', 'PICKUP_ASSIGNED', 'PICKING_UP'].includes(s.status)
-    }
-    if (activeTab === 'HUB') {
-      return s.status !== 'CANCELLED' && ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'DELIVERY_ASSIGNED'].includes(s.status)
-    }
-    if (activeTab === 'DELIVERY') {
-      return s.status !== 'CANCELLED' && ['OUT_FOR_DELIVERY', 'DELIVERY_FAILED', 'RETURNING'].includes(s.status)
-    }
     if (activeTab === 'COD') {
       return s.status !== 'CANCELLED' && s.codAmount > 0
     }
@@ -443,43 +406,35 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
       {/* 2. Main Content Container */}
       <main className="max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex-1 space-y-6">
         
-        {/* KPI Summary Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        {/* KPI Summary Cards Dành Cho Admin Quản Trị Hệ Thống Logistics */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
             <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-              <span>📦</span> Chờ Lấy Hàng
+              <span>🏢</span> Mạng Lưới Bưu Cục
             </span>
-            <p className="text-2xl font-black text-amber-600">{stats.pickup}</p>
-            <p className="text-[10px] text-slate-400">Đơn Shop vừa đóng gói</p>
+            <p className="text-2xl font-black text-emerald-600">{hubs.length} Hubs & SOC</p>
+            <p className="text-[10px] text-slate-400">Trạm phân loại & Bưu cục toàn quốc</p>
           </div>
 
           <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
             <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-              <span>🏢</span> Trong Kho SOC / Hub
+              <span>🛵</span> Đội Ngũ Tài Xế
             </span>
-            <p className="text-2xl font-black text-sky-600">{stats.hub}</p>
-            <p className="text-[10px] text-slate-400">Đang phân loại & luân chuyển</p>
+            <p className="text-2xl font-black text-amber-600">{drivers.length} Shipper</p>
+            <p className="text-[10px] text-slate-400">Phân bổ trực thuộc các bưu cục</p>
           </div>
 
           <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
             <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-              <span>🛵</span> Đang Giao Khách
+              <span>📦</span> Tổng Vận Đơn Hệ Thống
             </span>
-            <p className="text-2xl font-black text-orange-600">{stats.delivering}</p>
-            <p className="text-[10px] text-slate-400">Shipper đang trên đường giao</p>
+            <p className="text-2xl font-black text-sky-600">{stats.total} Kiện Hàng</p>
+            <p className="text-[10px] text-slate-400">Đã phát thành công: {stats.delivered} đơn</p>
           </div>
 
           <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
             <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-              <span>✅</span> Giao Thành Công
-            </span>
-            <p className="text-2xl font-black text-emerald-600">{stats.delivered}</p>
-            <p className="text-[10px] text-slate-400">Đã phát tận tay người nhận</p>
-          </div>
-
-          <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1 col-span-2 sm:col-span-1">
-            <span className="text-xs text-slate-500 font-semibold flex items-center gap-1.5">
-              <span>💰</span> COD Đã Thu Thực Tế
+              <span>💰</span> Quản Lý Tiền Thu Hộ COD
             </span>
             <p className="text-2xl font-black text-emerald-700">{formatMoney(stats.totalCod)}</p>
             <p className="text-[10px] text-slate-400">Chờ đối soát về Shop: {formatMoney(stats.pendingCod)}</p>
@@ -492,80 +447,45 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
             
             {/* Tabs */}
             <div className="flex flex-wrap gap-1.5 w-full sm:w-auto">
-              {isDriver ? (
-                [
-                  { id: 'ALL', label: `Tất Cả Tuyến Giao (${stats.total})` },
-                  { id: 'PICKUP', label: `📦 Đơn Cần Đi Lấy Tại Shop (${stats.pickup})` },
-                  { id: 'DELIVERY', label: `🛵 Đơn Đang Phát Khách (${stats.delivering})` },
-                  { id: 'COD', label: `💵 Ví Thu Hộ COD Của Tôi` },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      activeTab === tab.id
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))
-              ) : (
-                [
-                  { id: 'ALL', label: `Tất Cả Vận Đơn (${stats.total})` },
-                  { id: 'PICKUP', label: `📦 Tuyến Lấy Hàng (${stats.pickup})` },
-                  { id: 'HUB', label: `🏢 Quản Lý Hub (${stats.hub})` },
-                  { id: 'DELIVERY', label: `🛵 Tuyến Giao Hàng (${stats.delivering})` },
-                  { id: 'COD', label: `💵 Đối Soát COD` },
-                  { id: 'HUBS_DRIVERS', label: `🏢 Quản Lý Bưu Cục & Đội Xe (${hubs.length}/${drivers.length})` },
-                  { id: 'FINANCE', label: `📊 Hạch Toán Cước & Lợi Nhuận` },
-                ].map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id as any)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition cursor-pointer ${
-                      activeTab === tab.id
-                        ? 'bg-emerald-600 text-white shadow-xs'
-                        : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                ))
-              )}
+              {[
+                { id: 'HUBS_DRIVERS', label: `🏢 Quản Lý Bưu Cục & Đội Xe (${hubs.length}/${drivers.length})` },
+                { id: 'FINANCE', label: `📊 Báo Cáo Cước & Lợi Nhuận` },
+                { id: 'COD', label: `💵 Đối Soát Dòng Tiền COD` },
+                { id: 'ALL', label: `🔍 Tra Cứu Vận Đơn & Lộ Trình (${stats.total})` },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  className={`px-4 py-2.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 ${
+                    activeTab === tab.id
+                      ? 'bg-emerald-600 text-white shadow-xs'
+                      : 'bg-slate-50 text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200/60'
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
 
-            {/* Search Input */}
-            <div className="w-full sm:w-80">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Tìm mã ZMX, mã đơn, tên khách, SĐT..."
-                className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition"
-              />
-            </div>
+            {/* Search Input (Chỉ khi tra cứu đơn) */}
+            {activeTab === 'ALL' && (
+              <div className="w-full sm:w-80">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Tra cứu mã ZMX, mã đơn, tên khách, SĐT..."
+                  className="w-full px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-emerald-600 transition"
+                />
+              </div>
+            )}
           </div>
 
-          {/* VIEW 0: TRẠM PHÂN LOẠI & KHAI THÁC KHO (HUB OPERATOR WORKSTATION) */}
-          {activeTab === 'HUB' ? (
-            <HubOperatorStation
-              currentUser={currentUser}
-              hubs={hubs}
-              drivers={drivers}
-              shipments={shipments}
-              returns={returns}
-              onRefresh={fetchAllData}
-              onUpdateStatus={(shipmentId, status, failureReason, hubId, note, linehaulData) =>
-                handleUpdateStatus(shipmentId, status, failureReason, undefined, hubId, note, linehaulData)
-              }
-              actionLoading={actionLoading}
-            />
+          {/* VIEW RENDER THEO TAB CỦA ADMIN */}
+          {activeTab === 'HUBS_DRIVERS' ? (
+            <LogisticsHubsFleetTab />
           ) : activeTab === 'FINANCE' ? (
             <LogisticsFinanceTab shipments={shipments} />
-          ) : activeTab === 'HUBS_DRIVERS' ? (
-            <LogisticsHubsFleetTab />
           ) : (
             /* VIEW 2: BẢNG DANH SÁCH VẬN ĐƠN (LẤY DỮ LIỆU THẬT 100% TỪ DATABASE) */
             <div className="overflow-x-auto">
@@ -576,7 +496,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                     <th className="py-3 px-4">Khách Hàng / Điểm Nhận</th>
                     <th className="py-3 px-4">Kiện Hàng / COD</th>
                     <th className="py-3 px-4">Trạng Thái & Shipper</th>
-                    <th className="py-3 px-4 text-right">Điều Phối Chuyển Chặng</th>
+                    <th className="py-3 px-4 text-right">Chi Tiết Lộ Trình</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
@@ -662,106 +582,13 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                             )}
                           </td>
 
-                          {/* Thao tác chuyển chặng */}
-                          <td className="py-3.5 px-4 text-right space-x-1.5 whitespace-nowrap">
+                          <td className="py-3.5 px-4 text-right whitespace-nowrap">
                             <button
                               onClick={() => setSelectedShipment(s)}
-                              className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-lg text-xs transition cursor-pointer"
+                              className="px-3.5 py-1.5 bg-sky-50 hover:bg-sky-100 text-sky-700 border border-sky-200 font-bold rounded-xl text-xs transition cursor-pointer inline-flex items-center gap-1.5 shadow-3xs"
                             >
-                              📜 Timeline
+                              <span>📜</span> Xem Lộ Trình (Timeline)
                             </button>
-
-                            {/* Gán tài xế lấy hàng */}
-                            {(s.status === 'CREATED' || s.status === 'WAITING_PICKUP') && (
-                              <button
-                                onClick={() => { setAssignModalShipment(s); setAssignType('PICKUP'); setSelectedDriverId(drivers[0]?.id || ''); }}
-                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Gán Shipper Lấy
-                              </button>
-                            )}
-
-                            {/* Shipper xác nhận lấy hàng */}
-                            {s.status === 'PICKUP_ASSIGNED' && (
-                              <button
-                                onClick={() => handleUpdateStatus(s.id, 'PICKED_UP')}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Đã Lấy Hàng
-                              </button>
-                            )}
-
-                            {/* Nhập kho & phân loại */}
-                            {s.status === 'PICKED_UP' && (
-                              <button
-                                onClick={() => handleUpdateStatus(s.id, 'AT_ORIGIN_HUB')}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Nhập Kho SOC
-                              </button>
-                            )}
-
-                            {s.status === 'AT_ORIGIN_HUB' && (
-                              <button
-                                onClick={() => handleUpdateStatus(s.id, 'SORTING')}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Quét & Phân Loại
-                              </button>
-                            )}
-
-                            {s.status === 'SORTING' && (
-                              <button
-                                onClick={() => handleUpdateStatus(s.id, 'IN_TRANSIT')}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Xe Trung Chuyển
-                              </button>
-                            )}
-
-                            {s.status === 'IN_TRANSIT' && (
-                              <button
-                                onClick={() => handleUpdateStatus(s.id, 'AT_DESTINATION_HUB')}
-                                disabled={actionLoading}
-                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                Đến Bưu Cục Phát
-                              </button>
-                            )}
-
-                            {/* Gán / đổi tài xế giao */}
-                            {(s.status === 'AT_DESTINATION_HUB' || s.status === 'DELIVERY_ASSIGNED') && (
-                              <button
-                                onClick={() => { setAssignModalShipment(s); setAssignType('DELIVERY'); setSelectedDriverId(drivers[1]?.id || drivers[0]?.id || ''); }}
-                                className="px-3 py-1.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                              >
-                                {s.status === 'DELIVERY_ASSIGNED' ? 'Đổi Tuyến Giao' : 'Gán Shipper Giao'}
-                              </button>
-                            )}
-
-                            {/* Giao hàng & Thu COD */}
-                            {s.status === 'OUT_FOR_DELIVERY' && (
-                              <>
-                                <button
-                                  onClick={() => handleUpdateStatus(s.id, 'DELIVERED')}
-                                  disabled={actionLoading}
-                                  className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                                >
-                                  ✅ Giao Xong & Thu COD
-                                </button>
-                                <button
-                                  onClick={() => setFailModalShipment(s)}
-                                  disabled={actionLoading}
-                                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-lg text-xs transition cursor-pointer shadow-3xs"
-                                >
-                                  ❌ Thất Bại
-                                </button>
-                              </>
-                            )}
                           </td>
                         </tr>
                       )
@@ -774,50 +601,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
         </div>
       </main>
 
-      {/* 3. MODAL: PHÂN CÔNG TÀI XẾ (DRIVER ASSIGNMENT) */}
-      {assignModalShipment && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl max-w-md w-full p-6 space-y-4 shadow-2xl text-left border border-slate-100 animate-in zoom-in-95 duration-150">
-            <h3 className="font-black text-slate-800 text-base flex items-center gap-2">
-              <span>🛵</span> Phân Công Tài Xế ({assignType === 'PICKUP' ? 'Lấy Hàng Tại Shop' : 'Giao Tận Tay Khách'})
-            </h3>
-            <p className="text-xs text-slate-500">
-              Vận đơn: <b className="text-emerald-700">{assignModalShipment.trackingNumber}</b> (Đơn #{assignModalShipment.orderId})
-            </p>
-            
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-slate-700">Chọn Tài Xế Trực Thuộc Tuyến:</label>
-              <select
-                value={selectedDriverId}
-                onChange={(e) => setSelectedDriverId(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 focus:outline-none focus:border-emerald-600"
-              >
-                {drivers.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.phone} - {d.vehicleNumber}) - {d.hub?.name || 'Kho Tân Bình SOC'}
-                  </option>
-                ))}
-              </select>
-            </div>
 
-            <div className="pt-3 border-t border-slate-100 flex gap-2 justify-end">
-              <button
-                onClick={() => setAssignModalShipment(null)}
-                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-xl text-xs hover:bg-slate-200 cursor-pointer"
-              >
-                Hủy
-              </button>
-              <button
-                onClick={handleAssignDriver}
-                disabled={actionLoading}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs shadow-3xs cursor-pointer"
-              >
-                {actionLoading ? 'Đang phân công...' : 'Xác Nhận Phân Công'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* 4. MODAL: GIAO THẤT BẠI (DELIVERY ATTEMPTS) */}
       {failModalShipment && (
