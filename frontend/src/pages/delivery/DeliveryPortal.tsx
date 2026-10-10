@@ -404,17 +404,14 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
               🚚
             </div>
             <div>
-              <div className="flex items-baseline gap-2">
-                <span className="text-xl font-black tracking-tight text-slate-900">
+              <div className="flex flex-col">
+                <span className="text-xl font-black tracking-tight text-slate-900 leading-tight">
                   Zero<span className="text-emerald-600">Express</span>
                 </span>
-                <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-0.5 rounded-md uppercase tracking-wider">
-                  {currentUser.role === 'DRIVER' ? '📱 App Tài Xế Giao Hàng' : '🏢 Cổng Điều Phối & Quản Trị Hub'}
-                </span>
+                <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
+                  Xin chào, <b>{currentUser.name}</b> ({currentUser.email})
+                </p>
               </div>
-              <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
-                Xin chào, <b>{currentUser.name}</b> ({currentUser.email})
-              </p>
             </div>
           </div>
 
