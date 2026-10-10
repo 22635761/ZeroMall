@@ -58,6 +58,7 @@ export interface Hub {
   type: string
   province: string
   district: string
+  address?: string
 }
 
 export type StationTab = 'INBOUND_PICKUP' | 'SORTING_LINEHAUL' | 'INBOUND_RECEIVING' | 'DISPATCH_LASTMILE'

@@ -13,6 +13,7 @@ import { CommissionSettingTab } from '../../components/admin/CommissionSettingTa
 import { AuditLogsTab } from '../../components/admin/AuditLogsTab'
 import AdminPriceAnalyticsTab from '../../components/admin/AdminPriceAnalyticsTab'
 import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
+import { AdminHubsTab } from '../../components/admin/AdminHubsTab'
 
 interface AdminPageProps {
   user: any
@@ -52,6 +53,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'commission-setting': return 'COMMISSION_SETTING';
       case 'audit-logs': return 'AUDIT_LOGS';
       case 'price-analytics': return 'PRICE_ANALYTICS';
+      case 'hubs':
+      case 'logistics': return 'LOGISTICS_HUBS';
       default: return null;
     }
   }
@@ -70,12 +73,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'COMMISSION_SETTING': return 'commission-setting';
       case 'AUDIT_LOGS': return 'audit-logs';
       case 'PRICE_ANALYTICS': return 'price-analytics';
+      case 'LOGISTICS_HUBS': return 'hubs';
       default: return 'users';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
+    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS' | 'LOGISTICS_HUBS'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -250,6 +254,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'LIVE_CHAT', label: 'Live Chat CSKH Sàn', icon: '💬' },
     { id: 'SYSTEM_REPORTS', label: 'Báo cáo hệ thống', icon: '📊' },
     { id: 'PRICE_ANALYTICS', label: 'Biến động & Giá vốn', icon: '📈' },
+    { id: 'LOGISTICS_HUBS', label: 'Bưu Cục & Tài Xế SPX', icon: '🚚' },
     { id: 'COMMISSION_SETTING', label: 'Chiết khấu sàn', icon: '⚙️' },
     { id: 'AUDIT_LOGS', label: 'Lịch sử thao tác', icon: '📜' },
   ]
@@ -386,6 +391,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           {activePortalTab === 'AUDIT_LOGS' && (
             <AuditLogsTab auditLogs={auditLogs} />
+          )}
+
+          {activePortalTab === 'LOGISTICS_HUBS' && (
+            <AdminHubsTab triggerAuditLog={triggerAuditLog} />
           )}
         </main>
       </div>

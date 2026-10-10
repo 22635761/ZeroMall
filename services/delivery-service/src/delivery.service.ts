@@ -952,9 +952,80 @@ export class DeliveryService {
     return this.prisma.hub.findMany({
       include: {
         drivers: true,
-        _count: { select: { shipments: true } },
+        _count: { select: { shipments: true, drivers: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  async createHub(data: {
+    code: string;
+    name: string;
+    address: string;
+    province: string;
+    district: string;
+    ward?: string;
+    type?: string;
+    latitude?: number;
+    longitude?: number;
+  }) {
+    const cleanCode = data.code.toUpperCase().trim();
+    const existing = await this.prisma.hub.findUnique({ where: { code: cleanCode } });
+    if (existing) {
+      throw new BadRequestException(`Mã bưu cục ${cleanCode} đã tồn tại trên hệ thống`);
+    }
+
+    return this.prisma.hub.create({
+      data: {
+        code: cleanCode,
+        name: data.name.trim(),
+        address: data.address.trim(),
+        province: data.province.trim(),
+        district: data.district.trim(),
+        ward: data.ward?.trim() || null,
+        type: data.type || 'DESTINATION_HUB',
+        latitude: data.latitude ? Number(data.latitude) : null,
+        longitude: data.longitude ? Number(data.longitude) : null,
+        status: 'ACTIVE',
+      },
+      include: { drivers: true, _count: { select: { shipments: true, drivers: true } } },
+    });
+  }
+
+  async updateHub(id: string, data: any) {
+    const hub = await this.prisma.hub.findUnique({ where: { id } });
+    if (!hub) throw new NotFoundException('Không tìm thấy Bưu cục');
+
+    return this.prisma.hub.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.address && { address: data.address.trim() }),
+        ...(data.province && { province: data.province.trim() }),
+        ...(data.district && { district: data.district.trim() }),
+        ...(data.ward !== undefined && { ward: data.ward?.trim() || null }),
+        ...(data.type && { type: data.type }),
+        ...(data.status && { status: data.status }),
+        ...(data.latitude !== undefined && { latitude: data.latitude ? Number(data.latitude) : null }),
+        ...(data.longitude !== undefined && { longitude: data.longitude ? Number(data.longitude) : null }),
+      },
+      include: { drivers: true, _count: { select: { shipments: true, drivers: true } } },
+    });
+  }
+
+  async deleteHub(id: string) {
+    const hub = await this.prisma.hub.findUnique({
+      where: { id },
+      include: {
+        _count: { select: { shipments: true, drivers: true } },
       },
     });
+    if (!hub) throw new NotFoundException('Không tìm thấy Bưu cục');
+    if (hub._count.shipments > 0) {
+      throw new BadRequestException('Không thể xóa bưu cục đang có vận đơn liên kết');
+    }
+
+    return this.prisma.hub.delete({ where: { id } });
   }
 
   // 7. Quản lý Drivers & Trạng Thái Hoạt Động (Online / Offline / Available / Busy)
@@ -970,7 +1041,76 @@ export class DeliveryService {
           include: { shipment: true },
         },
       },
+      orderBy: { createdAt: 'desc' },
     });
+  }
+
+  async createDriver(data: {
+    name: string;
+    phone: string;
+    vehicleNumber: string;
+    vehicleType?: string;
+    hubId: string;
+    operatingArea?: string;
+    assignedDistrict?: string;
+    assignedProvince?: string;
+  }) {
+    const hub = await this.prisma.hub.findUnique({ where: { id: data.hubId } });
+    if (!hub) throw new NotFoundException('Không tìm thấy Bưu cục chỉ định');
+
+    const assignedProvince = data.assignedProvince || hub.province;
+    const assignedDistrict = data.assignedDistrict || hub.district;
+
+    return this.prisma.driver.create({
+      data: {
+        name: data.name.trim(),
+        phone: data.phone.trim(),
+        vehicleNumber: data.vehicleNumber.trim().toUpperCase(),
+        vehicleType: data.vehicleType || 'MOTORBIKE',
+        hubId: data.hubId,
+        operatingArea: data.operatingArea?.trim() || `${assignedDistrict}, ${assignedProvince}`,
+        assignedDistrict,
+        assignedProvince,
+        status: 'AVAILABLE',
+      },
+      include: { hub: true },
+    });
+  }
+
+  async updateDriver(id: string, data: any) {
+    const driver = await this.prisma.driver.findUnique({ where: { id } });
+    if (!driver) throw new NotFoundException('Không tìm thấy Tài xế');
+
+    return this.prisma.driver.update({
+      where: { id },
+      data: {
+        ...(data.name && { name: data.name.trim() }),
+        ...(data.phone && { phone: data.phone.trim() }),
+        ...(data.vehicleNumber && { vehicleNumber: data.vehicleNumber.trim().toUpperCase() }),
+        ...(data.vehicleType && { vehicleType: data.vehicleType }),
+        ...(data.hubId && { hubId: data.hubId }),
+        ...(data.operatingArea !== undefined && { operatingArea: data.operatingArea }),
+        ...(data.assignedDistrict !== undefined && { assignedDistrict: data.assignedDistrict }),
+        ...(data.assignedProvince !== undefined && { assignedProvince: data.assignedProvince }),
+        ...(data.status && { status: data.status }),
+      },
+      include: { hub: true },
+    });
+  }
+
+  async deleteDriver(id: string) {
+    const driver = await this.prisma.driver.findUnique({
+      where: { id },
+      include: {
+        assignments: { where: { status: { in: ['ASSIGNED', 'IN_PROGRESS'] } } },
+      },
+    });
+    if (!driver) throw new NotFoundException('Không tìm thấy Tài xế');
+    if (driver.assignments.length > 0) {
+      throw new BadRequestException('Không thể xóa tài xế đang có đơn giao nhận dở dang');
+    }
+
+    return this.prisma.driver.delete({ where: { id } });
   }
 
   async updateDriverStatus(driverId: string, status: string, lat?: number, lng?: number) {

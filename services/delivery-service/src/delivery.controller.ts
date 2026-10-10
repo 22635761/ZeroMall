@@ -84,16 +84,46 @@ export class DeliveryController {
     return this.deliveryService.updateStatus(id, body);
   }
 
-  // 6. Danh sách Hubs
+  // 6. Quản lý Hubs
   @Get('hubs')
   async getHubs() {
     return this.deliveryService.getHubs();
+  }
+
+  @Post('hubs')
+  async createHub(@Body() body: any) {
+    return this.deliveryService.createHub(body);
+  }
+
+  @Patch('hubs/:id')
+  async updateHub(@Param('id') id: string, @Body() body: any) {
+    return this.deliveryService.updateHub(id, body);
+  }
+
+  @Delete('hubs/:id')
+  async deleteHub(@Param('id') id: string) {
+    return this.deliveryService.deleteHub(id);
   }
 
   // 7. Danh sách Drivers & Trạng thái hoạt động
   @Get('drivers')
   async getDrivers(@Query('hubId') hubId?: string) {
     return this.deliveryService.getDrivers(hubId);
+  }
+
+  @Post('drivers')
+  async createDriver(@Body() body: any) {
+    return this.deliveryService.createDriver(body);
+  }
+
+  @Patch('drivers/:id')
+  async updateDriver(@Param('id') id: string, @Body() body: any) {
+    return this.deliveryService.updateDriver(id, body);
+  }
+
+  @Delete('drivers/:id')
+  async deleteDriver(@Param('id') id: string) {
+    return this.deliveryService.deleteDriver(id);
   }
 
   @Patch('drivers/:id/status')
