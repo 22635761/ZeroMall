@@ -394,7 +394,31 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           )}
 
           {activePortalTab === 'LOGISTICS_HUBS' && (
-            <AdminHubsTab triggerAuditLog={triggerAuditLog} />
+            <div className="space-y-6">
+              <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-3xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0">
+                    🚚
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-black text-slate-900">
+                      Hệ Thống Phân Hệ Vận Hành Logistics Độc Lập (SPX Express Portal)
+                    </h4>
+                    <p className="text-[11px] text-slate-600 font-medium">
+                      Theo chuẩn phân quyền Shopee, điều hành bưu cục và đội xe được quản lý độc lập tại Cổng Giao Vận với tài khoản <b>Logistics Operator</b> hoặc <b>Trưởng Bưu Cục</b>.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => window.open('/delivery', '_blank')}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-3xs transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
+                >
+                  <span>🚀 Mở Cổng Vận Tải SPX</span>
+                  <span>↗</span>
+                </button>
+              </div>
+              <AdminHubsTab triggerAuditLog={triggerAuditLog} />
+            </div>
           )}
         </main>
       </div>

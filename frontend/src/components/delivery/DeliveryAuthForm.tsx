@@ -171,15 +171,33 @@ export const DeliveryAuthForm: React.FC<DeliveryAuthFormProps> = ({
 
               {/* Quick Fill Demo Accounts */}
               <div className="pt-4 border-t border-slate-100 space-y-2">
-                <p className="text-[11px] font-bold text-slate-500">⚡ Chọn nhanh vai trò để trải nghiệm:</p>
+                <p className="text-[11px] font-bold text-slate-500">⚡ Chọn nhanh vai trò để đăng nhập:</p>
                 <div className="space-y-1.5">
+                  <button
+                    type="button"
+                    onClick={() => fillAccount('admin.logistics@spx.zeromall.vn')}
+                    className="w-full text-left p-2.5 rounded-xl bg-purple-50/80 hover:bg-purple-100 border border-purple-200 text-slate-800 transition cursor-pointer text-xs flex justify-between items-center shadow-3xs"
+                  >
+                    <span>👑 <b>Quản Trị Vận Hành SPX</b> (Admin Logistics)</span>
+                    <span className="text-[10px] text-purple-700 bg-purple-100/80 px-2 py-0.5 rounded font-black">LOGISTICS ADMIN</span>
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => fillAccount('hub_hcm@zeromall.com')}
                     className="w-full text-left p-2 rounded-lg bg-sky-50/70 hover:bg-sky-100 border border-sky-200 text-slate-800 transition cursor-pointer text-xs flex justify-between items-center"
                   >
                     <span>🏭 <b>Kho Tân Bình SOC</b> (Trần Văn Kho)</span>
-                    <span className="text-[10px] text-sky-700 font-black">NHÂN VIÊN KHO</span>
+                    <span className="text-[10px] text-sky-700 font-black">TRƯỞNG BƯU CỤC</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => fillAccount('hub_melinh@zeromall.com')}
+                    className="w-full text-left p-2 rounded-lg bg-teal-50/70 hover:bg-teal-100 border border-teal-200 text-slate-800 transition cursor-pointer text-xs flex justify-between items-center"
+                  >
+                    <span>🏭 <b>Kho Mê Linh SOC</b> (Phạm Minh Bắc)</span>
+                    <span className="text-[10px] text-teal-700 font-black">TRƯỞNG BƯU CỤC</span>
                   </button>
 
                   <button
@@ -188,25 +206,16 @@ export const DeliveryAuthForm: React.FC<DeliveryAuthFormProps> = ({
                     className="w-full text-left p-2 rounded-lg bg-indigo-50/70 hover:bg-indigo-100 border border-indigo-200 text-slate-800 transition cursor-pointer text-xs flex justify-between items-center"
                   >
                     <span>🏢 <b>Kho Biên Hòa Hub</b> (Lê Thị Thu)</span>
-                    <span className="text-[10px] text-indigo-700 font-black">NHÂN VIÊN KHO</span>
+                    <span className="text-[10px] text-indigo-700 font-black">TRƯỞNG BƯU CỤC</span>
                   </button>
 
                   <button
                     type="button"
-                    onClick={() => fillAccount('shipper2@zeromall.com')}
+                    onClick={() => fillAccount('shipper1@zeromall.com')}
                     className="w-full text-left p-2 rounded-lg bg-emerald-50/70 hover:bg-emerald-100 border border-emerald-200 text-slate-800 transition cursor-pointer text-xs flex justify-between items-center"
                   >
-                    <span>🛵 <b>Shipper Biên Hòa</b> (Trần Đình Phát)</span>
-                    <span className="text-[10px] text-emerald-700 font-black">SHIPPER</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => fillAccount('operator@zeromall.com')}
-                    className="w-full text-left p-2 rounded-lg bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 transition cursor-pointer text-xs flex justify-between items-center"
-                  >
-                    <span>👑 <b>Điều Phối Toàn Quốc</b> (Operator)</span>
-                    <span className="text-[10px] text-slate-600 font-black">ADMIN ĐIỀU PHỐI</span>
+                    <span>🛵 <b>Shipper Giao Hàng SPX 01</b> (Nguyễn Văn Giao)</span>
+                    <span className="text-[10px] text-emerald-700 font-black">SHIPPER APP</span>
                   </button>
                 </div>
               </div>

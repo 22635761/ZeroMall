@@ -77,6 +77,7 @@ import { DriverAppView } from '../../components/delivery/driver/DriverAppView'
 import { HubOperatorStation } from '../../components/delivery/HubOperatorStation'
 import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
 import { LogisticsFinanceTab } from '../../components/delivery/LogisticsFinanceTab'
+import { LogisticsHubsFleetTab } from '../../components/delivery/LogisticsHubsFleetTab'
 
 interface DeliveryPortalProps {
   user?: any
@@ -520,7 +521,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
                   { id: 'HUB', label: `🏢 Quản Lý Hub (${stats.hub})` },
                   { id: 'DELIVERY', label: `🛵 Tuyến Giao Hàng (${stats.delivering})` },
                   { id: 'COD', label: `💵 Đối Soát COD` },
-                  { id: 'HUBS_DRIVERS', label: `📍 Trạm Hubs & Shipper (${hubs.length}/${drivers.length})` },
+                  { id: 'HUBS_DRIVERS', label: `🏢 Quản Lý Bưu Cục & Đội Xe (${hubs.length}/${drivers.length})` },
                   { id: 'FINANCE', label: `📊 Hạch Toán Cước & Lợi Nhuận` },
                 ].map((tab) => (
                   <button
@@ -567,50 +568,7 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
           ) : activeTab === 'FINANCE' ? (
             <LogisticsFinanceTab shipments={shipments} />
           ) : activeTab === 'HUBS_DRIVERS' ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
-              {/* Danh sách Hub */}
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-                <h3 className="font-black text-sm text-slate-800 flex items-center gap-2">
-                  <span>🏢</span> Mạng Lưới Trạm Khai Thác & Hub Vận Tải ({hubs.length} Hubs)
-                </h3>
-                <div className="space-y-2.5">
-                  {hubs.map((hub) => (
-                    <div key={hub.id} className="p-3.5 bg-white rounded-xl border border-slate-200/80 space-y-1 text-xs shadow-3xs">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-emerald-700 text-sm">{hub.code} - {hub.name}</span>
-                        <span className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded font-bold">{hub.type}</span>
-                      </div>
-                      <p className="text-slate-600 text-xs">{hub.address}</p>
-                      <p className="text-[11px] text-slate-400 font-medium">Khu vực: {hub.district}, {hub.province}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Danh sách Tài Xế */}
-              <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3">
-                <h3 className="font-black text-sm text-slate-800 flex items-center gap-2">
-                  <span>🛵</span> Đội Ngũ Tài Xế & Shipper ({drivers.length} Tài Xế)
-                </h3>
-                <div className="space-y-2.5">
-                  {drivers.map((d) => (
-                    <div key={d.id} className="p-3.5 bg-white rounded-xl border border-slate-200/80 flex justify-between items-center text-xs shadow-3xs">
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-                          <span>{d.name}</span>
-                          <span className="text-slate-500 font-normal text-xs">({d.phone})</span>
-                        </p>
-                        <p className="text-slate-500 text-xs">Biển số: <b className="text-slate-700">{d.vehicleNumber}</b> ({d.vehicleType})</p>
-                        <p className="text-[11px] text-emerald-600 font-medium">Trực thuộc: {d.hub?.name || 'Kho Tân Bình SOC'}</p>
-                      </div>
-                      <span className="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-md text-[10px] font-bold">
-                        {d.status === 'AVAILABLE' ? 'Sẵn Sàng' : d.status}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+            <LogisticsHubsFleetTab />
           ) : (
             /* VIEW 2: BẢNG DANH SÁCH VẬN ĐƠN (LẤY DỮ LIỆU THẬT 100% TỪ DATABASE) */
             <div className="overflow-x-auto">
