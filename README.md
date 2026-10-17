@@ -28,6 +28,8 @@ Khi khởi động toàn bộ stack bằng Docker, các cổng sau được ánh
 | **`5432`** | `zeromall-postgres` | PostgreSQL 15 | Cơ sở dữ liệu trung tâm chứa 6 Schema chuyên biệt |
 | **`9092`** | `zeromall-kafka` | Apache Kafka | Event bus truyền tin nhắn bất đồng bộ giữa các service |
 | **`2181`** | `zeromall-zookeeper` | Zookeeper | Quản lý và đồng bộ trạng thái cụm Kafka |
+| **`5005`** | `clip-service` | Python, SentenceTransformers (CLIP ViT-B-32) | Dịch vụ AI thị giác máy tính, phân loại ảnh & phát hiện mâu thuẫn tên/ảnh |
+| **`11434`**| `ollama` | Ollama (Qwen 2.5:1.5b) | Mô hình ngôn ngữ lớn (LLM) cục bộ phân tích ý định tìm kiếm & NLP |
 | **`5050`** | `zeromall-pgadmin` | pgAdmin 4 | Giao diện đồ họa quản trị CSDL PostgreSQL (Tùy chọn) |
 
 ---
@@ -37,6 +39,7 @@ Khi khởi động toàn bộ stack bằng Docker, các cổng sau được ánh
 ### 1. Yêu Cầu Hệ Thống
 - Đã cài đặt **Docker** & **Docker Desktop** (khuyến nghị bản 4.x trở lên).
 - Đã cài đặt **Node.js** (v18+ hoặc v20+).
+- Đã cài đặt **Python** (v3.9+ cho mô hình Local AI).
 - Đã cài đặt **Git**.
 
 ### 2. Khởi Động Dự Án (Chỉ 2 Bước)
@@ -55,6 +58,38 @@ docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.
 > Lệnh trên sẽ tự động nạp $100\%$ cấu trúc và dữ liệu thực tế cho 6 schema (`auth`, `product`, `discount`, `order`, `payment`, `delivery`), giúp bạn có sẵn dữ liệu test ngay lập tức mà không cần tạo lại từ đầu.
 
 ---
+
+## 🤖 Cài Đặt & Chạy Local AI (CLIP & Ollama — 100% Offline, Miễn Phí, Siêu Tốc)
+
+Hệ thống AI ZeroMall hoạt động **100% cục bộ (Local)**, hoàn toàn không tốn phí và không bị giới hạn quota của Google Gemini hay OpenAI.
+
+### 2.1. Khởi chạy CLIP Vision Microservice (Cổng 5005) — *Bắt buộc cho Thẩm định Ảnh & Ngành hàng*
+Microservice này sử dụng mô hình đa phương thức `clip-ViT-B-32` để nhận diện vật thể trong ảnh và phát hiện mâu thuẫn giữa ảnh và tiêu đề sản phẩm theo thời gian thực (< 100ms):
+```bash
+# 1. Di chuyển vào thư mục clip-service
+cd services/clip-service
+
+# 2. Cài đặt thư viện Python
+pip install -r requirements.txt
+
+# 3. Khởi chạy server
+python3 server.py
+# (Hoặc chạy ngầm background: nohup python3 server.py > /tmp/clip_service.log 2>&1 &)
+```
+Kiểm tra nhanh kết nối:
+```bash
+curl http://localhost:5005/health
+# Kết quả trả về: {"status": "ok", "service": "zeromall-clip-local-ai", ...}
+```
+
+### 2.2. Khởi chạy Ollama (Cổng 11434) — *Tùy chọn cho Tìm kiếm Ngữ nghĩa & NLP*
+Dùng để phân tích ý định tìm kiếm của người mua (Search Semantic) và sửa lỗi viết tắt (ví dụ: `15prm` -> `iPhone 15 Pro Max`):
+1. Tải và cài đặt Ollama từ [ollama.com](https://ollama.com) (hoặc `brew install ollama` trên macOS).
+2. Tải model Qwen 2.5 siêu nhẹ (1.5B):
+   ```bash
+   ollama run qwen2.5:1.5b
+   ```
+   *(Sau khi tải xong gõ `/bye` để thoát terminal chat, Ollama sẽ tự động duy trì chạy ngầm ở port 11434).*
 
 ## 🌐 Địa Chỉ Truy Cập Từng Phân Hệ
 
