@@ -4,7 +4,7 @@ services:
   # CƠ SỞ DỮ LIỆU & CACHE
   # ============================================================
   postgres:
-    image: postgres:15-alpine
+    image: pgvector/pgvector:pg15
     container_name: zeromall-postgres
     environment:
       POSTGRES_USER: postgres
@@ -63,9 +63,14 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/zeromall?schema=product&options=-csearch_path=product
       - TZ=Asia/Ho_Chi_Minh
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_started
     restart: always
 
   discount-service:

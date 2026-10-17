@@ -132,3 +132,83 @@ model FlashSaleItem {
 
   @@unique([flashSaleId, productId])
 }
+
+model AiModelKnowledge {
+  id                String   @id @default(uuid())
+  normalizedKey     String // Chuỗi từ khóa chuẩn hóa (lowercase, không dấu)
+  rawKeywords       String // Từ khóa gốc người dùng nhập
+  category          String // Ngành hàng
+  brand             String? // Thương hiệu
+  tone              String // Phong cách viết
+  features          String? // Điểm nhấn tính năng
+  suggestedTitle    String // Tiêu đề sản phẩm
+  suggestedCategory String // Ngành hàng gợi ý
+  suggestedBrand    String? // Thương hiệu gợi ý
+  seoKeywords       String   @db.Text // JSON string of string[]
+  hashtags          String   @db.Text // JSON string of string[]
+  description       String   @db.Text // Mô tả chi tiết
+  trainingEpoch     Int      @default(1) // Số lần mô hình được train/cập nhật trên mẫu này
+  hitCount          Int      @default(0) // Số lần mô hình nội bộ nhận diện và trả lời
+  source            String   @default("gemini-2.5-flash") // Nguồn học
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([normalizedKey])
+  @@index([category])
+  @@index([tone])
+}
+
+model AiModerationKnowledge {
+  id               String   @id @default(uuid())
+  normalizedText   String // Chuỗi chuẩn hóa (lowercase, bỏ dấu, chuẩn hóa khoảng trắng)
+  rawText          String // Nội dung gốc được kiểm duyệt
+  checkType        String   @default("TITLE") // "TITLE" | "DESCRIPTION"
+  isViolated       Boolean  @default(false) // Có vi phạm chính sách không
+  violationType    String? // "SAFE" | "NARCOTICS" | "WEAPONS" | "COUNTERFEIT" | "OBSCENE" | "DANGEROUS" | "RESTRICTED"
+  confidence       Float    @default(1.0) // Độ tin cậy (0.0 -> 1.0)
+  reason           String?  @db.Text // Giải thích ngữ cảnh chi tiết từ AI
+  suggestion       String?  @db.Text // Gợi ý điều chỉnh tiêu đề cho Người bán
+  detectedKeywords String?  @db.Text // Mảng từ khóa phát hiện (JSON string)
+  hitCount         Int      @default(0) // Số lần mô hình nội bộ tái sử dụng bài học này
+  source           String   @default("gemini-2.5-flash") // "local-knowledge" | "gemini-2.5-flash" | "safe-rule"
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  @@index([normalizedText])
+  @@index([checkType])
+  @@index([isViolated])
+}
+
+model AiSearchKnowledge {
+  id                String   @id @default(uuid())
+  searchType        String // "SEMANTIC" | "VISUAL"
+  queryKey          String // Chuỗi tìm kiếm chuẩn hóa hoặc hash hình ảnh
+  rawQuery          String   @db.Text // Chuỗi gốc hoặc image metadata/url
+  detectedIntent    String?  @db.Text // Ý định tìm kiếm tóm tắt
+  expandedKeywords  String   @db.Text // JSON string of string[] (các từ khóa mở rộng)
+  suggestedCategory String? // Ngành hàng gợi ý
+  priceRangeMin     Float? // Giá tối thiểu trích xuất từ câu
+  priceRangeMax     Float? // Giá tối đa trích xuất từ câu
+  visualTags        String?  @db.Text // JSON string of attributes { productType, colors, style, gender, material }
+  matchedProductIds String   @db.Text // JSON string of string[] các productId tương thích cao
+  hitCount          Int      @default(0) // Số lần tái sử dụng tri thức
+  source            String   @default("gemini-2.5-flash") // "local-cache" | "gemini-2.5-flash"
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([searchType, queryKey])
+}
+
+model UserActivity {
+  id        String   @id @default(uuid())
+  userId    String
+  action    String // "VIEW" | "CART" | "LIKE" | "PURCHASE" | "SEARCH"
+  productId String?
+  category  String?
+  metadata  String?  @db.Text
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action])
+  @@index([category])
+}

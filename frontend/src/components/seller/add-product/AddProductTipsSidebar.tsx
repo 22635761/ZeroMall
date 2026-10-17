@@ -1,5 +1,6 @@
 import React from 'react'
 import { findProhibitedKeyword } from '../../../utils/bannedWords'
+import type { AiModerationResponse } from '../../../services/ai-moderation.service'
 
 interface AddProductTipsSidebarProps {
   isImageValid: boolean
@@ -9,6 +10,7 @@ interface AddProductTipsSidebarProps {
   isBrandValid: boolean
   productName: string
   description: string
+  aiModerationTitle?: AiModerationResponse | null
 }
 
 export const AddProductTipsSidebar: React.FC<AddProductTipsSidebarProps> = ({
@@ -18,9 +20,12 @@ export const AddProductTipsSidebar: React.FC<AddProductTipsSidebarProps> = ({
   isDescValid,
   isBrandValid,
   productName,
-  description
+  description,
+  aiModerationTitle
 }) => {
-  const prohibitedWord = findProhibitedKeyword(productName)
+  const isViolatedByAi = aiModerationTitle?.isViolated
+  const isSafeByAi = aiModerationTitle && !aiModerationTitle.isViolated
+  const prohibitedWord = !isSafeByAi ? findProhibitedKeyword(productName) : null
   const prohibitedWordDesc = findProhibitedKeyword(description)
 
   return (
@@ -50,16 +55,21 @@ export const AddProductTipsSidebar: React.FC<AddProductTipsSidebarProps> = ({
           <span className={`w-4 h-4 rounded-full flex items-center justify-center text-[10px] shrink-0 ${
             isNameValid 
               ? 'bg-emerald-500 text-white' 
-              : prohibitedWord 
+              : isViolatedByAi || prohibitedWord 
                 ? 'bg-red-500 text-white font-bold' 
                 : 'bg-slate-100 text-slate-400 border border-slate-200'
           }`}>
-            {isNameValid ? '✓' : prohibitedWord ? '✕' : '•'}
+            {isNameValid ? '✓' : isViolatedByAi || prohibitedWord ? '✕' : '•'}
           </span>
-          <span className={isNameValid ? 'text-slate-800 font-bold' : prohibitedWord ? 'text-red-600 font-bold' : ''}>
+          <span className={isNameValid ? 'text-slate-800 font-bold' : isViolatedByAi || prohibitedWord ? 'text-red-600 font-bold' : ''}>
             Điền tên sản phẩm
             <span className="block text-[10px] text-slate-400 font-medium mt-0.5">({productName.length}/120 ký tự)</span>
-            {prohibitedWord && (
+            {isViolatedByAi && (
+              <span className="block text-[10px] text-rose-600 font-bold mt-1">
+                🚫 ZeroAI: {aiModerationTitle?.violationType || 'Vi phạm chính sách'}
+              </span>
+            )}
+            {!isViolatedByAi && prohibitedWord && (
               <span className="block text-[10px] text-red-500 font-bold mt-1">
                 🚫 Chứa từ cấm: "{prohibitedWord}"
               </span>

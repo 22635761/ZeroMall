@@ -86,3 +86,28 @@ export class RegisterFlashSaleDto {
   stockLimit: number;
   saleDate?: string;
 }
+
+export class AiModerateDto {
+  text: string;
+  type?: 'TITLE' | 'DESCRIPTION';
+  category?: string;
+  customApiKey?: string;
+}
+
+export class AiSemanticSearchDto {
+  query: string;
+  category?: string;
+  limit?: number;
+  customApiKey?: string;
+}
+
+export class AiVisualSearchDto {
+  imageBase64?: string;
+  imageUrl?: string;
+  mimeType?: string;
+  limit?: number;
+  customApiKey?: string;
+}
+
+
+

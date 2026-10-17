@@ -276,9 +276,31 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
             </select>
           </div>
         </div>
+
+        {/* Informational Banner: AI Category Audit Handled by CSKH */}
+        <div className="mt-3 p-3.5 bg-indigo-50/80 border border-indigo-100 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xl shrink-0">🤖</span>
+            <div>
+              <p className="text-xs font-bold text-indigo-950">
+                Nghiệp vụ AI rà soát ngành hàng & đối soát ảnh đã chuyển sang bộ phận CSKH
+              </p>
+              <p className="text-[11px] text-indigo-700 font-medium">
+                Bộ phận Chăm Sóc Khách Hàng phụ trách rà soát sản phẩm vi phạm, 1-Click sửa ngành hàng và gửi thông báo nhắc nhở Shop hàng ngày.
+              </p>
+            </div>
+          </div>
+          <a
+            href="/cs-support?tab=category-audit"
+            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 shadow-2xs"
+          >
+            <span>🎧 Đi Đến Cổng CSKH</span>
+            <span>→</span>
+          </a>
+        </div>
       </div>
 
-      {/* 2. Main Product Moderation Table */}
+      {/* Main Product Moderation Table */}
       <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
         {loading ? (
           <div className="py-16 text-center text-xs text-slate-400 space-y-2">

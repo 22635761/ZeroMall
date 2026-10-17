@@ -1,14 +1,25 @@
 import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
+import { RedisService } from './redis/redis.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 import { findProhibitedKeyword } from './banned-words';
 
 @Injectable()
 export class ProductService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly redis: RedisService,
+  ) {}
 
   async findAll(shopId?: string, category?: string, search?: string, inStockOnly?: string) {
+    // 1. Kiểm tra trong Redis Cache trước (0-1ms)
+    const cacheKey = `products:list:${shopId || 'all'}:${category || 'all'}:${search || 'all'}:${inStockOnly || 'default'}`;
+    const cached = await this.redis.get<any[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const andConditions: any[] = [];
 
     if (inStockOnly === 'true' || (!shopId && inStockOnly !== 'false')) {
@@ -54,7 +65,7 @@ export class ProductService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return Promise.all(
+    const result = await Promise.all(
       products.map(async (p) => {
         const reviews = await this.prisma.review.findMany({
           where: { productId: p.id },
@@ -71,9 +82,21 @@ export class ProductService {
         };
       })
     );
+
+    // 2. Lưu vào Redis Cache với thời gian sống TTL = 180s (3 phút)
+    await this.redis.set(cacheKey, result, 180);
+
+    return result;
   }
 
   async findOne(id: string) {
+    // 1. Kiểm tra chi tiết sản phẩm trong Redis Cache
+    const cacheKey = `product:detail:${id}`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const product = await this.prisma.product.findUnique({
       where: { id },
     });
@@ -90,11 +113,16 @@ export class ProductService {
       ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / ratingCount).toFixed(1))
       : 0;
 
-    return {
+    const result = {
       ...product,
       rating: avgRating,
       reviewsCount: ratingCount,
     };
+
+    // 2. Lưu chi tiết sản phẩm vào Redis Cache TTL = 300s (5 phút)
+    await this.redis.set(cacheKey, result, 300);
+
+    return result;
   }
 
   async create(dto: CreateProductDto) {
@@ -207,11 +235,14 @@ export class ProductService {
       }).catch((e) => console.error('Failed to create initial cost history:', e));
     }
 
+    this.generateAndSaveEmbedding(product.id, product.image, product.images).catch(() => {});
+    await this.redis.delByPattern('products:*');
+    await this.redis.delByPattern('categories:*');
     return product;
   }
 
   async purchase(items: { productId: string; quantity: number }[]) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       for (const item of items) {
         const prod = await tx.product.findUnique({
           where: { id: item.productId },
@@ -235,10 +266,17 @@ export class ProductService {
       }
       return { success: true };
     });
+
+    for (const item of items) {
+      await this.redis.del(`product:detail:${item.productId}`);
+    }
+    await this.redis.delByPattern('products:*');
+
+    return result;
   }
 
   async restock(items: { productId: string; quantity: number }[]) {
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       for (const item of items) {
         const prod = await tx.product.findUnique({
           where: { id: item.productId },
@@ -257,6 +295,13 @@ export class ProductService {
       }
       return { success: true };
     });
+
+    for (const item of items) {
+      await this.redis.del(`product:detail:${item.productId}`);
+    }
+    await this.redis.delByPattern('products:*');
+
+    return result;
   }
 
   async update(id: string, dto: UpdateProductDto) {
@@ -379,23 +424,42 @@ export class ProductService {
       }
     }
 
+    if (dto.image !== undefined || dto.images !== undefined) {
+      this.generateAndSaveEmbedding(updatedProduct.id, updatedProduct.image, updatedProduct.images).catch(() => {});
+    }
+
+    await this.redis.del(`product:detail:${id}`);
+    await this.redis.delByPattern('products:*');
+
     return updatedProduct;
   }
 
   async toggleStatus(id: string) {
     const product = await this.findOne(id);
     const newStatus = product.status === 'active' ? 'hidden' : 'active';
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: { status: newStatus },
     });
+
+    await this.redis.del(`product:detail:${id}`);
+    await this.redis.delByPattern('products:*');
+    await this.redis.delByPattern('categories:*');
+
+    return updated;
   }
 
   async delete(id: string) {
     await this.findOne(id); // Ensure product exists
-    return this.prisma.product.delete({
+    const deleted = await this.prisma.product.delete({
       where: { id },
     });
+
+    await this.redis.del(`product:detail:${id}`);
+    await this.redis.delByPattern('products:*');
+    await this.redis.delByPattern('categories:*');
+
+    return deleted;
   }
 
   async getReviews(productId: string) {
@@ -529,6 +593,12 @@ export class ProductService {
   }
 
   async getAllCategories() {
+    const cacheKey = 'categories:all';
+    const cached = await this.redis.get<any[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     // 1. Tự động đồng bộ các sản phẩm chưa có categoryId hoặc sai tên
     try {
       const allCategories = await this.prisma.category.findMany();
@@ -571,10 +641,14 @@ export class ProductService {
       },
     });
 
-    return list.map((c) => ({
+    const result = list.map((c) => ({
       ...c,
       productCount: c._count.products,
     }));
+
+    await this.redis.set(cacheKey, result, 600); // Đệm 10 phút
+
+    return result;
   }
 
   async createCategory(name: string) {
@@ -602,6 +676,9 @@ export class ProductService {
         category: created.name,
       },
     }).catch(() => {});
+
+    await this.redis.del('categories:all');
+    await this.redis.delByPattern('products:*');
 
     return created;
   }
@@ -638,6 +715,9 @@ export class ProductService {
       }).catch(() => {});
     }
 
+    await this.redis.del('categories:all');
+    await this.redis.delByPattern('products:*');
+
     return updated;
   }
 
@@ -650,9 +730,14 @@ export class ProductService {
       data: { categoryId: null },
     }).catch(() => {});
 
-    return this.prisma.category.delete({
+    const deleted = await this.prisma.category.delete({
       where: { id },
     });
+
+    await this.redis.del('categories:all');
+    await this.redis.delByPattern('products:*');
+
+    return deleted;
   }
 
   async getViolatedProducts() {
@@ -1498,5 +1583,58 @@ export class ProductService {
         totalBatchesCount: costHistories.length,
       },
     };
+  }
+
+  private async generateAndSaveEmbedding(productId: string, image?: string | null, images?: string | null) {
+    try {
+      let targetUrl: string | null = null;
+      let targetBase64: string | null = null;
+
+      if (image) {
+        if (image.startsWith('data:')) {
+          targetBase64 = image;
+        } else if (image.startsWith('http')) {
+          targetUrl = image;
+        }
+      }
+
+      if (!targetUrl && !targetBase64 && images) {
+        try {
+          const parsed = JSON.parse(images);
+          if (Array.isArray(parsed) && parsed.length > 0 && typeof parsed[0] === 'string') {
+            if (parsed[0].startsWith('data:')) {
+              targetBase64 = parsed[0];
+            } else if (parsed[0].startsWith('http')) {
+              targetUrl = parsed[0];
+            }
+          }
+        } catch {}
+      }
+
+      if (!targetUrl && !targetBase64) return;
+
+      const clipUrl = process.env.CLIP_SERVICE_URL || 'http://host.docker.internal:5005';
+      const body = targetBase64 ? { imageBase64: targetBase64 } : { imageUrl: targetUrl };
+
+      const res = await fetch(`${clipUrl}/embed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        const data: any = await res.json();
+        if (Array.isArray(data.embedding) && data.embedding.length === 512) {
+          const vecStr = `[${data.embedding.join(',')}]`;
+          await this.prisma.$executeRawUnsafe(
+            `UPDATE product."Product" SET "imageEmbedding" = $1::public.vector WHERE id = $2;`,
+            vecStr,
+            productId,
+          );
+        }
+      }
+    } catch (e: any) {
+      console.warn(`[ProductService] Bỏ qua tính toán vector ảnh cho sản phẩm ${productId}:`, e?.message);
+    }
   }
 }

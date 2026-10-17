@@ -6,6 +6,7 @@ import { AddProductSalesTab } from './add-product/AddProductSalesTab'
 import { AddProductShippingTab } from './add-product/AddProductShippingTab'
 import { AddProductOtherTab } from './add-product/AddProductOtherTab'
 import { findProhibitedKeyword } from '../../utils/bannedWords'
+import { moderateContentWithAI, type AiModerationResponse } from '../../services/ai-moderation.service'
 
 interface AddProductFormProps {
   onSuccess: (product?: any) => void
@@ -122,6 +123,10 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const [toastMessage, setToastMessage] = useState('')
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  // ZeroAI Moderation Model state
+  const [aiModerationTitle, setAiModerationTitle] = useState<AiModerationResponse | null>(null)
+  const [isAiCheckingTitle, setIsAiCheckingTitle] = useState(false)
+
   // Danh mục ngành hàng được đồng bộ động 100% từ Database
   const [categoriesList, setCategoriesList] = useState<any[]>([])
 
@@ -135,6 +140,44 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       })
       .catch((err) => console.error('Error fetching categories from API:', err))
   }, [])
+
+  // ZeroAI Kiểm duyệt ngữ cảnh tự học (Debounce 600ms)
+  useEffect(() => {
+    const trimmed = productName.trim()
+    if (trimmed.length < 3) {
+      setAiModerationTitle(null)
+      setIsAiCheckingTitle(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setIsAiCheckingTitle(true)
+      try {
+        const res = await moderateContentWithAI(trimmed, 'TITLE', category)
+        setAiModerationTitle(res)
+      } catch (e) {
+        console.warn('AI moderation check failed:', e)
+      } finally {
+        setIsAiCheckingTitle(false)
+      }
+    }, 600)
+
+    return () => clearTimeout(timer)
+  }, [productName, category])
+
+  const handleTriggerAiCheck = async () => {
+    const trimmed = productName.trim()
+    if (trimmed.length < 3) return
+    setIsAiCheckingTitle(true)
+    try {
+      const res = await moderateContentWithAI(trimmed, 'TITLE', category)
+      setAiModerationTitle(res)
+    } catch (e) {
+      console.warn('AI moderation check failed:', e)
+    } finally {
+      setIsAiCheckingTitle(false)
+    }
+  }
 
   useEffect(() => {
     if (initialData) {
@@ -251,7 +294,8 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
 
   const isImageValid = images.length >= 1
   const isVideoValid = videoMode === 'upload' ? !!videoFile.url : (videoLink.trim().length > 10 && (videoLink.includes('youtube.com') || videoLink.includes('youtu.be') || videoLink.includes('tiktok.com')))
-  const isNameValid = productName.trim().length > 0 && !findProhibitedKeyword(productName)
+  const isNameViolated = aiModerationTitle ? aiModerationTitle.isViolated : !!findProhibitedKeyword(productName)
+  const isNameValid = productName.trim().length > 0 && !isNameViolated
   const isDescValid = description.trim().length > 0 && !findProhibitedKeyword(description)
   const isBrandValid = brand.trim().length > 0
 
@@ -763,7 +807,9 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
     }
     if (!productName.trim()) {
       newErrors.name = 'Vui lòng nhập tên sản phẩm'
-    } else {
+    } else if (aiModerationTitle?.isViolated) {
+      newErrors.name = aiModerationTitle.reason || 'Tên sản phẩm vi phạm chính sách của sàn!'
+    } else if (!aiModerationTitle) {
       const prohibitedWord = findProhibitedKeyword(productName)
       if (prohibitedWord) {
         newErrors.name = `Tên sản phẩm chứa từ cấm không được phép đăng bán: "${prohibitedWord}". Vui lòng sửa lại tên sản phẩm!`
@@ -960,6 +1006,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         isBrandValid={isBrandValid}
         productName={productName}
         description={description}
+        aiModerationTitle={aiModerationTitle}
       />
 
       {/* RIGHT MAIN CONTAINER: Form */}
@@ -1028,6 +1075,9 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               setBrand={setBrand}
               description={description}
               setDescription={setDescription}
+              aiModerationResult={aiModerationTitle}
+              isAiChecking={isAiCheckingTitle}
+              onTriggerAiCheck={handleTriggerAiCheck}
             />
           )}
 

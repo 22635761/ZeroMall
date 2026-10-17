@@ -50,11 +50,10 @@ export const PROHIBITED_KEYWORDS: string[] = [
   'marijuana',
   'mescalin',
   'methadone',
-  'muối tắm',
+  'muối tắm mephedrone',
   'nấm thần',
-  'nước biển',
   'pethidin',
-  'tem giấy',
+  'tem giấy lsd',
   'tem nhúng',
   'thuốc cấm',
   'tramadol',
@@ -64,7 +63,6 @@ export const PROHIBITED_KEYWORDS: string[] = [
   'chất cấm',
   'chất độc',
   'chất gây mê',
-  'độc hại',
   'ephedrine',
   'ethylone',
   'Etomidate',
@@ -74,38 +72,31 @@ export const PROHIBITED_KEYWORDS: string[] = [
   'ketamin',
   'lá khát',
   'ma túy đá',
+  'đập đá',
+  'chơi đá',
   'morphine',
   'morphin',
-  'nguy hiểm',
   'nước vui',
-  'thảo mộc',
   'thuốc lắc',
-  'tiền chất',
-  'tinh dầu',
-  'trái phép',
+  'tiền chất ma túy',
   'xilazine',
   'xylazine',
   'cần sa',
   'cỏ mỹ',
   'cỏ Mỹ',
-  'cỏ ngọt',
   'cocaine',
   'cocain',
   'codein',
-  'đá lạnh',
   'ecstasy',
   'flakka',
   'gai dầu',
   'hashish',
   'heroin',
   'hookah',
-  'kẹo dẻo',
   'ma túy',
-  'nước đá',
   'shisha',
   'tài mà',
   'tobaco',
-  'trà sữa',
   'bồ đà',
   '4-MMC',
   '3-MMC',
@@ -118,19 +109,18 @@ export const PROHIBITED_KEYWORDS: string[] = [
   'MDPV',
   'PMMA',
   'vape',
-  'coca',
-  'khói',
-  'cấm',
-  'lậu',
+  'lá coca',
+  'hàng lậu',
+  'buôn lậu',
   'MDMA',
-  'tem',
-  'bùa',
-  'bu',
-  'ke',
-  'đá',
-  'cỏ',
-  'pin',
-  'pod',
+  'bùa lưỡi',
+  'hít ke',
+  'ma túy ke',
+  'cỏ hút',
+  'cỏ tổng hợp',
+  'pod chill',
+  'vape pod',
+  'pod 1 lần',
   'LSD',
   'DMT',
   'DOB',
@@ -423,13 +413,14 @@ export function findProhibitedKeyword(text: string | undefined | null): string |
 
   for (const item of COMPACT_PROHIBITED_MAP) {
     const target = item.compact;
-    // Đối với các từ có độ dài compact >= 3 ký tự (hoặc các mã chất đặc biệt như k2, c4), kiểm tra chứa chuỗi dính liền
-    if (target.length >= 3 || target === 'k2' || target === 'c4') {
+    // Đối với từ ngắn <= 3 ký tự (mìn, đá, cỏ...) kiểm tra độc lập có ranh giới từ để tránh false-positive như "vitamin" chứa "min"
+    const isShortWord = target.length <= 3 && target !== 'k2' && target !== 'c4';
+    if (!isShortWord) {
       if (compactText.includes(target) || leetText.includes(target)) {
         return item.original;
       }
     } else {
-      // Đối với từ cực ngắn 2 ký tự (da, co, ke, bu, pin, pod, c4, k2), chỉ kiểm tra khi nó đứng độc lập
+      // Đối với từ ngắn, chỉ kiểm tra khi nó đứng độc lập có ranh giới từ
       const shortRegex = new RegExp(`(^|[^a-z0-9])${target}($|[^a-z0-9])`, 'i');
       if (shortRegex.test(removeVietnameseTones(trimmed).toLowerCase())) {
         return item.original;

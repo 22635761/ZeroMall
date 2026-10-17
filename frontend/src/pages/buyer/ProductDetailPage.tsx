@@ -8,6 +8,7 @@ import { ShopInfoCard } from '../../components/buyer/product-detail/ShopInfoCard
 import { ProductDescriptionSection } from '../../components/buyer/product-detail/ProductDescriptionSection'
 import { ProductReviewsSection } from '../../components/buyer/product-detail/ProductReviewsSection'
 import { ShopTopProductsSidebar } from '../../components/buyer/product-detail/ShopTopProductsSidebar'
+import { trackUserEngagement } from '../../services/ai-recommendation.service'
 
 interface ProductDetailPageProps {
   user: any
@@ -115,6 +116,19 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
             width: p.width,
             height: p.height
           })
+
+          // Ghi nhận sở thích ngành hàng vào phiên lướt web (Real-time personalization)
+          if (p.category) {
+            try {
+              const stored = sessionStorage.getItem('zm_recent_viewed_categories')
+              let cats: string[] = stored ? JSON.parse(stored) : []
+              cats = [p.category, ...cats.filter((c: string) => c !== p.category)].slice(0, 5)
+              sessionStorage.setItem('zm_recent_viewed_categories', JSON.stringify(cats))
+            } catch {}
+          }
+
+          // Gửi tín hiệu hành vi VIEW tới ZeroAI Recommendation Engine
+          trackUserEngagement('VIEW', p.id, p.category)
         }
       } catch (e) {
         console.error('Failed to fetch product details:', e)
@@ -305,6 +319,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     }
 
     onAddToCart(effectiveProduct, quantity, currentVariantName)
+    trackUserEngagement('CART', product.id, product.category)
 
     const rect = e.currentTarget.getBoundingClientRect()
     const cartIcon = document.getElementById('cart-icon')
@@ -347,6 +362,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
       }
       return
     }
+    trackUserEngagement('CART', prod.id, prod.category)
     onBuyNow(prod, qty, variant)
   }
 

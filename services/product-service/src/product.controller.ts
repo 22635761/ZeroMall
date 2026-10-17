@@ -5,7 +5,12 @@ import { CreateReviewDto } from './review.dto';
 
 @Controller('products')
 export class ProductController {
-  constructor(private readonly productService: ProductService) {}
+  constructor(
+    private readonly productService: ProductService,
+  ) {}
+
+
+
 
   @Get()
   async findAll(
@@ -21,6 +26,7 @@ export class ProductController {
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---
 
   @Get('price-analytics')
+
   async getPriceAnalytics(
     @Query('shopId') shopId?: string,
     @Query('productId') productId?: string,

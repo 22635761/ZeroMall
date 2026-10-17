@@ -13,7 +13,6 @@ import { CommissionSettingTab } from '../../components/admin/CommissionSettingTa
 import { AuditLogsTab } from '../../components/admin/AuditLogsTab'
 import AdminPriceAnalyticsTab from '../../components/admin/AdminPriceAnalyticsTab'
 import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
-import { AdminHubsTab } from '../../components/admin/AdminHubsTab'
 
 interface AdminPageProps {
   user: any
@@ -53,8 +52,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'commission-setting': return 'COMMISSION_SETTING';
       case 'audit-logs': return 'AUDIT_LOGS';
       case 'price-analytics': return 'PRICE_ANALYTICS';
-      case 'hubs':
-      case 'logistics': return 'LOGISTICS_HUBS';
       default: return null;
     }
   }
@@ -73,13 +70,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'COMMISSION_SETTING': return 'commission-setting';
       case 'AUDIT_LOGS': return 'audit-logs';
       case 'PRICE_ANALYTICS': return 'price-analytics';
-      case 'LOGISTICS_HUBS': return 'hubs';
       default: return 'users';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS' | 'LOGISTICS_HUBS'
+    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -254,7 +250,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'LIVE_CHAT', label: 'Live Chat CSKH Sàn', icon: '💬' },
     { id: 'SYSTEM_REPORTS', label: 'Báo cáo hệ thống', icon: '📊' },
     { id: 'PRICE_ANALYTICS', label: 'Biến động & Giá vốn', icon: '📈' },
-    { id: 'LOGISTICS_HUBS', label: 'Bưu Cục & Tài Xế SPX', icon: '🚚' },
     { id: 'COMMISSION_SETTING', label: 'Chiết khấu sàn', icon: '⚙️' },
     { id: 'AUDIT_LOGS', label: 'Lịch sử thao tác', icon: '📜' },
   ]
@@ -391,34 +386,6 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           {activePortalTab === 'AUDIT_LOGS' && (
             <AuditLogsTab auditLogs={auditLogs} />
-          )}
-
-          {activePortalTab === 'LOGISTICS_HUBS' && (
-            <div className="space-y-6">
-              <div className="p-4 bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200/80 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-3xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-600 text-white flex items-center justify-center text-xl shrink-0">
-                    🚚
-                  </div>
-                  <div>
-                    <h4 className="text-xs font-black text-slate-900">
-                      Hệ Thống Phân Hệ Vận Hành Logistics Độc Lập (SPX Express Portal)
-                    </h4>
-                    <p className="text-[11px] text-slate-600 font-medium">
-                      Theo chuẩn phân quyền Shopee, điều hành bưu cục và đội xe được quản lý độc lập tại Cổng Giao Vận với tài khoản <b>Logistics Operator</b> hoặc <b>Trưởng Bưu Cục</b>.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => window.open('/delivery', '_blank')}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-3xs transition cursor-pointer whitespace-nowrap flex items-center gap-1.5"
-                >
-                  <span>🚀 Mở Cổng Vận Tải SPX</span>
-                  <span>↗</span>
-                </button>
-              </div>
-              <AdminHubsTab triggerAuditLog={triggerAuditLog} />
-            </div>
           )}
         </main>
       </div>

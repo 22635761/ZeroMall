@@ -44,6 +44,8 @@ export interface Product {
   length?: number | string
   width?: number | string
   height?: number | string
+  recommendationReason?: string
+  recommendationScore?: number
 }
 
 interface FlashSaleProps {

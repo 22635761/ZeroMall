@@ -1,5 +1,17 @@
-import React from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { findProhibitedKeyword } from '../../../utils/bannedWords'
+import { AiModerationBadge } from '../ai/AiModerationBadge'
+import type { AiModerationResponse } from '../../../services/ai-moderation.service'
+import { auditProductCategory, type AuditCategoryResult } from '../../../services/ai-category-auditor.service'
+
+const fileToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = () => resolve('')
+    reader.readAsDataURL(file)
+  })
+}
 
 interface UploadedImage {
   id: string
@@ -41,6 +53,9 @@ interface AddProductBasicTabProps {
   setBrand: (brand: string) => void
   description: string
   setDescription: (desc: string) => void
+  aiModerationResult?: AiModerationResponse | null
+  isAiChecking?: boolean
+  onTriggerAiCheck?: () => void
 }
 
 export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
@@ -67,11 +82,53 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
   brand,
   setBrand,
   description,
-  setDescription
+  setDescription,
+  aiModerationResult,
+  isAiChecking,
+  onTriggerAiCheck: _onTriggerAiCheck
 }) => {
+  const [categoryAudit, setCategoryAudit] = useState<AuditCategoryResult | null>(null)
+
+  const triggerAudit = useCallback(async () => {
+    if (!productName || productName.trim().length < 3) {
+      setCategoryAudit(null)
+      return
+    }
+
+    try {
+      const cover = images.find(img => img.isCover) || images[0]
+      let coverUrl = cover?.url || ''
+      if (cover?.file && (!coverUrl || coverUrl.startsWith('blob:'))) {
+        try {
+          coverUrl = await fileToBase64(cover.file)
+        } catch {
+          // ignore error
+        }
+      }
+
+      const result = await auditProductCategory({
+        name: productName,
+        category: category || '',
+        image: coverUrl,
+      })
+      setCategoryAudit(result)
+    } catch (e) {
+      console.error(e)
+    }
+  }, [productName, category, images])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      triggerAudit()
+    }, 500)
+
+    return () => clearTimeout(timer)
+  }, [triggerAudit])
+
   return (
     <div className="space-y-6 animate-in fade-in duration-150">
       <h3 className="font-extrabold text-sm text-slate-800 border-l-4 border-emerald-600 pl-2">Thông tin cơ bản</h3>
+
       
       {/* Product Images (Grid 0/9) */}
       <div className="space-y-2">
@@ -292,36 +349,77 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
       </div>
 
       {/* Product Name */}
-      <div className="space-y-1 border-t border-slate-100 pt-5">
+      <div className="space-y-1.5 border-t border-slate-100 pt-5">
         <div className="flex justify-between items-center">
           <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">* Tên sản phẩm</label>
           <span className="text-[9px] text-slate-400 font-bold">{productName.length}/120</span>
         </div>
         {(() => {
-          const prohibitedMatch = findProhibitedKeyword(productName);
+          const isViolatedByAi = aiModerationResult?.isViolated;
+          const isSafeByAi = aiModerationResult && !aiModerationResult.isViolated;
+          const prohibitedMatch = !isSafeByAi ? findProhibitedKeyword(productName) : null;
+          const isImageMismatch = categoryAudit?.issueType === 'IMAGE_MISMATCH';
+          const hasError = isViolatedByAi || prohibitedMatch || errors.name || isImageMismatch;
+
           return (
             <>
               <input
                 type="text"
                 required
-                placeholder="Nhập tên sản phẩm (Ví dụ: Điện thoại Apple iPhone 15 Pro Max 256GB - Hàng Chính Hãng)"
+                placeholder="Nhập tên sản phẩm (Ví dụ: Áo bóng đá tuyển Việt Nam 2024 chất liệu thun mè thoáng khí)"
                 value={productName}
                 onChange={(e) => setProductName(e.target.value.substring(0, 120))}
                 className={`w-full border rounded-xl px-4 py-2.5 text-xs focus:outline-none transition ${
-                  prohibitedMatch || errors.name
+                  hasError
                     ? 'border-red-400 focus:border-red-500 focus:ring-1 focus:ring-red-500 bg-red-50/20'
-                    : 'border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+                    : 'border-slate-200 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 bg-white'
                 }`}
               />
-              {prohibitedMatch && (
+
+              {/* ZeroAI Image Mismatch Alert - Sleek & Compact */}
+              {categoryAudit && isImageMismatch && (
+                <div className="flex items-center justify-between gap-2 px-3 py-1.5 bg-rose-50 border border-rose-200/90 rounded-xl text-xs text-rose-800 mt-1.5 animate-fadeIn shadow-3xs">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-xs shrink-0">⚠️</span>
+                    <span className="truncate text-[11px] font-medium" title={categoryAudit.imageFeedback || categoryAudit.recommendation}>
+                      {categoryAudit.imageFeedback || `Ảnh là ${categoryAudit.detectedVisual || 'khác'}, không khớp tên.`}
+                    </span>
+                  </div>
+                  {categoryAudit.suggestedTitle && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setProductName(categoryAudit.suggestedTitle!)
+                        if (categoryAudit.suggestedCategory) {
+                          setCategory(categoryAudit.suggestedCategory)
+                        }
+                      }}
+                      className="shrink-0 px-2 py-0.5 bg-rose-600 hover:bg-rose-700 text-white rounded-md text-[10px] font-bold cursor-pointer transition shadow-3xs flex items-center gap-1"
+                      title={`Đổi thành: ${categoryAudit.suggestedTitle}`}
+                    >
+                      <span>⚡ Đổi theo ảnh</span>
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* ZeroAI Moderation Result Badge */}
+              <AiModerationBadge
+                isLoading={!!isAiChecking}
+                result={aiModerationResult || null}
+                className="mt-1"
+              />
+
+              {/* Fallback warning if not yet checked by AI but caught by static regex */}
+              {!aiModerationResult && prohibitedMatch && (
                 <div className="bg-rose-50 border border-rose-200 text-rose-700 px-3.5 py-2 rounded-xl text-[11px] font-semibold flex items-center gap-2 mt-1.5 shadow-2xs">
                   <span className="text-sm">🚫</span>
                   <span>
-                    Tên sản phẩm chứa từ cấm: <strong className="underline text-rose-900 font-black">"{prohibitedMatch}"</strong>. Vui lòng sửa lại tên để tiếp tục đăng bán.
+                    Tên sản phẩm chứa từ cấm: <strong className="underline text-rose-900 font-black">"{prohibitedMatch}"</strong>. Vui lòng sửa lại tên hoặc bấm "Thẩm định ngay" để AI đánh giá ngữ cảnh.
                   </span>
                 </div>
               )}
-              {errors.name && !prohibitedMatch && (
+              {errors.name && !isViolatedByAi && !prohibitedMatch && !isImageMismatch && (
                 <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.name}</p>
               )}
             </>
@@ -352,6 +450,36 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
           {errors.category && (
             <p className="text-[10px] text-red-500 font-semibold">⚠️ {errors.category}</p>
           )}
+
+          {/* AI Category Suggestion - Sleek & Compact */}
+          {categoryAudit && !categoryAudit.isMatched && categoryAudit.issueType === 'WRONG_CATEGORY' && categoryAudit.suggestedCategory && categoryAudit.suggestedCategory !== category ? (
+            <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 mt-1.5 text-xs animate-fadeIn shadow-3xs">
+              <div className="flex items-center gap-1.5 min-w-0">
+                <span className="text-xs shrink-0">💡</span>
+                <span className="text-[11px] truncate">
+                  AI đề xuất ngành: <strong>{categoryAudit.suggestedCategory}</strong>
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCategory(categoryAudit.suggestedCategory)}
+                className="shrink-0 px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-bold text-[10px] cursor-pointer transition shadow-3xs"
+              >
+                Áp dụng
+              </button>
+            </div>
+          ) : !category && categoryAudit?.suggestedCategory ? (
+            <div className="mt-1 flex items-center gap-1.5">
+              <span className="text-[10px] text-indigo-600 font-bold">💡 Gợi ý:</span>
+              <button
+                type="button"
+                onClick={() => setCategory(categoryAudit.suggestedCategory)}
+                className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-bold cursor-pointer transition"
+              >
+                {categoryAudit.suggestedCategory}
+              </button>
+            </div>
+          ) : null}
         </div>
 
         <div className="space-y-1">

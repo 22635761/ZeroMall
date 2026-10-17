@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import type { CartItem } from '../../models/cart.model'
 import { NotificationPopover } from '../common/NotificationPopover'
 import { useLanguage } from '../../context/LanguageContext'
+import { VisualSearchModal } from './ai/VisualSearchModal'
 
 interface HeaderProps {
   cart: CartItem[]
@@ -37,6 +38,7 @@ export const Header: React.FC<HeaderProps> = ({
   const urlQuery = searchParams.get('q') || searchParams.get('keyword') || ''
 
   const [searchValue, setSearchValue] = useState(urlQuery)
+  const [isVisualSearchOpen, setIsVisualSearchOpen] = useState(false)
   const cartCount = cart.reduce((acc, item) => acc + item.quantity, 0)
 
   useEffect(() => {
@@ -218,6 +220,15 @@ export const Header: React.FC<HeaderProps> = ({
               onChange={(e) => setSearchValue(e.target.value)}
               className="flex-1 px-3.5 text-slate-800 text-sm focus:outline-none placeholder-slate-400 bg-transparent"
             />
+            {/* Visual Search Button */}
+            <button
+              type="button"
+              onClick={() => setIsVisualSearchOpen(true)}
+              title="Tìm kiếm bằng hình ảnh (ZeroAI Visual Search)"
+              className="p-1.5 text-slate-400 hover:text-emerald-600 hover:bg-slate-100/80 rounded-md transition cursor-pointer flex items-center justify-center shrink-0 mr-1"
+            >
+              <span className="text-sm leading-none">📷</span>
+            </button>
             <button
               type="submit"
               className="bg-emerald-600 hover:bg-emerald-500 text-white w-10 h-8 rounded-md transition flex items-center justify-center cursor-pointer shadow-sm shrink-0"
@@ -314,6 +325,12 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Visual Search Modal */}
+      <VisualSearchModal
+        isOpen={isVisualSearchOpen}
+        onClose={() => setIsVisualSearchOpen(false)}
+      />
     </header>
   )
 }

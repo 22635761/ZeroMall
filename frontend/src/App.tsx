@@ -4,6 +4,8 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation, Navig
 import { Header } from './components/buyer/Header'
 import type { CartItem } from './models/cart.model'
 import { Hero } from './components/buyer/Hero'
+import { QuickServicesBar } from './components/buyer/QuickServicesBar'
+import { TopTrendingSection } from './components/buyer/TopTrendingSection'
 import { Categories } from './components/buyer/Categories'
 import { FlashSale } from './components/buyer/FlashSale'
 import type { Product } from './components/buyer/FlashSale'
@@ -12,6 +14,8 @@ import { ProductDetailPage } from './pages/buyer/ProductDetailPage'
 import { CartPage } from './pages/buyer/CartPage'
 import { ServicePolicies } from './components/buyer/ServicePolicies'
 import { ChatWidget } from './components/buyer/ChatWidget'
+import { ZeroAssistantButton } from './components/buyer/ai-assistant/ZeroAssistantButton'
+import { ZeroAssistantModal } from './components/buyer/ai-assistant/ZeroAssistantModal'
 import { AuthModal } from './components/common/AuthModal'
 import { LoginPromptModal } from './components/common/LoginPromptModal'
 import { useLanguage } from './context/LanguageContext'
@@ -126,6 +130,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
     description?: string;
     icon?: string;
   }>({ isOpen: false });
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false);
 
   const triggerLoginPrompt = (title?: string, description?: string, icon?: string) => {
     setLoginPromptInfo({
@@ -214,10 +219,34 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
             path="/"
             element={
               <>
-                {/* Banner Sliders & Promos */}
+                {/* 1. Banner Sliders & Promos */}
                 <Hero />
 
-                {/* Categories Grid */}
+                {/* 2. Thanh tiện ích nhanh (Shopee Quick Access Services) */}
+                <QuickServicesBar
+                  onSelectCategory={(catName) => {
+                    setSelectedCategory({ id: catName, name: catName, slug: toSlug(catName), icon: '🏷️' })
+                  }}
+                  onScrollToFlashSale={() => {
+                    document.getElementById('flash-sale-section')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  onSelectTab={() => {
+                    document.getElementById('daily-discover-section')?.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                />
+
+                {/* 3. Top Bán Chạy Toàn Sàn (Social Proof & Trending cho người mới) */}
+                <TopTrendingSection
+                  products={dbProducts}
+                  onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)}
+                />
+
+                {/* 4. Flash Sale Khung Giờ */}
+                <div id="flash-sale-section">
+                  <FlashSale products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+                </div>
+
+                {/* 5. Categories Grid */}
                 <Categories />
 
                 {/* Category Filter Active Indicator */}
@@ -238,13 +267,12 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
                   </div>
                 )}
 
-                {/* Flash Sale Grid */}
-                <FlashSale products={dbProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+                {/* 6. Gợi Ý Hôm Nay (Daily Discover with Cold Start + Diversity Engine) */}
+                <div id="daily-discover-section">
+                  <ProductList products={filteredProducts} user={user} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
+                </div>
 
-                {/* Daily Discover grid */}
-                <ProductList products={filteredProducts} onSelectProduct={(p) => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)} />
-
-                {/* Platform Services Assurances */}
+                {/* 7. Platform Services Assurances */}
                 <ServicePolicies />
               </>
             }
@@ -447,6 +475,22 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
         title={loginPromptInfo.title}
         description={loginPromptInfo.description}
         icon={loginPromptInfo.icon}
+      />
+
+      {/* ZeroAI Shopping Assistant Floating Widget */}
+      <ZeroAssistantButton
+        isOpen={isAssistantOpen}
+        onClick={() => setIsAssistantOpen(true)}
+      />
+
+      <ZeroAssistantModal
+        isOpen={isAssistantOpen}
+        onClose={() => setIsAssistantOpen(false)}
+        user={user}
+        onSelectProduct={(productId, productName) => {
+          setIsAssistantOpen(false);
+          navigate(`/product/${toSlug(productName)}-i.${productId}`);
+        }}
       />
 
       {/* Toast Notification */}

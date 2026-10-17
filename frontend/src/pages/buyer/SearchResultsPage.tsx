@@ -3,6 +3,8 @@ import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../config/api.config'
 import { toSlug } from '../../utils/slug'
 import { getFreeshipShopIds } from '../../services/shop.service'
+import { searchSemanticWithAI, type SemanticSearchResponse } from '../../services/ai-search.service'
+import { VisualSearchModal } from '../../components/buyer/ai/VisualSearchModal'
 
 interface Product {
   id: string
@@ -25,6 +27,8 @@ interface Product {
   shopId?: string
   location?: string
   description?: string
+  relevanceScore?: number
+  matchBadge?: string
 }
 
 interface SearchResultsPageProps {
@@ -32,7 +36,7 @@ interface SearchResultsPageProps {
 }
 
 export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: initialProducts }) => {
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
   
   const query = searchParams.get('q') || searchParams.get('keyword') || ''
@@ -40,6 +44,11 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
   const [allProducts, setAllProducts] = useState<Product[]>(initialProducts || [])
   const [loading, setLoading] = useState(false)
   const [categories, setCategories] = useState<any[]>([])
+
+  // ZeroAI Semantic & Visual Search states
+  const [isSemanticMode, setIsSemanticMode] = useState<boolean>(true)
+  const [semanticData, setSemanticData] = useState<SemanticSearchResponse | null>(null)
+  const [isVisualSearchOpen, setIsVisualSearchOpen] = useState<boolean>(false)
 
   // Filter and Sort states
   const [selectedCategory, setSelectedCategory] = useState<string>('')
@@ -71,97 +80,131 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
       .catch(err => console.error('Error fetching categories:', err))
   }, [])
 
-  // 2. Fetch products from API when search query changes
-  useEffect(() => {
-    setLoading(true)
-    const url = query.trim() 
-      ? `${API_BASE_URL}/products?search=${encodeURIComponent(query.trim())}`
-      : `${API_BASE_URL}/products`
+  // Helper parser for products
+  const formatRawProducts = (rawData: any[]): Product[] => {
+    return rawData.map((p: any) => {
+      const parseNum = (val: any) => {
+        if (!val) return 0
+        if (typeof val === 'number') return val
+        return parseInt(String(val).replace(/\D/g, ''), 10) || 0
+      }
+      let priceNum = parseNum(p.price)
+      let origNum = parseNum(p.originalPrice)
 
-    fetch(url)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) {
-          const formatted: Product[] = data.map((p: any) => {
-            const parseNum = (val: any) => {
-              if (!val) return 0
-              if (typeof val === 'number') return val
-              return parseInt(String(val).replace(/\D/g, ''), 10) || 0
-            }
-            let priceNum = parseNum(p.price)
-            let origNum = parseNum(p.originalPrice)
-
-            // Parse variationRows if hasVariations
-            let parsedVariationRows: any[] = []
-            if (p.hasVariations && p.variationRows) {
-              try {
-                parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
-              } catch (e) {
-                console.error('Failed to parse variationRows', e)
-              }
-            }
-
-            if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
-              const validVariationPrices: { price: number; originalPrice: number }[] = []
-              for (const row of parsedVariationRows) {
-                const rPrice = parseNum(row.price)
-                const rOrig = parseNum(row.originalPrice)
-                if (rPrice > 0) {
-                  validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
-                }
-              }
-
-              if (validVariationPrices.length > 0) {
-                validVariationPrices.sort((a, b) => a.price - b.price)
-                const cheapest = validVariationPrices[0]
-                priceNum = cheapest.price
-                if (cheapest.originalPrice > 0) {
-                  origNum = cheapest.originalPrice
-                }
-              }
-            }
-
-            const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
-            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : ''
-
-            let parsedImages: string[] = []
-            try {
-              parsedImages = p.images ? (typeof p.images === 'string' ? JSON.parse(p.images) : p.images) : []
-            } catch (e) {
-              parsedImages = []
-            }
-            if (!parsedImages || parsedImages.length === 0) {
-              parsedImages = p.image ? [p.image] : []
-            }
-
-            return {
-              id: p.id,
-              name: p.name,
-              originalPrice: originalPriceStr,
-              flashPrice: flashPriceStr,
-              price: flashPriceStr,
-              image: p.image || 'https://placehold.co/400x400?text=No+Image',
-              images: parsedImages,
-              sold: p.sales || p.sold || 0,
-              sales: p.sales || p.sold || 0,
-              stock: p.stock !== undefined ? p.stock : 0,
-              status: p.status || 'active',
-              rating: p.rating && p.rating > 0 ? p.rating : 5.0,
-              category: p.category,
-              categoryId: p.categoryId,
-              categoryRef: p.categoryRef,
-              brand: p.brand,
-              shopId: p.shopId,
-              location: p.location || 'Toàn quốc',
-              description: p.description
-            }
-          })
-          setAllProducts(formatted.filter((p: any) => (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) && p.status !== 'hidden'))
+      let parsedVariationRows: any[] = []
+      if (p.hasVariations && p.variationRows) {
+        try {
+          parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
+        } catch (e) {
+          console.error('Failed to parse variationRows', e)
         }
-      })
-      .catch(err => console.error('Error searching products:', err))
-      .finally(() => setLoading(false))
-  }, [query])
+      }
+
+      if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
+        const validVariationPrices: { price: number; originalPrice: number }[] = []
+        for (const row of parsedVariationRows) {
+          const rPrice = parseNum(row.price)
+          const rOrig = parseNum(row.originalPrice)
+          if (rPrice > 0) {
+            validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
+          }
+        }
+
+        if (validVariationPrices.length > 0) {
+          validVariationPrices.sort((a, b) => a.price - b.price)
+          const cheapest = validVariationPrices[0]
+          priceNum = cheapest.price
+          if (cheapest.originalPrice > 0) {
+            origNum = cheapest.originalPrice
+          }
+        }
+      }
+
+      const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
+      const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : ''
+
+      let parsedImages: string[] = []
+      try {
+        parsedImages = p.images ? (typeof p.images === 'string' ? JSON.parse(p.images) : p.images) : []
+      } catch (e) {
+        parsedImages = []
+      }
+      if (!parsedImages || parsedImages.length === 0) {
+        parsedImages = p.image ? [p.image] : []
+      }
+
+      return {
+        id: p.id,
+        name: p.name,
+        originalPrice: originalPriceStr,
+        flashPrice: flashPriceStr,
+        price: flashPriceStr,
+        image: p.image || parsedImages[0] || 'https://placehold.co/400x400?text=No+Image',
+        images: parsedImages,
+        sold: p.sales || p.sold || 0,
+        sales: p.sales || p.sold || 0,
+        stock: p.stock !== undefined ? p.stock : 0,
+        status: p.status || 'active',
+        rating: p.rating && p.rating > 0 ? p.rating : 5.0,
+        category: p.category,
+        categoryId: p.categoryId,
+        categoryRef: p.categoryRef,
+        brand: p.brand,
+        shopId: p.shopId,
+        location: p.location || 'Toàn quốc',
+        description: p.description,
+        relevanceScore: p.relevanceScore,
+        matchBadge: p.matchBadge
+      }
+    }).filter((p: any) => (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) && p.status !== 'hidden')
+  }
+
+  // 2. Fetch products from API when search query or mode changes
+  useEffect(() => {
+    const trimmedQuery = query.trim()
+    setLoading(true)
+
+    // Nếu có từ khóa và đang bật ZeroAI Semantic Mode
+    if (trimmedQuery && isSemanticMode) {
+      searchSemanticWithAI(trimmedQuery)
+        .then(res => {
+          setSemanticData(res)
+          if (Array.isArray(res.products)) {
+            setAllProducts(formatRawProducts(res.products))
+          } else {
+            setAllProducts([])
+          }
+        })
+        .catch(err => {
+          console.warn('Semantic search failed, falling back to standard search:', err)
+          setSemanticData(null)
+          // Fallback to standard
+          fetch(`${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}`)
+            .then(r => r.json())
+            .then(data => {
+              if (Array.isArray(data)) setAllProducts(formatRawProducts(data))
+            })
+            .catch(e => console.error('Standard search fallback error:', e))
+        })
+        .finally(() => setLoading(false))
+    } else {
+      // Chế độ tìm kiếm cơ bản hoặc không có từ khóa
+      setSemanticData(null)
+      const url = trimmedQuery 
+        ? `${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}`
+        : `${API_BASE_URL}/products`
+
+      fetch(url)
+        .then(res => res.json())
+        .then(data => {
+          if (Array.isArray(data)) {
+            setAllProducts(formatRawProducts(data))
+          }
+        })
+        .catch(err => console.error('Error searching products:', err))
+        .finally(() => setLoading(false))
+    }
+  }, [query, isSemanticMode])
 
   // Helper to extract raw numeric price
   const parsePrice = (priceVal: any): number => {
@@ -175,8 +218,8 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
   const filteredProducts = useMemo(() => {
     let list = [...allProducts]
 
-    // If local query filter needed (secondary check)
-    if (query.trim()) {
+    // Chỉ lọc cứng theo tên nếu KHÔNG PHẢI chế độ Semantic Search
+    if (!isSemanticMode && query.trim()) {
       const qLower = query.toLowerCase().trim()
       list = list.filter(p => 
         p.name.toLowerCase().includes(qLower) ||
@@ -228,9 +271,14 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
       if (sortBy === 'PRICE_DESC') return priceB - priceA
       if (sortBy === 'SALES') return (b.sold || 0) - (a.sold || 0)
       if (sortBy === 'NEWEST') return b.id.localeCompare(a.id)
+      
+      // RELEVANCE: Ưu tiên relevanceScore từ AI nếu có
+      if (isSemanticMode && (b.relevanceScore !== undefined || a.relevanceScore !== undefined)) {
+        return (b.relevanceScore || 0) - (a.relevanceScore || 0)
+      }
       return 0 // RELEVANCE
     })
-  }, [allProducts, query, selectedCategory, appliedMinPrice, appliedMaxPrice, minRating, filterFreeship, filterMall, sortBy, freeshipShopIds])
+  }, [allProducts, query, isSemanticMode, selectedCategory, appliedMinPrice, appliedMaxPrice, minRating, filterFreeship, filterMall, sortBy, freeshipShopIds])
 
   const handleApplyPrice = (e: React.FormEvent) => {
     e.preventDefault()
@@ -279,7 +327,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
       </nav>
 
       {/* Search Header Banner */}
-      <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-3xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="bg-white border border-slate-200/70 rounded-2xl p-5 shadow-3xs flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
             <span className="text-lg">🔍</span>
@@ -293,20 +341,121 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
               )}
             </h1>
           </div>
-          <p className="text-xs text-slate-400 font-semibold pl-7">
-            Tìm thấy <strong className="text-slate-700 font-black">{filteredProducts.length}</strong> sản phẩm phù hợp
+          <p className="text-xs text-slate-400 font-semibold pl-7 flex items-center gap-2">
+            <span>Tìm thấy <strong className="text-slate-700 font-black">{filteredProducts.length}</strong> sản phẩm phù hợp</span>
+            {isSemanticMode && query.trim() && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-black text-indigo-600 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded-full">
+                ✨ ZeroAI Ngữ Nghĩa
+              </span>
+            )}
           </p>
         </div>
 
-        {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Toggle Chế độ Tìm kiếm */}
           <button
-            onClick={handleResetFilters}
-            className="px-3.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition cursor-pointer flex items-center gap-1.5 shrink-0"
+            type="button"
+            onClick={() => setIsSemanticMode(!isSemanticMode)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 border ${
+              isSemanticMode
+                ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white border-transparent shadow-xs hover:opacity-95'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border-slate-200'
+            }`}
+            title="Bật/Tắt chế độ hiểu ngữ nghĩa bằng AI"
           >
-            <span>✕</span> Xóa tất cả bộ lọc
+            <span>{isSemanticMode ? '✨' : '⚡'}</span>
+            <span>{isSemanticMode ? 'ZeroAI Ngữ Nghĩa: BẬT' : 'Tìm Kiếm Thường'}</span>
           </button>
-        )}
+
+          {/* Nút Visual Search (Tìm bằng hình ảnh) */}
+          <button
+            type="button"
+            onClick={() => setIsVisualSearchOpen(true)}
+            className="px-3.5 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-black rounded-xl border border-indigo-200 transition cursor-pointer flex items-center gap-1.5 shadow-3xs"
+            title="Tải ảnh lên hoặc chụp để tìm sản phẩm tương đồng"
+          >
+            <span>📷</span>
+            <span>Tìm Bằng Hình Ảnh</span>
+          </button>
+
+          {hasActiveFilters && (
+            <button
+              onClick={handleResetFilters}
+              className="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 text-xs font-bold rounded-xl border border-rose-200 transition cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <span>✕</span> Xóa bộ lọc
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* ZeroAI Semantic Insight Banner (Hiển thị khi tìm kiếm ngữ nghĩa có kết quả) */}
+      {isSemanticMode && semanticData && query.trim() && (
+        <div className="bg-gradient-to-r from-emerald-50/90 via-teal-50/70 to-indigo-50/80 border border-emerald-200/90 rounded-2xl p-4.5 shadow-3xs space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-emerald-200/60 pb-2.5">
+            <div className="flex items-center gap-2">
+              <span className="text-base">🧠</span>
+              <span className="text-xs font-black text-slate-800 uppercase tracking-wider">
+                ZeroAI Semantic Understanding
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              {semanticData.source === 'local-knowledge' ? (
+                <span className="text-[10px] font-black bg-emerald-600 text-white px-2 py-0.5 rounded-full shadow-3xs flex items-center gap-1">
+                  ⚡ Tri thức nội bộ (0ms • Đã tái sử dụng {semanticData.hitCount || 1} lần)
+                </span>
+              ) : semanticData.source === 'local-ai-engine' ? (
+                <span className="text-[10px] font-black bg-violet-600 text-white px-2 py-0.5 rounded-full shadow-3xs flex items-center gap-1">
+                  🧠 ZeroAI Local Engine (Offline • Tự học)
+                </span>
+              ) : (
+                <span className="text-[10px] font-black bg-indigo-600 text-white px-2 py-0.5 rounded-full shadow-3xs flex items-center gap-1">
+                  🤖 Gemini AI + ZeroAI Engine
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="text-xs space-y-2">
+            <div className="flex items-start gap-2 text-slate-700">
+              <span className="font-extrabold text-emerald-800 shrink-0">🎯 Ý định mua sắm:</span>
+              <span className="font-semibold text-slate-700">{semanticData.detectedIntent}</span>
+            </div>
+
+            {semanticData.expandedKeywords && semanticData.expandedKeywords.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                <span className="font-extrabold text-slate-500 text-[11px] mr-1">💡 Từ khóa liên quan:</span>
+                {semanticData.expandedKeywords.map((kw, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setSearchParams({ q: kw })}
+                    className="text-[11px] font-bold bg-white/90 hover:bg-emerald-600 hover:text-white text-emerald-800 border border-emerald-300/80 px-2.5 py-0.5 rounded-lg transition cursor-pointer shadow-3xs"
+                  >
+                    #{kw}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-1 text-[11px] font-semibold text-slate-600">
+              {semanticData.suggestedCategory && (
+                <span className="flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded-md border border-slate-200">
+                  📁 Ngành hàng: <strong className="text-emerald-700">{semanticData.suggestedCategory}</strong>
+                </span>
+              )}
+              {(semanticData.priceRange?.min || semanticData.priceRange?.max) && (
+                <span className="flex items-center gap-1 bg-white/70 px-2 py-0.5 rounded-md border border-slate-200">
+                  💰 Khoảng giá gợi ý: <strong className="text-teal-700">
+                    {semanticData.priceRange.min ? `${semanticData.priceRange.min.toLocaleString('vi-VN')}₫` : '0₫'}
+                    {' - '}
+                    {semanticData.priceRange.max ? `${semanticData.priceRange.max.toLocaleString('vi-VN')}₫` : 'Vô hạn'}
+                  </strong>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content Layout: Left Sidebar Filters + Right Product Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
@@ -640,6 +789,17 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
 
         </div>
       </div>
+
+      {/* Visual Search Modal */}
+      <VisualSearchModal
+        isOpen={isVisualSearchOpen}
+        onClose={() => setIsVisualSearchOpen(false)}
+        onSelectProduct={(p) => {
+          setIsVisualSearchOpen(false)
+          navigate(`/product/${toSlug(p.name)}-i.${p.id}`)
+        }}
+      />
     </div>
   )
 }
+

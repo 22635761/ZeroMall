@@ -1,5 +1,6 @@
-import React, { useState } from 'react'
+import React, { useState, useMemo } from 'react'
 import { formatOrderId } from '../../utils/orderUtils'
+import { SystemRevenueComparisonChart } from './analytics/SystemRevenueComparisonChart'
 
 interface SystemReportsTabProps {
   allOrders: any[]
@@ -13,33 +14,105 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
   commissionRate
 }) => {
   const now = new Date()
-  const [filterMode, setFilterMode] = useState<'RANGE' | 'MONTH_YEAR'>('RANGE')
-  const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth() + 1)
-  const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear())
-  const [reportRange, setReportRange] = useState<'1_DAY' | '3_DAYS' | '7_DAYS' | '30_DAYS' | 'ALL'>('ALL')
+  type FilterPreset = 'TODAY' | '7_DAYS' | '30_DAYS' | 'MONTH' | 'CUSTOM' | 'ALL'
+  const [filterPreset, setFilterPreset] = useState<FilterPreset>('ALL')
+  const [openPopover, setOpenPopover] = useState<'MONTH' | 'CUSTOM' | null>(null)
+
+  // Tự động phân tích các năm thực tế có trong hệ thống từ allOrders
+  const availableYears = useMemo(() => {
+    const currentY = new Date().getFullYear()
+    const yearsFromOrders = allOrders
+      .map(o => {
+        try {
+          const y = new Date(o.createdAt).getFullYear()
+          return isNaN(y) ? null : y
+        } catch {
+          return null
+        }
+      })
+      .filter((y): y is number => y !== null)
+
+    const uniqueYears = Array.from(new Set([currentY, ...yearsFromOrders])).sort((a, b) => b - a)
+    return uniqueYears.length > 0 ? uniqueYears : [currentY]
+  }, [allOrders])
+
+  const [selectedMonth, setSelectedMonth] = useState<number>(() => {
+    if (allOrders.length > 0 && allOrders[0]?.createdAt) {
+      const d = new Date(allOrders[0].createdAt)
+      if (!isNaN(d.getTime())) return d.getMonth() + 1
+    }
+    return now.getMonth() + 1
+  })
+
+  const [selectedYear, setSelectedYear] = useState<number>(() => {
+    if (allOrders.length > 0 && allOrders[0]?.createdAt) {
+      const d = new Date(allOrders[0].createdAt)
+      if (!isNaN(d.getTime())) return d.getFullYear()
+    }
+    return now.getFullYear()
+  })
+
+  const [customStartDate, setCustomStartDate] = useState<string>('')
+  const [customEndDate, setCustomEndDate] = useState<string>('')
   const [activeStatDetail, setActiveStatDetail] = useState<'GMV' | 'COMMISSION' | 'ORDERS' | 'USERS' | 'REFUNDS'>('GMV')
   const [commTabFilter, setCommTabFilter] = useState<'EARNED' | 'PENDING' | 'IN_TRANSIT' | 'REFUNDED'>('EARNED')
 
-  const filterByRange = (items: any[], dateField: string = 'createdAt') => {
-    if (filterMode === 'MONTH_YEAR') {
-      return items.filter(item => {
-        const d = new Date(item[dateField]);
-        return d.getMonth() + 1 === Number(selectedMonth) && d.getFullYear() === Number(selectedYear);
-      });
+  const getFilterLabel = () => {
+    if (filterPreset === 'TODAY') return 'Hôm nay'
+    if (filterPreset === '7_DAYS') return '7 ngày qua'
+    if (filterPreset === '30_DAYS') return '30 ngày qua'
+    if (filterPreset === 'MONTH') return `Tháng ${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}/${selectedYear}`
+    if (filterPreset === 'CUSTOM') {
+      if (customStartDate && customEndDate) return `${customStartDate} → ${customEndDate}`
+      if (customStartDate) return `Từ ${customStartDate}`
+      if (customEndDate) return `Đến ${customEndDate}`
+      return 'Tùy chọn ngày'
     }
-    if (reportRange === 'ALL') return items;
-    const nowMs = Date.now();
-    let msLimit = 0;
-    if (reportRange === '1_DAY') msLimit = 24 * 60 * 60 * 1000;
-    else if (reportRange === '3_DAYS') msLimit = 3 * 24 * 60 * 60 * 1000;
-    else if (reportRange === '7_DAYS') msLimit = 7 * 24 * 60 * 60 * 1000;
-    else if (reportRange === '30_DAYS') msLimit = 30 * 24 * 60 * 60 * 1000;
-    
+    return 'Tất cả'
+  }
+
+  const filterByRange = (items: any[], dateField: string = 'createdAt') => {
+    if (!items || !Array.isArray(items)) return []
+    if (filterPreset === 'ALL') return items
+
+    if (filterPreset === 'MONTH') {
+      return items.filter(item => {
+        if (!item[dateField]) return false
+        const d = new Date(item[dateField])
+        return d.getMonth() + 1 === Number(selectedMonth) && d.getFullYear() === Number(selectedYear)
+      })
+    }
+
+    if (filterPreset === 'CUSTOM') {
+      const startMs = customStartDate ? new Date(customStartDate + 'T00:00:00').getTime() : 0
+      const endMs = customEndDate ? new Date(customEndDate + 'T23:59:59.999').getTime() : Infinity
+      return items.filter(item => {
+        if (!item[dateField]) return false
+        const t = new Date(item[dateField]).getTime()
+        return t >= startMs && t <= endMs
+      })
+    }
+
+    const nowMs = Date.now()
+    if (filterPreset === 'TODAY') {
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()
+      return items.filter(item => {
+        if (!item[dateField]) return false
+        const t = new Date(item[dateField]).getTime()
+        return t >= startOfToday
+      })
+    }
+
+    let msLimit = 0
+    if (filterPreset === '7_DAYS') msLimit = 7 * 24 * 60 * 60 * 1000
+    else if (filterPreset === '30_DAYS') msLimit = 30 * 24 * 60 * 60 * 1000
+
     return items.filter(item => {
-      const itemDate = new Date(item[dateField]).getTime();
-      return (nowMs - itemDate) <= msLimit;
-    });
-  };
+      if (!item[dateField]) return false
+      const itemDate = new Date(item[dateField]).getTime()
+      return (nowMs - itemDate) <= msLimit
+    })
+  }
 
   const filteredOrders = filterByRange(allOrders);
   const filteredUsers = filterByRange(users);
@@ -77,73 +150,228 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* BỘ LỌC THỜI GIAN & THÁNG NĂM */}
-      <div className="bg-white border border-slate-200/60 rounded-xl p-5 shadow-2xs flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+      {/* BỘ LỌC THỜI GIAN THỐNG NHẤT CHUẨN SHOPEE ADMIN */}
+      <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-3xs flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div>
-          <h3 className="text-sm font-extrabold text-slate-800 uppercase">📊 Báo cáo thống kê hệ thống</h3>
-          <p className="text-[10px] text-slate-400 font-bold mt-1">Lọc số liệu theo thời gian thực từ cơ sở dữ liệu</p>
+          <div className="flex items-center gap-2">
+            <span className="text-lg">📊</span>
+            <h3 className="text-sm font-black text-slate-800 tracking-tight uppercase">Báo cáo thống kê hệ thống</h3>
+            <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-md">
+              {getFilterLabel()}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 font-bold mt-1">Lọc số liệu theo thời gian thực từ cơ sở dữ liệu</p>
         </div>
         
-        <div className="flex flex-wrap items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200/80">
-          <span className="text-xs font-bold text-slate-600 pl-1">📅 Lọc Tháng/Năm:</span>
-
-          <select
-            value={filterMode === 'MONTH_YEAR' ? selectedMonth : 'RANGE'}
-            onChange={(e) => {
-              if (e.target.value === 'RANGE') {
-                setFilterMode('RANGE')
-                setReportRange('ALL')
-              } else {
-                setFilterMode('MONTH_YEAR')
-                setSelectedMonth(Number(e.target.value))
-              }
+        {/* THANH ĐIỀU KHIỂN BỘ LỌC (CỐ ĐỊNH CHIỀU CAO - POPOVER DROPDOWN KHÔNG NHẢY GIAO DIỆN) */}
+        <div className="relative flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/70 gap-0.5 text-xs font-bold shrink-0">
+          <button
+            onClick={() => {
+              setFilterPreset('TODAY')
+              setOpenPopover(null)
             }}
-            className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden"
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none ${
+              filterPreset === 'TODAY'
+                ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
           >
-            <option value="RANGE">Tất cả thời gian</option>
-            {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
-              <option key={m} value={m}>Tháng {m < 10 ? `0${m}` : m}</option>
-            ))}
-          </select>
+            Hôm nay
+          </button>
+          <button
+            onClick={() => {
+              setFilterPreset('7_DAYS')
+              setOpenPopover(null)
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none ${
+              filterPreset === '7_DAYS'
+                ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            7 ngày qua
+          </button>
+          <button
+            onClick={() => {
+              setFilterPreset('30_DAYS')
+              setOpenPopover(null)
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none ${
+              filterPreset === '30_DAYS'
+                ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            30 ngày qua
+          </button>
 
-          {filterMode === 'MONTH_YEAR' && (
-            <select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(Number(e.target.value))}
-              className="px-2.5 py-1 bg-white border border-slate-200 rounded-lg text-xs font-extrabold text-slate-700 focus:outline-hidden"
+          {/* NÚT & POPOVER: THEO THÁNG */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPopover(openPopover === 'MONTH' ? null : 'MONTH')}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none flex items-center gap-1 ${
+                filterPreset === 'MONTH'
+                  ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
             >
-              {Array.from({ length: now.getFullYear() - 2023 + 1 }, (_, i) => 2023 + i).map(y => (
-                <option key={y} value={y}>Năm {y}</option>
-              ))}
-            </select>
-          )}
+              <span>📅</span>
+              <span>{filterPreset === 'MONTH' ? `T${selectedMonth < 10 ? '0' + selectedMonth : selectedMonth}/${selectedYear}` : 'Theo Tháng'}</span>
+              <span className="text-[9px] ml-0.5 opacity-60">▾</span>
+            </button>
 
-          <div className="h-4 w-px bg-slate-200 mx-1 hidden sm:block"></div>
-
-          <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/60">
-            {[
-              { id: '1_DAY', label: '1 Ngày' },
-              { id: '3_DAYS', label: '3 Ngày' },
-              { id: '7_DAYS', label: '7 Ngày' },
-              { id: '30_DAYS', label: '1 Tháng' },
-              { id: 'ALL', label: 'Tất cả' }
-            ].map(range => (
-              <button
-                key={range.id}
-                onClick={() => {
-                  setFilterMode('RANGE')
-                  setReportRange(range.id as any)
-                }}
-                className={`px-2.5 py-1 rounded-md text-xs font-black transition cursor-pointer select-none ${
-                  filterMode === 'RANGE' && reportRange === range.id
-                    ? 'bg-white text-emerald-600 shadow-2xs border border-slate-200/20'
-                    : 'text-slate-500 hover:text-slate-850'
-                }`}
-              >
-                {range.label}
-              </button>
-            ))}
+            {openPopover === 'MONTH' && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setOpenPopover(null)} />
+                <div className="absolute right-0 top-full mt-2 z-40 bg-white border border-slate-200/90 rounded-2xl shadow-xl p-4 w-64 space-y-3 animate-in fade-in zoom-in-95 duration-150 text-left">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span>📅</span> Lọc theo Tháng / Năm
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenPopover(null)}
+                      className="text-slate-400 hover:text-slate-600 text-xs font-bold p-1 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Tháng</label>
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => setSelectedMonth(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
+                          <option key={m} value={m}>Tháng {m < 10 ? `0${m}` : m}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Năm</label>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                      >
+                        {availableYears.map(y => (
+                          <option key={y} value={y}>Năm {y}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFilterPreset('MONTH')
+                      setOpenPopover(null)
+                    }}
+                    className="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer"
+                  >
+                    Áp Dụng
+                  </button>
+                </div>
+              </>
+            )}
           </div>
+
+          {/* NÚT & POPOVER: TÙY CHỌN NGÀY */}
+          <div className="relative">
+            <button
+              onClick={() => setOpenPopover(openPopover === 'CUSTOM' ? null : 'CUSTOM')}
+              className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none flex items-center gap-1 ${
+                filterPreset === 'CUSTOM'
+                  ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                  : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              <span>🗓️</span>
+              <span>{filterPreset === 'CUSTOM' && customStartDate ? `${customStartDate.slice(5)} → ${customEndDate ? customEndDate.slice(5) : '...'}` : 'Tùy chọn ngày'}</span>
+              <span className="text-[9px] ml-0.5 opacity-60">▾</span>
+            </button>
+
+            {openPopover === 'CUSTOM' && (
+              <>
+                <div className="fixed inset-0 z-30" onClick={() => setOpenPopover(null)} />
+                <div className="absolute right-0 top-full mt-2 z-40 bg-white border border-slate-200/90 rounded-2xl shadow-xl p-4 w-72 space-y-3 animate-in fade-in zoom-in-95 duration-150 text-left">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                    <span className="text-xs font-black text-slate-800 flex items-center gap-1.5">
+                      <span>🗓️</span> Khoảng Ngày Tùy Chọn
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOpenPopover(null)}
+                      className="text-slate-400 hover:text-slate-600 text-xs font-bold p-1 cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <div className="space-y-2.5">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Từ ngày</label>
+                      <input
+                        type="date"
+                        value={customStartDate}
+                        onChange={(e) => setCustomStartDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase">Đến ngày</label>
+                      <input
+                        type="date"
+                        value={customEndDate}
+                        onChange={(e) => setCustomEndDate(e.target.value)}
+                        className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-800 focus:outline-none focus:border-emerald-600 cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomStartDate('')
+                        setCustomEndDate('')
+                        setFilterPreset('ALL')
+                        setOpenPopover(null)
+                      }}
+                      className="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-xl text-xs font-bold transition cursor-pointer"
+                    >
+                      Đặt lại
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (customStartDate || customEndDate) {
+                          setFilterPreset('CUSTOM')
+                        }
+                        setOpenPopover(null)
+                      }}
+                      className="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-2xs cursor-pointer"
+                    >
+                      Áp Dụng
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
+          <button
+            onClick={() => {
+              setFilterPreset('ALL')
+              setOpenPopover(null)
+            }}
+            className={`px-3 py-1.5 rounded-lg transition cursor-pointer select-none ${
+              filterPreset === 'ALL'
+                ? 'bg-white text-emerald-700 shadow-2xs font-black'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Tất cả
+          </button>
         </div>
       </div>
 
@@ -240,6 +468,9 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
         </div>
       </div>
 
+      {/* 2. BIỂU ĐỒ TRỰC QUAN HÓA SO SÁNH DOANH THU & THU NHẬP SÀN THEO THÁNG / NĂM */}
+      <SystemRevenueComparisonChart allOrders={allOrders} commissionRate={commissionRate} />
+
       {/* BẢNG PHÂN TÍCH CHI TIẾT */}
       <div className="bg-white border border-slate-200/60 rounded-xl p-6 shadow-2xs space-y-6">
         {activeStatDetail === 'GMV' && (
@@ -249,7 +480,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                 <span>🌱</span> Chi tiết doanh thu (GMV Toàn Sàn)
               </h4>
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">
-                Kỳ lọc: {reportRange === 'ALL' ? 'Tất cả' : reportRange === '1_DAY' ? '24 giờ qua' : `${reportRange.replace('_DAYS', '')} ngày`}
+                Kỳ lọc: {getFilterLabel()}
               </span>
             </div>
 
@@ -395,7 +626,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                 <span>📦</span> Chi tiết số lượng đơn hàng và trạng thái đơn
               </h4>
               <span className="text-[10px] font-bold text-indigo-655 bg-indigo-50 px-2 py-0.5 rounded uppercase">
-                Kỳ lọc: {reportRange === 'ALL' ? 'Tất cả' : reportRange === '1_DAY' ? '24 giờ qua' : `${reportRange.replace('_DAYS', '')} ngày`}
+                Kỳ lọc: {getFilterLabel()}
               </span>
             </div>
 
@@ -500,7 +731,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                 <span>👥</span> Chi tiết thành viên đăng ký hệ thống
               </h4>
               <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded uppercase">
-                Kỳ lọc: {reportRange === 'ALL' ? 'Tất cả' : reportRange === '1_DAY' ? '24 giờ qua' : `${reportRange.replace('_DAYS', '')} ngày`}
+                Kỳ lọc: {getFilterLabel()}
               </span>
             </div>
 
@@ -612,7 +843,7 @@ export const SystemReportsTab: React.FC<SystemReportsTabProps> = ({
                 <span>⚖️</span> Chi tiết khiếu nại Trả hàng / Hoàn tiền
               </h4>
               <span className="text-[10px] font-bold text-rose-650 bg-rose-50 px-2 py-0.5 rounded uppercase">
-                Kỳ lọc: {reportRange === 'ALL' ? 'Tất cả' : reportRange === '1_DAY' ? '24 giờ qua' : `${reportRange.replace('_DAYS', '')} ngày`}
+                Kỳ lọc: {getFilterLabel()}
               </span>
             </div>
 

@@ -232,6 +232,72 @@ exports.Prisma.FlashSaleItemScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AiModelKnowledgeScalarFieldEnum = {
+  id: 'id',
+  normalizedKey: 'normalizedKey',
+  rawKeywords: 'rawKeywords',
+  category: 'category',
+  brand: 'brand',
+  tone: 'tone',
+  features: 'features',
+  suggestedTitle: 'suggestedTitle',
+  suggestedCategory: 'suggestedCategory',
+  suggestedBrand: 'suggestedBrand',
+  seoKeywords: 'seoKeywords',
+  hashtags: 'hashtags',
+  description: 'description',
+  trainingEpoch: 'trainingEpoch',
+  hitCount: 'hitCount',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AiModerationKnowledgeScalarFieldEnum = {
+  id: 'id',
+  normalizedText: 'normalizedText',
+  rawText: 'rawText',
+  checkType: 'checkType',
+  isViolated: 'isViolated',
+  violationType: 'violationType',
+  confidence: 'confidence',
+  reason: 'reason',
+  suggestion: 'suggestion',
+  detectedKeywords: 'detectedKeywords',
+  hitCount: 'hitCount',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AiSearchKnowledgeScalarFieldEnum = {
+  id: 'id',
+  searchType: 'searchType',
+  queryKey: 'queryKey',
+  rawQuery: 'rawQuery',
+  detectedIntent: 'detectedIntent',
+  expandedKeywords: 'expandedKeywords',
+  suggestedCategory: 'suggestedCategory',
+  priceRangeMin: 'priceRangeMin',
+  priceRangeMax: 'priceRangeMax',
+  visualTags: 'visualTags',
+  matchedProductIds: 'matchedProductIds',
+  hitCount: 'hitCount',
+  source: 'source',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.UserActivityScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  action: 'action',
+  productId: 'productId',
+  category: 'category',
+  metadata: 'metadata',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -256,7 +322,11 @@ exports.Prisma.ModelName = {
   ProductLike: 'ProductLike',
   Category: 'Category',
   FlashSale: 'FlashSale',
-  FlashSaleItem: 'FlashSaleItem'
+  FlashSaleItem: 'FlashSaleItem',
+  AiModelKnowledge: 'AiModelKnowledge',
+  AiModerationKnowledge: 'AiModerationKnowledge',
+  AiSearchKnowledge: 'AiSearchKnowledge',
+  UserActivity: 'UserActivity'
 };
 
 /**

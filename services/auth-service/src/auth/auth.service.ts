@@ -31,6 +31,7 @@ export class AuthService {
           password: passwordHash,
           name: dto.name,
           role: dto.role,
+          gender: dto.gender,
         },
       });
 

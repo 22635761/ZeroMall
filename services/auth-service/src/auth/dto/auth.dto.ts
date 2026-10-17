@@ -3,6 +3,7 @@ export class RegisterDto {
   password: string;
   name: string;
   role: 'BUYER' | 'ADMIN' | 'SHOP_OWNER' | 'SHOP_STAFF' | 'PLATFORM_SUPPORT';
+  gender?: string; // Optional: 'NAM' | 'NU' | 'KHAC'
   shopId?: string; // Optional: Only for SHOP_STAFF
   shopName?: string; // Optional: For SHOP_OWNER to auto-create a Shop
 }

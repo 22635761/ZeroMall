@@ -53,6 +53,26 @@ export type FlashSale = $Result.DefaultSelection<Prisma.$FlashSalePayload>
  * 
  */
 export type FlashSaleItem = $Result.DefaultSelection<Prisma.$FlashSaleItemPayload>
+/**
+ * Model AiModelKnowledge
+ * 
+ */
+export type AiModelKnowledge = $Result.DefaultSelection<Prisma.$AiModelKnowledgePayload>
+/**
+ * Model AiModerationKnowledge
+ * 
+ */
+export type AiModerationKnowledge = $Result.DefaultSelection<Prisma.$AiModerationKnowledgePayload>
+/**
+ * Model AiSearchKnowledge
+ * 
+ */
+export type AiSearchKnowledge = $Result.DefaultSelection<Prisma.$AiSearchKnowledgePayload>
+/**
+ * Model UserActivity
+ * 
+ */
+export type UserActivity = $Result.DefaultSelection<Prisma.$UserActivityPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -254,6 +274,46 @@ export class PrismaClient<
     * ```
     */
   get flashSaleItem(): Prisma.FlashSaleItemDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.aiModelKnowledge`: Exposes CRUD operations for the **AiModelKnowledge** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AiModelKnowledges
+    * const aiModelKnowledges = await prisma.aiModelKnowledge.findMany()
+    * ```
+    */
+  get aiModelKnowledge(): Prisma.AiModelKnowledgeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.aiModerationKnowledge`: Exposes CRUD operations for the **AiModerationKnowledge** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AiModerationKnowledges
+    * const aiModerationKnowledges = await prisma.aiModerationKnowledge.findMany()
+    * ```
+    */
+  get aiModerationKnowledge(): Prisma.AiModerationKnowledgeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.aiSearchKnowledge`: Exposes CRUD operations for the **AiSearchKnowledge** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AiSearchKnowledges
+    * const aiSearchKnowledges = await prisma.aiSearchKnowledge.findMany()
+    * ```
+    */
+  get aiSearchKnowledge(): Prisma.AiSearchKnowledgeDelegate<ExtArgs, ClientOptions>;
+
+  /**
+   * `prisma.userActivity`: Exposes CRUD operations for the **UserActivity** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more UserActivities
+    * const userActivities = await prisma.userActivity.findMany()
+    * ```
+    */
+  get userActivity(): Prisma.UserActivityDelegate<ExtArgs, ClientOptions>;
 }
 
 export namespace Prisma {
@@ -695,7 +755,11 @@ export namespace Prisma {
     ProductLike: 'ProductLike',
     Category: 'Category',
     FlashSale: 'FlashSale',
-    FlashSaleItem: 'FlashSaleItem'
+    FlashSaleItem: 'FlashSaleItem',
+    AiModelKnowledge: 'AiModelKnowledge',
+    AiModerationKnowledge: 'AiModerationKnowledge',
+    AiSearchKnowledge: 'AiSearchKnowledge',
+    UserActivity: 'UserActivity'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -711,7 +775,7 @@ export namespace Prisma {
       omit: GlobalOmitOptions
     }
     meta: {
-      modelProps: "product" | "priceHistory" | "costPriceHistory" | "review" | "productLike" | "category" | "flashSale" | "flashSaleItem"
+      modelProps: "product" | "priceHistory" | "costPriceHistory" | "review" | "productLike" | "category" | "flashSale" | "flashSaleItem" | "aiModelKnowledge" | "aiModerationKnowledge" | "aiSearchKnowledge" | "userActivity"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1307,6 +1371,302 @@ export namespace Prisma {
           }
         }
       }
+      AiModelKnowledge: {
+        payload: Prisma.$AiModelKnowledgePayload<ExtArgs>
+        fields: Prisma.AiModelKnowledgeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AiModelKnowledgeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AiModelKnowledgeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          findFirst: {
+            args: Prisma.AiModelKnowledgeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AiModelKnowledgeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          findMany: {
+            args: Prisma.AiModelKnowledgeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>[]
+          }
+          create: {
+            args: Prisma.AiModelKnowledgeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          createMany: {
+            args: Prisma.AiModelKnowledgeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AiModelKnowledgeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>[]
+          }
+          delete: {
+            args: Prisma.AiModelKnowledgeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          update: {
+            args: Prisma.AiModelKnowledgeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          deleteMany: {
+            args: Prisma.AiModelKnowledgeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AiModelKnowledgeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AiModelKnowledgeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>[]
+          }
+          upsert: {
+            args: Prisma.AiModelKnowledgeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModelKnowledgePayload>
+          }
+          aggregate: {
+            args: Prisma.AiModelKnowledgeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAiModelKnowledge>
+          }
+          groupBy: {
+            args: Prisma.AiModelKnowledgeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AiModelKnowledgeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AiModelKnowledgeCountArgs<ExtArgs>
+            result: $Utils.Optional<AiModelKnowledgeCountAggregateOutputType> | number
+          }
+        }
+      }
+      AiModerationKnowledge: {
+        payload: Prisma.$AiModerationKnowledgePayload<ExtArgs>
+        fields: Prisma.AiModerationKnowledgeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AiModerationKnowledgeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AiModerationKnowledgeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          findFirst: {
+            args: Prisma.AiModerationKnowledgeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AiModerationKnowledgeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          findMany: {
+            args: Prisma.AiModerationKnowledgeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>[]
+          }
+          create: {
+            args: Prisma.AiModerationKnowledgeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          createMany: {
+            args: Prisma.AiModerationKnowledgeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AiModerationKnowledgeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>[]
+          }
+          delete: {
+            args: Prisma.AiModerationKnowledgeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          update: {
+            args: Prisma.AiModerationKnowledgeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          deleteMany: {
+            args: Prisma.AiModerationKnowledgeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AiModerationKnowledgeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AiModerationKnowledgeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>[]
+          }
+          upsert: {
+            args: Prisma.AiModerationKnowledgeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiModerationKnowledgePayload>
+          }
+          aggregate: {
+            args: Prisma.AiModerationKnowledgeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAiModerationKnowledge>
+          }
+          groupBy: {
+            args: Prisma.AiModerationKnowledgeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AiModerationKnowledgeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AiModerationKnowledgeCountArgs<ExtArgs>
+            result: $Utils.Optional<AiModerationKnowledgeCountAggregateOutputType> | number
+          }
+        }
+      }
+      AiSearchKnowledge: {
+        payload: Prisma.$AiSearchKnowledgePayload<ExtArgs>
+        fields: Prisma.AiSearchKnowledgeFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AiSearchKnowledgeFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AiSearchKnowledgeFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          findFirst: {
+            args: Prisma.AiSearchKnowledgeFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AiSearchKnowledgeFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          findMany: {
+            args: Prisma.AiSearchKnowledgeFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>[]
+          }
+          create: {
+            args: Prisma.AiSearchKnowledgeCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          createMany: {
+            args: Prisma.AiSearchKnowledgeCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AiSearchKnowledgeCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>[]
+          }
+          delete: {
+            args: Prisma.AiSearchKnowledgeDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          update: {
+            args: Prisma.AiSearchKnowledgeUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          deleteMany: {
+            args: Prisma.AiSearchKnowledgeDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AiSearchKnowledgeUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.AiSearchKnowledgeUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>[]
+          }
+          upsert: {
+            args: Prisma.AiSearchKnowledgeUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AiSearchKnowledgePayload>
+          }
+          aggregate: {
+            args: Prisma.AiSearchKnowledgeAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAiSearchKnowledge>
+          }
+          groupBy: {
+            args: Prisma.AiSearchKnowledgeGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AiSearchKnowledgeGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AiSearchKnowledgeCountArgs<ExtArgs>
+            result: $Utils.Optional<AiSearchKnowledgeCountAggregateOutputType> | number
+          }
+        }
+      }
+      UserActivity: {
+        payload: Prisma.$UserActivityPayload<ExtArgs>
+        fields: Prisma.UserActivityFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.UserActivityFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.UserActivityFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          findFirst: {
+            args: Prisma.UserActivityFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.UserActivityFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          findMany: {
+            args: Prisma.UserActivityFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>[]
+          }
+          create: {
+            args: Prisma.UserActivityCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          createMany: {
+            args: Prisma.UserActivityCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.UserActivityCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>[]
+          }
+          delete: {
+            args: Prisma.UserActivityDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          update: {
+            args: Prisma.UserActivityUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          deleteMany: {
+            args: Prisma.UserActivityDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.UserActivityUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateManyAndReturn: {
+            args: Prisma.UserActivityUpdateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>[]
+          }
+          upsert: {
+            args: Prisma.UserActivityUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$UserActivityPayload>
+          }
+          aggregate: {
+            args: Prisma.UserActivityAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateUserActivity>
+          }
+          groupBy: {
+            args: Prisma.UserActivityGroupByArgs<ExtArgs>
+            result: $Utils.Optional<UserActivityGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.UserActivityCountArgs<ExtArgs>
+            result: $Utils.Optional<UserActivityCountAggregateOutputType> | number
+          }
+        }
+      }
     }
   } & {
     other: {
@@ -1423,6 +1783,10 @@ export namespace Prisma {
     category?: CategoryOmit
     flashSale?: FlashSaleOmit
     flashSaleItem?: FlashSaleItemOmit
+    aiModelKnowledge?: AiModelKnowledgeOmit
+    aiModerationKnowledge?: AiModerationKnowledgeOmit
+    aiSearchKnowledge?: AiSearchKnowledgeOmit
+    userActivity?: UserActivityOmit
   }
 
   /* Types for Logging */
@@ -10997,6 +11361,4566 @@ export namespace Prisma {
 
 
   /**
+   * Model AiModelKnowledge
+   */
+
+  export type AggregateAiModelKnowledge = {
+    _count: AiModelKnowledgeCountAggregateOutputType | null
+    _avg: AiModelKnowledgeAvgAggregateOutputType | null
+    _sum: AiModelKnowledgeSumAggregateOutputType | null
+    _min: AiModelKnowledgeMinAggregateOutputType | null
+    _max: AiModelKnowledgeMaxAggregateOutputType | null
+  }
+
+  export type AiModelKnowledgeAvgAggregateOutputType = {
+    trainingEpoch: number | null
+    hitCount: number | null
+  }
+
+  export type AiModelKnowledgeSumAggregateOutputType = {
+    trainingEpoch: number | null
+    hitCount: number | null
+  }
+
+  export type AiModelKnowledgeMinAggregateOutputType = {
+    id: string | null
+    normalizedKey: string | null
+    rawKeywords: string | null
+    category: string | null
+    brand: string | null
+    tone: string | null
+    features: string | null
+    suggestedTitle: string | null
+    suggestedCategory: string | null
+    suggestedBrand: string | null
+    seoKeywords: string | null
+    hashtags: string | null
+    description: string | null
+    trainingEpoch: number | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiModelKnowledgeMaxAggregateOutputType = {
+    id: string | null
+    normalizedKey: string | null
+    rawKeywords: string | null
+    category: string | null
+    brand: string | null
+    tone: string | null
+    features: string | null
+    suggestedTitle: string | null
+    suggestedCategory: string | null
+    suggestedBrand: string | null
+    seoKeywords: string | null
+    hashtags: string | null
+    description: string | null
+    trainingEpoch: number | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiModelKnowledgeCountAggregateOutputType = {
+    id: number
+    normalizedKey: number
+    rawKeywords: number
+    category: number
+    brand: number
+    tone: number
+    features: number
+    suggestedTitle: number
+    suggestedCategory: number
+    suggestedBrand: number
+    seoKeywords: number
+    hashtags: number
+    description: number
+    trainingEpoch: number
+    hitCount: number
+    source: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AiModelKnowledgeAvgAggregateInputType = {
+    trainingEpoch?: true
+    hitCount?: true
+  }
+
+  export type AiModelKnowledgeSumAggregateInputType = {
+    trainingEpoch?: true
+    hitCount?: true
+  }
+
+  export type AiModelKnowledgeMinAggregateInputType = {
+    id?: true
+    normalizedKey?: true
+    rawKeywords?: true
+    category?: true
+    brand?: true
+    tone?: true
+    features?: true
+    suggestedTitle?: true
+    suggestedCategory?: true
+    suggestedBrand?: true
+    seoKeywords?: true
+    hashtags?: true
+    description?: true
+    trainingEpoch?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiModelKnowledgeMaxAggregateInputType = {
+    id?: true
+    normalizedKey?: true
+    rawKeywords?: true
+    category?: true
+    brand?: true
+    tone?: true
+    features?: true
+    suggestedTitle?: true
+    suggestedCategory?: true
+    suggestedBrand?: true
+    seoKeywords?: true
+    hashtags?: true
+    description?: true
+    trainingEpoch?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiModelKnowledgeCountAggregateInputType = {
+    id?: true
+    normalizedKey?: true
+    rawKeywords?: true
+    category?: true
+    brand?: true
+    tone?: true
+    features?: true
+    suggestedTitle?: true
+    suggestedCategory?: true
+    suggestedBrand?: true
+    seoKeywords?: true
+    hashtags?: true
+    description?: true
+    trainingEpoch?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AiModelKnowledgeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiModelKnowledge to aggregate.
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModelKnowledges to fetch.
+     */
+    orderBy?: AiModelKnowledgeOrderByWithRelationInput | AiModelKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AiModelKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModelKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModelKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AiModelKnowledges
+    **/
+    _count?: true | AiModelKnowledgeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AiModelKnowledgeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AiModelKnowledgeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AiModelKnowledgeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AiModelKnowledgeMaxAggregateInputType
+  }
+
+  export type GetAiModelKnowledgeAggregateType<T extends AiModelKnowledgeAggregateArgs> = {
+        [P in keyof T & keyof AggregateAiModelKnowledge]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAiModelKnowledge[P]>
+      : GetScalarType<T[P], AggregateAiModelKnowledge[P]>
+  }
+
+
+
+
+  export type AiModelKnowledgeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiModelKnowledgeWhereInput
+    orderBy?: AiModelKnowledgeOrderByWithAggregationInput | AiModelKnowledgeOrderByWithAggregationInput[]
+    by: AiModelKnowledgeScalarFieldEnum[] | AiModelKnowledgeScalarFieldEnum
+    having?: AiModelKnowledgeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AiModelKnowledgeCountAggregateInputType | true
+    _avg?: AiModelKnowledgeAvgAggregateInputType
+    _sum?: AiModelKnowledgeSumAggregateInputType
+    _min?: AiModelKnowledgeMinAggregateInputType
+    _max?: AiModelKnowledgeMaxAggregateInputType
+  }
+
+  export type AiModelKnowledgeGroupByOutputType = {
+    id: string
+    normalizedKey: string
+    rawKeywords: string
+    category: string
+    brand: string | null
+    tone: string
+    features: string | null
+    suggestedTitle: string
+    suggestedCategory: string
+    suggestedBrand: string | null
+    seoKeywords: string
+    hashtags: string
+    description: string
+    trainingEpoch: number
+    hitCount: number
+    source: string
+    createdAt: Date
+    updatedAt: Date
+    _count: AiModelKnowledgeCountAggregateOutputType | null
+    _avg: AiModelKnowledgeAvgAggregateOutputType | null
+    _sum: AiModelKnowledgeSumAggregateOutputType | null
+    _min: AiModelKnowledgeMinAggregateOutputType | null
+    _max: AiModelKnowledgeMaxAggregateOutputType | null
+  }
+
+  type GetAiModelKnowledgeGroupByPayload<T extends AiModelKnowledgeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AiModelKnowledgeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AiModelKnowledgeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AiModelKnowledgeGroupByOutputType[P]>
+            : GetScalarType<T[P], AiModelKnowledgeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AiModelKnowledgeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedKey?: boolean
+    rawKeywords?: boolean
+    category?: boolean
+    brand?: boolean
+    tone?: boolean
+    features?: boolean
+    suggestedTitle?: boolean
+    suggestedCategory?: boolean
+    suggestedBrand?: boolean
+    seoKeywords?: boolean
+    hashtags?: boolean
+    description?: boolean
+    trainingEpoch?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModelKnowledge"]>
+
+  export type AiModelKnowledgeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedKey?: boolean
+    rawKeywords?: boolean
+    category?: boolean
+    brand?: boolean
+    tone?: boolean
+    features?: boolean
+    suggestedTitle?: boolean
+    suggestedCategory?: boolean
+    suggestedBrand?: boolean
+    seoKeywords?: boolean
+    hashtags?: boolean
+    description?: boolean
+    trainingEpoch?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModelKnowledge"]>
+
+  export type AiModelKnowledgeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedKey?: boolean
+    rawKeywords?: boolean
+    category?: boolean
+    brand?: boolean
+    tone?: boolean
+    features?: boolean
+    suggestedTitle?: boolean
+    suggestedCategory?: boolean
+    suggestedBrand?: boolean
+    seoKeywords?: boolean
+    hashtags?: boolean
+    description?: boolean
+    trainingEpoch?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModelKnowledge"]>
+
+  export type AiModelKnowledgeSelectScalar = {
+    id?: boolean
+    normalizedKey?: boolean
+    rawKeywords?: boolean
+    category?: boolean
+    brand?: boolean
+    tone?: boolean
+    features?: boolean
+    suggestedTitle?: boolean
+    suggestedCategory?: boolean
+    suggestedBrand?: boolean
+    seoKeywords?: boolean
+    hashtags?: boolean
+    description?: boolean
+    trainingEpoch?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AiModelKnowledgeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "normalizedKey" | "rawKeywords" | "category" | "brand" | "tone" | "features" | "suggestedTitle" | "suggestedCategory" | "suggestedBrand" | "seoKeywords" | "hashtags" | "description" | "trainingEpoch" | "hitCount" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["aiModelKnowledge"]>
+
+  export type $AiModelKnowledgePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AiModelKnowledge"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      normalizedKey: string
+      rawKeywords: string
+      category: string
+      brand: string | null
+      tone: string
+      features: string | null
+      suggestedTitle: string
+      suggestedCategory: string
+      suggestedBrand: string | null
+      seoKeywords: string
+      hashtags: string
+      description: string
+      trainingEpoch: number
+      hitCount: number
+      source: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aiModelKnowledge"]>
+    composites: {}
+  }
+
+  type AiModelKnowledgeGetPayload<S extends boolean | null | undefined | AiModelKnowledgeDefaultArgs> = $Result.GetResult<Prisma.$AiModelKnowledgePayload, S>
+
+  type AiModelKnowledgeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AiModelKnowledgeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AiModelKnowledgeCountAggregateInputType | true
+    }
+
+  export interface AiModelKnowledgeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AiModelKnowledge'], meta: { name: 'AiModelKnowledge' } }
+    /**
+     * Find zero or one AiModelKnowledge that matches the filter.
+     * @param {AiModelKnowledgeFindUniqueArgs} args - Arguments to find a AiModelKnowledge
+     * @example
+     * // Get one AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AiModelKnowledgeFindUniqueArgs>(args: SelectSubset<T, AiModelKnowledgeFindUniqueArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AiModelKnowledge that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AiModelKnowledgeFindUniqueOrThrowArgs} args - Arguments to find a AiModelKnowledge
+     * @example
+     * // Get one AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AiModelKnowledgeFindUniqueOrThrowArgs>(args: SelectSubset<T, AiModelKnowledgeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiModelKnowledge that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeFindFirstArgs} args - Arguments to find a AiModelKnowledge
+     * @example
+     * // Get one AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AiModelKnowledgeFindFirstArgs>(args?: SelectSubset<T, AiModelKnowledgeFindFirstArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiModelKnowledge that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeFindFirstOrThrowArgs} args - Arguments to find a AiModelKnowledge
+     * @example
+     * // Get one AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AiModelKnowledgeFindFirstOrThrowArgs>(args?: SelectSubset<T, AiModelKnowledgeFindFirstOrThrowArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AiModelKnowledges that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AiModelKnowledges
+     * const aiModelKnowledges = await prisma.aiModelKnowledge.findMany()
+     * 
+     * // Get first 10 AiModelKnowledges
+     * const aiModelKnowledges = await prisma.aiModelKnowledge.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aiModelKnowledgeWithIdOnly = await prisma.aiModelKnowledge.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AiModelKnowledgeFindManyArgs>(args?: SelectSubset<T, AiModelKnowledgeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AiModelKnowledge.
+     * @param {AiModelKnowledgeCreateArgs} args - Arguments to create a AiModelKnowledge.
+     * @example
+     * // Create one AiModelKnowledge
+     * const AiModelKnowledge = await prisma.aiModelKnowledge.create({
+     *   data: {
+     *     // ... data to create a AiModelKnowledge
+     *   }
+     * })
+     * 
+     */
+    create<T extends AiModelKnowledgeCreateArgs>(args: SelectSubset<T, AiModelKnowledgeCreateArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AiModelKnowledges.
+     * @param {AiModelKnowledgeCreateManyArgs} args - Arguments to create many AiModelKnowledges.
+     * @example
+     * // Create many AiModelKnowledges
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AiModelKnowledgeCreateManyArgs>(args?: SelectSubset<T, AiModelKnowledgeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AiModelKnowledges and returns the data saved in the database.
+     * @param {AiModelKnowledgeCreateManyAndReturnArgs} args - Arguments to create many AiModelKnowledges.
+     * @example
+     * // Create many AiModelKnowledges
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AiModelKnowledges and only return the `id`
+     * const aiModelKnowledgeWithIdOnly = await prisma.aiModelKnowledge.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AiModelKnowledgeCreateManyAndReturnArgs>(args?: SelectSubset<T, AiModelKnowledgeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AiModelKnowledge.
+     * @param {AiModelKnowledgeDeleteArgs} args - Arguments to delete one AiModelKnowledge.
+     * @example
+     * // Delete one AiModelKnowledge
+     * const AiModelKnowledge = await prisma.aiModelKnowledge.delete({
+     *   where: {
+     *     // ... filter to delete one AiModelKnowledge
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AiModelKnowledgeDeleteArgs>(args: SelectSubset<T, AiModelKnowledgeDeleteArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AiModelKnowledge.
+     * @param {AiModelKnowledgeUpdateArgs} args - Arguments to update one AiModelKnowledge.
+     * @example
+     * // Update one AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AiModelKnowledgeUpdateArgs>(args: SelectSubset<T, AiModelKnowledgeUpdateArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AiModelKnowledges.
+     * @param {AiModelKnowledgeDeleteManyArgs} args - Arguments to filter AiModelKnowledges to delete.
+     * @example
+     * // Delete a few AiModelKnowledges
+     * const { count } = await prisma.aiModelKnowledge.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AiModelKnowledgeDeleteManyArgs>(args?: SelectSubset<T, AiModelKnowledgeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiModelKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AiModelKnowledges
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AiModelKnowledgeUpdateManyArgs>(args: SelectSubset<T, AiModelKnowledgeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiModelKnowledges and returns the data updated in the database.
+     * @param {AiModelKnowledgeUpdateManyAndReturnArgs} args - Arguments to update many AiModelKnowledges.
+     * @example
+     * // Update many AiModelKnowledges
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AiModelKnowledges and only return the `id`
+     * const aiModelKnowledgeWithIdOnly = await prisma.aiModelKnowledge.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AiModelKnowledgeUpdateManyAndReturnArgs>(args: SelectSubset<T, AiModelKnowledgeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AiModelKnowledge.
+     * @param {AiModelKnowledgeUpsertArgs} args - Arguments to update or create a AiModelKnowledge.
+     * @example
+     * // Update or create a AiModelKnowledge
+     * const aiModelKnowledge = await prisma.aiModelKnowledge.upsert({
+     *   create: {
+     *     // ... data to create a AiModelKnowledge
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AiModelKnowledge we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AiModelKnowledgeUpsertArgs>(args: SelectSubset<T, AiModelKnowledgeUpsertArgs<ExtArgs>>): Prisma__AiModelKnowledgeClient<$Result.GetResult<Prisma.$AiModelKnowledgePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AiModelKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeCountArgs} args - Arguments to filter AiModelKnowledges to count.
+     * @example
+     * // Count the number of AiModelKnowledges
+     * const count = await prisma.aiModelKnowledge.count({
+     *   where: {
+     *     // ... the filter for the AiModelKnowledges we want to count
+     *   }
+     * })
+    **/
+    count<T extends AiModelKnowledgeCountArgs>(
+      args?: Subset<T, AiModelKnowledgeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AiModelKnowledgeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AiModelKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AiModelKnowledgeAggregateArgs>(args: Subset<T, AiModelKnowledgeAggregateArgs>): Prisma.PrismaPromise<GetAiModelKnowledgeAggregateType<T>>
+
+    /**
+     * Group by AiModelKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModelKnowledgeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AiModelKnowledgeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AiModelKnowledgeGroupByArgs['orderBy'] }
+        : { orderBy?: AiModelKnowledgeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AiModelKnowledgeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAiModelKnowledgeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AiModelKnowledge model
+   */
+  readonly fields: AiModelKnowledgeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AiModelKnowledge.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AiModelKnowledgeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AiModelKnowledge model
+   */
+  interface AiModelKnowledgeFieldRefs {
+    readonly id: FieldRef<"AiModelKnowledge", 'String'>
+    readonly normalizedKey: FieldRef<"AiModelKnowledge", 'String'>
+    readonly rawKeywords: FieldRef<"AiModelKnowledge", 'String'>
+    readonly category: FieldRef<"AiModelKnowledge", 'String'>
+    readonly brand: FieldRef<"AiModelKnowledge", 'String'>
+    readonly tone: FieldRef<"AiModelKnowledge", 'String'>
+    readonly features: FieldRef<"AiModelKnowledge", 'String'>
+    readonly suggestedTitle: FieldRef<"AiModelKnowledge", 'String'>
+    readonly suggestedCategory: FieldRef<"AiModelKnowledge", 'String'>
+    readonly suggestedBrand: FieldRef<"AiModelKnowledge", 'String'>
+    readonly seoKeywords: FieldRef<"AiModelKnowledge", 'String'>
+    readonly hashtags: FieldRef<"AiModelKnowledge", 'String'>
+    readonly description: FieldRef<"AiModelKnowledge", 'String'>
+    readonly trainingEpoch: FieldRef<"AiModelKnowledge", 'Int'>
+    readonly hitCount: FieldRef<"AiModelKnowledge", 'Int'>
+    readonly source: FieldRef<"AiModelKnowledge", 'String'>
+    readonly createdAt: FieldRef<"AiModelKnowledge", 'DateTime'>
+    readonly updatedAt: FieldRef<"AiModelKnowledge", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AiModelKnowledge findUnique
+   */
+  export type AiModelKnowledgeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModelKnowledge to fetch.
+     */
+    where: AiModelKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModelKnowledge findUniqueOrThrow
+   */
+  export type AiModelKnowledgeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModelKnowledge to fetch.
+     */
+    where: AiModelKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModelKnowledge findFirst
+   */
+  export type AiModelKnowledgeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModelKnowledge to fetch.
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModelKnowledges to fetch.
+     */
+    orderBy?: AiModelKnowledgeOrderByWithRelationInput | AiModelKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiModelKnowledges.
+     */
+    cursor?: AiModelKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModelKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModelKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModelKnowledges.
+     */
+    distinct?: AiModelKnowledgeScalarFieldEnum | AiModelKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModelKnowledge findFirstOrThrow
+   */
+  export type AiModelKnowledgeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModelKnowledge to fetch.
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModelKnowledges to fetch.
+     */
+    orderBy?: AiModelKnowledgeOrderByWithRelationInput | AiModelKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiModelKnowledges.
+     */
+    cursor?: AiModelKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModelKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModelKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModelKnowledges.
+     */
+    distinct?: AiModelKnowledgeScalarFieldEnum | AiModelKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModelKnowledge findMany
+   */
+  export type AiModelKnowledgeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModelKnowledges to fetch.
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModelKnowledges to fetch.
+     */
+    orderBy?: AiModelKnowledgeOrderByWithRelationInput | AiModelKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AiModelKnowledges.
+     */
+    cursor?: AiModelKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModelKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModelKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModelKnowledges.
+     */
+    distinct?: AiModelKnowledgeScalarFieldEnum | AiModelKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModelKnowledge create
+   */
+  export type AiModelKnowledgeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to create a AiModelKnowledge.
+     */
+    data: XOR<AiModelKnowledgeCreateInput, AiModelKnowledgeUncheckedCreateInput>
+  }
+
+  /**
+   * AiModelKnowledge createMany
+   */
+  export type AiModelKnowledgeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AiModelKnowledges.
+     */
+    data: AiModelKnowledgeCreateManyInput | AiModelKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiModelKnowledge createManyAndReturn
+   */
+  export type AiModelKnowledgeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to create many AiModelKnowledges.
+     */
+    data: AiModelKnowledgeCreateManyInput | AiModelKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiModelKnowledge update
+   */
+  export type AiModelKnowledgeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to update a AiModelKnowledge.
+     */
+    data: XOR<AiModelKnowledgeUpdateInput, AiModelKnowledgeUncheckedUpdateInput>
+    /**
+     * Choose, which AiModelKnowledge to update.
+     */
+    where: AiModelKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModelKnowledge updateMany
+   */
+  export type AiModelKnowledgeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AiModelKnowledges.
+     */
+    data: XOR<AiModelKnowledgeUpdateManyMutationInput, AiModelKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiModelKnowledges to update
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * Limit how many AiModelKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModelKnowledge updateManyAndReturn
+   */
+  export type AiModelKnowledgeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to update AiModelKnowledges.
+     */
+    data: XOR<AiModelKnowledgeUpdateManyMutationInput, AiModelKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiModelKnowledges to update
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * Limit how many AiModelKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModelKnowledge upsert
+   */
+  export type AiModelKnowledgeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * The filter to search for the AiModelKnowledge to update in case it exists.
+     */
+    where: AiModelKnowledgeWhereUniqueInput
+    /**
+     * In case the AiModelKnowledge found by the `where` argument doesn't exist, create a new AiModelKnowledge with this data.
+     */
+    create: XOR<AiModelKnowledgeCreateInput, AiModelKnowledgeUncheckedCreateInput>
+    /**
+     * In case the AiModelKnowledge was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AiModelKnowledgeUpdateInput, AiModelKnowledgeUncheckedUpdateInput>
+  }
+
+  /**
+   * AiModelKnowledge delete
+   */
+  export type AiModelKnowledgeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter which AiModelKnowledge to delete.
+     */
+    where: AiModelKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModelKnowledge deleteMany
+   */
+  export type AiModelKnowledgeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiModelKnowledges to delete
+     */
+    where?: AiModelKnowledgeWhereInput
+    /**
+     * Limit how many AiModelKnowledges to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModelKnowledge without action
+   */
+  export type AiModelKnowledgeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModelKnowledge
+     */
+    select?: AiModelKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModelKnowledge
+     */
+    omit?: AiModelKnowledgeOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AiModerationKnowledge
+   */
+
+  export type AggregateAiModerationKnowledge = {
+    _count: AiModerationKnowledgeCountAggregateOutputType | null
+    _avg: AiModerationKnowledgeAvgAggregateOutputType | null
+    _sum: AiModerationKnowledgeSumAggregateOutputType | null
+    _min: AiModerationKnowledgeMinAggregateOutputType | null
+    _max: AiModerationKnowledgeMaxAggregateOutputType | null
+  }
+
+  export type AiModerationKnowledgeAvgAggregateOutputType = {
+    confidence: number | null
+    hitCount: number | null
+  }
+
+  export type AiModerationKnowledgeSumAggregateOutputType = {
+    confidence: number | null
+    hitCount: number | null
+  }
+
+  export type AiModerationKnowledgeMinAggregateOutputType = {
+    id: string | null
+    normalizedText: string | null
+    rawText: string | null
+    checkType: string | null
+    isViolated: boolean | null
+    violationType: string | null
+    confidence: number | null
+    reason: string | null
+    suggestion: string | null
+    detectedKeywords: string | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiModerationKnowledgeMaxAggregateOutputType = {
+    id: string | null
+    normalizedText: string | null
+    rawText: string | null
+    checkType: string | null
+    isViolated: boolean | null
+    violationType: string | null
+    confidence: number | null
+    reason: string | null
+    suggestion: string | null
+    detectedKeywords: string | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiModerationKnowledgeCountAggregateOutputType = {
+    id: number
+    normalizedText: number
+    rawText: number
+    checkType: number
+    isViolated: number
+    violationType: number
+    confidence: number
+    reason: number
+    suggestion: number
+    detectedKeywords: number
+    hitCount: number
+    source: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AiModerationKnowledgeAvgAggregateInputType = {
+    confidence?: true
+    hitCount?: true
+  }
+
+  export type AiModerationKnowledgeSumAggregateInputType = {
+    confidence?: true
+    hitCount?: true
+  }
+
+  export type AiModerationKnowledgeMinAggregateInputType = {
+    id?: true
+    normalizedText?: true
+    rawText?: true
+    checkType?: true
+    isViolated?: true
+    violationType?: true
+    confidence?: true
+    reason?: true
+    suggestion?: true
+    detectedKeywords?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiModerationKnowledgeMaxAggregateInputType = {
+    id?: true
+    normalizedText?: true
+    rawText?: true
+    checkType?: true
+    isViolated?: true
+    violationType?: true
+    confidence?: true
+    reason?: true
+    suggestion?: true
+    detectedKeywords?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiModerationKnowledgeCountAggregateInputType = {
+    id?: true
+    normalizedText?: true
+    rawText?: true
+    checkType?: true
+    isViolated?: true
+    violationType?: true
+    confidence?: true
+    reason?: true
+    suggestion?: true
+    detectedKeywords?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AiModerationKnowledgeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiModerationKnowledge to aggregate.
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModerationKnowledges to fetch.
+     */
+    orderBy?: AiModerationKnowledgeOrderByWithRelationInput | AiModerationKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AiModerationKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModerationKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModerationKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AiModerationKnowledges
+    **/
+    _count?: true | AiModerationKnowledgeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AiModerationKnowledgeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AiModerationKnowledgeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AiModerationKnowledgeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AiModerationKnowledgeMaxAggregateInputType
+  }
+
+  export type GetAiModerationKnowledgeAggregateType<T extends AiModerationKnowledgeAggregateArgs> = {
+        [P in keyof T & keyof AggregateAiModerationKnowledge]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAiModerationKnowledge[P]>
+      : GetScalarType<T[P], AggregateAiModerationKnowledge[P]>
+  }
+
+
+
+
+  export type AiModerationKnowledgeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiModerationKnowledgeWhereInput
+    orderBy?: AiModerationKnowledgeOrderByWithAggregationInput | AiModerationKnowledgeOrderByWithAggregationInput[]
+    by: AiModerationKnowledgeScalarFieldEnum[] | AiModerationKnowledgeScalarFieldEnum
+    having?: AiModerationKnowledgeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AiModerationKnowledgeCountAggregateInputType | true
+    _avg?: AiModerationKnowledgeAvgAggregateInputType
+    _sum?: AiModerationKnowledgeSumAggregateInputType
+    _min?: AiModerationKnowledgeMinAggregateInputType
+    _max?: AiModerationKnowledgeMaxAggregateInputType
+  }
+
+  export type AiModerationKnowledgeGroupByOutputType = {
+    id: string
+    normalizedText: string
+    rawText: string
+    checkType: string
+    isViolated: boolean
+    violationType: string | null
+    confidence: number
+    reason: string | null
+    suggestion: string | null
+    detectedKeywords: string | null
+    hitCount: number
+    source: string
+    createdAt: Date
+    updatedAt: Date
+    _count: AiModerationKnowledgeCountAggregateOutputType | null
+    _avg: AiModerationKnowledgeAvgAggregateOutputType | null
+    _sum: AiModerationKnowledgeSumAggregateOutputType | null
+    _min: AiModerationKnowledgeMinAggregateOutputType | null
+    _max: AiModerationKnowledgeMaxAggregateOutputType | null
+  }
+
+  type GetAiModerationKnowledgeGroupByPayload<T extends AiModerationKnowledgeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AiModerationKnowledgeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AiModerationKnowledgeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AiModerationKnowledgeGroupByOutputType[P]>
+            : GetScalarType<T[P], AiModerationKnowledgeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AiModerationKnowledgeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedText?: boolean
+    rawText?: boolean
+    checkType?: boolean
+    isViolated?: boolean
+    violationType?: boolean
+    confidence?: boolean
+    reason?: boolean
+    suggestion?: boolean
+    detectedKeywords?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModerationKnowledge"]>
+
+  export type AiModerationKnowledgeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedText?: boolean
+    rawText?: boolean
+    checkType?: boolean
+    isViolated?: boolean
+    violationType?: boolean
+    confidence?: boolean
+    reason?: boolean
+    suggestion?: boolean
+    detectedKeywords?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModerationKnowledge"]>
+
+  export type AiModerationKnowledgeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    normalizedText?: boolean
+    rawText?: boolean
+    checkType?: boolean
+    isViolated?: boolean
+    violationType?: boolean
+    confidence?: boolean
+    reason?: boolean
+    suggestion?: boolean
+    detectedKeywords?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiModerationKnowledge"]>
+
+  export type AiModerationKnowledgeSelectScalar = {
+    id?: boolean
+    normalizedText?: boolean
+    rawText?: boolean
+    checkType?: boolean
+    isViolated?: boolean
+    violationType?: boolean
+    confidence?: boolean
+    reason?: boolean
+    suggestion?: boolean
+    detectedKeywords?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AiModerationKnowledgeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "normalizedText" | "rawText" | "checkType" | "isViolated" | "violationType" | "confidence" | "reason" | "suggestion" | "detectedKeywords" | "hitCount" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["aiModerationKnowledge"]>
+
+  export type $AiModerationKnowledgePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AiModerationKnowledge"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      normalizedText: string
+      rawText: string
+      checkType: string
+      isViolated: boolean
+      violationType: string | null
+      confidence: number
+      reason: string | null
+      suggestion: string | null
+      detectedKeywords: string | null
+      hitCount: number
+      source: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aiModerationKnowledge"]>
+    composites: {}
+  }
+
+  type AiModerationKnowledgeGetPayload<S extends boolean | null | undefined | AiModerationKnowledgeDefaultArgs> = $Result.GetResult<Prisma.$AiModerationKnowledgePayload, S>
+
+  type AiModerationKnowledgeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AiModerationKnowledgeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AiModerationKnowledgeCountAggregateInputType | true
+    }
+
+  export interface AiModerationKnowledgeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AiModerationKnowledge'], meta: { name: 'AiModerationKnowledge' } }
+    /**
+     * Find zero or one AiModerationKnowledge that matches the filter.
+     * @param {AiModerationKnowledgeFindUniqueArgs} args - Arguments to find a AiModerationKnowledge
+     * @example
+     * // Get one AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AiModerationKnowledgeFindUniqueArgs>(args: SelectSubset<T, AiModerationKnowledgeFindUniqueArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AiModerationKnowledge that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AiModerationKnowledgeFindUniqueOrThrowArgs} args - Arguments to find a AiModerationKnowledge
+     * @example
+     * // Get one AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AiModerationKnowledgeFindUniqueOrThrowArgs>(args: SelectSubset<T, AiModerationKnowledgeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiModerationKnowledge that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeFindFirstArgs} args - Arguments to find a AiModerationKnowledge
+     * @example
+     * // Get one AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AiModerationKnowledgeFindFirstArgs>(args?: SelectSubset<T, AiModerationKnowledgeFindFirstArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiModerationKnowledge that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeFindFirstOrThrowArgs} args - Arguments to find a AiModerationKnowledge
+     * @example
+     * // Get one AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AiModerationKnowledgeFindFirstOrThrowArgs>(args?: SelectSubset<T, AiModerationKnowledgeFindFirstOrThrowArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AiModerationKnowledges that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AiModerationKnowledges
+     * const aiModerationKnowledges = await prisma.aiModerationKnowledge.findMany()
+     * 
+     * // Get first 10 AiModerationKnowledges
+     * const aiModerationKnowledges = await prisma.aiModerationKnowledge.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aiModerationKnowledgeWithIdOnly = await prisma.aiModerationKnowledge.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AiModerationKnowledgeFindManyArgs>(args?: SelectSubset<T, AiModerationKnowledgeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AiModerationKnowledge.
+     * @param {AiModerationKnowledgeCreateArgs} args - Arguments to create a AiModerationKnowledge.
+     * @example
+     * // Create one AiModerationKnowledge
+     * const AiModerationKnowledge = await prisma.aiModerationKnowledge.create({
+     *   data: {
+     *     // ... data to create a AiModerationKnowledge
+     *   }
+     * })
+     * 
+     */
+    create<T extends AiModerationKnowledgeCreateArgs>(args: SelectSubset<T, AiModerationKnowledgeCreateArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AiModerationKnowledges.
+     * @param {AiModerationKnowledgeCreateManyArgs} args - Arguments to create many AiModerationKnowledges.
+     * @example
+     * // Create many AiModerationKnowledges
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AiModerationKnowledgeCreateManyArgs>(args?: SelectSubset<T, AiModerationKnowledgeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AiModerationKnowledges and returns the data saved in the database.
+     * @param {AiModerationKnowledgeCreateManyAndReturnArgs} args - Arguments to create many AiModerationKnowledges.
+     * @example
+     * // Create many AiModerationKnowledges
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AiModerationKnowledges and only return the `id`
+     * const aiModerationKnowledgeWithIdOnly = await prisma.aiModerationKnowledge.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AiModerationKnowledgeCreateManyAndReturnArgs>(args?: SelectSubset<T, AiModerationKnowledgeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AiModerationKnowledge.
+     * @param {AiModerationKnowledgeDeleteArgs} args - Arguments to delete one AiModerationKnowledge.
+     * @example
+     * // Delete one AiModerationKnowledge
+     * const AiModerationKnowledge = await prisma.aiModerationKnowledge.delete({
+     *   where: {
+     *     // ... filter to delete one AiModerationKnowledge
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AiModerationKnowledgeDeleteArgs>(args: SelectSubset<T, AiModerationKnowledgeDeleteArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AiModerationKnowledge.
+     * @param {AiModerationKnowledgeUpdateArgs} args - Arguments to update one AiModerationKnowledge.
+     * @example
+     * // Update one AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AiModerationKnowledgeUpdateArgs>(args: SelectSubset<T, AiModerationKnowledgeUpdateArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AiModerationKnowledges.
+     * @param {AiModerationKnowledgeDeleteManyArgs} args - Arguments to filter AiModerationKnowledges to delete.
+     * @example
+     * // Delete a few AiModerationKnowledges
+     * const { count } = await prisma.aiModerationKnowledge.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AiModerationKnowledgeDeleteManyArgs>(args?: SelectSubset<T, AiModerationKnowledgeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiModerationKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AiModerationKnowledges
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AiModerationKnowledgeUpdateManyArgs>(args: SelectSubset<T, AiModerationKnowledgeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiModerationKnowledges and returns the data updated in the database.
+     * @param {AiModerationKnowledgeUpdateManyAndReturnArgs} args - Arguments to update many AiModerationKnowledges.
+     * @example
+     * // Update many AiModerationKnowledges
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AiModerationKnowledges and only return the `id`
+     * const aiModerationKnowledgeWithIdOnly = await prisma.aiModerationKnowledge.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AiModerationKnowledgeUpdateManyAndReturnArgs>(args: SelectSubset<T, AiModerationKnowledgeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AiModerationKnowledge.
+     * @param {AiModerationKnowledgeUpsertArgs} args - Arguments to update or create a AiModerationKnowledge.
+     * @example
+     * // Update or create a AiModerationKnowledge
+     * const aiModerationKnowledge = await prisma.aiModerationKnowledge.upsert({
+     *   create: {
+     *     // ... data to create a AiModerationKnowledge
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AiModerationKnowledge we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AiModerationKnowledgeUpsertArgs>(args: SelectSubset<T, AiModerationKnowledgeUpsertArgs<ExtArgs>>): Prisma__AiModerationKnowledgeClient<$Result.GetResult<Prisma.$AiModerationKnowledgePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AiModerationKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeCountArgs} args - Arguments to filter AiModerationKnowledges to count.
+     * @example
+     * // Count the number of AiModerationKnowledges
+     * const count = await prisma.aiModerationKnowledge.count({
+     *   where: {
+     *     // ... the filter for the AiModerationKnowledges we want to count
+     *   }
+     * })
+    **/
+    count<T extends AiModerationKnowledgeCountArgs>(
+      args?: Subset<T, AiModerationKnowledgeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AiModerationKnowledgeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AiModerationKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AiModerationKnowledgeAggregateArgs>(args: Subset<T, AiModerationKnowledgeAggregateArgs>): Prisma.PrismaPromise<GetAiModerationKnowledgeAggregateType<T>>
+
+    /**
+     * Group by AiModerationKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiModerationKnowledgeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AiModerationKnowledgeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AiModerationKnowledgeGroupByArgs['orderBy'] }
+        : { orderBy?: AiModerationKnowledgeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AiModerationKnowledgeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAiModerationKnowledgeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AiModerationKnowledge model
+   */
+  readonly fields: AiModerationKnowledgeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AiModerationKnowledge.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AiModerationKnowledgeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AiModerationKnowledge model
+   */
+  interface AiModerationKnowledgeFieldRefs {
+    readonly id: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly normalizedText: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly rawText: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly checkType: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly isViolated: FieldRef<"AiModerationKnowledge", 'Boolean'>
+    readonly violationType: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly confidence: FieldRef<"AiModerationKnowledge", 'Float'>
+    readonly reason: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly suggestion: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly detectedKeywords: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly hitCount: FieldRef<"AiModerationKnowledge", 'Int'>
+    readonly source: FieldRef<"AiModerationKnowledge", 'String'>
+    readonly createdAt: FieldRef<"AiModerationKnowledge", 'DateTime'>
+    readonly updatedAt: FieldRef<"AiModerationKnowledge", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AiModerationKnowledge findUnique
+   */
+  export type AiModerationKnowledgeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModerationKnowledge to fetch.
+     */
+    where: AiModerationKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModerationKnowledge findUniqueOrThrow
+   */
+  export type AiModerationKnowledgeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModerationKnowledge to fetch.
+     */
+    where: AiModerationKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModerationKnowledge findFirst
+   */
+  export type AiModerationKnowledgeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModerationKnowledge to fetch.
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModerationKnowledges to fetch.
+     */
+    orderBy?: AiModerationKnowledgeOrderByWithRelationInput | AiModerationKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiModerationKnowledges.
+     */
+    cursor?: AiModerationKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModerationKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModerationKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModerationKnowledges.
+     */
+    distinct?: AiModerationKnowledgeScalarFieldEnum | AiModerationKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModerationKnowledge findFirstOrThrow
+   */
+  export type AiModerationKnowledgeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModerationKnowledge to fetch.
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModerationKnowledges to fetch.
+     */
+    orderBy?: AiModerationKnowledgeOrderByWithRelationInput | AiModerationKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiModerationKnowledges.
+     */
+    cursor?: AiModerationKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModerationKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModerationKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModerationKnowledges.
+     */
+    distinct?: AiModerationKnowledgeScalarFieldEnum | AiModerationKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModerationKnowledge findMany
+   */
+  export type AiModerationKnowledgeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiModerationKnowledges to fetch.
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiModerationKnowledges to fetch.
+     */
+    orderBy?: AiModerationKnowledgeOrderByWithRelationInput | AiModerationKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AiModerationKnowledges.
+     */
+    cursor?: AiModerationKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiModerationKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiModerationKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiModerationKnowledges.
+     */
+    distinct?: AiModerationKnowledgeScalarFieldEnum | AiModerationKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiModerationKnowledge create
+   */
+  export type AiModerationKnowledgeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to create a AiModerationKnowledge.
+     */
+    data: XOR<AiModerationKnowledgeCreateInput, AiModerationKnowledgeUncheckedCreateInput>
+  }
+
+  /**
+   * AiModerationKnowledge createMany
+   */
+  export type AiModerationKnowledgeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AiModerationKnowledges.
+     */
+    data: AiModerationKnowledgeCreateManyInput | AiModerationKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiModerationKnowledge createManyAndReturn
+   */
+  export type AiModerationKnowledgeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to create many AiModerationKnowledges.
+     */
+    data: AiModerationKnowledgeCreateManyInput | AiModerationKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiModerationKnowledge update
+   */
+  export type AiModerationKnowledgeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to update a AiModerationKnowledge.
+     */
+    data: XOR<AiModerationKnowledgeUpdateInput, AiModerationKnowledgeUncheckedUpdateInput>
+    /**
+     * Choose, which AiModerationKnowledge to update.
+     */
+    where: AiModerationKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModerationKnowledge updateMany
+   */
+  export type AiModerationKnowledgeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AiModerationKnowledges.
+     */
+    data: XOR<AiModerationKnowledgeUpdateManyMutationInput, AiModerationKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiModerationKnowledges to update
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * Limit how many AiModerationKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModerationKnowledge updateManyAndReturn
+   */
+  export type AiModerationKnowledgeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to update AiModerationKnowledges.
+     */
+    data: XOR<AiModerationKnowledgeUpdateManyMutationInput, AiModerationKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiModerationKnowledges to update
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * Limit how many AiModerationKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModerationKnowledge upsert
+   */
+  export type AiModerationKnowledgeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * The filter to search for the AiModerationKnowledge to update in case it exists.
+     */
+    where: AiModerationKnowledgeWhereUniqueInput
+    /**
+     * In case the AiModerationKnowledge found by the `where` argument doesn't exist, create a new AiModerationKnowledge with this data.
+     */
+    create: XOR<AiModerationKnowledgeCreateInput, AiModerationKnowledgeUncheckedCreateInput>
+    /**
+     * In case the AiModerationKnowledge was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AiModerationKnowledgeUpdateInput, AiModerationKnowledgeUncheckedUpdateInput>
+  }
+
+  /**
+   * AiModerationKnowledge delete
+   */
+  export type AiModerationKnowledgeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter which AiModerationKnowledge to delete.
+     */
+    where: AiModerationKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiModerationKnowledge deleteMany
+   */
+  export type AiModerationKnowledgeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiModerationKnowledges to delete
+     */
+    where?: AiModerationKnowledgeWhereInput
+    /**
+     * Limit how many AiModerationKnowledges to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiModerationKnowledge without action
+   */
+  export type AiModerationKnowledgeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiModerationKnowledge
+     */
+    select?: AiModerationKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiModerationKnowledge
+     */
+    omit?: AiModerationKnowledgeOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AiSearchKnowledge
+   */
+
+  export type AggregateAiSearchKnowledge = {
+    _count: AiSearchKnowledgeCountAggregateOutputType | null
+    _avg: AiSearchKnowledgeAvgAggregateOutputType | null
+    _sum: AiSearchKnowledgeSumAggregateOutputType | null
+    _min: AiSearchKnowledgeMinAggregateOutputType | null
+    _max: AiSearchKnowledgeMaxAggregateOutputType | null
+  }
+
+  export type AiSearchKnowledgeAvgAggregateOutputType = {
+    priceRangeMin: number | null
+    priceRangeMax: number | null
+    hitCount: number | null
+  }
+
+  export type AiSearchKnowledgeSumAggregateOutputType = {
+    priceRangeMin: number | null
+    priceRangeMax: number | null
+    hitCount: number | null
+  }
+
+  export type AiSearchKnowledgeMinAggregateOutputType = {
+    id: string | null
+    searchType: string | null
+    queryKey: string | null
+    rawQuery: string | null
+    detectedIntent: string | null
+    expandedKeywords: string | null
+    suggestedCategory: string | null
+    priceRangeMin: number | null
+    priceRangeMax: number | null
+    visualTags: string | null
+    matchedProductIds: string | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiSearchKnowledgeMaxAggregateOutputType = {
+    id: string | null
+    searchType: string | null
+    queryKey: string | null
+    rawQuery: string | null
+    detectedIntent: string | null
+    expandedKeywords: string | null
+    suggestedCategory: string | null
+    priceRangeMin: number | null
+    priceRangeMax: number | null
+    visualTags: string | null
+    matchedProductIds: string | null
+    hitCount: number | null
+    source: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type AiSearchKnowledgeCountAggregateOutputType = {
+    id: number
+    searchType: number
+    queryKey: number
+    rawQuery: number
+    detectedIntent: number
+    expandedKeywords: number
+    suggestedCategory: number
+    priceRangeMin: number
+    priceRangeMax: number
+    visualTags: number
+    matchedProductIds: number
+    hitCount: number
+    source: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type AiSearchKnowledgeAvgAggregateInputType = {
+    priceRangeMin?: true
+    priceRangeMax?: true
+    hitCount?: true
+  }
+
+  export type AiSearchKnowledgeSumAggregateInputType = {
+    priceRangeMin?: true
+    priceRangeMax?: true
+    hitCount?: true
+  }
+
+  export type AiSearchKnowledgeMinAggregateInputType = {
+    id?: true
+    searchType?: true
+    queryKey?: true
+    rawQuery?: true
+    detectedIntent?: true
+    expandedKeywords?: true
+    suggestedCategory?: true
+    priceRangeMin?: true
+    priceRangeMax?: true
+    visualTags?: true
+    matchedProductIds?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiSearchKnowledgeMaxAggregateInputType = {
+    id?: true
+    searchType?: true
+    queryKey?: true
+    rawQuery?: true
+    detectedIntent?: true
+    expandedKeywords?: true
+    suggestedCategory?: true
+    priceRangeMin?: true
+    priceRangeMax?: true
+    visualTags?: true
+    matchedProductIds?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type AiSearchKnowledgeCountAggregateInputType = {
+    id?: true
+    searchType?: true
+    queryKey?: true
+    rawQuery?: true
+    detectedIntent?: true
+    expandedKeywords?: true
+    suggestedCategory?: true
+    priceRangeMin?: true
+    priceRangeMax?: true
+    visualTags?: true
+    matchedProductIds?: true
+    hitCount?: true
+    source?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type AiSearchKnowledgeAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiSearchKnowledge to aggregate.
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiSearchKnowledges to fetch.
+     */
+    orderBy?: AiSearchKnowledgeOrderByWithRelationInput | AiSearchKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AiSearchKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiSearchKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiSearchKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AiSearchKnowledges
+    **/
+    _count?: true | AiSearchKnowledgeCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: AiSearchKnowledgeAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: AiSearchKnowledgeSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AiSearchKnowledgeMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AiSearchKnowledgeMaxAggregateInputType
+  }
+
+  export type GetAiSearchKnowledgeAggregateType<T extends AiSearchKnowledgeAggregateArgs> = {
+        [P in keyof T & keyof AggregateAiSearchKnowledge]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAiSearchKnowledge[P]>
+      : GetScalarType<T[P], AggregateAiSearchKnowledge[P]>
+  }
+
+
+
+
+  export type AiSearchKnowledgeGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AiSearchKnowledgeWhereInput
+    orderBy?: AiSearchKnowledgeOrderByWithAggregationInput | AiSearchKnowledgeOrderByWithAggregationInput[]
+    by: AiSearchKnowledgeScalarFieldEnum[] | AiSearchKnowledgeScalarFieldEnum
+    having?: AiSearchKnowledgeScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AiSearchKnowledgeCountAggregateInputType | true
+    _avg?: AiSearchKnowledgeAvgAggregateInputType
+    _sum?: AiSearchKnowledgeSumAggregateInputType
+    _min?: AiSearchKnowledgeMinAggregateInputType
+    _max?: AiSearchKnowledgeMaxAggregateInputType
+  }
+
+  export type AiSearchKnowledgeGroupByOutputType = {
+    id: string
+    searchType: string
+    queryKey: string
+    rawQuery: string
+    detectedIntent: string | null
+    expandedKeywords: string
+    suggestedCategory: string | null
+    priceRangeMin: number | null
+    priceRangeMax: number | null
+    visualTags: string | null
+    matchedProductIds: string
+    hitCount: number
+    source: string
+    createdAt: Date
+    updatedAt: Date
+    _count: AiSearchKnowledgeCountAggregateOutputType | null
+    _avg: AiSearchKnowledgeAvgAggregateOutputType | null
+    _sum: AiSearchKnowledgeSumAggregateOutputType | null
+    _min: AiSearchKnowledgeMinAggregateOutputType | null
+    _max: AiSearchKnowledgeMaxAggregateOutputType | null
+  }
+
+  type GetAiSearchKnowledgeGroupByPayload<T extends AiSearchKnowledgeGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AiSearchKnowledgeGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AiSearchKnowledgeGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AiSearchKnowledgeGroupByOutputType[P]>
+            : GetScalarType<T[P], AiSearchKnowledgeGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AiSearchKnowledgeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    searchType?: boolean
+    queryKey?: boolean
+    rawQuery?: boolean
+    detectedIntent?: boolean
+    expandedKeywords?: boolean
+    suggestedCategory?: boolean
+    priceRangeMin?: boolean
+    priceRangeMax?: boolean
+    visualTags?: boolean
+    matchedProductIds?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiSearchKnowledge"]>
+
+  export type AiSearchKnowledgeSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    searchType?: boolean
+    queryKey?: boolean
+    rawQuery?: boolean
+    detectedIntent?: boolean
+    expandedKeywords?: boolean
+    suggestedCategory?: boolean
+    priceRangeMin?: boolean
+    priceRangeMax?: boolean
+    visualTags?: boolean
+    matchedProductIds?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiSearchKnowledge"]>
+
+  export type AiSearchKnowledgeSelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    searchType?: boolean
+    queryKey?: boolean
+    rawQuery?: boolean
+    detectedIntent?: boolean
+    expandedKeywords?: boolean
+    suggestedCategory?: boolean
+    priceRangeMin?: boolean
+    priceRangeMax?: boolean
+    visualTags?: boolean
+    matchedProductIds?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }, ExtArgs["result"]["aiSearchKnowledge"]>
+
+  export type AiSearchKnowledgeSelectScalar = {
+    id?: boolean
+    searchType?: boolean
+    queryKey?: boolean
+    rawQuery?: boolean
+    detectedIntent?: boolean
+    expandedKeywords?: boolean
+    suggestedCategory?: boolean
+    priceRangeMin?: boolean
+    priceRangeMax?: boolean
+    visualTags?: boolean
+    matchedProductIds?: boolean
+    hitCount?: boolean
+    source?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type AiSearchKnowledgeOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "searchType" | "queryKey" | "rawQuery" | "detectedIntent" | "expandedKeywords" | "suggestedCategory" | "priceRangeMin" | "priceRangeMax" | "visualTags" | "matchedProductIds" | "hitCount" | "source" | "createdAt" | "updatedAt", ExtArgs["result"]["aiSearchKnowledge"]>
+
+  export type $AiSearchKnowledgePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AiSearchKnowledge"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      searchType: string
+      queryKey: string
+      rawQuery: string
+      detectedIntent: string | null
+      expandedKeywords: string
+      suggestedCategory: string | null
+      priceRangeMin: number | null
+      priceRangeMax: number | null
+      visualTags: string | null
+      matchedProductIds: string
+      hitCount: number
+      source: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["aiSearchKnowledge"]>
+    composites: {}
+  }
+
+  type AiSearchKnowledgeGetPayload<S extends boolean | null | undefined | AiSearchKnowledgeDefaultArgs> = $Result.GetResult<Prisma.$AiSearchKnowledgePayload, S>
+
+  type AiSearchKnowledgeCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<AiSearchKnowledgeFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: AiSearchKnowledgeCountAggregateInputType | true
+    }
+
+  export interface AiSearchKnowledgeDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AiSearchKnowledge'], meta: { name: 'AiSearchKnowledge' } }
+    /**
+     * Find zero or one AiSearchKnowledge that matches the filter.
+     * @param {AiSearchKnowledgeFindUniqueArgs} args - Arguments to find a AiSearchKnowledge
+     * @example
+     * // Get one AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AiSearchKnowledgeFindUniqueArgs>(args: SelectSubset<T, AiSearchKnowledgeFindUniqueArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one AiSearchKnowledge that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {AiSearchKnowledgeFindUniqueOrThrowArgs} args - Arguments to find a AiSearchKnowledge
+     * @example
+     * // Get one AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AiSearchKnowledgeFindUniqueOrThrowArgs>(args: SelectSubset<T, AiSearchKnowledgeFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiSearchKnowledge that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeFindFirstArgs} args - Arguments to find a AiSearchKnowledge
+     * @example
+     * // Get one AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AiSearchKnowledgeFindFirstArgs>(args?: SelectSubset<T, AiSearchKnowledgeFindFirstArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first AiSearchKnowledge that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeFindFirstOrThrowArgs} args - Arguments to find a AiSearchKnowledge
+     * @example
+     * // Get one AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AiSearchKnowledgeFindFirstOrThrowArgs>(args?: SelectSubset<T, AiSearchKnowledgeFindFirstOrThrowArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more AiSearchKnowledges that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AiSearchKnowledges
+     * const aiSearchKnowledges = await prisma.aiSearchKnowledge.findMany()
+     * 
+     * // Get first 10 AiSearchKnowledges
+     * const aiSearchKnowledges = await prisma.aiSearchKnowledge.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const aiSearchKnowledgeWithIdOnly = await prisma.aiSearchKnowledge.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AiSearchKnowledgeFindManyArgs>(args?: SelectSubset<T, AiSearchKnowledgeFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a AiSearchKnowledge.
+     * @param {AiSearchKnowledgeCreateArgs} args - Arguments to create a AiSearchKnowledge.
+     * @example
+     * // Create one AiSearchKnowledge
+     * const AiSearchKnowledge = await prisma.aiSearchKnowledge.create({
+     *   data: {
+     *     // ... data to create a AiSearchKnowledge
+     *   }
+     * })
+     * 
+     */
+    create<T extends AiSearchKnowledgeCreateArgs>(args: SelectSubset<T, AiSearchKnowledgeCreateArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many AiSearchKnowledges.
+     * @param {AiSearchKnowledgeCreateManyArgs} args - Arguments to create many AiSearchKnowledges.
+     * @example
+     * // Create many AiSearchKnowledges
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AiSearchKnowledgeCreateManyArgs>(args?: SelectSubset<T, AiSearchKnowledgeCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AiSearchKnowledges and returns the data saved in the database.
+     * @param {AiSearchKnowledgeCreateManyAndReturnArgs} args - Arguments to create many AiSearchKnowledges.
+     * @example
+     * // Create many AiSearchKnowledges
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AiSearchKnowledges and only return the `id`
+     * const aiSearchKnowledgeWithIdOnly = await prisma.aiSearchKnowledge.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AiSearchKnowledgeCreateManyAndReturnArgs>(args?: SelectSubset<T, AiSearchKnowledgeCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a AiSearchKnowledge.
+     * @param {AiSearchKnowledgeDeleteArgs} args - Arguments to delete one AiSearchKnowledge.
+     * @example
+     * // Delete one AiSearchKnowledge
+     * const AiSearchKnowledge = await prisma.aiSearchKnowledge.delete({
+     *   where: {
+     *     // ... filter to delete one AiSearchKnowledge
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AiSearchKnowledgeDeleteArgs>(args: SelectSubset<T, AiSearchKnowledgeDeleteArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one AiSearchKnowledge.
+     * @param {AiSearchKnowledgeUpdateArgs} args - Arguments to update one AiSearchKnowledge.
+     * @example
+     * // Update one AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AiSearchKnowledgeUpdateArgs>(args: SelectSubset<T, AiSearchKnowledgeUpdateArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more AiSearchKnowledges.
+     * @param {AiSearchKnowledgeDeleteManyArgs} args - Arguments to filter AiSearchKnowledges to delete.
+     * @example
+     * // Delete a few AiSearchKnowledges
+     * const { count } = await prisma.aiSearchKnowledge.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AiSearchKnowledgeDeleteManyArgs>(args?: SelectSubset<T, AiSearchKnowledgeDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiSearchKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AiSearchKnowledges
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AiSearchKnowledgeUpdateManyArgs>(args: SelectSubset<T, AiSearchKnowledgeUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AiSearchKnowledges and returns the data updated in the database.
+     * @param {AiSearchKnowledgeUpdateManyAndReturnArgs} args - Arguments to update many AiSearchKnowledges.
+     * @example
+     * // Update many AiSearchKnowledges
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more AiSearchKnowledges and only return the `id`
+     * const aiSearchKnowledgeWithIdOnly = await prisma.aiSearchKnowledge.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends AiSearchKnowledgeUpdateManyAndReturnArgs>(args: SelectSubset<T, AiSearchKnowledgeUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one AiSearchKnowledge.
+     * @param {AiSearchKnowledgeUpsertArgs} args - Arguments to update or create a AiSearchKnowledge.
+     * @example
+     * // Update or create a AiSearchKnowledge
+     * const aiSearchKnowledge = await prisma.aiSearchKnowledge.upsert({
+     *   create: {
+     *     // ... data to create a AiSearchKnowledge
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AiSearchKnowledge we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AiSearchKnowledgeUpsertArgs>(args: SelectSubset<T, AiSearchKnowledgeUpsertArgs<ExtArgs>>): Prisma__AiSearchKnowledgeClient<$Result.GetResult<Prisma.$AiSearchKnowledgePayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of AiSearchKnowledges.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeCountArgs} args - Arguments to filter AiSearchKnowledges to count.
+     * @example
+     * // Count the number of AiSearchKnowledges
+     * const count = await prisma.aiSearchKnowledge.count({
+     *   where: {
+     *     // ... the filter for the AiSearchKnowledges we want to count
+     *   }
+     * })
+    **/
+    count<T extends AiSearchKnowledgeCountArgs>(
+      args?: Subset<T, AiSearchKnowledgeCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AiSearchKnowledgeCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AiSearchKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AiSearchKnowledgeAggregateArgs>(args: Subset<T, AiSearchKnowledgeAggregateArgs>): Prisma.PrismaPromise<GetAiSearchKnowledgeAggregateType<T>>
+
+    /**
+     * Group by AiSearchKnowledge.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AiSearchKnowledgeGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AiSearchKnowledgeGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AiSearchKnowledgeGroupByArgs['orderBy'] }
+        : { orderBy?: AiSearchKnowledgeGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AiSearchKnowledgeGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAiSearchKnowledgeGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AiSearchKnowledge model
+   */
+  readonly fields: AiSearchKnowledgeFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AiSearchKnowledge.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AiSearchKnowledgeClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AiSearchKnowledge model
+   */
+  interface AiSearchKnowledgeFieldRefs {
+    readonly id: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly searchType: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly queryKey: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly rawQuery: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly detectedIntent: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly expandedKeywords: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly suggestedCategory: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly priceRangeMin: FieldRef<"AiSearchKnowledge", 'Float'>
+    readonly priceRangeMax: FieldRef<"AiSearchKnowledge", 'Float'>
+    readonly visualTags: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly matchedProductIds: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly hitCount: FieldRef<"AiSearchKnowledge", 'Int'>
+    readonly source: FieldRef<"AiSearchKnowledge", 'String'>
+    readonly createdAt: FieldRef<"AiSearchKnowledge", 'DateTime'>
+    readonly updatedAt: FieldRef<"AiSearchKnowledge", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AiSearchKnowledge findUnique
+   */
+  export type AiSearchKnowledgeFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiSearchKnowledge to fetch.
+     */
+    where: AiSearchKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiSearchKnowledge findUniqueOrThrow
+   */
+  export type AiSearchKnowledgeFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiSearchKnowledge to fetch.
+     */
+    where: AiSearchKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiSearchKnowledge findFirst
+   */
+  export type AiSearchKnowledgeFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiSearchKnowledge to fetch.
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiSearchKnowledges to fetch.
+     */
+    orderBy?: AiSearchKnowledgeOrderByWithRelationInput | AiSearchKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiSearchKnowledges.
+     */
+    cursor?: AiSearchKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiSearchKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiSearchKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiSearchKnowledges.
+     */
+    distinct?: AiSearchKnowledgeScalarFieldEnum | AiSearchKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiSearchKnowledge findFirstOrThrow
+   */
+  export type AiSearchKnowledgeFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiSearchKnowledge to fetch.
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiSearchKnowledges to fetch.
+     */
+    orderBy?: AiSearchKnowledgeOrderByWithRelationInput | AiSearchKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AiSearchKnowledges.
+     */
+    cursor?: AiSearchKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiSearchKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiSearchKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiSearchKnowledges.
+     */
+    distinct?: AiSearchKnowledgeScalarFieldEnum | AiSearchKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiSearchKnowledge findMany
+   */
+  export type AiSearchKnowledgeFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter, which AiSearchKnowledges to fetch.
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AiSearchKnowledges to fetch.
+     */
+    orderBy?: AiSearchKnowledgeOrderByWithRelationInput | AiSearchKnowledgeOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AiSearchKnowledges.
+     */
+    cursor?: AiSearchKnowledgeWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AiSearchKnowledges from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AiSearchKnowledges.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AiSearchKnowledges.
+     */
+    distinct?: AiSearchKnowledgeScalarFieldEnum | AiSearchKnowledgeScalarFieldEnum[]
+  }
+
+  /**
+   * AiSearchKnowledge create
+   */
+  export type AiSearchKnowledgeCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to create a AiSearchKnowledge.
+     */
+    data: XOR<AiSearchKnowledgeCreateInput, AiSearchKnowledgeUncheckedCreateInput>
+  }
+
+  /**
+   * AiSearchKnowledge createMany
+   */
+  export type AiSearchKnowledgeCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AiSearchKnowledges.
+     */
+    data: AiSearchKnowledgeCreateManyInput | AiSearchKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiSearchKnowledge createManyAndReturn
+   */
+  export type AiSearchKnowledgeCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to create many AiSearchKnowledges.
+     */
+    data: AiSearchKnowledgeCreateManyInput | AiSearchKnowledgeCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AiSearchKnowledge update
+   */
+  export type AiSearchKnowledgeUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data needed to update a AiSearchKnowledge.
+     */
+    data: XOR<AiSearchKnowledgeUpdateInput, AiSearchKnowledgeUncheckedUpdateInput>
+    /**
+     * Choose, which AiSearchKnowledge to update.
+     */
+    where: AiSearchKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiSearchKnowledge updateMany
+   */
+  export type AiSearchKnowledgeUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AiSearchKnowledges.
+     */
+    data: XOR<AiSearchKnowledgeUpdateManyMutationInput, AiSearchKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiSearchKnowledges to update
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * Limit how many AiSearchKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiSearchKnowledge updateManyAndReturn
+   */
+  export type AiSearchKnowledgeUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * The data used to update AiSearchKnowledges.
+     */
+    data: XOR<AiSearchKnowledgeUpdateManyMutationInput, AiSearchKnowledgeUncheckedUpdateManyInput>
+    /**
+     * Filter which AiSearchKnowledges to update
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * Limit how many AiSearchKnowledges to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiSearchKnowledge upsert
+   */
+  export type AiSearchKnowledgeUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * The filter to search for the AiSearchKnowledge to update in case it exists.
+     */
+    where: AiSearchKnowledgeWhereUniqueInput
+    /**
+     * In case the AiSearchKnowledge found by the `where` argument doesn't exist, create a new AiSearchKnowledge with this data.
+     */
+    create: XOR<AiSearchKnowledgeCreateInput, AiSearchKnowledgeUncheckedCreateInput>
+    /**
+     * In case the AiSearchKnowledge was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AiSearchKnowledgeUpdateInput, AiSearchKnowledgeUncheckedUpdateInput>
+  }
+
+  /**
+   * AiSearchKnowledge delete
+   */
+  export type AiSearchKnowledgeDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+    /**
+     * Filter which AiSearchKnowledge to delete.
+     */
+    where: AiSearchKnowledgeWhereUniqueInput
+  }
+
+  /**
+   * AiSearchKnowledge deleteMany
+   */
+  export type AiSearchKnowledgeDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AiSearchKnowledges to delete
+     */
+    where?: AiSearchKnowledgeWhereInput
+    /**
+     * Limit how many AiSearchKnowledges to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * AiSearchKnowledge without action
+   */
+  export type AiSearchKnowledgeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AiSearchKnowledge
+     */
+    select?: AiSearchKnowledgeSelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the AiSearchKnowledge
+     */
+    omit?: AiSearchKnowledgeOmit<ExtArgs> | null
+  }
+
+
+  /**
+   * Model UserActivity
+   */
+
+  export type AggregateUserActivity = {
+    _count: UserActivityCountAggregateOutputType | null
+    _min: UserActivityMinAggregateOutputType | null
+    _max: UserActivityMaxAggregateOutputType | null
+  }
+
+  export type UserActivityMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    action: string | null
+    productId: string | null
+    category: string | null
+    metadata: string | null
+    createdAt: Date | null
+  }
+
+  export type UserActivityMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    action: string | null
+    productId: string | null
+    category: string | null
+    metadata: string | null
+    createdAt: Date | null
+  }
+
+  export type UserActivityCountAggregateOutputType = {
+    id: number
+    userId: number
+    action: number
+    productId: number
+    category: number
+    metadata: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type UserActivityMinAggregateInputType = {
+    id?: true
+    userId?: true
+    action?: true
+    productId?: true
+    category?: true
+    metadata?: true
+    createdAt?: true
+  }
+
+  export type UserActivityMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    action?: true
+    productId?: true
+    category?: true
+    metadata?: true
+    createdAt?: true
+  }
+
+  export type UserActivityCountAggregateInputType = {
+    id?: true
+    userId?: true
+    action?: true
+    productId?: true
+    category?: true
+    metadata?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type UserActivityAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserActivity to aggregate.
+     */
+    where?: UserActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserActivities to fetch.
+     */
+    orderBy?: UserActivityOrderByWithRelationInput | UserActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: UserActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned UserActivities
+    **/
+    _count?: true | UserActivityCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: UserActivityMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: UserActivityMaxAggregateInputType
+  }
+
+  export type GetUserActivityAggregateType<T extends UserActivityAggregateArgs> = {
+        [P in keyof T & keyof AggregateUserActivity]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateUserActivity[P]>
+      : GetScalarType<T[P], AggregateUserActivity[P]>
+  }
+
+
+
+
+  export type UserActivityGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: UserActivityWhereInput
+    orderBy?: UserActivityOrderByWithAggregationInput | UserActivityOrderByWithAggregationInput[]
+    by: UserActivityScalarFieldEnum[] | UserActivityScalarFieldEnum
+    having?: UserActivityScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: UserActivityCountAggregateInputType | true
+    _min?: UserActivityMinAggregateInputType
+    _max?: UserActivityMaxAggregateInputType
+  }
+
+  export type UserActivityGroupByOutputType = {
+    id: string
+    userId: string
+    action: string
+    productId: string | null
+    category: string | null
+    metadata: string | null
+    createdAt: Date
+    _count: UserActivityCountAggregateOutputType | null
+    _min: UserActivityMinAggregateOutputType | null
+    _max: UserActivityMaxAggregateOutputType | null
+  }
+
+  type GetUserActivityGroupByPayload<T extends UserActivityGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<UserActivityGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof UserActivityGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], UserActivityGroupByOutputType[P]>
+            : GetScalarType<T[P], UserActivityGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type UserActivitySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    action?: boolean
+    productId?: boolean
+    category?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["userActivity"]>
+
+  export type UserActivitySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    action?: boolean
+    productId?: boolean
+    category?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["userActivity"]>
+
+  export type UserActivitySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    action?: boolean
+    productId?: boolean
+    category?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["userActivity"]>
+
+  export type UserActivitySelectScalar = {
+    id?: boolean
+    userId?: boolean
+    action?: boolean
+    productId?: boolean
+    category?: boolean
+    metadata?: boolean
+    createdAt?: boolean
+  }
+
+  export type UserActivityOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "userId" | "action" | "productId" | "category" | "metadata" | "createdAt", ExtArgs["result"]["userActivity"]>
+
+  export type $UserActivityPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "UserActivity"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      action: string
+      productId: string | null
+      category: string | null
+      metadata: string | null
+      createdAt: Date
+    }, ExtArgs["result"]["userActivity"]>
+    composites: {}
+  }
+
+  type UserActivityGetPayload<S extends boolean | null | undefined | UserActivityDefaultArgs> = $Result.GetResult<Prisma.$UserActivityPayload, S>
+
+  type UserActivityCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> =
+    Omit<UserActivityFindManyArgs, 'select' | 'include' | 'distinct' | 'omit'> & {
+      select?: UserActivityCountAggregateInputType | true
+    }
+
+  export interface UserActivityDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['UserActivity'], meta: { name: 'UserActivity' } }
+    /**
+     * Find zero or one UserActivity that matches the filter.
+     * @param {UserActivityFindUniqueArgs} args - Arguments to find a UserActivity
+     * @example
+     * // Get one UserActivity
+     * const userActivity = await prisma.userActivity.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends UserActivityFindUniqueArgs>(args: SelectSubset<T, UserActivityFindUniqueArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "findUnique", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find one UserActivity that matches the filter or throw an error with `error.code='P2025'`
+     * if no matches were found.
+     * @param {UserActivityFindUniqueOrThrowArgs} args - Arguments to find a UserActivity
+     * @example
+     * // Get one UserActivity
+     * const userActivity = await prisma.userActivity.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends UserActivityFindUniqueOrThrowArgs>(args: SelectSubset<T, UserActivityFindUniqueOrThrowArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "findUniqueOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserActivity that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityFindFirstArgs} args - Arguments to find a UserActivity
+     * @example
+     * // Get one UserActivity
+     * const userActivity = await prisma.userActivity.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends UserActivityFindFirstArgs>(args?: SelectSubset<T, UserActivityFindFirstArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "findFirst", GlobalOmitOptions> | null, null, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find the first UserActivity that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityFindFirstOrThrowArgs} args - Arguments to find a UserActivity
+     * @example
+     * // Get one UserActivity
+     * const userActivity = await prisma.userActivity.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends UserActivityFindFirstOrThrowArgs>(args?: SelectSubset<T, UserActivityFindFirstOrThrowArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "findFirstOrThrow", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Find zero or more UserActivities that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all UserActivities
+     * const userActivities = await prisma.userActivity.findMany()
+     * 
+     * // Get first 10 UserActivities
+     * const userActivities = await prisma.userActivity.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const userActivityWithIdOnly = await prisma.userActivity.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends UserActivityFindManyArgs>(args?: SelectSubset<T, UserActivityFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "findMany", GlobalOmitOptions>>
+
+    /**
+     * Create a UserActivity.
+     * @param {UserActivityCreateArgs} args - Arguments to create a UserActivity.
+     * @example
+     * // Create one UserActivity
+     * const UserActivity = await prisma.userActivity.create({
+     *   data: {
+     *     // ... data to create a UserActivity
+     *   }
+     * })
+     * 
+     */
+    create<T extends UserActivityCreateArgs>(args: SelectSubset<T, UserActivityCreateArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "create", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Create many UserActivities.
+     * @param {UserActivityCreateManyArgs} args - Arguments to create many UserActivities.
+     * @example
+     * // Create many UserActivities
+     * const userActivity = await prisma.userActivity.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends UserActivityCreateManyArgs>(args?: SelectSubset<T, UserActivityCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many UserActivities and returns the data saved in the database.
+     * @param {UserActivityCreateManyAndReturnArgs} args - Arguments to create many UserActivities.
+     * @example
+     * // Create many UserActivities
+     * const userActivity = await prisma.userActivity.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many UserActivities and only return the `id`
+     * const userActivityWithIdOnly = await prisma.userActivity.createManyAndReturn({
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends UserActivityCreateManyAndReturnArgs>(args?: SelectSubset<T, UserActivityCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "createManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Delete a UserActivity.
+     * @param {UserActivityDeleteArgs} args - Arguments to delete one UserActivity.
+     * @example
+     * // Delete one UserActivity
+     * const UserActivity = await prisma.userActivity.delete({
+     *   where: {
+     *     // ... filter to delete one UserActivity
+     *   }
+     * })
+     * 
+     */
+    delete<T extends UserActivityDeleteArgs>(args: SelectSubset<T, UserActivityDeleteArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "delete", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Update one UserActivity.
+     * @param {UserActivityUpdateArgs} args - Arguments to update one UserActivity.
+     * @example
+     * // Update one UserActivity
+     * const userActivity = await prisma.userActivity.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends UserActivityUpdateArgs>(args: SelectSubset<T, UserActivityUpdateArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "update", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+    /**
+     * Delete zero or more UserActivities.
+     * @param {UserActivityDeleteManyArgs} args - Arguments to filter UserActivities to delete.
+     * @example
+     * // Delete a few UserActivities
+     * const { count } = await prisma.userActivity.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends UserActivityDeleteManyArgs>(args?: SelectSubset<T, UserActivityDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserActivities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many UserActivities
+     * const userActivity = await prisma.userActivity.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends UserActivityUpdateManyArgs>(args: SelectSubset<T, UserActivityUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more UserActivities and returns the data updated in the database.
+     * @param {UserActivityUpdateManyAndReturnArgs} args - Arguments to update many UserActivities.
+     * @example
+     * // Update many UserActivities
+     * const userActivity = await prisma.userActivity.updateManyAndReturn({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Update zero or more UserActivities and only return the `id`
+     * const userActivityWithIdOnly = await prisma.userActivity.updateManyAndReturn({
+     *   select: { id: true },
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    updateManyAndReturn<T extends UserActivityUpdateManyAndReturnArgs>(args: SelectSubset<T, UserActivityUpdateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "updateManyAndReturn", GlobalOmitOptions>>
+
+    /**
+     * Create or update one UserActivity.
+     * @param {UserActivityUpsertArgs} args - Arguments to update or create a UserActivity.
+     * @example
+     * // Update or create a UserActivity
+     * const userActivity = await prisma.userActivity.upsert({
+     *   create: {
+     *     // ... data to create a UserActivity
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the UserActivity we want to update
+     *   }
+     * })
+     */
+    upsert<T extends UserActivityUpsertArgs>(args: SelectSubset<T, UserActivityUpsertArgs<ExtArgs>>): Prisma__UserActivityClient<$Result.GetResult<Prisma.$UserActivityPayload<ExtArgs>, T, "upsert", GlobalOmitOptions>, never, ExtArgs, GlobalOmitOptions>
+
+
+    /**
+     * Count the number of UserActivities.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityCountArgs} args - Arguments to filter UserActivities to count.
+     * @example
+     * // Count the number of UserActivities
+     * const count = await prisma.userActivity.count({
+     *   where: {
+     *     // ... the filter for the UserActivities we want to count
+     *   }
+     * })
+    **/
+    count<T extends UserActivityCountArgs>(
+      args?: Subset<T, UserActivityCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], UserActivityCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a UserActivity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends UserActivityAggregateArgs>(args: Subset<T, UserActivityAggregateArgs>): Prisma.PrismaPromise<GetUserActivityAggregateType<T>>
+
+    /**
+     * Group by UserActivity.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {UserActivityGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends UserActivityGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: UserActivityGroupByArgs['orderBy'] }
+        : { orderBy?: UserActivityGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, UserActivityGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetUserActivityGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the UserActivity model
+   */
+  readonly fields: UserActivityFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for UserActivity.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__UserActivityClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, GlobalOmitOptions = {}> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the UserActivity model
+   */
+  interface UserActivityFieldRefs {
+    readonly id: FieldRef<"UserActivity", 'String'>
+    readonly userId: FieldRef<"UserActivity", 'String'>
+    readonly action: FieldRef<"UserActivity", 'String'>
+    readonly productId: FieldRef<"UserActivity", 'String'>
+    readonly category: FieldRef<"UserActivity", 'String'>
+    readonly metadata: FieldRef<"UserActivity", 'String'>
+    readonly createdAt: FieldRef<"UserActivity", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * UserActivity findUnique
+   */
+  export type UserActivityFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter, which UserActivity to fetch.
+     */
+    where: UserActivityWhereUniqueInput
+  }
+
+  /**
+   * UserActivity findUniqueOrThrow
+   */
+  export type UserActivityFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter, which UserActivity to fetch.
+     */
+    where: UserActivityWhereUniqueInput
+  }
+
+  /**
+   * UserActivity findFirst
+   */
+  export type UserActivityFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter, which UserActivity to fetch.
+     */
+    where?: UserActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserActivities to fetch.
+     */
+    orderBy?: UserActivityOrderByWithRelationInput | UserActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserActivities.
+     */
+    cursor?: UserActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserActivities.
+     */
+    distinct?: UserActivityScalarFieldEnum | UserActivityScalarFieldEnum[]
+  }
+
+  /**
+   * UserActivity findFirstOrThrow
+   */
+  export type UserActivityFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter, which UserActivity to fetch.
+     */
+    where?: UserActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserActivities to fetch.
+     */
+    orderBy?: UserActivityOrderByWithRelationInput | UserActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for UserActivities.
+     */
+    cursor?: UserActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserActivities.
+     */
+    distinct?: UserActivityScalarFieldEnum | UserActivityScalarFieldEnum[]
+  }
+
+  /**
+   * UserActivity findMany
+   */
+  export type UserActivityFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter, which UserActivities to fetch.
+     */
+    where?: UserActivityWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of UserActivities to fetch.
+     */
+    orderBy?: UserActivityOrderByWithRelationInput | UserActivityOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing UserActivities.
+     */
+    cursor?: UserActivityWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` UserActivities from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` UserActivities.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of UserActivities.
+     */
+    distinct?: UserActivityScalarFieldEnum | UserActivityScalarFieldEnum[]
+  }
+
+  /**
+   * UserActivity create
+   */
+  export type UserActivityCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * The data needed to create a UserActivity.
+     */
+    data: XOR<UserActivityCreateInput, UserActivityUncheckedCreateInput>
+  }
+
+  /**
+   * UserActivity createMany
+   */
+  export type UserActivityCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many UserActivities.
+     */
+    data: UserActivityCreateManyInput | UserActivityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserActivity createManyAndReturn
+   */
+  export type UserActivityCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * The data used to create many UserActivities.
+     */
+    data: UserActivityCreateManyInput | UserActivityCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * UserActivity update
+   */
+  export type UserActivityUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * The data needed to update a UserActivity.
+     */
+    data: XOR<UserActivityUpdateInput, UserActivityUncheckedUpdateInput>
+    /**
+     * Choose, which UserActivity to update.
+     */
+    where: UserActivityWhereUniqueInput
+  }
+
+  /**
+   * UserActivity updateMany
+   */
+  export type UserActivityUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update UserActivities.
+     */
+    data: XOR<UserActivityUpdateManyMutationInput, UserActivityUncheckedUpdateManyInput>
+    /**
+     * Filter which UserActivities to update
+     */
+    where?: UserActivityWhereInput
+    /**
+     * Limit how many UserActivities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserActivity updateManyAndReturn
+   */
+  export type UserActivityUpdateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelectUpdateManyAndReturn<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * The data used to update UserActivities.
+     */
+    data: XOR<UserActivityUpdateManyMutationInput, UserActivityUncheckedUpdateManyInput>
+    /**
+     * Filter which UserActivities to update
+     */
+    where?: UserActivityWhereInput
+    /**
+     * Limit how many UserActivities to update.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserActivity upsert
+   */
+  export type UserActivityUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * The filter to search for the UserActivity to update in case it exists.
+     */
+    where: UserActivityWhereUniqueInput
+    /**
+     * In case the UserActivity found by the `where` argument doesn't exist, create a new UserActivity with this data.
+     */
+    create: XOR<UserActivityCreateInput, UserActivityUncheckedCreateInput>
+    /**
+     * In case the UserActivity was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<UserActivityUpdateInput, UserActivityUncheckedUpdateInput>
+  }
+
+  /**
+   * UserActivity delete
+   */
+  export type UserActivityDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+    /**
+     * Filter which UserActivity to delete.
+     */
+    where: UserActivityWhereUniqueInput
+  }
+
+  /**
+   * UserActivity deleteMany
+   */
+  export type UserActivityDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which UserActivities to delete
+     */
+    where?: UserActivityWhereInput
+    /**
+     * Limit how many UserActivities to delete.
+     */
+    limit?: number
+  }
+
+  /**
+   * UserActivity without action
+   */
+  export type UserActivityDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the UserActivity
+     */
+    select?: UserActivitySelect<ExtArgs> | null
+    /**
+     * Omit specific fields from the UserActivity
+     */
+    omit?: UserActivityOmit<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -11144,6 +16068,84 @@ export namespace Prisma {
   };
 
   export type FlashSaleItemScalarFieldEnum = (typeof FlashSaleItemScalarFieldEnum)[keyof typeof FlashSaleItemScalarFieldEnum]
+
+
+  export const AiModelKnowledgeScalarFieldEnum: {
+    id: 'id',
+    normalizedKey: 'normalizedKey',
+    rawKeywords: 'rawKeywords',
+    category: 'category',
+    brand: 'brand',
+    tone: 'tone',
+    features: 'features',
+    suggestedTitle: 'suggestedTitle',
+    suggestedCategory: 'suggestedCategory',
+    suggestedBrand: 'suggestedBrand',
+    seoKeywords: 'seoKeywords',
+    hashtags: 'hashtags',
+    description: 'description',
+    trainingEpoch: 'trainingEpoch',
+    hitCount: 'hitCount',
+    source: 'source',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AiModelKnowledgeScalarFieldEnum = (typeof AiModelKnowledgeScalarFieldEnum)[keyof typeof AiModelKnowledgeScalarFieldEnum]
+
+
+  export const AiModerationKnowledgeScalarFieldEnum: {
+    id: 'id',
+    normalizedText: 'normalizedText',
+    rawText: 'rawText',
+    checkType: 'checkType',
+    isViolated: 'isViolated',
+    violationType: 'violationType',
+    confidence: 'confidence',
+    reason: 'reason',
+    suggestion: 'suggestion',
+    detectedKeywords: 'detectedKeywords',
+    hitCount: 'hitCount',
+    source: 'source',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AiModerationKnowledgeScalarFieldEnum = (typeof AiModerationKnowledgeScalarFieldEnum)[keyof typeof AiModerationKnowledgeScalarFieldEnum]
+
+
+  export const AiSearchKnowledgeScalarFieldEnum: {
+    id: 'id',
+    searchType: 'searchType',
+    queryKey: 'queryKey',
+    rawQuery: 'rawQuery',
+    detectedIntent: 'detectedIntent',
+    expandedKeywords: 'expandedKeywords',
+    suggestedCategory: 'suggestedCategory',
+    priceRangeMin: 'priceRangeMin',
+    priceRangeMax: 'priceRangeMax',
+    visualTags: 'visualTags',
+    matchedProductIds: 'matchedProductIds',
+    hitCount: 'hitCount',
+    source: 'source',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type AiSearchKnowledgeScalarFieldEnum = (typeof AiSearchKnowledgeScalarFieldEnum)[keyof typeof AiSearchKnowledgeScalarFieldEnum]
+
+
+  export const UserActivityScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    action: 'action',
+    productId: 'productId',
+    category: 'category',
+    metadata: 'metadata',
+    createdAt: 'createdAt'
+  };
+
+  export type UserActivityScalarFieldEnum = (typeof UserActivityScalarFieldEnum)[keyof typeof UserActivityScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -11939,6 +16941,390 @@ export namespace Prisma {
     status?: StringWithAggregatesFilter<"FlashSaleItem"> | string
     createdAt?: DateTimeWithAggregatesFilter<"FlashSaleItem"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"FlashSaleItem"> | Date | string
+  }
+
+  export type AiModelKnowledgeWhereInput = {
+    AND?: AiModelKnowledgeWhereInput | AiModelKnowledgeWhereInput[]
+    OR?: AiModelKnowledgeWhereInput[]
+    NOT?: AiModelKnowledgeWhereInput | AiModelKnowledgeWhereInput[]
+    id?: StringFilter<"AiModelKnowledge"> | string
+    normalizedKey?: StringFilter<"AiModelKnowledge"> | string
+    rawKeywords?: StringFilter<"AiModelKnowledge"> | string
+    category?: StringFilter<"AiModelKnowledge"> | string
+    brand?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    tone?: StringFilter<"AiModelKnowledge"> | string
+    features?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    suggestedTitle?: StringFilter<"AiModelKnowledge"> | string
+    suggestedCategory?: StringFilter<"AiModelKnowledge"> | string
+    suggestedBrand?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    seoKeywords?: StringFilter<"AiModelKnowledge"> | string
+    hashtags?: StringFilter<"AiModelKnowledge"> | string
+    description?: StringFilter<"AiModelKnowledge"> | string
+    trainingEpoch?: IntFilter<"AiModelKnowledge"> | number
+    hitCount?: IntFilter<"AiModelKnowledge"> | number
+    source?: StringFilter<"AiModelKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiModelKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiModelKnowledge"> | Date | string
+  }
+
+  export type AiModelKnowledgeOrderByWithRelationInput = {
+    id?: SortOrder
+    normalizedKey?: SortOrder
+    rawKeywords?: SortOrder
+    category?: SortOrder
+    brand?: SortOrderInput | SortOrder
+    tone?: SortOrder
+    features?: SortOrderInput | SortOrder
+    suggestedTitle?: SortOrder
+    suggestedCategory?: SortOrder
+    suggestedBrand?: SortOrderInput | SortOrder
+    seoKeywords?: SortOrder
+    hashtags?: SortOrder
+    description?: SortOrder
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModelKnowledgeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AiModelKnowledgeWhereInput | AiModelKnowledgeWhereInput[]
+    OR?: AiModelKnowledgeWhereInput[]
+    NOT?: AiModelKnowledgeWhereInput | AiModelKnowledgeWhereInput[]
+    normalizedKey?: StringFilter<"AiModelKnowledge"> | string
+    rawKeywords?: StringFilter<"AiModelKnowledge"> | string
+    category?: StringFilter<"AiModelKnowledge"> | string
+    brand?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    tone?: StringFilter<"AiModelKnowledge"> | string
+    features?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    suggestedTitle?: StringFilter<"AiModelKnowledge"> | string
+    suggestedCategory?: StringFilter<"AiModelKnowledge"> | string
+    suggestedBrand?: StringNullableFilter<"AiModelKnowledge"> | string | null
+    seoKeywords?: StringFilter<"AiModelKnowledge"> | string
+    hashtags?: StringFilter<"AiModelKnowledge"> | string
+    description?: StringFilter<"AiModelKnowledge"> | string
+    trainingEpoch?: IntFilter<"AiModelKnowledge"> | number
+    hitCount?: IntFilter<"AiModelKnowledge"> | number
+    source?: StringFilter<"AiModelKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiModelKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiModelKnowledge"> | Date | string
+  }, "id">
+
+  export type AiModelKnowledgeOrderByWithAggregationInput = {
+    id?: SortOrder
+    normalizedKey?: SortOrder
+    rawKeywords?: SortOrder
+    category?: SortOrder
+    brand?: SortOrderInput | SortOrder
+    tone?: SortOrder
+    features?: SortOrderInput | SortOrder
+    suggestedTitle?: SortOrder
+    suggestedCategory?: SortOrder
+    suggestedBrand?: SortOrderInput | SortOrder
+    seoKeywords?: SortOrder
+    hashtags?: SortOrder
+    description?: SortOrder
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AiModelKnowledgeCountOrderByAggregateInput
+    _avg?: AiModelKnowledgeAvgOrderByAggregateInput
+    _max?: AiModelKnowledgeMaxOrderByAggregateInput
+    _min?: AiModelKnowledgeMinOrderByAggregateInput
+    _sum?: AiModelKnowledgeSumOrderByAggregateInput
+  }
+
+  export type AiModelKnowledgeScalarWhereWithAggregatesInput = {
+    AND?: AiModelKnowledgeScalarWhereWithAggregatesInput | AiModelKnowledgeScalarWhereWithAggregatesInput[]
+    OR?: AiModelKnowledgeScalarWhereWithAggregatesInput[]
+    NOT?: AiModelKnowledgeScalarWhereWithAggregatesInput | AiModelKnowledgeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    normalizedKey?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    rawKeywords?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    category?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    brand?: StringNullableWithAggregatesFilter<"AiModelKnowledge"> | string | null
+    tone?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    features?: StringNullableWithAggregatesFilter<"AiModelKnowledge"> | string | null
+    suggestedTitle?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    suggestedCategory?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    suggestedBrand?: StringNullableWithAggregatesFilter<"AiModelKnowledge"> | string | null
+    seoKeywords?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    hashtags?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    description?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    trainingEpoch?: IntWithAggregatesFilter<"AiModelKnowledge"> | number
+    hitCount?: IntWithAggregatesFilter<"AiModelKnowledge"> | number
+    source?: StringWithAggregatesFilter<"AiModelKnowledge"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AiModelKnowledge"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AiModelKnowledge"> | Date | string
+  }
+
+  export type AiModerationKnowledgeWhereInput = {
+    AND?: AiModerationKnowledgeWhereInput | AiModerationKnowledgeWhereInput[]
+    OR?: AiModerationKnowledgeWhereInput[]
+    NOT?: AiModerationKnowledgeWhereInput | AiModerationKnowledgeWhereInput[]
+    id?: StringFilter<"AiModerationKnowledge"> | string
+    normalizedText?: StringFilter<"AiModerationKnowledge"> | string
+    rawText?: StringFilter<"AiModerationKnowledge"> | string
+    checkType?: StringFilter<"AiModerationKnowledge"> | string
+    isViolated?: BoolFilter<"AiModerationKnowledge"> | boolean
+    violationType?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    confidence?: FloatFilter<"AiModerationKnowledge"> | number
+    reason?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    suggestion?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    detectedKeywords?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    hitCount?: IntFilter<"AiModerationKnowledge"> | number
+    source?: StringFilter<"AiModerationKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiModerationKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiModerationKnowledge"> | Date | string
+  }
+
+  export type AiModerationKnowledgeOrderByWithRelationInput = {
+    id?: SortOrder
+    normalizedText?: SortOrder
+    rawText?: SortOrder
+    checkType?: SortOrder
+    isViolated?: SortOrder
+    violationType?: SortOrderInput | SortOrder
+    confidence?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    suggestion?: SortOrderInput | SortOrder
+    detectedKeywords?: SortOrderInput | SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModerationKnowledgeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AiModerationKnowledgeWhereInput | AiModerationKnowledgeWhereInput[]
+    OR?: AiModerationKnowledgeWhereInput[]
+    NOT?: AiModerationKnowledgeWhereInput | AiModerationKnowledgeWhereInput[]
+    normalizedText?: StringFilter<"AiModerationKnowledge"> | string
+    rawText?: StringFilter<"AiModerationKnowledge"> | string
+    checkType?: StringFilter<"AiModerationKnowledge"> | string
+    isViolated?: BoolFilter<"AiModerationKnowledge"> | boolean
+    violationType?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    confidence?: FloatFilter<"AiModerationKnowledge"> | number
+    reason?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    suggestion?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    detectedKeywords?: StringNullableFilter<"AiModerationKnowledge"> | string | null
+    hitCount?: IntFilter<"AiModerationKnowledge"> | number
+    source?: StringFilter<"AiModerationKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiModerationKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiModerationKnowledge"> | Date | string
+  }, "id">
+
+  export type AiModerationKnowledgeOrderByWithAggregationInput = {
+    id?: SortOrder
+    normalizedText?: SortOrder
+    rawText?: SortOrder
+    checkType?: SortOrder
+    isViolated?: SortOrder
+    violationType?: SortOrderInput | SortOrder
+    confidence?: SortOrder
+    reason?: SortOrderInput | SortOrder
+    suggestion?: SortOrderInput | SortOrder
+    detectedKeywords?: SortOrderInput | SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AiModerationKnowledgeCountOrderByAggregateInput
+    _avg?: AiModerationKnowledgeAvgOrderByAggregateInput
+    _max?: AiModerationKnowledgeMaxOrderByAggregateInput
+    _min?: AiModerationKnowledgeMinOrderByAggregateInput
+    _sum?: AiModerationKnowledgeSumOrderByAggregateInput
+  }
+
+  export type AiModerationKnowledgeScalarWhereWithAggregatesInput = {
+    AND?: AiModerationKnowledgeScalarWhereWithAggregatesInput | AiModerationKnowledgeScalarWhereWithAggregatesInput[]
+    OR?: AiModerationKnowledgeScalarWhereWithAggregatesInput[]
+    NOT?: AiModerationKnowledgeScalarWhereWithAggregatesInput | AiModerationKnowledgeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AiModerationKnowledge"> | string
+    normalizedText?: StringWithAggregatesFilter<"AiModerationKnowledge"> | string
+    rawText?: StringWithAggregatesFilter<"AiModerationKnowledge"> | string
+    checkType?: StringWithAggregatesFilter<"AiModerationKnowledge"> | string
+    isViolated?: BoolWithAggregatesFilter<"AiModerationKnowledge"> | boolean
+    violationType?: StringNullableWithAggregatesFilter<"AiModerationKnowledge"> | string | null
+    confidence?: FloatWithAggregatesFilter<"AiModerationKnowledge"> | number
+    reason?: StringNullableWithAggregatesFilter<"AiModerationKnowledge"> | string | null
+    suggestion?: StringNullableWithAggregatesFilter<"AiModerationKnowledge"> | string | null
+    detectedKeywords?: StringNullableWithAggregatesFilter<"AiModerationKnowledge"> | string | null
+    hitCount?: IntWithAggregatesFilter<"AiModerationKnowledge"> | number
+    source?: StringWithAggregatesFilter<"AiModerationKnowledge"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AiModerationKnowledge"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AiModerationKnowledge"> | Date | string
+  }
+
+  export type AiSearchKnowledgeWhereInput = {
+    AND?: AiSearchKnowledgeWhereInput | AiSearchKnowledgeWhereInput[]
+    OR?: AiSearchKnowledgeWhereInput[]
+    NOT?: AiSearchKnowledgeWhereInput | AiSearchKnowledgeWhereInput[]
+    id?: StringFilter<"AiSearchKnowledge"> | string
+    searchType?: StringFilter<"AiSearchKnowledge"> | string
+    queryKey?: StringFilter<"AiSearchKnowledge"> | string
+    rawQuery?: StringFilter<"AiSearchKnowledge"> | string
+    detectedIntent?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    expandedKeywords?: StringFilter<"AiSearchKnowledge"> | string
+    suggestedCategory?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    priceRangeMin?: FloatNullableFilter<"AiSearchKnowledge"> | number | null
+    priceRangeMax?: FloatNullableFilter<"AiSearchKnowledge"> | number | null
+    visualTags?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    matchedProductIds?: StringFilter<"AiSearchKnowledge"> | string
+    hitCount?: IntFilter<"AiSearchKnowledge"> | number
+    source?: StringFilter<"AiSearchKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiSearchKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiSearchKnowledge"> | Date | string
+  }
+
+  export type AiSearchKnowledgeOrderByWithRelationInput = {
+    id?: SortOrder
+    searchType?: SortOrder
+    queryKey?: SortOrder
+    rawQuery?: SortOrder
+    detectedIntent?: SortOrderInput | SortOrder
+    expandedKeywords?: SortOrder
+    suggestedCategory?: SortOrderInput | SortOrder
+    priceRangeMin?: SortOrderInput | SortOrder
+    priceRangeMax?: SortOrderInput | SortOrder
+    visualTags?: SortOrderInput | SortOrder
+    matchedProductIds?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiSearchKnowledgeWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AiSearchKnowledgeWhereInput | AiSearchKnowledgeWhereInput[]
+    OR?: AiSearchKnowledgeWhereInput[]
+    NOT?: AiSearchKnowledgeWhereInput | AiSearchKnowledgeWhereInput[]
+    searchType?: StringFilter<"AiSearchKnowledge"> | string
+    queryKey?: StringFilter<"AiSearchKnowledge"> | string
+    rawQuery?: StringFilter<"AiSearchKnowledge"> | string
+    detectedIntent?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    expandedKeywords?: StringFilter<"AiSearchKnowledge"> | string
+    suggestedCategory?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    priceRangeMin?: FloatNullableFilter<"AiSearchKnowledge"> | number | null
+    priceRangeMax?: FloatNullableFilter<"AiSearchKnowledge"> | number | null
+    visualTags?: StringNullableFilter<"AiSearchKnowledge"> | string | null
+    matchedProductIds?: StringFilter<"AiSearchKnowledge"> | string
+    hitCount?: IntFilter<"AiSearchKnowledge"> | number
+    source?: StringFilter<"AiSearchKnowledge"> | string
+    createdAt?: DateTimeFilter<"AiSearchKnowledge"> | Date | string
+    updatedAt?: DateTimeFilter<"AiSearchKnowledge"> | Date | string
+  }, "id">
+
+  export type AiSearchKnowledgeOrderByWithAggregationInput = {
+    id?: SortOrder
+    searchType?: SortOrder
+    queryKey?: SortOrder
+    rawQuery?: SortOrder
+    detectedIntent?: SortOrderInput | SortOrder
+    expandedKeywords?: SortOrder
+    suggestedCategory?: SortOrderInput | SortOrder
+    priceRangeMin?: SortOrderInput | SortOrder
+    priceRangeMax?: SortOrderInput | SortOrder
+    visualTags?: SortOrderInput | SortOrder
+    matchedProductIds?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: AiSearchKnowledgeCountOrderByAggregateInput
+    _avg?: AiSearchKnowledgeAvgOrderByAggregateInput
+    _max?: AiSearchKnowledgeMaxOrderByAggregateInput
+    _min?: AiSearchKnowledgeMinOrderByAggregateInput
+    _sum?: AiSearchKnowledgeSumOrderByAggregateInput
+  }
+
+  export type AiSearchKnowledgeScalarWhereWithAggregatesInput = {
+    AND?: AiSearchKnowledgeScalarWhereWithAggregatesInput | AiSearchKnowledgeScalarWhereWithAggregatesInput[]
+    OR?: AiSearchKnowledgeScalarWhereWithAggregatesInput[]
+    NOT?: AiSearchKnowledgeScalarWhereWithAggregatesInput | AiSearchKnowledgeScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    searchType?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    queryKey?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    rawQuery?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    detectedIntent?: StringNullableWithAggregatesFilter<"AiSearchKnowledge"> | string | null
+    expandedKeywords?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    suggestedCategory?: StringNullableWithAggregatesFilter<"AiSearchKnowledge"> | string | null
+    priceRangeMin?: FloatNullableWithAggregatesFilter<"AiSearchKnowledge"> | number | null
+    priceRangeMax?: FloatNullableWithAggregatesFilter<"AiSearchKnowledge"> | number | null
+    visualTags?: StringNullableWithAggregatesFilter<"AiSearchKnowledge"> | string | null
+    matchedProductIds?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    hitCount?: IntWithAggregatesFilter<"AiSearchKnowledge"> | number
+    source?: StringWithAggregatesFilter<"AiSearchKnowledge"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AiSearchKnowledge"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"AiSearchKnowledge"> | Date | string
+  }
+
+  export type UserActivityWhereInput = {
+    AND?: UserActivityWhereInput | UserActivityWhereInput[]
+    OR?: UserActivityWhereInput[]
+    NOT?: UserActivityWhereInput | UserActivityWhereInput[]
+    id?: StringFilter<"UserActivity"> | string
+    userId?: StringFilter<"UserActivity"> | string
+    action?: StringFilter<"UserActivity"> | string
+    productId?: StringNullableFilter<"UserActivity"> | string | null
+    category?: StringNullableFilter<"UserActivity"> | string | null
+    metadata?: StringNullableFilter<"UserActivity"> | string | null
+    createdAt?: DateTimeFilter<"UserActivity"> | Date | string
+  }
+
+  export type UserActivityOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    action?: SortOrder
+    productId?: SortOrderInput | SortOrder
+    category?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserActivityWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: UserActivityWhereInput | UserActivityWhereInput[]
+    OR?: UserActivityWhereInput[]
+    NOT?: UserActivityWhereInput | UserActivityWhereInput[]
+    userId?: StringFilter<"UserActivity"> | string
+    action?: StringFilter<"UserActivity"> | string
+    productId?: StringNullableFilter<"UserActivity"> | string | null
+    category?: StringNullableFilter<"UserActivity"> | string | null
+    metadata?: StringNullableFilter<"UserActivity"> | string | null
+    createdAt?: DateTimeFilter<"UserActivity"> | Date | string
+  }, "id">
+
+  export type UserActivityOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    action?: SortOrder
+    productId?: SortOrderInput | SortOrder
+    category?: SortOrderInput | SortOrder
+    metadata?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    _count?: UserActivityCountOrderByAggregateInput
+    _max?: UserActivityMaxOrderByAggregateInput
+    _min?: UserActivityMinOrderByAggregateInput
+  }
+
+  export type UserActivityScalarWhereWithAggregatesInput = {
+    AND?: UserActivityScalarWhereWithAggregatesInput | UserActivityScalarWhereWithAggregatesInput[]
+    OR?: UserActivityScalarWhereWithAggregatesInput[]
+    NOT?: UserActivityScalarWhereWithAggregatesInput | UserActivityScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"UserActivity"> | string
+    userId?: StringWithAggregatesFilter<"UserActivity"> | string
+    action?: StringWithAggregatesFilter<"UserActivity"> | string
+    productId?: StringNullableWithAggregatesFilter<"UserActivity"> | string | null
+    category?: StringNullableWithAggregatesFilter<"UserActivity"> | string | null
+    metadata?: StringNullableWithAggregatesFilter<"UserActivity"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"UserActivity"> | Date | string
   }
 
   export type ProductCreateInput = {
@@ -12740,6 +18126,468 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type AiModelKnowledgeCreateInput = {
+    id?: string
+    normalizedKey: string
+    rawKeywords: string
+    category: string
+    brand?: string | null
+    tone: string
+    features?: string | null
+    suggestedTitle: string
+    suggestedCategory: string
+    suggestedBrand?: string | null
+    seoKeywords: string
+    hashtags: string
+    description: string
+    trainingEpoch?: number
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModelKnowledgeUncheckedCreateInput = {
+    id?: string
+    normalizedKey: string
+    rawKeywords: string
+    category: string
+    brand?: string | null
+    tone: string
+    features?: string | null
+    suggestedTitle: string
+    suggestedCategory: string
+    suggestedBrand?: string | null
+    seoKeywords: string
+    hashtags: string
+    description: string
+    trainingEpoch?: number
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModelKnowledgeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedKey?: StringFieldUpdateOperationsInput | string
+    rawKeywords?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    brand?: NullableStringFieldUpdateOperationsInput | string | null
+    tone?: StringFieldUpdateOperationsInput | string
+    features?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestedTitle?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: StringFieldUpdateOperationsInput | string
+    suggestedBrand?: NullableStringFieldUpdateOperationsInput | string | null
+    seoKeywords?: StringFieldUpdateOperationsInput | string
+    hashtags?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    trainingEpoch?: IntFieldUpdateOperationsInput | number
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModelKnowledgeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedKey?: StringFieldUpdateOperationsInput | string
+    rawKeywords?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    brand?: NullableStringFieldUpdateOperationsInput | string | null
+    tone?: StringFieldUpdateOperationsInput | string
+    features?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestedTitle?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: StringFieldUpdateOperationsInput | string
+    suggestedBrand?: NullableStringFieldUpdateOperationsInput | string | null
+    seoKeywords?: StringFieldUpdateOperationsInput | string
+    hashtags?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    trainingEpoch?: IntFieldUpdateOperationsInput | number
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModelKnowledgeCreateManyInput = {
+    id?: string
+    normalizedKey: string
+    rawKeywords: string
+    category: string
+    brand?: string | null
+    tone: string
+    features?: string | null
+    suggestedTitle: string
+    suggestedCategory: string
+    suggestedBrand?: string | null
+    seoKeywords: string
+    hashtags: string
+    description: string
+    trainingEpoch?: number
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModelKnowledgeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedKey?: StringFieldUpdateOperationsInput | string
+    rawKeywords?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    brand?: NullableStringFieldUpdateOperationsInput | string | null
+    tone?: StringFieldUpdateOperationsInput | string
+    features?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestedTitle?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: StringFieldUpdateOperationsInput | string
+    suggestedBrand?: NullableStringFieldUpdateOperationsInput | string | null
+    seoKeywords?: StringFieldUpdateOperationsInput | string
+    hashtags?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    trainingEpoch?: IntFieldUpdateOperationsInput | number
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModelKnowledgeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedKey?: StringFieldUpdateOperationsInput | string
+    rawKeywords?: StringFieldUpdateOperationsInput | string
+    category?: StringFieldUpdateOperationsInput | string
+    brand?: NullableStringFieldUpdateOperationsInput | string | null
+    tone?: StringFieldUpdateOperationsInput | string
+    features?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestedTitle?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: StringFieldUpdateOperationsInput | string
+    suggestedBrand?: NullableStringFieldUpdateOperationsInput | string | null
+    seoKeywords?: StringFieldUpdateOperationsInput | string
+    hashtags?: StringFieldUpdateOperationsInput | string
+    description?: StringFieldUpdateOperationsInput | string
+    trainingEpoch?: IntFieldUpdateOperationsInput | number
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModerationKnowledgeCreateInput = {
+    id?: string
+    normalizedText: string
+    rawText: string
+    checkType?: string
+    isViolated?: boolean
+    violationType?: string | null
+    confidence?: number
+    reason?: string | null
+    suggestion?: string | null
+    detectedKeywords?: string | null
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModerationKnowledgeUncheckedCreateInput = {
+    id?: string
+    normalizedText: string
+    rawText: string
+    checkType?: string
+    isViolated?: boolean
+    violationType?: string | null
+    confidence?: number
+    reason?: string | null
+    suggestion?: string | null
+    detectedKeywords?: string | null
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModerationKnowledgeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedText?: StringFieldUpdateOperationsInput | string
+    rawText?: StringFieldUpdateOperationsInput | string
+    checkType?: StringFieldUpdateOperationsInput | string
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationType?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestion?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModerationKnowledgeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedText?: StringFieldUpdateOperationsInput | string
+    rawText?: StringFieldUpdateOperationsInput | string
+    checkType?: StringFieldUpdateOperationsInput | string
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationType?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestion?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModerationKnowledgeCreateManyInput = {
+    id?: string
+    normalizedText: string
+    rawText: string
+    checkType?: string
+    isViolated?: boolean
+    violationType?: string | null
+    confidence?: number
+    reason?: string | null
+    suggestion?: string | null
+    detectedKeywords?: string | null
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiModerationKnowledgeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedText?: StringFieldUpdateOperationsInput | string
+    rawText?: StringFieldUpdateOperationsInput | string
+    checkType?: StringFieldUpdateOperationsInput | string
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationType?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestion?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiModerationKnowledgeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    normalizedText?: StringFieldUpdateOperationsInput | string
+    rawText?: StringFieldUpdateOperationsInput | string
+    checkType?: StringFieldUpdateOperationsInput | string
+    isViolated?: BoolFieldUpdateOperationsInput | boolean
+    violationType?: NullableStringFieldUpdateOperationsInput | string | null
+    confidence?: FloatFieldUpdateOperationsInput | number
+    reason?: NullableStringFieldUpdateOperationsInput | string | null
+    suggestion?: NullableStringFieldUpdateOperationsInput | string | null
+    detectedKeywords?: NullableStringFieldUpdateOperationsInput | string | null
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiSearchKnowledgeCreateInput = {
+    id?: string
+    searchType: string
+    queryKey: string
+    rawQuery: string
+    detectedIntent?: string | null
+    expandedKeywords: string
+    suggestedCategory?: string | null
+    priceRangeMin?: number | null
+    priceRangeMax?: number | null
+    visualTags?: string | null
+    matchedProductIds: string
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiSearchKnowledgeUncheckedCreateInput = {
+    id?: string
+    searchType: string
+    queryKey: string
+    rawQuery: string
+    detectedIntent?: string | null
+    expandedKeywords: string
+    suggestedCategory?: string | null
+    priceRangeMin?: number | null
+    priceRangeMax?: number | null
+    visualTags?: string | null
+    matchedProductIds: string
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiSearchKnowledgeUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    searchType?: StringFieldUpdateOperationsInput | string
+    queryKey?: StringFieldUpdateOperationsInput | string
+    rawQuery?: StringFieldUpdateOperationsInput | string
+    detectedIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    expandedKeywords?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: NullableStringFieldUpdateOperationsInput | string | null
+    priceRangeMin?: NullableFloatFieldUpdateOperationsInput | number | null
+    priceRangeMax?: NullableFloatFieldUpdateOperationsInput | number | null
+    visualTags?: NullableStringFieldUpdateOperationsInput | string | null
+    matchedProductIds?: StringFieldUpdateOperationsInput | string
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiSearchKnowledgeUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    searchType?: StringFieldUpdateOperationsInput | string
+    queryKey?: StringFieldUpdateOperationsInput | string
+    rawQuery?: StringFieldUpdateOperationsInput | string
+    detectedIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    expandedKeywords?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: NullableStringFieldUpdateOperationsInput | string | null
+    priceRangeMin?: NullableFloatFieldUpdateOperationsInput | number | null
+    priceRangeMax?: NullableFloatFieldUpdateOperationsInput | number | null
+    visualTags?: NullableStringFieldUpdateOperationsInput | string | null
+    matchedProductIds?: StringFieldUpdateOperationsInput | string
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiSearchKnowledgeCreateManyInput = {
+    id?: string
+    searchType: string
+    queryKey: string
+    rawQuery: string
+    detectedIntent?: string | null
+    expandedKeywords: string
+    suggestedCategory?: string | null
+    priceRangeMin?: number | null
+    priceRangeMax?: number | null
+    visualTags?: string | null
+    matchedProductIds: string
+    hitCount?: number
+    source?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type AiSearchKnowledgeUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    searchType?: StringFieldUpdateOperationsInput | string
+    queryKey?: StringFieldUpdateOperationsInput | string
+    rawQuery?: StringFieldUpdateOperationsInput | string
+    detectedIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    expandedKeywords?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: NullableStringFieldUpdateOperationsInput | string | null
+    priceRangeMin?: NullableFloatFieldUpdateOperationsInput | number | null
+    priceRangeMax?: NullableFloatFieldUpdateOperationsInput | number | null
+    visualTags?: NullableStringFieldUpdateOperationsInput | string | null
+    matchedProductIds?: StringFieldUpdateOperationsInput | string
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AiSearchKnowledgeUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    searchType?: StringFieldUpdateOperationsInput | string
+    queryKey?: StringFieldUpdateOperationsInput | string
+    rawQuery?: StringFieldUpdateOperationsInput | string
+    detectedIntent?: NullableStringFieldUpdateOperationsInput | string | null
+    expandedKeywords?: StringFieldUpdateOperationsInput | string
+    suggestedCategory?: NullableStringFieldUpdateOperationsInput | string | null
+    priceRangeMin?: NullableFloatFieldUpdateOperationsInput | number | null
+    priceRangeMax?: NullableFloatFieldUpdateOperationsInput | number | null
+    visualTags?: NullableStringFieldUpdateOperationsInput | string | null
+    matchedProductIds?: StringFieldUpdateOperationsInput | string
+    hitCount?: IntFieldUpdateOperationsInput | number
+    source?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserActivityCreateInput = {
+    id?: string
+    userId: string
+    action: string
+    productId?: string | null
+    category?: string | null
+    metadata?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserActivityUncheckedCreateInput = {
+    id?: string
+    userId: string
+    action: string
+    productId?: string | null
+    category?: string | null
+    metadata?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserActivityUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserActivityUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserActivityCreateManyInput = {
+    id?: string
+    userId: string
+    action: string
+    productId?: string | null
+    category?: string | null
+    metadata?: string | null
+    createdAt?: Date | string
+  }
+
+  export type UserActivityUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserActivityUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    action?: StringFieldUpdateOperationsInput | string
+    productId?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: NullableStringFieldUpdateOperationsInput | string | null
+    metadata?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -13397,6 +19245,236 @@ export namespace Prisma {
     originalPrice?: SortOrder
     stockLimit?: SortOrder
     stockSold?: SortOrder
+  }
+
+  export type AiModelKnowledgeCountOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedKey?: SortOrder
+    rawKeywords?: SortOrder
+    category?: SortOrder
+    brand?: SortOrder
+    tone?: SortOrder
+    features?: SortOrder
+    suggestedTitle?: SortOrder
+    suggestedCategory?: SortOrder
+    suggestedBrand?: SortOrder
+    seoKeywords?: SortOrder
+    hashtags?: SortOrder
+    description?: SortOrder
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModelKnowledgeAvgOrderByAggregateInput = {
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type AiModelKnowledgeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedKey?: SortOrder
+    rawKeywords?: SortOrder
+    category?: SortOrder
+    brand?: SortOrder
+    tone?: SortOrder
+    features?: SortOrder
+    suggestedTitle?: SortOrder
+    suggestedCategory?: SortOrder
+    suggestedBrand?: SortOrder
+    seoKeywords?: SortOrder
+    hashtags?: SortOrder
+    description?: SortOrder
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModelKnowledgeMinOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedKey?: SortOrder
+    rawKeywords?: SortOrder
+    category?: SortOrder
+    brand?: SortOrder
+    tone?: SortOrder
+    features?: SortOrder
+    suggestedTitle?: SortOrder
+    suggestedCategory?: SortOrder
+    suggestedBrand?: SortOrder
+    seoKeywords?: SortOrder
+    hashtags?: SortOrder
+    description?: SortOrder
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModelKnowledgeSumOrderByAggregateInput = {
+    trainingEpoch?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type AiModerationKnowledgeCountOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedText?: SortOrder
+    rawText?: SortOrder
+    checkType?: SortOrder
+    isViolated?: SortOrder
+    violationType?: SortOrder
+    confidence?: SortOrder
+    reason?: SortOrder
+    suggestion?: SortOrder
+    detectedKeywords?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModerationKnowledgeAvgOrderByAggregateInput = {
+    confidence?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type AiModerationKnowledgeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedText?: SortOrder
+    rawText?: SortOrder
+    checkType?: SortOrder
+    isViolated?: SortOrder
+    violationType?: SortOrder
+    confidence?: SortOrder
+    reason?: SortOrder
+    suggestion?: SortOrder
+    detectedKeywords?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModerationKnowledgeMinOrderByAggregateInput = {
+    id?: SortOrder
+    normalizedText?: SortOrder
+    rawText?: SortOrder
+    checkType?: SortOrder
+    isViolated?: SortOrder
+    violationType?: SortOrder
+    confidence?: SortOrder
+    reason?: SortOrder
+    suggestion?: SortOrder
+    detectedKeywords?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiModerationKnowledgeSumOrderByAggregateInput = {
+    confidence?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type AiSearchKnowledgeCountOrderByAggregateInput = {
+    id?: SortOrder
+    searchType?: SortOrder
+    queryKey?: SortOrder
+    rawQuery?: SortOrder
+    detectedIntent?: SortOrder
+    expandedKeywords?: SortOrder
+    suggestedCategory?: SortOrder
+    priceRangeMin?: SortOrder
+    priceRangeMax?: SortOrder
+    visualTags?: SortOrder
+    matchedProductIds?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiSearchKnowledgeAvgOrderByAggregateInput = {
+    priceRangeMin?: SortOrder
+    priceRangeMax?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type AiSearchKnowledgeMaxOrderByAggregateInput = {
+    id?: SortOrder
+    searchType?: SortOrder
+    queryKey?: SortOrder
+    rawQuery?: SortOrder
+    detectedIntent?: SortOrder
+    expandedKeywords?: SortOrder
+    suggestedCategory?: SortOrder
+    priceRangeMin?: SortOrder
+    priceRangeMax?: SortOrder
+    visualTags?: SortOrder
+    matchedProductIds?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiSearchKnowledgeMinOrderByAggregateInput = {
+    id?: SortOrder
+    searchType?: SortOrder
+    queryKey?: SortOrder
+    rawQuery?: SortOrder
+    detectedIntent?: SortOrder
+    expandedKeywords?: SortOrder
+    suggestedCategory?: SortOrder
+    priceRangeMin?: SortOrder
+    priceRangeMax?: SortOrder
+    visualTags?: SortOrder
+    matchedProductIds?: SortOrder
+    hitCount?: SortOrder
+    source?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type AiSearchKnowledgeSumOrderByAggregateInput = {
+    priceRangeMin?: SortOrder
+    priceRangeMax?: SortOrder
+    hitCount?: SortOrder
+  }
+
+  export type UserActivityCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    action?: SortOrder
+    productId?: SortOrder
+    category?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserActivityMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    action?: SortOrder
+    productId?: SortOrder
+    category?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type UserActivityMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    action?: SortOrder
+    productId?: SortOrder
+    category?: SortOrder
+    metadata?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type CategoryCreateNestedOneWithoutProductsInput = {
