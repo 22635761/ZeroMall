@@ -81,8 +81,9 @@ Nếu bạn muốn sử dụng tính năng **Phòng Thử Đồ Online AI** (th�
 1. Mở một tab Terminal mới tại thư mục dự án `ZeroMall`.
 2. Cài đặt các thư viện Python:
    ```bash
-   pip install flask flask-cors pillow requests mage-space torch torchvision
+   pip install -r services/tryon-service/requirements.txt
    ```
+   *(Hoặc cài trực tiếp: `pip install opencv-python numpy pillow requests`)*
 3. Chạy service thử đồ AI:
    ```bash
    python3 services/tryon-service/server.py
