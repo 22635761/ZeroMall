@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
 import { useParams, useNavigate, Link } from 'react-router-dom'
-import { getFreeshipShopIds } from '../../services/shop.service'
+import { VirtualTryOnModal } from '../../components/buyer/ai/VirtualTryOnModal'
+import { useCategoriesQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
 
 interface Product {
   id: string
@@ -67,29 +68,17 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
   const navigate = useNavigate()
 
   const [allProducts, setAllProducts] = useState<Product[]>(propsProducts || [])
-  const [categories, setCategories] = useState<any[]>([])
   const [loading, setLoading] = useState(!propsProducts || propsProducts.length === 0)
   const [sortBy, setSortBy] = useState<'NEWEST' | 'SALES' | 'PRICE_ASC' | 'PRICE_DESC'>('NEWEST')
   const [searchTerm, setSearchTerm] = useState('')
-  const [freeshipShopIds, setFreeshipShopIds] = useState<Set<string>>(new Set())
+  const [isTryOnModalOpen, setIsTryOnModalOpen] = useState(false)
 
-  useEffect(() => {
-    let isMounted = true
-    getFreeshipShopIds().then(ids => {
-      if (isMounted) setFreeshipShopIds(ids)
-    })
-    return () => { isMounted = false }
-  }, [])
+  // TanStack Query Cache cho danh sách Freeship Shop và Categories (không spam API khi chuyển trang)
+  const { data: freeshipSet } = useFreeshipShopIdsQuery()
+  const freeshipShopIds = freeshipSet || new Set<string>()
 
-  // 1. Fetch categories
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/products/categories`)
-      .then((res) => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setCategories(data)
-      })
-      .catch(e => console.error('Error fetching categories:', e))
-  }, [])
+  const { data: categoriesData } = useCategoriesQuery()
+  const categories = categoriesData || []
 
   useEffect(() => {
     if (propsProducts && propsProducts.length > 0) {
@@ -267,6 +256,35 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
         </div>
       </div>
 
+      {/* AI Fashion Try-On Interactive Banner (Dành riêng cho Mảng Thời Trang) */}
+      {(['thoi-trang-nam', 'thoi-trang-nu', 'giay-dep-nam', 'giay-dep-nu', 'phu-kien-nu', 'tui-vi-nu'].includes(toSlug(categorySlug || '')) || (currentCategory?.name || '').toLowerCase().includes('thời trang')) && (
+        <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 border border-indigo-500/30 rounded-2xl p-4 sm:p-5 text-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-sm animate-in fade-in duration-200">
+          <div className="flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-2xl shrink-0 shadow-inner">
+              ✨
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-black text-sm text-white">Phòng Thử Đồ Online AI • Mảng Thời Trang</h3>
+                <span className="bg-indigo-500/30 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full border border-indigo-400/30">
+                  3D Body Fit
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 mt-0.5">
+                Ướm thử tức thì các mẫu quần áo trên sàn vào vóc dáng thật của bạn (chiều cao, cân nặng, tỷ lệ 3D).
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsTryOnModalOpen(true)}
+            className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white font-black text-xs px-4 py-2.5 rounded-xl shadow-md transition cursor-pointer flex items-center gap-2 shrink-0 hover:scale-102"
+          >
+            <span>👗</span>
+            <span>Thử Đồ Online Cùng AI</span>
+          </button>
+        </div>
+      )}
+
       {/* Categories Quick Switcher Bar */}
       {categories.length > 0 && (
         <div className="bg-white border border-slate-200/60 rounded-2xl p-3 shadow-3xs overflow-x-auto scrollbar-none flex items-center gap-2">
@@ -363,7 +381,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
 
             const discountPct = origVal > currentPriceVal && origVal > 0 ? Math.round((1 - currentPriceVal / origVal) * 100) : 0
             const isMall = currentPriceVal > 200000
-            const ratingVal = p.rating && p.rating > 0 ? p.rating : 5.0
+            const ratingVal = p.rating && p.rating > 0 ? p.rating : 0
             const soldVal = p.sold ?? p.sales ?? 0
 
             const stockVal = p.stock !== undefined ? p.stock : (p.total !== undefined ? p.total - (p.sold || 0) : 99)
@@ -422,7 +440,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                 {/* Product Details */}
                 <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
                   <div className="space-y-1.5">
-                    <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-2 min-h-[32px] group-hover:text-emerald-600 transition">
+                    <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-3 min-h-[48px] group-hover:text-emerald-600 transition">
                       {p.name}
                     </h3>
                     {/* Badges row */}
@@ -447,9 +465,13 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
                       </div>
                     <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                       <div className="flex items-center text-yellow-400">
-                        ★ <span className="text-slate-600 ml-0.5">{ratingVal}</span>
+                        {ratingVal > 0 ? (
+                          <>★ <span className="text-slate-600 ml-0.5">{ratingVal}</span></>
+                        ) : (
+                          <span className="text-slate-400">Mới</span>
+                        )}
                       </div>
-                      <span>Đã bán {soldVal >= 1000 ? `${(soldVal / 1000).toFixed(1)}k` : soldVal}</span>
+                      <span>{soldVal > 0 ? `Đã bán ${soldVal >= 1000 ? `${(soldVal / 1000).toFixed(1)}k` : soldVal}` : ''}</span>
                     </div>
                     <div className="text-[9px] text-slate-400 text-right font-semibold">
                       {p.location || 'Toàn quốc'}
@@ -488,6 +510,12 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
           </div>
         </div>
       )}
+
+      {/* Virtual Try-On Modal */}
+      <VirtualTryOnModal
+        isOpen={isTryOnModalOpen}
+        onClose={() => setIsTryOnModalOpen(false)}
+      />
     </div>
   )
 }

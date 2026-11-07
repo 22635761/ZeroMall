@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 
 interface QuickServicesBarProps {
   onSelectCategory?: (categoryName: string) => void
@@ -11,7 +12,17 @@ export const QuickServicesBar: React.FC<QuickServicesBarProps> = ({
   onScrollToFlashSale,
   onSelectTab,
 }) => {
+  const navigate = useNavigate()
   const services = [
+    {
+      id: 'tryon',
+      title: 'Thử Đồ 3D AI',
+      badge: 'Công nghệ mới',
+      badgeColor: 'bg-indigo-600',
+      icon: '✨',
+      bgColor: 'bg-indigo-50 text-indigo-600 border-indigo-200 ring-1 ring-indigo-300',
+      action: () => navigate('/virtual-tryon'),
+    },
     {
       id: 'freeship',
       title: 'Freeship 0Đ',

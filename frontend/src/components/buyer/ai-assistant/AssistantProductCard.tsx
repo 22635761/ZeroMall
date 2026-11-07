@@ -55,9 +55,9 @@ export const AssistantProductCard: React.FC<AssistantProductCardProps> = ({
             {product.name}
           </h4>
           <div className="flex items-center gap-1.5 mt-1 text-[10px] text-slate-400">
-            <span className="text-amber-500 font-bold">★ {product.rating || 4.9}</span>
+            <span className="text-amber-500 font-bold">{product.rating && product.rating > 0 ? `★ ${product.rating}` : ''}</span>
             <span>•</span>
-            <span>Đã bán {product.sales || 0}</span>
+            <span>{product.sales && product.sales > 0 ? `Đã bán ${product.sales}` : 'Mới'}</span>
           </div>
         </div>
 

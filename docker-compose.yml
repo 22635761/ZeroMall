@@ -15,7 +15,7 @@ services:
       - '5432:5432'
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init-schemas.sql:/docker-entrypoint-initdb.d/init-schemas.sql:ro
+      - ./database/init-zeromall.sql:/docker-entrypoint-initdb.d/init-zeromall.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d zeromall"]
       interval: 5s

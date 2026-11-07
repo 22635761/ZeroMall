@@ -2,9 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useNavigate, Link } from 'react-router-dom'
 import { API_BASE_URL } from '../../config/api.config'
 import { toSlug } from '../../utils/slug'
-import { getFreeshipShopIds } from '../../services/shop.service'
 import { searchSemanticWithAI, type SemanticSearchResponse } from '../../services/ai-search.service'
 import { VisualSearchModal } from '../../components/buyer/ai/VisualSearchModal'
+import { useCategoriesQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
 
 interface Product {
   id: string
@@ -43,7 +43,6 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
   
   const [allProducts, setAllProducts] = useState<Product[]>(initialProducts || [])
   const [loading, setLoading] = useState(false)
-  const [categories, setCategories] = useState<any[]>([])
 
   // ZeroAI Semantic & Visual Search states
   const [isSemanticMode, setIsSemanticMode] = useState<boolean>(true)
@@ -60,25 +59,12 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
   const [filterFreeship, setFilterFreeship] = useState(false)
   const [filterMall, setFilterMall] = useState(false)
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'NEWEST' | 'SALES' | 'PRICE_ASC' | 'PRICE_DESC'>('RELEVANCE')
-  const [freeshipShopIds, setFreeshipShopIds] = useState<Set<string>>(new Set())
+  // TanStack Query Cache cho Freeship Shop và Categories (không spam API khi chuyển qua lại)
+  const { data: freeshipSet } = useFreeshipShopIdsQuery()
+  const freeshipShopIds = freeshipSet || new Set<string>()
 
-  useEffect(() => {
-    let isMounted = true
-    getFreeshipShopIds().then(ids => {
-      if (isMounted) setFreeshipShopIds(ids)
-    })
-    return () => { isMounted = false }
-  }, [])
-
-  // 1. Fetch categories
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/products/categories`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data)) setCategories(data)
-      })
-      .catch(err => console.error('Error fetching categories:', err))
-  }, [])
+  const { data: categoriesData } = useCategoriesQuery()
+  const categories = categoriesData || []
 
   // Helper parser for products
   const formatRawProducts = (rawData: any[]): Product[] => {
@@ -249,7 +235,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
 
     // Rating filter
     if (minRating !== null) {
-      list = list.filter(p => (p.rating || 5.0) >= minRating)
+      list = list.filter(p => (p.rating || 0) >= minRating)
     }
 
     // Freeship Xtra filter
@@ -707,7 +693,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
                     {/* Product Details */}
                     <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
                       <div className="space-y-1.5">
-                        <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-2 min-h-[32px] group-hover:text-emerald-600 transition">
+                        <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-3 min-h-[48px] group-hover:text-emerald-600 transition">
                           {p.name}
                         </h3>
                         <div className="flex flex-wrap gap-1">
@@ -731,9 +717,13 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
                         </div>
                         <div className="flex items-center justify-between text-[10px] text-slate-400 font-semibold">
                           <div className="flex items-center text-yellow-400">
-                            ★ <span className="text-slate-600 ml-0.5">{p.rating || 5.0}</span>
+                            {(p.rating && Number(p.rating) > 0) ? (
+                              <>★ <span className="text-slate-600 ml-0.5">{p.rating}</span></>
+                            ) : (
+                              <span className="text-slate-400">Mới</span>
+                            )}
                           </div>
-                          <span>Đã bán {p.sold && p.sold >= 1000 ? `${(p.sold / 1000).toFixed(1)}k` : (p.sold || 0)}</span>
+                          <span>{p.sold && p.sold > 0 ? `Đã bán ${p.sold >= 1000 ? `${(p.sold / 1000).toFixed(1)}k` : p.sold}` : ''}</span>
                         </div>
                         <div className="text-[9px] text-slate-400 text-right font-semibold">
                           {p.location || 'Toàn quốc'}

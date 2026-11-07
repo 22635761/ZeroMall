@@ -216,7 +216,7 @@ export const FlashSale: React.FC<FlashSaleProps> = ({ products, onSelectProduct 
 
                 {/* Product Info */}
                 <div className="p-3.5 space-y-3 flex-1 flex flex-col justify-between">
-                  <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-2 min-h-[32px] group-hover:text-orange-600 transition">
+                  <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-3 min-h-[48px] group-hover:text-orange-600 transition" title={p.name}>
                     {p.name}
                   </h3>
                   

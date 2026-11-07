@@ -19,7 +19,20 @@ export class ProductController {
     @Query('search') search?: string,
     @Query('q') q?: string,
     @Query('inStockOnly') inStockOnly?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
   ) {
+    console.log(`[ProductController.findAll] Query params:`, { shopId, category, search, q, inStockOnly, page, limit });
+    // Nếu có page → dùng feed phân trang (Infinite Scroll kiểu Shopee)
+    if (page) {
+      console.log(`[ProductController.findAll] Routing to findPaginated: page=${page}, limit=${limit}`);
+      return this.productService.findPaginated(
+        parseInt(page, 10) || 1,
+        limit ? parseInt(limit, 10) : 30,
+        category,
+      );
+    }
+    // Không có page → load truyền thống (seller portal, search by shopId, etc.)
     return this.productService.findAll(shopId, category, search || q, inStockOnly);
   }
 

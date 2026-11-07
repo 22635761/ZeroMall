@@ -454,7 +454,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
               <p className="text-base font-black text-yellow-300">
                 {(shopStats?.totalReviews ?? 0) > 0 ? (
                   <>
-                    {shopStats.averageRating || '5.0'}{' '}
+                    {shopStats.averageRating || '0'}{' '}
                     <span className="text-[10px] font-medium text-slate-300">({shopStats.totalReviews})</span>
                   </>
                 ) : (
@@ -769,7 +769,7 @@ export const ShopDetailPage: React.FC<ShopDetailPageProps> = ({
                     {/* Product Details */}
                     <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
                       <div className="space-y-1.5">
-                        <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-2 min-h-[32px] group-hover:text-emerald-600 transition">
+                        <h3 className="text-[11px] font-semibold text-slate-700 leading-snug line-clamp-3 min-h-[48px] group-hover:text-emerald-600 transition">
                           {p.name}
                         </h3>
                         {/* Badges row */}

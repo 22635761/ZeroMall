@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React from 'react'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from '../../config/api.config'
+import { useCategoriesQuery } from '../../queries/productQueries'
 
 const toSlug = (str: string) => {
   if (!str) return ''
@@ -13,6 +13,27 @@ const toSlug = (str: string) => {
     .replace(/(\s+)/g, '-')
     .replace(/^-+|-+$/g, '')
 }
+
+const DEFAULT_CATEGORIES = [
+  { name: 'Thời Trang Nam', slug: 'thoi-trang-nam' },
+  { name: 'Điện Thoại & Phụ Kiện', slug: 'dien-thoai-phu-kien' },
+  { name: 'Thiết Bị Điện Tử', slug: 'thiet-bi-dien-tu' },
+  { name: 'Máy Tính & Laptop', slug: 'may-tinh-laptop' },
+  { name: 'Đồng Hồ', slug: 'dong-ho' },
+  { name: 'Máy Ảnh', slug: 'may-anh' },
+  { name: 'Giày Dép Nam', slug: 'giay-dep-nam' },
+  { name: 'Gia Dụng', slug: 'gia-dung' },
+  { name: 'Thể Thao', slug: 'the-thao' },
+  { name: 'Thời Trang Nữ', slug: 'thoi-trang-nu' },
+  { name: 'Mẹ & Bé', slug: 'me-va-be' },
+  { name: 'Nhà Cửa', slug: 'nha-cua' },
+  { name: 'Sắc Đẹp', slug: 'sac-dep' },
+  { name: 'Sức Khỏe', slug: 'suc-khoe' },
+  { name: 'Phụ Kiện Nữ', slug: 'phu-kien-nu' },
+  { name: 'Giày Dép Nữ', slug: 'giay-dep-nu' },
+  { name: 'Túi Ví Nữ', slug: 'tui-vi-nu' },
+  { name: 'Sách & VPP', slug: 'sach-vpp' }
+]
 
 const categoryIcons: Record<string, string> = {
   'thoi-trang-nam': '👕',
@@ -42,37 +63,10 @@ interface CategoriesProps {
 
 export const Categories: React.FC<CategoriesProps> = ({ selectedCategory, onSelectCategory }) => {
   const navigate = useNavigate()
-  const [categoriesList, setCategoriesList] = useState<any[]>([
-    { name: 'Thời Trang Nam', slug: 'thoi-trang-nam' },
-    { name: 'Điện Thoại & Phụ Kiện', slug: 'dien-thoai-phu-kien' },
-    { name: 'Thiết Bị Điện Tử', slug: 'thiet-bi-dien-tu' },
-    { name: 'Máy Tính & Laptop', slug: 'may-tinh-laptop' },
-    { name: 'Đồng Hồ', slug: 'dong-ho' },
-    { name: 'Máy Ảnh', slug: 'may-anh' },
-    { name: 'Giày Dép Nam', slug: 'giay-dep-nam' },
-    { name: 'Gia Dụng', slug: 'gia-dung' },
-    { name: 'Thể Thao', slug: 'the-thao' },
-    { name: 'Thời Trang Nữ', slug: 'thoi-trang-nu' },
-    { name: 'Mẹ & Bé', slug: 'me-va-be' },
-    { name: 'Nhà Cửa', slug: 'nha-cua' },
-    { name: 'Sắc Đẹp', slug: 'sac-dep' },
-    { name: 'Sức Khỏe', slug: 'suc-khoe' },
-    { name: 'Phụ Kiện Nữ', slug: 'phu-kien-nu' },
-    { name: 'Giày Dép Nữ', slug: 'giay-dep-nu' },
-    { name: 'Túi Ví Nữ', slug: 'tui-vi-nu' },
-    { name: 'Sách & VPP', slug: 'sach-vpp' }
-  ])
-
-  useEffect(() => {
-    fetch(`${API_BASE_URL}/products/categories`)
-      .then(res => res.json())
-      .then(data => {
-        if (Array.isArray(data) && data.length > 0) {
-          setCategoriesList(data)
-        }
-      })
-      .catch(err => console.error('Error fetching categories from backend:', err))
-  }, [])
+  
+  // TanStack Query Cache cho danh mục (cache 10 phút, không gọi lại khi quay về Home)
+  const { data: remoteCategories } = useCategoriesQuery()
+  const categoriesList = (remoteCategories && remoteCategories.length > 0) ? remoteCategories : DEFAULT_CATEGORIES
 
   const handleCategoryClick = (cat: any) => {
     if (onSelectCategory) {
@@ -119,6 +113,11 @@ export const Categories: React.FC<CategoriesProps> = ({ selectedCategory, onSele
               }`}>
                 {cat.name}
               </span>
+              {(catSlug === 'thoi-trang-nam' || catSlug === 'thoi-trang-nu' || cat.name?.toLowerCase().includes('thời trang')) && (
+                <span className="mt-1 bg-indigo-50 border border-indigo-200 text-indigo-700 text-[8px] font-black px-1.5 py-0.5 rounded-full">
+                  ✨ Thử đồ AI
+                </span>
+              )}
             </div>
           )
         })}

@@ -113,7 +113,7 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
 
               {/* Product Info */}
               <div className="space-y-1.5 flex-1 flex flex-col justify-between text-left">
-                <h3 className="text-xs font-bold text-slate-800 line-clamp-2 leading-snug group-hover:text-emerald-700 transition">
+                <h3 className="text-xs font-bold text-slate-800 line-clamp-3 min-h-[48px] leading-snug group-hover:text-emerald-700 transition" title={p.name}>
                   {p.name}
                 </h3>
 

@@ -63,7 +63,7 @@ export const ShopTopProductsSidebar: React.FC<ShopTopProductsSidebarProps> = ({ 
                   price: displayPrice,
                   img: coverImg,
                   sales: p.sales || 0,
-                  rating: p.rating || 5.0
+                  rating: p.rating || 0
                 }
               })
 

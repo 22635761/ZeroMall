@@ -475,7 +475,7 @@ export const VisualSearchModal: React.FC<VisualSearchModalProps> = ({
                             {Number(product.price).toLocaleString('vi-VN')}₫
                           </span>
                           <span className="text-[9px] text-slate-400 font-semibold">
-                            ⭐ {product.rating || 5}
+                            {product.rating && product.rating > 0 ? `⭐ ${product.rating}` : 'Mới'}
                           </span>
                         </div>
                       </div>

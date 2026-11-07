@@ -66,7 +66,31 @@ curl http://localhost:11434/api/tags
 
 ---
 
-## 4. Chạy Toàn Bộ Hệ Thống ZeroMall bằng Docker
+## 4. Khởi Chạy 3D Virtual Try-On Microservice (Port 5006) - PHÒNG THỬ ĐỒ ẢO 3D & BẢN SAO SỐ
+
+Microservice này phụ trách:
+- Mô phỏng vóc dáng người 3D (Human Mesh 3D Avatar) xoay 360 độ từ Chiều cao, Cân nặng và Ảnh người dùng.
+- Thẩm định độ vừa vặn (Fit Score) theo 4 vùng: Vòng eo, Hông, Đùi, Độ dài ống chân theo chuẩn nhân trắc học ISO 8559 & SMPL.
+- Tự động gợi ý 3 bộ phối đồ thời trang hoàn chỉnh (Streetwear, Smart Casual, Minimalist) từ 100% CSDL sản phẩm thực tế của ZeroMall.
+- Tối ưu hóa tăng tốc phần cứng cho chip Apple Silicon M4 qua Apple Metal (MPS).
+
+### Bước 4.1: Chạy server
+```bash
+cd services/tryon-service
+python3 server.py
+# (Hoặc chạy ngầm: nohup python3 server.py > /tmp/tryon_service.log 2>&1 &)
+```
+
+### Bước 4.2: Kiểm tra hoạt động
+```bash
+curl http://localhost:5006/health
+# Kết quả trả về:
+# {"status": "ok", "service": "zeromall-tryon-local-ai", "device": "mps", "apple_silicon_optimized": true, ...}
+```
+
+---
+
+## 5. Chạy Toàn Bộ Hệ Thống ZeroMall bằng Docker
 
 Sau khi CLIP service và Ollama đã sẵn sàng:
 

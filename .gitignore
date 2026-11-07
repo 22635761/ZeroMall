@@ -125,8 +125,22 @@ Thumbs.db
 # Docker volumes data
 data/
 
-# Database backup files (share separately, not via git)
+# Database backup files
 *.sql
+!database/*.sql
+
+# Python cache & build
+__pycache__/
+*.pyc
+
+# AI Try-on weights & large model checkouts (files > 100MB cannot be pushed to GitHub)
+services/tryon-service/fashn-vton-1.5/
+services/tryon-service/CatVTON/
+*.safetensors
+*.onnx
+
+# Agent / Tool local cache
+.autohand/
 
 # Prisma generated clients (regenerated during build)
 **/src/generated/

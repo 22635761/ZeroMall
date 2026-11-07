@@ -4,11 +4,18 @@ import { useParams } from 'react-router-dom'
 import type { Product, VariationGroup, VariationRow } from '../../components/buyer/FlashSale'
 import { ProductGallery } from '../../components/buyer/product-detail/ProductGallery'
 import { ProductPurchasePanel } from '../../components/buyer/product-detail/ProductPurchasePanel'
+import { VirtualTryOnModal } from '../../components/buyer/ai/VirtualTryOnModal'
 import { ShopInfoCard } from '../../components/buyer/product-detail/ShopInfoCard'
 import { ProductDescriptionSection } from '../../components/buyer/product-detail/ProductDescriptionSection'
 import { ProductReviewsSection } from '../../components/buyer/product-detail/ProductReviewsSection'
 import { ShopTopProductsSidebar } from '../../components/buyer/product-detail/ShopTopProductsSidebar'
 import { trackUserEngagement } from '../../services/ai-recommendation.service'
+import {
+  useProductDetailQuery,
+  useProductReviewsQuery,
+  useShopDetailsQuery,
+  useShopStatsQuery
+} from '../../queries/productQueries'
 
 interface ProductDetailPageProps {
   user: any
@@ -17,6 +24,7 @@ interface ProductDetailPageProps {
   onBuyNow: (product: Product, quantity: number, variant: string) => void
   onOpenLogin: () => void
   onRequireLogin?: (title?: string, description?: string, icon?: string) => void
+  cart?: import('../../models/cart.model').CartItem[]
 }
 
 export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
@@ -25,120 +33,110 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   onAddToCart,
   onBuyNow,
   onOpenLogin,
-  onRequireLogin
+  onRequireLogin,
+  cart
 }) => {
   const { slugWithId } = useParams<{ slugWithId: string }>()
   const id = slugWithId?.split('-i.').pop()
   const [product, setProduct] = useState<Product | null>(null)
-  const [loadingProduct, setLoadingProduct] = useState(true)
+  const [isTryOnModalOpen, setIsTryOnModalOpen] = useState(false)
+
+  // TanStack Query Cache cho chi tiết sản phẩm (cache 5 phút, không refetch khi back/forward)
+  const { data: rawProductData, isLoading: loadingProduct } = useProductDetailQuery(id)
 
   useEffect(() => {
-    const fetchProductDetails = async () => {
-      if (!id) return
-      setLoadingProduct(true)
+    if (!rawProductData) return
+    const p = rawProductData
+    
+    const sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
+    let flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
+    let originalPriceStr = ''
+    const rawOrigNum = p.originalPrice ? parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) : 0
+    if (rawOrigNum > 0) {
+      originalPriceStr = rawOrigNum.toLocaleString('vi-VN') + 'đ'
+    } else {
+      originalPriceStr = flashPriceStr
+    }
+
+    let parsedVariationGroups: VariationGroup[] = []
+    if (p.hasVariations && p.variationGroups) {
       try {
-        const response = await fetch(`${API_BASE_URL}/products/${id}`)
-        if (response.ok) {
-          const p = await response.json()
-          
-          const sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
-          let flashPriceStr = sellingPriceNum.toLocaleString('vi-VN') + 'đ'
-          let originalPriceStr = ''
-          const rawOrigNum = p.originalPrice ? parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) : 0
-          if (rawOrigNum > 0) {
-            originalPriceStr = rawOrigNum.toLocaleString('vi-VN') + 'đ'
-          } else {
-            originalPriceStr = flashPriceStr
-          }
-
-          let parsedVariationGroups: VariationGroup[] = []
-          if (p.hasVariations && p.variationGroups) {
-            try {
-              parsedVariationGroups = typeof p.variationGroups === 'string'
-                ? JSON.parse(p.variationGroups)
-                : p.variationGroups
-            } catch (e) {
-              console.error('Error parsing variationGroups', e)
-            }
-          }
-
-          let parsedVariationRows: VariationRow[] = []
-          if (p.hasVariations && p.variationRows) {
-            try {
-              parsedVariationRows = typeof p.variationRows === 'string'
-                ? JSON.parse(p.variationRows)
-                : p.variationRows
-            } catch (e) {
-              console.error('Error parsing variationRows', e)
-            }
-          }
-
-          // Fallback if variationGroups is empty but legacy variants exist
-          if (parsedVariationGroups.length === 0 && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
-            parsedVariationGroups = [{ name: 'Phân loại', options: p.variants }]
-          }
-
-          let parsedImages: string[] = []
-          try {
-            parsedImages = p.images ? JSON.parse(p.images) : []
-          } catch (e) {
-            console.error('Failed to parse images', e)
-          }
-          if (!parsedImages || parsedImages.length === 0) {
-            parsedImages = p.image ? [p.image] : []
-          }
-
-          setProduct({
-            id: p.id,
-            name: p.name,
-            originalPrice: originalPriceStr,
-            flashPrice: flashPriceStr,
-            price: flashPriceStr,
-            image: p.image || 'https://placehold.co/400x400?text=No+Image',
-            stock: p.stock !== undefined ? p.stock : 0,
-            status: p.status || 'active',
-            sold: p.sales || 0,
-            total: (p.sales || 0) + (p.stock || 0),
-            rating: p.rating ?? 0,
-            reviewsCount: p.reviewsCount ?? 0,
-            description: p.description,
-            hasVariations: Boolean(p.hasVariations || parsedVariationGroups.length > 0),
-            variationGroups: parsedVariationGroups,
-            variationRows: parsedVariationRows,
-            variants: parsedVariationGroups.flatMap((g) => g.options || []),
-            images: parsedImages,
-            video: p.video || '',
-            category: p.category,
-            brand: p.brand,
-            shopId: p.shopId,
-            weight: p.weight,
-            length: p.length,
-            width: p.width,
-            height: p.height
-          })
-
-          // Ghi nhận sở thích ngành hàng vào phiên lướt web (Real-time personalization)
-          if (p.category) {
-            try {
-              const stored = sessionStorage.getItem('zm_recent_viewed_categories')
-              let cats: string[] = stored ? JSON.parse(stored) : []
-              cats = [p.category, ...cats.filter((c: string) => c !== p.category)].slice(0, 5)
-              sessionStorage.setItem('zm_recent_viewed_categories', JSON.stringify(cats))
-            } catch {}
-          }
-
-          // Gửi tín hiệu hành vi VIEW tới ZeroAI Recommendation Engine
-          trackUserEngagement('VIEW', p.id, p.category)
-        }
+        parsedVariationGroups = typeof p.variationGroups === 'string'
+          ? JSON.parse(p.variationGroups)
+          : p.variationGroups
       } catch (e) {
-        console.error('Failed to fetch product details:', e)
-      } finally {
-        setLoadingProduct(false)
+        console.error('Error parsing variationGroups', e)
       }
     }
 
-    fetchProductDetails()
-  }, [id])
+    let parsedVariationRows: VariationRow[] = []
+    if (p.hasVariations && p.variationRows) {
+      try {
+        parsedVariationRows = typeof p.variationRows === 'string'
+          ? JSON.parse(p.variationRows)
+          : p.variationRows
+      } catch (e) {
+        console.error('Error parsing variationRows', e)
+      }
+    }
+
+    // Fallback if variationGroups is empty but legacy variants exist
+    if (parsedVariationGroups.length === 0 && p.variants && Array.isArray(p.variants) && p.variants.length > 0) {
+      parsedVariationGroups = [{ name: 'Phân loại', options: p.variants }]
+    }
+
+    let parsedImages: string[] = []
+    try {
+      parsedImages = p.images ? JSON.parse(p.images) : []
+    } catch (e) {
+      console.error('Failed to parse images', e)
+    }
+    if (!parsedImages || parsedImages.length === 0) {
+      parsedImages = p.image ? [p.image] : []
+    }
+
+    setProduct({
+      id: p.id,
+      name: p.name,
+      originalPrice: originalPriceStr,
+      flashPrice: flashPriceStr,
+      price: flashPriceStr,
+      image: p.image || 'https://placehold.co/400x400?text=No+Image',
+      stock: p.stock !== undefined ? p.stock : 0,
+      status: p.status || 'active',
+      sold: p.sales || 0,
+      total: (p.sales || 0) + (p.stock || 0),
+      rating: p.rating ?? 0,
+      reviewsCount: p.reviewsCount ?? 0,
+      description: p.description,
+      hasVariations: Boolean(p.hasVariations || parsedVariationGroups.length > 0),
+      variationGroups: parsedVariationGroups,
+      variationRows: parsedVariationRows,
+      variants: parsedVariationGroups.flatMap((g) => g.options || []),
+      images: parsedImages,
+      video: p.video || '',
+      category: p.category,
+      brand: p.brand,
+      shopId: p.shopId,
+      weight: p.weight,
+      length: p.length,
+      width: p.width,
+      height: p.height
+    })
+
+    // Ghi nhận sở thích ngành hàng vào phiên lướt web (Real-time personalization)
+    if (p.category) {
+      try {
+        const stored = sessionStorage.getItem('zm_recent_viewed_categories')
+        let cats: string[] = stored ? JSON.parse(stored) : []
+        cats = [p.category, ...cats.filter((c: string) => c !== p.category)].slice(0, 5)
+        sessionStorage.setItem('zm_recent_viewed_categories', JSON.stringify(cats))
+      } catch {}
+    }
+
+    // Gửi tín hiệu hành vi VIEW tới ZeroAI Recommendation Engine
+    trackUserEngagement('VIEW', p.id, p.category)
+  }, [rawProductData])
 
   // Multi-tier variation selection state
   const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>({})
@@ -366,6 +364,24 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
     onBuyNow(prod, qty, variant)
   }
 
+  // TanStack Query Cache cho Đánh giá sản phẩm (cache 3 phút, không fetch lại khi back/forward)
+  const { data: cachedReviews } = useProductReviewsQuery(product?.id)
+  useEffect(() => {
+    if (cachedReviews) setReviews(cachedReviews)
+  }, [cachedReviews])
+
+  // TanStack Query Cache cho thông tin Shop (cache 5 phút)
+  const { data: cachedShopDetails } = useShopDetailsQuery(product?.shopId)
+  useEffect(() => {
+    if (cachedShopDetails) setShopDetails(cachedShopDetails)
+  }, [cachedShopDetails])
+
+  // TanStack Query Cache cho thống kê Shop (cache 5 phút)
+  const { data: cachedShopStats } = useShopStatsQuery(product?.shopId)
+  useEffect(() => {
+    if (cachedShopStats) setShopStats(cachedShopStats)
+  }, [cachedShopStats])
+
   const fetchReviews = async () => {
     if (!product) return
     setIsLoadingReviews(true)
@@ -384,38 +400,6 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   const fetchShopData = async () => {
     if (!product) return
     setIsLoadingShop(true)
-    
-    try {
-      const shopRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}`)
-      if (shopRes.ok) {
-        const shopData = await shopRes.json()
-        setShopDetails(shopData)
-      } else {
-        setShopDetails(null)
-      }
-    } catch (e) {
-      console.error('Error fetching shop details:', e)
-      setShopDetails(null)
-    }
-
-    try {
-      const statsRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/stats`)
-      if (statsRes.ok) {
-        const statsData = await statsRes.json()
-        setShopStats(statsData)
-      } else {
-        setShopStats({
-          totalProducts: 0,
-          totalReviews: 0
-        })
-      }
-    } catch (e) {
-      console.error('Error fetching shop stats:', e)
-      setShopStats({
-        totalProducts: 0,
-        totalReviews: 0
-      })
-    }
 
     try {
       const followRes = await fetch(`${API_BASE_URL}/auth/shops/${product.shopId}/follow-status?userId=${user?.id || ''}`)
@@ -639,7 +623,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
   }
 
   const calculateAverageRating = () => {
-    if (reviews.length === 0) return product?.rating?.toFixed(1) || '5.0'
+    if (reviews.length === 0) return product?.rating?.toFixed(1) || '0'
     const totalStars = reviews.reduce((sum, r) => sum + r.rating, 0)
     return (totalStars / reviews.length).toFixed(1)
   }
@@ -771,6 +755,7 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           onSelectOptionImage={handleSelectOptionImage}
           user={user}
           shopDetails={shopDetails}
+          onOpenTryOnModal={() => setIsTryOnModalOpen(true)}
         />
       </div>
 
@@ -852,6 +837,15 @@ export const ProductDetailPage: React.FC<ProductDetailPageProps> = ({
           } as React.CSSProperties}
         />
       ))}
+
+      {/* Online AI Try-On Modal */}
+      <VirtualTryOnModal
+        isOpen={isTryOnModalOpen}
+        onClose={() => setIsTryOnModalOpen(false)}
+        product={product}
+        cart={cart}
+        onAddToCart={onAddToCart}
+      />
     </div>
   )
 }

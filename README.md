@@ -29,6 +29,7 @@ Khi khởi động toàn bộ stack bằng Docker, các cổng sau được ánh
 | **`9092`** | `zeromall-kafka` | Apache Kafka | Event bus truyền tin nhắn bất đồng bộ giữa các service |
 | **`2181`** | `zeromall-zookeeper` | Zookeeper | Quản lý và đồng bộ trạng thái cụm Kafka |
 | **`5005`** | `clip-service` | Python, SentenceTransformers (CLIP ViT-B-32) | Dịch vụ AI thị giác máy tính, phân loại ảnh & phát hiện mâu thuẫn tên/ảnh |
+| **`5006`** | `tryon-service`| Python, SMPL-X & PyTorch (Metal MPS M4)     | Phòng thử đồ ảo 3D, bản sao số theo chiều cao/cân nặng & AI Stylist |
 | **`11434`**| `ollama` | Ollama (Qwen 2.5:1.5b) | Mô hình ngôn ngữ lớn (LLM) cục bộ phân tích ý định tìm kiếm & NLP |
 | **`5050`** | `zeromall-pgadmin` | pgAdmin 4 | Giao diện đồ họa quản trị CSDL PostgreSQL (Tùy chọn) |
 
@@ -52,10 +53,13 @@ docker compose up -d --build
 
 **Bước 2 — Nạp dữ liệu mẫu hoàn chỉnh vào CSDL (Có sẵn đơn hàng, sản phẩm, bưu cục, tài xế):**
 ```bash
-docker exec -i zeromall-postgres psql -U postgres -d zeromall < zeromall_backup.sql
+./restore-db.sh
+# Hoặc chạy thủ công nếu muốn:
+docker exec -i zeromall-postgres psql -U postgres -d zeromall < database/init-zeromall.sql
 ```
 > [!NOTE]
-> Lệnh trên sẽ tự động nạp $100\%$ cấu trúc và dữ liệu thực tế cho 6 schema (`auth`, `product`, `discount`, `order`, `payment`, `delivery`), giúp bạn có sẵn dữ liệu test ngay lập tức mà không cần tạo lại từ đầu.
+> - Nếu là lần đầu chạy với volume mới, Docker sẽ tự động nạp tệp `database/init-zeromall.sql` vào Postgres.
+> - Lệnh trên giúp nạp $100\%$ cấu trúc và dữ liệu thực tế cho toàn bộ các schema (`auth`, `product`, `discount`, `order`, `payment`, `delivery`), giúp bạn có sẵn dữ liệu test ngay lập tức mà không cần tạo lại từ đầu.
 
 ---
 

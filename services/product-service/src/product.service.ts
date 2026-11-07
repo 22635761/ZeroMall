@@ -12,6 +12,90 @@ export class ProductService {
     private readonly redis: RedisService,
   ) {}
 
+  /**
+   * Feed phân trang cho trang chủ — mỗi page 30 sản phẩm (kiểu Shopee infinite scroll)
+   * Guest: tối đa 2 pages (60 SP) → chặn "Đăng nhập để xem thêm"
+   * Logged-in: không giới hạn page
+   */
+  async findPaginated(page: number = 1, limit: number = 30, category?: string) {
+    const safePage = Math.max(1, page);
+    const safeLimit = Math.min(Math.max(1, limit), 60); // cap 60/page
+
+    const cacheKey = `feed:page:${safePage}:${safeLimit}:${category || 'all'}`;
+    const cached = await this.redis.get<any>(cacheKey);
+    if (cached) return cached;
+
+    const where: any = {
+      status: { not: 'hidden' },
+      stock: { gt: 0 },
+    };
+    if (category && category !== 'all') {
+      where.OR = [
+        { category: { contains: category.trim(), mode: 'insensitive' } },
+        { categoryRef: { slug: { equals: category.trim(), mode: 'insensitive' } } },
+      ];
+    }
+
+    const [products, total] = await Promise.all([
+      this.prisma.product.findMany({
+        where,
+        orderBy: [{ sales: 'desc' }, { createdAt: 'desc' }],
+        skip: (safePage - 1) * safeLimit,
+        take: safeLimit,
+        select: {
+          id: true, shopId: true, name: true, image: true, images: true, video: true,
+          category: true, categoryId: true, brand: true, description: true,
+          price: true, originalPrice: true, stock: true, sales: true,
+          status: true, sku: true, hasVariations: true, variationGroups: true, variationRows: true,
+          weight: true, length: true, width: true, height: true,
+          condition: true, isPreOrder: true, preOrderDays: true,
+          createdAt: true, updatedAt: true,
+          categoryRef: true,
+        },
+      }),
+      this.prisma.product.count({ where }),
+    ]);
+
+    // Batch-load reviews cho page này (1 query thay vì N+1)
+    const productIds = products.map(p => p.id);
+    let reviewMap = new Map<string, { rating: number; reviewsCount: number }>();
+    if (productIds.length > 0) {
+      const reviewStats = await this.prisma.review.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds } },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      reviewMap = new Map(reviewStats.map((r: any) => [r.productId, {
+        rating: r._avg?.rating ? parseFloat(r._avg.rating.toFixed(1)) : 0,
+        reviewsCount: r._count?.rating ?? 0,
+      }]));
+    }
+
+    const result = products.map(p => ({
+      ...p,
+      rating: reviewMap.get(p.id)?.rating ?? 0,
+      reviewsCount: reviewMap.get(p.id)?.reviewsCount ?? 0,
+    }));
+
+    const totalPages = Math.ceil(total / safeLimit);
+    const payload = {
+      products: result,
+      pagination: {
+        page: safePage,
+        limit: safeLimit,
+        total,
+        totalPages,
+        hasMore: safePage < totalPages,
+      },
+    };
+
+    // Cache 5 phút cho Guest pages, 2 phút cho deep pages
+    await this.redis.set(cacheKey, payload, safePage <= 2 ? 300 : 120);
+
+    return payload;
+  }
+
   async findAll(shopId?: string, category?: string, search?: string, inStockOnly?: string) {
     // 1. Kiểm tra trong Redis Cache trước (0-1ms)
     const cacheKey = `products:list:${shopId || 'all'}:${category || 'all'}:${search || 'all'}:${inStockOnly || 'default'}`;

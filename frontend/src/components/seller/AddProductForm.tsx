@@ -971,7 +971,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       sku: parentSku,
       status: targetStatus,
       sales: initialData?.sales || 0,
-      rating: initialData?.rating || 5.0,
+      rating: initialData?.rating || 0,
       reviewsCount: initialData?.reviewsCount || 0
     }
 

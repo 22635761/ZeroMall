@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate } from 'react-router-dom'
 import type { Product, VariationGroup, VariationRow } from '../FlashSale'
 
 interface ProductPurchasePanelProps {
@@ -23,6 +24,7 @@ interface ProductPurchasePanelProps {
   onSelectOptionImage?: (imageUrl: string) => void
   user?: any
   shopDetails?: any
+  onOpenTryOnModal?: () => void
 }
 
 export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
@@ -46,8 +48,16 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
   onBuyNow,
   onSelectOptionImage,
   user,
-  shopDetails
+  shopDetails,
+  onOpenTryOnModal
 }) => {
+  const navigate = useNavigate()
+  const isFashion = Boolean(
+    (product.category || '').toLowerCase().includes('thời trang') ||
+    ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo', 'yếm', 'short'].some((k) =>
+      (product.name || '').toLowerCase().includes(k)
+    )
+  )
   const variationGroups: VariationGroup[] = product.variationGroups && product.variationGroups.length > 0
     ? product.variationGroups
     : (product.variants && product.variants.length > 0 ? [{ name: 'Phân loại', options: product.variants }] : [])
@@ -398,6 +408,24 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           {stockAvailable <= 0 ? 'Hết Hàng' : 'Mua Ngay'}
         </button>
       </div>
+
+      {/* 3D Virtual Try-On Button for Fashion Items */}
+      {isFashion && (
+        <button
+          type="button"
+          onClick={() => {
+            if (onOpenTryOnModal) {
+              onOpenTryOnModal()
+            } else {
+              navigate(`/virtual-tryon?productId=${product.id}`)
+            }
+          }}
+          className="w-full mt-3 py-3 px-4 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white cursor-pointer shadow-md transition-all transform hover:-translate-y-0.5"
+        >
+          <span className="text-base">✨</span>
+          <span>Phòng Thử Đồ Online AI (Ướm Thử Vào Vóc Dáng Của Bạn)</span>
+        </button>
+      )}
 
     </div>
   )
