@@ -415,7 +415,9 @@ export const ShopFlashSale: React.FC<ShopFlashSaleProps> = ({ user }) => {
                             statusText = '🔒 Đã kết thúc'
                           }
                         }
-                      } catch (e) {}
+                      } catch (e) {
+                        console.warn('[ShopFlashSale] Error calculating slot status:', e)
+                      }
 
                       return (
                         <option key={s.id} value={s.id}>

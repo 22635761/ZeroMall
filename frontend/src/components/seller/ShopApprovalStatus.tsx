@@ -1,4 +1,5 @@
 import React from 'react'
+import { safeParseJson } from '../../utils/formatters'
 
 interface ShopApprovalStatusProps {
   shopDetails: any
@@ -17,24 +18,8 @@ export const ShopApprovalStatus: React.FC<ShopApprovalStatusProps> = ({
 }) => {
   const shopStatus = shopDetails?.status || 'DRAFT'
 
-  let parsedAddress: any = null
-  let parsedShipping: any = { express: false, fast: false, saver: false, bulky: false }
-
-  if (shopDetails?.pickupAddress) {
-    try {
-      parsedAddress = typeof shopDetails.pickupAddress === 'string'
-        ? JSON.parse(shopDetails.pickupAddress)
-        : shopDetails.pickupAddress
-    } catch (e) {}
-  }
-
-  if (shopDetails?.shippingSettings) {
-    try {
-      parsedShipping = typeof shopDetails.shippingSettings === 'string'
-        ? JSON.parse(shopDetails.shippingSettings)
-        : shopDetails.shippingSettings
-    } catch (e) {}
-  }
+  const parsedAddress = safeParseJson<any>(shopDetails?.pickupAddress, null)
+  const parsedShipping = safeParseJson<any>(shopDetails?.shippingSettings, { express: false, fast: false, saver: false, bulky: false })
 
   if (shopStatus === 'PENDING_APPROVAL') {
     return (

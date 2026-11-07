@@ -169,7 +169,11 @@ export const CartPage: React.FC<CartPageProps> = ({
     if (user?.id) {
       const cached = localStorage.getItem(`zm_user_addresses_${user.id}`)
       if (cached) {
-        try { return JSON.parse(cached) } catch (_) {}
+        try {
+          return JSON.parse(cached)
+        } catch (err) {
+          console.warn('[CartPage] Failed to parse cached addresses:', err)
+        }
       }
     }
     return []
@@ -188,7 +192,9 @@ export const CartPage: React.FC<CartPageProps> = ({
     try {
       localStorage.removeItem('zm_user_addresses')
       localStorage.removeItem('zm_active_address_id')
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[CartPage] Failed to clean legacy address keys:', e)
+    }
 
     if (!user?.id) {
       setAddresses([])

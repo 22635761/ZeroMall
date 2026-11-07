@@ -230,7 +230,9 @@ export const Human3DViewer: React.FC<Human3DViewerProps> = ({
                 pCtx.drawImage(faceImg, 512 - 140, 410 - 150, 280, 280, 0, 0, 180, 180)
                 setCroppedFacePreview(pCanvas.toDataURL('image/png'))
               }
-            } catch (eCrop) {}
+            } catch (eCrop) {
+              console.warn('[Human3DViewer] Failed to create face preview canvas:', eCrop)
+            }
           } else {
             // TRƯỜNG HỢP 2: Client Fallback - Tự động tổng hợp tóc tự nhiên dày dặn & khớp ngũ quan giải phẫu
             // Phủ tóc tự nhiên đen dày lên toàn bộ đỉnh đầu, da đầu (Scalp Y: 0..200), sau gáy và 2 bên thái dương
@@ -312,7 +314,9 @@ export const Human3DViewer: React.FC<Human3DViewerProps> = ({
               try {
                 const croppedPreview = faceCanvas.toDataURL('image/png')
                 setCroppedFacePreview(croppedPreview)
-              } catch (eCrop) {}
+              } catch (eCrop) {
+              console.warn('[Human3DViewer] Failed to create face preview canvas:', eCrop)
+            }
             }
           }
         }

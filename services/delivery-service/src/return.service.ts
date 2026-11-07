@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class ReturnDeliveryService {
+  private readonly logger = new Logger(ReturnDeliveryService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // Helper gọi sync order-service
@@ -17,9 +19,9 @@ export class ReturnDeliveryService {
           ghnOrderCode,
         }),
       });
-      console.log(`[SPX-Logistics] Synced order ${orderId} status to ${status}`);
+      this.logger.log(`Synced order ${orderId} status to ${status}`);
     } catch (e) {
-      console.error(`[SPX-Logistics] Failed to sync order status:`, e);
+      this.logger.error(`Failed to sync order status: ${(e as Error).message}`);
     }
   }
 
@@ -134,9 +136,9 @@ export class ReturnDeliveryService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });
-      console.log(`[SPX-Logistics] Escrow frozen for order ${dto.orderId} due to Return #${created.returnNumber}`);
+      this.logger.log(`Escrow frozen for order ${dto.orderId} due to Return #${created.returnNumber}`);
     } catch (e) {
-      console.warn('[SPX-Logistics] Could not call payment-service to freeze escrow:', e);
+      this.logger.warn(`Could not call payment-service to freeze escrow: ${(e as Error).message}`);
     }
 
     // 6. Đồng bộ trạng thái đơn hàng sang order-service
@@ -647,9 +649,9 @@ export class ReturnDeliveryService {
               })),
             }),
           });
-          console.log(`[SPX-Logistics] Restocked items for return #${ret.returnNumber}`);
+          this.logger.log(`Restocked items for return #${ret.returnNumber}`);
         } catch (e) {
-          console.error('[SPX-Logistics] Failed to restock product stock:', e);
+          this.logger.error(`Failed to restock product stock: ${(e as Error).message}`);
         }
       }
 
@@ -787,13 +789,13 @@ export class ReturnDeliveryService {
         }),
       });
       if (res.ok) {
-        console.log(`[SPX-Logistics] Refunded ${refundAmount}đ to buyer ${buyerId} for order ${orderId}`);
+        this.logger.log(`Refunded ${refundAmount}đ to buyer ${buyerId} for order ${orderId}`);
       } else {
         const err = await res.json().catch(() => ({}));
-        console.error('[SPX-Logistics] Error executing payment refund:', err);
+        this.logger.error(`Error executing payment refund: ${JSON.stringify(err)}`);
       }
     } catch (e) {
-      console.error('[SPX-Logistics] Failed to call payment-service return-refund:', e);
+      this.logger.error(`Failed to call payment-service return-refund: ${(e as Error).message}`);
     }
   }
 }

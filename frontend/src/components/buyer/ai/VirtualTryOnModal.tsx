@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { API_BASE_URL } from '../../../config/api.config'
+import { API_BASE_URL, TRYON_SERVICE_URL } from '../../../config/api.config'
+import { formatCurrencyVND } from '../../../utils/formatters'
 import type { Product } from '../FlashSale'
 import type { CartItem } from '../../../models/cart.model'
 import { Human3DViewer } from './Human3DViewer'
@@ -78,17 +79,8 @@ interface VirtualTryOnModalProps {
   onAddToCart?: (product: Product, quantity: number, variant: string) => void
 }
 
-const TRYON_SERVICE_URL = 'http://localhost:5006'
-
-// Hàm định dạng giá an toàn hỗ trợ cả chuỗi '280.000đ' và số nguyên
-const formatDisplayPrice = (val: any): string => {
-  if (!val) return '0đ'
-  if (typeof val === 'number') return `${val.toLocaleString('vi-VN')}đ`
-  const str = String(val).trim()
-  if (str.endsWith('đ')) return str
-  const num = parseFloat(str.replace(/[^0-9]/g, ''))
-  return isNaN(num) ? '0đ' : `${num.toLocaleString('vi-VN')}đ`
-}
+// Dùng chung hàm định dạng chuẩn từ utils/formatters
+const formatDisplayPrice = formatCurrencyVND
 
 export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   isOpen,
@@ -120,7 +112,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       localStorage.setItem('zeromall_tryon_user_height', String(height))
       localStorage.setItem('zeromall_tryon_user_weight', String(weight))
       localStorage.setItem('zeromall_tryon_user_gender', gender)
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[VirtualTryOnModal] Failed to persist body stats to localStorage:', e)
+    }
   }, [height, weight, gender])
 
   // Tính toán BMI và phân loại thể hình theo chuẩn nhân trắc học
@@ -391,7 +385,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           try {
             localStorage.setItem('zeromall_tryon_user_photo', dataUrl)
             localStorage.setItem('zeromall_tryon_user_name', file.name)
-          } catch (eStorage) {}
+          } catch (eStorage) {
+            console.warn('[VirtualTryOnModal] Failed to cache user photo to localStorage:', eStorage)
+          }
           triggerToast('Đã tải ảnh người dùng! Đang tự động ướm đồ lên vóc dáng của bạn...')
 
           // Trích xuất khuôn mặt để ốp vào đầu 3D Mannequin
@@ -427,7 +423,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     try {
       localStorage.setItem('zeromall_tryon_user_photo', modelUrl)
       localStorage.setItem('zeromall_tryon_user_name', modelName)
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[VirtualTryOnModal] Failed to cache selected model to localStorage:', e)
+    }
     triggerToast(`Đã chuyển sang [${modelName}]! AI đang ướm thử...`)
     handleRunTryOn(selectedPant || product || undefined, modelUrl)
   }

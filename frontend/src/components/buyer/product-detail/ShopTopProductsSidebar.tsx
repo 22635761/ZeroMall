@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { API_BASE_URL } from '../../../config/api.config'
+import { safeParseJson, formatCurrencyVND } from '../../../utils/formatters'
 
 interface ShopTopProductsSidebarProps {
   shopId?: string
@@ -33,27 +34,23 @@ export const ShopTopProductsSidebar: React.FC<ShopTopProductsSidebarProps> = ({ 
               .map((p: any) => {
                 let displayPriceNum = typeof p.price === 'number' ? p.price : parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
                 if (p.hasVariations && p.variationRows) {
-                  try {
-                    const rows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
-                    if (Array.isArray(rows) && rows.length > 0) {
-                      const prices = rows
-                        .map((r: any) => parseFloat(String(r.price || 0).replace(/[^0-9]/g, '')) || 0)
-                        .filter((v: number) => v > 0)
-                      if (prices.length > 0) {
-                        displayPriceNum = Math.min(...prices)
-                      }
+                  const rows = safeParseJson<any[]>(p.variationRows, [])
+                  if (Array.isArray(rows) && rows.length > 0) {
+                    const prices = rows
+                      .map((r: any) => parseFloat(String(r.price || 0).replace(/[^0-9]/g, '')) || 0)
+                      .filter((v: number) => v > 0)
+                    if (prices.length > 0) {
+                      displayPriceNum = Math.min(...prices)
                     }
-                  } catch (e) {}
+                  }
                 }
-                const displayPrice = displayPriceNum > 0 ? displayPriceNum.toLocaleString('vi-VN') + 'đ' : String(p.price || '0đ')
+                const displayPrice = displayPriceNum > 0 ? formatCurrencyVND(displayPriceNum) : formatCurrencyVND(p.price)
 
                 // Format cover image
                 let coverImg = p.image || ''
                 if (!coverImg && p.images) {
-                  try {
-                    const parsed = typeof p.images === 'string' ? JSON.parse(p.images) : p.images
-                    if (Array.isArray(parsed) && parsed.length > 0) coverImg = parsed[0]
-                  } catch (e) {}
+                  const parsed = safeParseJson<any[]>(p.images, [])
+                  if (Array.isArray(parsed) && parsed.length > 0) coverImg = parsed[0]
                 }
                 if (!coverImg) coverImg = 'https://placehold.co/100x100?text=SP'
 

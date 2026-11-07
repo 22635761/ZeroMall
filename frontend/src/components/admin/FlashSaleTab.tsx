@@ -30,7 +30,9 @@ export const FlashSaleTab: React.FC<FlashSaleTabProps> = ({ flashSales, fetchFla
           return { status: 'ENDED', label: '🔒 ĐÃ KẾT THÚC (Thực tế)', color: 'bg-slate-100 text-slate-500' }
         }
       }
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[FlashSaleTab] Error computing slot time status:', e)
+    }
 
     // Fallback nếu có manual status
     return {

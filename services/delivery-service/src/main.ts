@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { Logger } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -7,6 +8,6 @@ async function bootstrap() {
   
   const port = process.env.PORT ?? 3008;
   await app.listen(port);
-  console.log(`ZeroMall Delivery & Logistics Service is running on port ${port}`);
+  Logger.log(`ZeroMall Delivery & Logistics Service is running on port ${port}`, 'Bootstrap');
 }
 bootstrap();

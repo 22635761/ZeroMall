@@ -22,6 +22,7 @@ import PriceManagement from '../../components/seller/PriceManagement'
 import { ShopReturnsTab } from '../../components/seller/ShopReturnsTab'
 import { NotificationPopover } from '../../components/common/NotificationPopover'
 import { orderService } from '../../services/order.service'
+import { safeParseJson } from '../../utils/formatters'
 
 interface SellerPortalProps {
   user: any
@@ -94,14 +95,11 @@ export const SellerPortal: React.FC<SellerPortalProps> = ({
       const data = await response.json()
       
       const formattedProducts = data.map((p: any) => {
-        let variationGroups = []
-        let variationRows = []
-        try { variationGroups = p.variationGroups ? JSON.parse(p.variationGroups) : [] } catch (e) {}
-        try { variationRows = p.variationRows ? JSON.parse(p.variationRows) : [] } catch (e) {}
-        let parsedPrice = /^\d+(\.\d+)?$/.test(p.price) ? parseFloat(p.price) : p.price
-        let parsedOriginalPrice = p.originalPrice && /^\d+(\.\d+)?$/.test(p.originalPrice) ? parseFloat(p.originalPrice) : null
-        let parsedImages = []
-        try { parsedImages = p.images ? JSON.parse(p.images) : [] } catch (e) {}
+        const variationGroups = safeParseJson(p.variationGroups, [])
+        const variationRows = safeParseJson(p.variationRows, [])
+        const parsedPrice = /^\d+(\.\d+)?$/.test(p.price) ? parseFloat(p.price) : p.price
+        const parsedOriginalPrice = p.originalPrice && /^\d+(\.\d+)?$/.test(p.originalPrice) ? parseFloat(p.originalPrice) : null
+        const parsedImages = safeParseJson(p.images, [])
 
         return {
           ...p,

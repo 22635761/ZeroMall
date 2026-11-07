@@ -1,8 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 
 @Injectable()
 export class DeliveryService {
+  private readonly logger = new Logger(DeliveryService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   // 1. Tạo Shipment (Vận đơn SPX) độc lập khi Seller xác nhận giao hàng
@@ -86,11 +88,11 @@ export class DeliveryService {
                   isDefault: true,
                 },
               });
-              console.log(`[SPX-Logistics] Auto-synced SellerAddress for shop ${sellerId} from auth-service`);
+              this.logger.log(`Auto-synced SellerAddress for shop ${sellerId} from auth-service`);
             }
           }
         } catch (e) {
-          console.warn('[SPX-Logistics] Could not fetch shop pickup address from auth-service:', e);
+          this.logger.warn(`Could not fetch shop pickup address from auth-service: ${(e as Error).message}`);
         }
       }
 
@@ -234,9 +236,9 @@ export class DeliveryService {
     // Tự động gán Shipper khu vực đi lấy hàng (Auto-Dispatch Pickup Driver)
     try {
       await this.autoDispatch(shipment.id, 'PICKUP');
-      console.log(`[SPX-Logistics] Auto-dispatched pickup driver for shipment ${shipment.trackingNumber}`);
+      this.logger.log(`Auto-dispatched pickup driver for shipment ${shipment.trackingNumber}`);
     } catch (err) {
-      console.error(`[SPX-Logistics] Failed to auto-dispatch pickup driver:`, err);
+      this.logger.error(`Failed to auto-dispatch pickup driver for shipment ${shipment.trackingNumber}: ${(err as Error).message}`);
     }
 
     return this.prisma.shipment.findUnique({
@@ -260,7 +262,7 @@ export class DeliveryService {
     });
 
     if (!shipment) {
-      console.log(`[SPX-Logistics] cancelShipmentByOrderId: No shipment found for order ${orderId}`);
+      this.logger.debug(`cancelShipmentByOrderId: No shipment found for order ${orderId}`);
       return { success: true, message: 'No shipment to cancel' };
     }
 
@@ -326,7 +328,7 @@ export class DeliveryService {
       return updatedShipment;
     });
 
-    console.log(`[SPX-Logistics] Successfully cancelled shipment and driver tasks for order ${orderId}`);
+    this.logger.log(`Successfully cancelled shipment and driver tasks for order ${orderId}`);
     return { success: true, message: 'Shipment and driver assignments cancelled', shipment: result };
   }
 
@@ -491,7 +493,7 @@ export class DeliveryService {
 
     if (!shipment) throw new NotFoundException('Không tìm thấy Vận đơn');
     if (shipment.status === 'CANCELLED') {
-      console.log(`[SPX-Logistics] autoDispatch: Shipment ${shipmentId} is CANCELLED. Skipping auto-dispatch.`);
+      this.logger.debug(`autoDispatch: Shipment ${shipmentId} is CANCELLED. Skipping auto-dispatch.`);
       return { success: false, message: 'Shipment is cancelled' };
     }
 
@@ -633,7 +635,7 @@ export class DeliveryService {
     // NẾU KHÔNG CÓ TÀI XẾ ONLINE PHÙ HỢP TRONG KHU VỰC:
     // Tuyệt đối KHÔNG gán cho tài xế OFFLINE! Đơn hàng được đưa vào Hàng Đợi Bưu Cục (WAITING_PICKUP)
     if (!matchedDriver) {
-      console.log(`[SPX-Logistics] autoDispatch: Không có tài xế ONLINE trong khu vực (tỉnh="${targetProvince}"). Đơn hàng ${shipment.trackingNumber} đưa vào Hàng Đợi Bưu Cục.`);
+      this.logger.log(`autoDispatch: Không có tài xế ONLINE trong khu vực (tỉnh="${targetProvince}"). Đơn hàng ${shipment.trackingNumber} đưa vào Hàng Đợi Bưu Cục.`);
 
       await this.prisma.shipment.update({
         where: { id: shipmentId },
@@ -659,7 +661,7 @@ export class DeliveryService {
       };
     }
 
-    console.log(`[SPX-Logistics] autoDispatch: Matched driver ${matchedDriver.name} (${matchedDriver.id}) for ${type} shipment ${shipmentId} | Target: province="${targetProvince}", district="${targetDistrict}" | Driver: assignedProvince="${matchedDriver.assignedProvince}", hub="${matchedDriver.hub?.name}"`);
+    this.logger.log(`autoDispatch: Matched driver ${matchedDriver.name} (${matchedDriver.id}) for ${type} shipment ${shipmentId} | Target: province="${targetProvince}", district="${targetDistrict}" | Driver: assignedProvince="${matchedDriver.assignedProvince}", hub="${matchedDriver.hub?.name}"`);
 
     return this.assignDriver(shipmentId, matchedDriver.id, type);
   }
@@ -979,9 +981,9 @@ export class DeliveryService {
               paymentMethod: 'cod',
             }),
           });
-          console.log(`[SPX-Logistics] Synced COD payment success for order ${shipment.orderId}`);
+          this.logger.log(`Synced COD payment success for order ${shipment.orderId}`);
         } catch (e) {
-          console.error(`[SPX-Logistics] Failed to sync COD payment to payment-service:`, e);
+          this.logger.error(`Failed to sync COD payment to payment-service: ${(e as Error).message}`);
         }
       }
     } else if (['PICKED_UP', 'IN_TRANSIT', 'OUT_FOR_DELIVERY'].includes(dto.status)) {
@@ -1211,7 +1213,7 @@ export class DeliveryService {
       take: 15, // Gán tối đa 15 đơn cùng đợt gom
     });
 
-    console.log(`[SPX-Logistics] dispatchPendingHubQueue: Tìm thấy ${pendingShipments.length} đơn đang chờ cho tài xế ${driver.name}`);
+    this.logger.debug(`dispatchPendingHubQueue: Tìm thấy ${pendingShipments.length} đơn đang chờ cho tài xế ${driver.name}`);
 
     const dispatched: any[] = [];
     for (const s of pendingShipments) {
@@ -1219,7 +1221,7 @@ export class DeliveryService {
         const assignment = await this.assignDriver(s.id, driver.id, 'PICKUP');
         dispatched.push(assignment);
       } catch (err) {
-        console.error(`[SPX-Logistics] Không thể gán đơn ${s.trackingNumber} cho tài xế ${driver.name}:`, err);
+        this.logger.error(`Không thể gán đơn ${s.trackingNumber} cho tài xế ${driver.name}: ${(err as Error).message}`);
       }
     }
 
@@ -1280,7 +1282,7 @@ export class DeliveryService {
       },
     });
 
-    console.log(`[SPX-Logistics] Tài xế ${driver.name} đã điểm danh vào ca làm việc tại Hub: ${driver.hub?.name}`);
+    this.logger.log(`Tài xế ${driver.name} đã điểm danh vào ca làm việc tại Hub: ${driver.hub?.name}`);
 
     // Tự động quét và điều phối các đơn trong hàng đợi của Hub cho tài xế vừa vào ca
     const assignedQueue = await this.dispatchPendingHubQueue(driverId);
@@ -1326,7 +1328,7 @@ export class DeliveryService {
       data: { status: 'OFFLINE' },
     });
 
-    console.log(`[SPX-Logistics] Tài xế ${driver.name} đã kết thúc ca làm việc (OFFLINE).`);
+    this.logger.log(`Tài xế ${driver.name} đã kết thúc ca làm việc (OFFLINE).`);
 
     return {
       success: true,
@@ -1557,9 +1559,9 @@ export class DeliveryService {
           ghnOrderCode,
         }),
       });
-      console.log(`[SPX-Logistics] Synced order ${orderId} status to ${status}`);
+      this.logger.log(`Synced order ${orderId} status to ${status}`);
     } catch (e) {
-      console.error(`[SPX-Logistics] Failed to sync order status:`, e);
+      this.logger.error(`Failed to sync order status: ${(e as Error).message}`);
     }
   }
 

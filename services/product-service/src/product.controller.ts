@@ -1,16 +1,15 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, Query, Logger } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 
 @Controller('products')
 export class ProductController {
+  private readonly logger = new Logger(ProductController.name);
+
   constructor(
     private readonly productService: ProductService,
   ) {}
-
-
-
 
   @Get()
   async findAll(
@@ -22,10 +21,9 @@ export class ProductController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    console.log(`[ProductController.findAll] Query params:`, { shopId, category, search, q, inStockOnly, page, limit });
+    this.logger.debug(`Query params: shopId=${shopId}, category=${category}, search=${search || q}, page=${page}`);
     // Nếu có page → dùng feed phân trang (Infinite Scroll kiểu Shopee)
     if (page) {
-      console.log(`[ProductController.findAll] Routing to findPaginated: page=${page}, limit=${limit}`);
       return this.productService.findPaginated(
         parseInt(page, 10) || 1,
         limit ? parseInt(limit, 10) : 30,

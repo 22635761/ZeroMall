@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { RedisService } from './redis/redis.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
@@ -7,10 +7,26 @@ import { findProhibitedKeyword } from './banned-words';
 
 @Injectable()
 export class ProductService {
+  private readonly logger = new Logger(ProductService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
   ) {}
+
+  /**
+   * Giải mã JSON an toàn, tránh nuốt lỗi âm thầm và đồng nhất xử lý chuỗi
+   */
+  private safeParseJson<T>(raw: any, fallback: T): T {
+    if (!raw) return fallback;
+    if (typeof raw !== 'string') return raw as T;
+    try {
+      return JSON.parse(raw) as T;
+    } catch (err) {
+      this.logger.warn(`Lỗi khi giải mã JSON: ${(err as Error).message}`);
+      return fallback;
+    }
+  }
 
   /**
    * Feed phân trang cho trang chủ — mỗi page 30 sản phẩm (kiểu Shopee infinite scroll)
@@ -895,7 +911,9 @@ export class ProductService {
               status: 'UPCOMING',
             },
           });
-        } catch (e) {}
+        } catch (e) {
+          this.logger.warn(`Không thể khởi tạo slot FlashSale [${slotName}]: ${(e as Error).message}`);
+        }
       }
 
       // Clean up legacy non-3-hour empty slots
@@ -904,7 +922,9 @@ export class ProductService {
         if (!legacy.items || legacy.items.length === 0) {
           try {
             await this.prisma.flashSale.delete({ where: { id: legacy.id } });
-          } catch (e) {}
+          } catch (e) {
+            this.logger.warn(`Không thể xóa slot FlashSale cũ [${legacy.id}]: ${(e as Error).message}`);
+          }
         }
       }
 
@@ -1261,10 +1281,7 @@ export class ProductService {
     } 
     // 2. Trường hợp cập nhật 1 biến thể cụ thể (dto.variantKey)
     else if (dto.variantKey && product.hasVariations && product.variationRows) {
-      let rows: any[] = [];
-      try {
-        rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
-      } catch (e) {}
+      const rows: any[] = this.safeParseJson(product.variationRows, []);
 
       const targetRow = rows.find((r: any) => r.key === dto.variantKey || r.name === dto.variantKey);
       if (!targetRow) {
@@ -1301,17 +1318,15 @@ export class ProductService {
 
       // Nếu sản phẩm có biến thể và cập nhật đồng loạt giá chung:
       if (product.hasVariations && product.variationRows) {
-        try {
-          const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
-          if (Array.isArray(rows)) {
-            const updatedRows = rows.map((r: any) => ({
-              ...r,
-              price: String(newPrice),
-              originalPrice: dto.originalPrice !== undefined ? String(dto.originalPrice) : r.originalPrice,
-            }));
-            updateData.variationRows = JSON.stringify(updatedRows);
-          }
-        } catch (e) {}
+        const rows = this.safeParseJson<any[]>(product.variationRows, []);
+        if (Array.isArray(rows) && rows.length > 0) {
+          const updatedRows = rows.map((r: any) => ({
+            ...r,
+            price: String(newPrice),
+            originalPrice: dto.originalPrice !== undefined ? String(dto.originalPrice) : r.originalPrice,
+          }));
+          updateData.variationRows = JSON.stringify(updatedRows);
+        }
       }
     }
 
@@ -1367,40 +1382,34 @@ export class ProductService {
 
     // Nếu nhập hàng theo biến thể cụ thể
     if (dto.variantKey && product.hasVariations && product.variationRows) {
-      try {
-        const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
-        const targetRow = rows.find((r: any) => r.key === dto.variantKey || r.name === dto.variantKey);
-        if (targetRow) {
-          targetRow.stock = String((parseInt(String(targetRow.stock || 0), 10) || 0) + quantity);
-          targetRow.costPrice = costPrice;
-          variantLabel = ` (Biến thể: ${targetRow.name || targetRow.key})`;
-          updateData.variationRows = JSON.stringify(rows);
-          updateData.stock = rows.reduce((sum: number, r: any) => sum + (parseInt(String(r.stock || 0), 10) || 0), 0);
-        } else {
-          updateData.stock = { increment: quantity };
-        }
-      } catch (e) {
+      const rows = this.safeParseJson<any[]>(product.variationRows, []);
+      const targetRow = rows.find((r: any) => r.key === dto.variantKey || r.name === dto.variantKey);
+      if (targetRow) {
+        targetRow.stock = String((parseInt(String(targetRow.stock || 0), 10) || 0) + quantity);
+        targetRow.costPrice = costPrice;
+        variantLabel = ` (Biến thể: ${targetRow.name || targetRow.key})`;
+        updateData.variationRows = JSON.stringify(rows);
+        updateData.stock = rows.reduce((sum: number, r: any) => sum + (parseInt(String(r.stock || 0), 10) || 0), 0);
+      } else {
         updateData.stock = { increment: quantity };
       }
     } else if (dto.variationRows) {
-      try {
-        const rows = typeof dto.variationRows === 'string' ? JSON.parse(dto.variationRows) : dto.variationRows;
+      const rows = this.safeParseJson<any[]>(dto.variationRows, []);
+      if (rows.length > 0) {
         updateData.variationRows = JSON.stringify(rows);
         updateData.stock = rows.reduce((sum: number, r: any) => sum + (parseInt(String(r.stock || 0), 10) || 0), 0);
-      } catch (e) {
+      } else {
         updateData.stock = { increment: quantity };
       }
     } else {
       updateData.stock = { increment: quantity };
       // Nếu sản phẩm có biến thể mà nhập chung: cập nhật costPrice cho các dòng
       if (product.hasVariations && product.variationRows) {
-        try {
-          const rows = typeof product.variationRows === 'string' ? JSON.parse(product.variationRows) : product.variationRows;
-          if (Array.isArray(rows) && rows.length > 0) {
-            rows.forEach((r: any) => { r.costPrice = costPrice; });
-            updateData.variationRows = JSON.stringify(rows);
-          }
-        } catch (e) {}
+        const rows = this.safeParseJson<any[]>(product.variationRows, []);
+        if (Array.isArray(rows) && rows.length > 0) {
+          rows.forEach((r: any) => { r.costPrice = costPrice; });
+          updateData.variationRows = JSON.stringify(rows);
+        }
       }
     }
 

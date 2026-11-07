@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { safeParseJson } from '../../utils/formatters'
 
 export interface LinkedBankAccount {
   id: string
@@ -33,13 +34,8 @@ interface ShopBankAccountsProps {
 const getStorageKey = (ownerId: string) => `zeromall_linked_bank_accounts_${ownerId}`
 
 export const getLinkedBankAccounts = (ownerId: string): LinkedBankAccount[] => {
-  try {
-    const raw = localStorage.getItem(getStorageKey(ownerId))
-    if (raw) return JSON.parse(raw)
-  } catch (e) {
-    console.error('Error reading bank accounts:', e)
-  }
-  return []
+  const raw = localStorage.getItem(getStorageKey(ownerId))
+  return safeParseJson<LinkedBankAccount[]>(raw, [])
 }
 
 export const saveLinkedBankAccounts = (ownerId: string, accounts: LinkedBankAccount[]) => {
@@ -69,7 +65,9 @@ export const ShopBankAccounts: React.FC<ShopBankAccountsProps> = ({ user, shopId
     // Dọn dẹp key mock cũ không theo ownerId hoặc key thử nghiệm
     try {
       localStorage.removeItem('zeromall_linked_bank_accounts_shop-test-id')
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[ShopBankAccounts] Failed to clean test bank storage:', e)
+    }
 
     const loaded = getLinkedBankAccounts(ownerId)
     setAccounts(loaded)

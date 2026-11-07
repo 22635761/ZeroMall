@@ -1,5 +1,30 @@
 import type { Product } from '../components/buyer/FlashSale'
 
+/**
+ * Định dạng số tiền VNĐ chuẩn (ví dụ: 250000 -> "250.000đ")
+ * Xử lý an toàn cho cả số, chuỗi số thô hoặc chuỗi đã có ký tự tiền tệ
+ */
+export function formatCurrencyVND(val: number | string | null | undefined): string {
+  if (val === null || val === undefined || val === '') return '0đ'
+  if (typeof val === 'number') {
+    return `${Math.round(val).toLocaleString('vi-VN')}đ`
+  }
+  const str = String(val).trim()
+  if (str.endsWith('đ') || str.endsWith('₫')) return str
+  const num = parseFloat(str.replace(/[^0-9.-]/g, ''))
+  return isNaN(num) ? '0đ' : `${Math.round(num).toLocaleString('vi-VN')}đ`
+}
+
+/**
+ * Trích xuất giá trị số thực từ bất kỳ chuỗi giá tiền nào (ví dụ: "280.000đ" -> 280000)
+ */
+export function parseCurrencyNumber(val: number | string | null | undefined): number {
+  if (val === null || val === undefined || val === '') return 0
+  if (typeof val === 'number') return val
+  const num = parseFloat(String(val).replace(/[^0-9.-]/g, ''))
+  return isNaN(num) ? 0 : num
+}
+
 export function formatRawProduct(p: any): Product {
   let sellingPriceNum = parseFloat(String(p.price || 0).replace(/[^0-9]/g, '')) || 0
   let origPriceForMin = p.originalPrice ? (parseFloat(String(p.originalPrice).replace(/[^0-9]/g, '')) || 0) : 0

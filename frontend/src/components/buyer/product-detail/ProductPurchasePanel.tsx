@@ -152,7 +152,9 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                     : shopDetails.shippingSettings
                   hasXtra = Boolean(parsed.hasFreeshipXtra)
                 }
-              } catch (_) {}
+              } catch (e) {
+                console.warn('[ProductPurchasePanel] Error parsing shop shippingSettings:', e)
+              }
 
               if (!hasXtra) return null
 

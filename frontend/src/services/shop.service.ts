@@ -28,7 +28,9 @@ export const getFreeshipShopIds = async (forceRefresh = false): Promise<Set<stri
               if (parsed.hasFreeshipXtra) {
                 enrolled.add(s.id)
               }
-            } catch (_) {}
+            } catch (parseErr) {
+              console.warn('[shop.service] Failed to parse shippingSettings for shop:', s.id, parseErr)
+            }
           }
         })
       }

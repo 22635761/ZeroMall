@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { API_BASE_URL } from '../../config/api.config'
+import { API_BASE_URL, TRYON_SERVICE_URL } from '../../config/api.config'
+import { formatCurrencyVND } from '../../utils/formatters'
 import type { Product } from '../../components/buyer/FlashSale'
 
 interface BodyMeasurements {
@@ -56,8 +57,6 @@ interface OutfitLook {
   items: OutfitItem[]
   total_price: number
 }
-
-const TRYON_SERVICE_URL = 'http://localhost:5006'
 
 export const VirtualTryOnPage: React.FC = () => {
   const navigate = useNavigate()
@@ -121,7 +120,9 @@ export const VirtualTryOnPage: React.FC = () => {
                     effectivePants = [fetchedProd, ...effectivePants]
                   }
                 }
-              } catch (eF) {}
+              } catch (eF) {
+                console.warn('[VirtualTryOnPage] Failed to fetch initial product details:', eF)
+              }
             }
             setAvailablePants(effectivePants)
             setSelectedPant(matched || effectivePants[0])
@@ -528,7 +529,7 @@ export const VirtualTryOnPage: React.FC = () => {
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-bold text-slate-800 line-clamp-1">{pant.name}</p>
                         <p className="text-[11px] font-black text-rose-600 mt-0.5">
-                          {(pant.price || 0).toLocaleString()}đ
+                          {formatCurrencyVND(pant.price)}
                         </p>
                         <span className="inline-block mt-1 bg-white border border-slate-200 text-slate-500 text-[9px] font-semibold px-1.5 py-0.5 rounded">
                           {pant.category}
@@ -796,7 +797,7 @@ export const VirtualTryOnPage: React.FC = () => {
                               <span className="text-[9px] font-bold text-indigo-600 block">{item.role}</span>
                               <p className="text-[11px] font-semibold text-slate-800 truncate">{item.product?.name}</p>
                               <span className="text-[10px] font-black text-rose-600">
-                                {(item.product?.price || 0).toLocaleString()}đ
+                                {formatCurrencyVND(item.product?.price)}
                               </span>
                             </div>
                           </div>
@@ -809,7 +810,7 @@ export const VirtualTryOnPage: React.FC = () => {
                       <div>
                         <span className="text-[10px] text-slate-400 block font-medium">Trọn bộ outfit</span>
                         <span className="text-xs font-black text-slate-900">
-                          {(look.total_price || 0).toLocaleString()}đ
+                          {formatCurrencyVND(look.total_price)}
                         </span>
                       </div>
                       <button

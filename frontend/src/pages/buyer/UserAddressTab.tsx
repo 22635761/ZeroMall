@@ -28,7 +28,9 @@ export const UserAddressTab: React.FC<UserAddressTabProps> = ({ user }) => {
     try {
       localStorage.removeItem('zm_user_addresses')
       localStorage.removeItem('zm_active_address_id')
-    } catch (e) {}
+    } catch (e) {
+      console.warn('[UserAddressTab] Failed to remove legacy address keys:', e)
+    }
 
     if (!user?.id) {
       setAddresses([])
