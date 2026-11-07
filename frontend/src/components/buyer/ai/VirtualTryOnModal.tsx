@@ -610,9 +610,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header Bar */}
-        <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-slate-900 border-b border-slate-800 text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-2xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-xl">
+            <span className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-xl shrink-0">
               ✨
             </span>
             <div>
@@ -620,8 +620,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
                   Phòng Thử Đồ Online AI • Mảng Thời Trang
                 </h2>
-                <span className="bg-indigo-500/30 text-indigo-300 border border-indigo-400/30 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-                  M4 Metal MPS
+                <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-extrabold px-2.5 py-0.5 rounded-full uppercase tracking-wider">
+                  AI Studio 3D
                 </span>
               </div>
               <p className="text-[11px] text-slate-300">
@@ -654,7 +654,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       onClick={() => setActiveTab('photo')}
                       className={`px-3 py-1.5 rounded-xl text-xs font-black transition cursor-pointer flex items-center gap-1.5 shadow-xs ${
                         activeTab === 'photo'
-                          ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white ring-1 ring-white/30'
+                          ? 'bg-emerald-600 text-white ring-1 ring-emerald-400/50'
                           : 'bg-white/10 text-slate-300 hover:bg-white/20'
                       }`}
                     >
@@ -665,7 +665,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       onClick={() => setActiveTab('3d')}
                       className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                         activeTab === '3d'
-                          ? 'bg-indigo-600 text-white shadow-xs'
+                          ? 'bg-emerald-600 text-white shadow-xs'
                           : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white'
                       }`}
                     >
@@ -679,7 +679,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       }}
                       className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                         activeTab === 'scanner'
-                          ? 'bg-indigo-600 text-white shadow-xs'
+                          ? 'bg-emerald-600 text-white shadow-xs'
                           : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white'
                       }`}
                     >
@@ -690,7 +690,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       onClick={() => setActiveTab('heatmap')}
                       className={`px-2.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
                         activeTab === 'heatmap'
-                          ? 'bg-indigo-600 text-white shadow-xs'
+                          ? 'bg-emerald-600 text-white shadow-xs'
                           : 'bg-white/10 text-slate-400 hover:bg-white/20 hover:text-white'
                       }`}
                     >
@@ -705,7 +705,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         type="button"
                         onClick={() => setViewMode('tryon')}
                         className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
-                          viewMode === 'tryon' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                          viewMode === 'tryon' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
                         }`}
                       >
                         <span>✨</span> Ảnh Ướm AI
@@ -714,7 +714,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         type="button"
                         onClick={() => setViewMode('original')}
                         className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
-                          viewMode === 'original' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                          viewMode === 'original' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
                         }`}
                       >
                         <span>👤</span> Ảnh Gốc
@@ -723,7 +723,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         type="button"
                         onClick={() => setViewMode('sidebyside')}
                         className={`px-2 py-0.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1 ${
-                          viewMode === 'sidebyside' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
+                          viewMode === 'sidebyside' ? 'bg-emerald-600 text-white shadow-xs' : 'text-slate-300 hover:text-white'
                         }`}
                       >
                         <span>↔</span> So Sánh
@@ -1049,7 +1049,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                             }, 350)
                           }
                         }}
-                        className="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white rounded-xl text-xs font-black transition cursor-pointer shadow-md flex items-center gap-1.5"
+                        className="px-4 py-2 bg-[#ee4d2d] hover:bg-[#d93b1d] text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98] flex items-center gap-1.5"
                       >
                         <span>🛒</span> Thêm Vào Giỏ Hàng
                       </button>
@@ -1064,7 +1064,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
               
               {/* KHỐI 1: MÓN ĐỒ ĐANG CHUẨN BỊ ƯỚM THỬ (Mặc định chọn sẵn từ trang sản phẩm) */}
               {selectedPant && (
-                <div className="bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-900 border border-indigo-500/40 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden">
+                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden">
                   <div className="flex items-center justify-between mb-2">
                     <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-full">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -1089,7 +1089,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         <span className="text-sm font-black text-rose-400">
                           {formatDisplayPrice(selectedPant.price || selectedPant.flashPrice)}
                         </span>
-                        <span className="text-[10px] font-bold bg-indigo-500/30 text-indigo-200 px-2 py-0.5 rounded border border-indigo-400/30">
+                        <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-400/30">
                           Gợi ý: Size {fitResult?.recommended_size || measurements?.recommended_pant_size || 'L'}
                         </span>
                       </div>
@@ -1099,7 +1099,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
               )}
 
               {/* KHỐI 2: THÊM ẢNH NGƯỜI DÙNG ĐỂ THỬ ĐỒ (CTA NỔI BẬT NHẤT) */}
-              <div className="bg-white border-2 border-indigo-200 rounded-2xl p-4 space-y-3 shadow-xs">
+              <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-xs">
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-black text-xs sm:text-sm text-slate-900 flex items-center gap-1.5">
@@ -1111,7 +1111,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         : 'Tải ảnh của bạn để AI tự động ướm đồ lên người bạn'}
                     </p>
                   </div>
-                  <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <span className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
                     {height}cm • {weight}kg
                   </span>
                 </div>
@@ -1119,26 +1119,26 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                 {/* Hero CTA Box: Bấm để chọn ảnh từ máy tính / điện thoại */}
                 <div
                   onClick={() => fileInputRef.current?.click()}
-                  className="border-2 border-dashed border-indigo-400/80 hover:border-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition group"
+                  className="border-2 border-dashed border-emerald-400/80 hover:border-emerald-600 bg-emerald-50/40 hover:bg-emerald-50/80 p-3 rounded-2xl flex items-center gap-3 cursor-pointer transition group"
                 >
                   <div className="relative shrink-0">
                     <img
                       src={userPhoto || 'https://placehold.co/100x100?text=You'}
                       alt="Avatar"
-                      className="w-13 h-13 sm:w-14 sm:h-14 object-cover rounded-xl border border-indigo-300 shadow-2xs group-hover:scale-105 transition bg-white"
+                      className="w-13 h-13 sm:w-14 sm:h-14 object-cover rounded-xl border border-emerald-300 shadow-2xs group-hover:scale-105 transition bg-white"
                     />
-                    <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] shadow">
+                    <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center text-[10px] shadow">
                       📷
                     </span>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs sm:text-sm font-black text-indigo-950 group-hover:text-indigo-600 flex items-center gap-1">
+                    <p className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-emerald-700 flex items-center gap-1">
                       <span>+</span> Tải Ảnh Của Bạn Lên Đây
                     </p>
                     <p className="text-[11px] text-slate-600 truncate mt-0.5">
                       Đang dùng: <span className="font-bold text-slate-800">{userPhotoName}</span>
                     </p>
-                    <span className="text-[10px] text-indigo-600 font-bold block mt-0.5 group-hover:underline">
+                    <span className="text-[10px] text-emerald-600 font-bold block mt-0.5 group-hover:underline">
                       Chọn file ảnh từ thiết bị (JPG, PNG) ➔
                     </span>
                   </div>
@@ -1324,7 +1324,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     type="button"
                     onClick={() => customGarmentInputRef.current?.click()}
                     disabled={isScanningGarment}
-                    className="w-full py-2 px-3 bg-gradient-to-r from-purple-600 via-indigo-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800 text-white rounded-xl text-xs font-black shadow-xs transition flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50"
+                    className="w-full py-2.5 px-3 bg-slate-900 hover:bg-slate-800 border border-slate-700 hover:border-emerald-500/50 text-white rounded-xl text-xs font-bold shadow-xs transition-all duration-150 flex items-center justify-center gap-1.5 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
                   >
                     <span>📸</span> {isScanningGarment ? 'AI Đang Quét & Bóc Tách...' : 'Tải Ảnh Đồ Bất Kỳ Để AI Quét & Thử'}
                   </button>

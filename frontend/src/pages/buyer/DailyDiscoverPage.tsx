@@ -165,55 +165,58 @@ export const DailyDiscoverPage: React.FC = () => {
                 <div
                   key={p.id}
                   onClick={() => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)}
-                  className="bg-white border border-slate-100 hover:border-rose-500 rounded-xl overflow-hidden hover:shadow-lg transition flex flex-col justify-between relative group cursor-pointer"
+                  className="bg-white border border-slate-200/80 hover:border-emerald-500/50 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative group cursor-pointer"
                 >
                   {/* Image */}
                   <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                     <img
                       src={p.image}
                       alt={p.name}
-                      className="w-full h-full object-cover group-hover:scale-102 transition duration-200"
+                      className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ease-out"
                       loading="lazy"
                     />
 
                     {/* Mall or Yêu Thích */}
-                    <div className="absolute top-2 left-0 flex flex-col gap-1 z-10 items-start">
+                    <div className="absolute top-0 left-0 z-10">
                       {isMall ? (
-                        <span className="bg-rose-600 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-r shadow-xs">
-                          Mall
+                        <span className="bg-slate-900/90 text-emerald-400 border-r border-b border-emerald-500/30 text-[9px] font-black px-2.5 py-0.5 rounded-br-lg shadow-xs">
+                          MALL
                         </span>
                       ) : (
-                        <span className="bg-rose-500 text-white text-[8px] font-extrabold px-1.5 py-0.5 rounded-r shadow-xs">
+                        <span className="bg-emerald-600/95 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-br-lg shadow-xs">
                           Yêu thích
-                        </span>
-                      )}
-                      {hasFreeship && (
-                        <span className="bg-teal-600 text-white text-[7px] font-bold px-1 py-0.5 rounded-r shadow-xs">
-                          Freeship
                         </span>
                       )}
                     </div>
 
                     {/* Discount */}
                     {discountPct > 0 && (
-                      <div className="absolute top-2 right-2 bg-rose-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow-sm">
+                      <div className="absolute top-0 right-0 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow-xs">
                         -{discountPct}%
                       </div>
                     )}
                   </div>
 
                   {/* Details */}
-                  <div className="p-2.5 flex-1 flex flex-col justify-between space-y-2">
-                    <h3
-                      className="text-[12px] font-medium text-slate-800 leading-snug line-clamp-3 min-h-[50px] group-hover:text-rose-600 transition"
-                      title={p.name}
-                    >
-                      {p.name}
-                    </h3>
+                  <div className="p-3 flex-1 flex flex-col justify-between space-y-2.5">
+                    <div className="space-y-1.5">
+                      <h3
+                        className="text-[12px] font-medium text-slate-800 leading-snug line-clamp-3 min-h-[50px] group-hover:text-emerald-600 transition"
+                        title={p.name}
+                      >
+                        {p.name}
+                      </h3>
 
-                    <div className="space-y-1">
+                      {hasFreeship && (
+                        <span className="text-[8px] text-teal-700 border border-teal-500/40 px-1.5 py-0.2 rounded font-bold bg-teal-50 inline-block">
+                          Freeship Xtra
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-xs font-black text-rose-600">
+                        <span className="text-sm font-bold text-emerald-600">
                           {p.flashPrice || p.price}
                         </span>
                       </div>

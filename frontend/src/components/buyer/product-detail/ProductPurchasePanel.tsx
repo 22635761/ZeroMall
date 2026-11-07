@@ -316,7 +316,7 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
                             onSelectOptionImage(optImage)
                           }
                         }}
-                        className={`px-3 py-1.5 border rounded-sm font-semibold transition cursor-pointer text-xs flex items-center gap-1.5 ${
+                        className={`px-3 py-1.5 border rounded-lg font-semibold transition-all duration-150 cursor-pointer text-xs flex items-center gap-1.5 active:scale-[0.98] ${
                           isSelected
                             ? 'border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9]/40 shadow-2xs ring-1 ring-[#ee4d2d]'
                             : available
@@ -388,10 +388,10 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           type="button"
           disabled={stockAvailable <= 0}
           onClick={handleAddToCartClick}
-          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-sm text-sm flex items-center justify-center gap-2.5 transition ${
+          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-xl text-sm flex items-center justify-center gap-2.5 transition-all duration-150 active:scale-[0.98] ${
             stockAvailable <= 0
               ? 'bg-slate-100 border border-slate-300 text-slate-400 cursor-not-allowed opacity-60'
-              : 'border border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9] hover:bg-[#fdede7] cursor-pointer shadow-3xs'
+              : 'border-2 border-[#ee4d2d] text-[#ee4d2d] bg-[#feeee9]/70 hover:bg-[#feeee9] cursor-pointer shadow-3xs hover:shadow-xs'
           }`}
         >
           <span className="text-lg">🛒</span> {stockAvailable <= 0 ? 'Tạm Hết Hàng' : 'Thêm Vào Giỏ Hàng'}
@@ -401,20 +401,19 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
           type="button"
           disabled={stockAvailable <= 0}
           onClick={handleBuyNowClick}
-          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-sm text-sm flex items-center justify-center gap-1 transition ${
+          className={`flex-1 min-w-[200px] py-3.5 px-6 font-bold rounded-xl text-sm flex items-center justify-center gap-1 transition-all duration-150 active:scale-[0.98] ${
             stockAvailable <= 0
               ? 'bg-slate-300 text-slate-500 cursor-not-allowed shadow-none opacity-60'
-              : 'bg-[#ee4d2d] hover:bg-[#f05d40] text-white cursor-pointer shadow-md'
+              : 'bg-[#ee4d2d] hover:bg-[#e03f1f] text-white cursor-pointer shadow-md hover:shadow-lg'
           }`}
         >
           {stockAvailable <= 0 ? 'Hết Hàng' : 'Mua Ngay'}
         </button>
       </div>
 
-      {/* 3D Virtual Try-On Button for Fashion Items */}
+      {/* 3D Virtual Try-On Banner for Fashion Items - Design Taste Luxury Studio */}
       {isFashion && (
-        <button
-          type="button"
+        <div
           onClick={() => {
             if (onOpenTryOnModal) {
               onOpenTryOnModal()
@@ -422,11 +421,31 @@ export const ProductPurchasePanel: React.FC<ProductPurchasePanelProps> = ({
               navigate(`/virtual-tryon?productId=${product.id}`)
             }
           }}
-          className="w-full mt-3 py-3 px-4 font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white cursor-pointer shadow-md transition-all transform hover:-translate-y-0.5"
+          className="mt-4 p-3.5 rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 text-white cursor-pointer hover:border-emerald-500/60 hover:shadow-xl transition-all duration-200 group active:scale-[0.99] flex items-center justify-between shadow-md"
         >
-          <span className="text-base">✨</span>
-          <span>Phòng Thử Đồ Online AI (Ướm Thử Vào Vóc Dáng Của Bạn)</span>
-        </button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center text-xl shrink-0 group-hover:scale-105 transition-transform duration-200">
+              ✨
+            </div>
+            <div className="text-left">
+              <div className="flex items-center gap-2">
+                <span className="font-black text-xs sm:text-sm text-white group-hover:text-emerald-400 transition-colors">
+                  Phòng Thử Đồ Online AI
+                </span>
+                <span className="bg-emerald-500/20 text-emerald-300 text-[9px] font-extrabold px-2 py-0.5 rounded-full border border-emerald-500/40 tracking-wider">
+                  3D & Vóc Dáng
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300 mt-0.5">
+                Nhập chiều cao & cân nặng để AI ướm thử trang phục chuẩn form người bạn
+              </p>
+            </div>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 text-xs font-bold text-emerald-400 group-hover:translate-x-1 transition-transform duration-200 shrink-0 pl-3">
+            <span>Thử ngay</span>
+            <span>➔</span>
+          </div>
+        </div>
       )}
 
     </div>

@@ -94,7 +94,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span className="text-slate-200">|</span>
             <button 
               onClick={() => navigate('/virtual-tryon')}
-              className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-black px-2.5 py-0.5 rounded-full border border-indigo-200 transition cursor-pointer text-[11px] flex items-center gap-1 shadow-2xs"
+              className="bg-emerald-50 hover:bg-emerald-100/80 text-emerald-700 font-bold px-3 py-0.5 rounded-full border border-emerald-300/80 transition-all duration-150 cursor-pointer text-[11px] flex items-center gap-1 shadow-2xs hover:scale-[1.02] active:scale-[0.98]"
             >
               <span>✨ Thử Đồ 3D AI</span>
             </button>

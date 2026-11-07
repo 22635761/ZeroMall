@@ -142,14 +142,14 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                 <div
                   key={p.id}
                   onClick={() => handleProductClick(p)}
-                  className="bg-white border border-slate-100/80 hover:border-emerald-500/30 rounded-2xl overflow-hidden hover:shadow-lg transition flex flex-col justify-between relative group cursor-pointer"
+                  className="bg-white border border-slate-200/80 hover:border-emerald-500/50 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative group cursor-pointer"
                 >
                   {/* Product Image */}
                   <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                     <img
                       src={p.image}
                       alt={p.name}
-                      className={`w-full h-full object-cover group-hover:scale-101 transition duration-200 ${isOutOfStock ? 'grayscale-40' : ''}`}
+                      className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ease-out ${isOutOfStock ? 'grayscale-40' : ''}`}
                       loading="lazy"
                     />
 
@@ -162,64 +162,56 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                       </div>
                     )}
 
-                    {/* Left Tags: Mall or Yêu Thích */}
-                    <div className="absolute top-2.5 left-0 flex flex-col gap-1 z-10 items-start">
+                    {/* Left Tag: Chỉ hiển thị 1 nhãn duy nhất (MALL hoặc Yêu Thích) để không che ảnh sản phẩm */}
+                    <div className="absolute top-0 left-0 z-10">
                       {isMall ? (
-                        <span className="bg-emerald-700 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-r-md shadow-xs">
-                          Mall
+                        <span className="bg-slate-900/90 text-emerald-400 border-r border-b border-emerald-500/30 text-[9px] font-black px-2.5 py-0.5 rounded-br-lg shadow-xs backdrop-blur-xs">
+                          MALL
                         </span>
                       ) : (
-                        <span className="bg-emerald-600 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-r-md shadow-xs">
+                        <span className="bg-emerald-600/95 text-white text-[9px] font-bold px-2.5 py-0.5 rounded-br-lg shadow-xs">
                           Yêu thích
-                        </span>
-                      )}
-
-                      {/* CHỈ HIỂN THỊ NẾU SHOP ĐÃ ĐĂNG KÝ FREESHIP XTRA */}
-                      {hasFreeship && (
-                        <span className="bg-teal-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                          Freeship Xtra
-                        </span>
-                      )}
-
-                      {/* Gợi ý cho bạn */}
-                      {p.recommendationReason && activeTab === 0 ? (
-                        <span className="bg-gradient-to-r from-violet-600 to-indigo-600 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-r-md shadow-xs w-fit max-w-[130px] truncate" title={p.recommendationReason}>
-                          {p.recommendationReason}
-                        </span>
-                      ) : isPersonalized && (
-                        <span className="bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[8px] font-extrabold px-2 py-0.5 rounded-r-md shadow-xs w-fit">
-                          ✨ Dành cho bạn
                         </span>
                       )}
                     </div>
 
                     {/* Right Promo Tag */}
                     {discountPct > 0 && !isOutOfStock && (
-                      <div className="absolute top-2.5 right-2.5 bg-emerald-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-md shadow-sm">
-                        -{discountPct}% GIẢM
+                      <div className="absolute top-0 right-0 bg-rose-600 text-white text-[9px] font-black px-2 py-0.5 rounded-bl-lg shadow-xs">
+                        -{discountPct}%
                       </div>
                     )}
                   </div>
 
                   {/* Product details */}
                   <div className="p-3.5 flex-1 flex flex-col justify-between space-y-3">
-                    <div className="space-y-1.5">
+                    <div className="space-y-2">
                       <h3
                         className="text-[12px] font-medium text-slate-800 leading-snug line-clamp-3 min-h-[50px] group-hover:text-emerald-600 transition"
                         title={p.name}
                       >
                         {p.name}
                       </h3>
-                      {/* Badges row */}
-                      <div className="flex flex-wrap gap-1">
+
+                      {/* Badges row: Tổ chức gọn gàng, không đè lên hình ảnh */}
+                      <div className="flex flex-wrap gap-1 items-center min-h-[20px]">
                         {hasFreeship && (
-                          <span className="text-[8px] text-teal-600 border border-teal-500/30 px-1 rounded-sm font-bold bg-teal-50/20">
-                            FREESHIP XTRA
+                          <span className="text-[8px] text-teal-700 border border-teal-500/40 px-1.5 py-0.2 rounded font-bold bg-teal-50">
+                            Freeship Xtra
                           </span>
                         )}
-                        <span className="text-[8px] text-emerald-600 border border-emerald-500/30 px-1 rounded-sm font-bold bg-emerald-50/20">
-                          GIẢM ĐẾN 30K
+                        <span className="text-[8px] text-emerald-700 border border-emerald-500/40 px-1.5 py-0.2 rounded font-bold bg-emerald-50">
+                          Giảm đến 30k
                         </span>
+                        {p.recommendationReason && activeTab === 0 ? (
+                          <span className="text-[8px] text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-semibold bg-slate-50 truncate max-w-[110px]" title={p.recommendationReason}>
+                            🔥 {p.recommendationReason}
+                          </span>
+                        ) : isPersonalized ? (
+                          <span className="text-[8px] text-amber-700 border border-amber-300/60 px-1.5 py-0.2 rounded font-semibold bg-amber-50">
+                            ✨ Dành cho bạn
+                          </span>
+                        ) : null}
                       </div>
                     </div>
 
@@ -263,14 +255,18 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
             </div>
           )}
 
-          {/* NÚT XEM THÊM CHUẨN SHOPEE */}
-          <div className="text-center pt-8 pb-4">
+          {/* NÚT XEM THÊM - CHUẨN DESIGN TASTE E-COMMERCE */}
+          <div className="text-center pt-8 pb-6">
             <button
               onClick={() => navigate('/daily-discover?page=1')}
-              className="w-full sm:w-[390px] py-3.5 bg-white hover:bg-slate-50 border border-slate-300 hover:border-emerald-500/50 rounded-md text-sm font-semibold text-slate-700 hover:text-emerald-600 shadow-3xs hover:shadow-xs transition cursor-pointer mx-auto block active:scale-[0.99]"
+              className="w-full sm:w-[360px] py-3.5 px-6 bg-white hover:bg-emerald-50/70 border-2 border-emerald-600/30 hover:border-emerald-600 rounded-xl text-sm font-bold text-emerald-700 hover:text-emerald-800 shadow-xs hover:shadow-md transition-all duration-200 cursor-pointer mx-auto flex items-center justify-center gap-2 group active:scale-[0.98]"
             >
-              Xem Thêm
+              <span>Xem Thêm Gợi Ý Hôm Nay</span>
+              <span className="group-hover:translate-x-1 transition-transform duration-200">➔</span>
             </button>
+            <p className="text-[11px] text-slate-400 mt-2 font-medium">
+              Khám phá hơn 10.000+ sản phẩm đa dạng trên toàn sàn ZeroMall
+            </p>
           </div>
         </>
       )}

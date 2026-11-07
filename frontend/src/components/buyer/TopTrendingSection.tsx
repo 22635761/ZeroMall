@@ -91,7 +91,7 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
             <div
               key={p.id}
               onClick={() => onSelectProduct(p)}
-              className="group cursor-pointer flex flex-col justify-between bg-slate-50/50 hover:bg-white rounded-2xl border border-slate-200/70 hover:border-emerald-500/40 p-2.5 transition duration-200 hover:shadow-lg relative overflow-hidden"
+              className="group cursor-pointer flex flex-col justify-between bg-white rounded-2xl border border-slate-200/70 hover:border-emerald-500/50 p-2.5 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 relative overflow-hidden shadow-2xs"
             >
               {/* Rank Badge */}
               <div
@@ -102,11 +102,11 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
               </div>
 
               {/* Image Container */}
-              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 bg-white border border-slate-100">
+              <div className="relative aspect-square rounded-xl overflow-hidden mb-2.5 bg-slate-50 border border-slate-100">
                 <img
                   src={p.image}
                   alt={p.name}
-                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                  className="w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ease-out"
                   loading="lazy"
                 />
               </div>

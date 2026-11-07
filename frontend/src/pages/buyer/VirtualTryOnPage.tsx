@@ -360,17 +360,16 @@ export const VirtualTryOnPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 font-sans text-slate-800">
       {/* 1. Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8 relative overflow-hidden">
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 opacity-15 pointer-events-none bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-indigo-400 via-purple-500 to-transparent"></div>
+      <div className="bg-slate-900 border border-slate-800 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8 relative overflow-hidden">
         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <div className="flex items-center gap-2 mb-2">
-              <span className="bg-indigo-500/20 text-indigo-300 border border-indigo-400/30 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
+              <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                Local AI M4 Accelerated
+                AI Thử Đồ Tức Thì
               </span>
-              <span className="bg-purple-500/20 text-purple-300 border border-purple-400/30 text-[11px] font-bold px-3 py-1 rounded-full">
-                SMPL-X 3D Mesh & Human Try-On
+              <span className="bg-emerald-500/10 text-emerald-300 border border-emerald-400/20 text-[11px] font-bold px-3 py-1 rounded-full">
+                Công Nghệ 3D Chuẩn Vóc Dáng
               </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-2.5">
@@ -384,7 +383,7 @@ export const VirtualTryOnPage: React.FC = () => {
 
           <button
             onClick={() => navigate('/')}
-            className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 transition cursor-pointer flex items-center gap-2 shrink-0"
+            className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-white/20 transition cursor-pointer flex items-center gap-2 shrink-0 active:scale-[0.98]"
           >
             ← Về Sàn Mua Sắm
           </button>

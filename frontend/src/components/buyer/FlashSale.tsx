@@ -187,14 +187,14 @@ export const FlashSale: React.FC<FlashSaleProps> = ({ products, onSelectProduct 
               <div
                 key={p.id}
                 onClick={() => onSelectProduct(p)}
-                className="group bg-white border border-slate-100 hover:border-orange-500/40 rounded-2xl overflow-hidden hover:shadow-md hover:shadow-orange-500/5 cursor-pointer transition duration-200 flex flex-col justify-between"
+                className="group bg-white border border-slate-200/80 hover:border-orange-500/50 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between cursor-pointer"
               >
                 {/* Product Image */}
                 <div className="relative aspect-square w-full bg-slate-50 overflow-hidden">
                   <img
                     src={p.image}
                     alt={p.name}
-                    className={`w-full h-full object-cover group-hover:scale-102 transition duration-300 ${isOutOfStock ? 'grayscale-40' : ''}`}
+                    className={`w-full h-full object-cover group-hover:scale-103 transition-transform duration-300 ease-out ${isOutOfStock ? 'grayscale-40' : ''}`}
                   />
 
                   {/* Out of stock overlay */}
