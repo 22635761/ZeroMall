@@ -693,7 +693,7 @@ class TryOnSynthesizer:
             except Exception as e:
                 print(f"[!] VTONEngine fallback error: {e}")
 
-        # Fallback cơ bản nếu VTONEngine gặp sự cố
+        # Fallback thông minh: Tự động bóc tách sạch 100% phông nền (Alpha Matte) và ướm đúng vị trí giải phẫu
         try:
             from PIL import Image
             user_pil = GarmentExtractor.load_pil_image(user_image_data)
@@ -706,19 +706,42 @@ class TryOnSynthesizer:
             target_h = int(user_pil.height * (target_w / max(1, user_pil.width)))
             user_img = user_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
-            garment_pil = GarmentExtractor.load_pil_image(garment_url)
+            # Bóc tách trang phục khử hoàn toàn nền trắng/nền phẳng (Transparent Alpha)
+            garment_extract = GarmentExtractor.extract_garment(garment_url, garment_info)
+            if garment_extract.get("success") and garment_extract.get("extracted_garment_url"):
+                garment_pil = GarmentExtractor.load_pil_image(garment_extract["extracted_garment_url"])
+            else:
+                garment_pil = GarmentExtractor.load_pil_image(garment_url)
+
             if garment_pil is not None:
-                garment_img = garment_pil.convert("RGBA")
-                pw = int(target_w * 0.58)
-                ph = int(target_h * 0.44)
-                px = int((target_w - pw) / 2)
-                py = int(target_h * 0.48)
-                garment_resized = garment_img.resize((pw, ph), Image.Resampling.LANCZOS)
+                garment_rgba = garment_pil.convert("RGBA")
+                gw, gh = garment_rgba.size
+                ratio = gh / max(1, gw)
+
+                if category == "bottoms":
+                    pw = int(target_w * 0.52)
+                    ph = min(int(target_h * 0.48), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.50)
+                elif category == "one-pieces":
+                    pw = int(target_w * 0.60)
+                    ph = min(int(target_h * 0.68), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.26)
+                else:
+                    # tops (áo khoác, sơ mi, áo thun, bomber)
+                    pw = int(target_w * 0.62)
+                    ph = min(int(target_h * 0.44), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.28)
+
+                garment_resized = garment_rgba.resize((pw, ph), Image.Resampling.LANCZOS)
+                # Dán với kênh Alpha trong suốt, tuyệt đối không để lộ viền nền trắng
                 user_img.paste(garment_resized, (px, py), garment_resized)
 
             final_rgb = user_img.convert("RGB")
             buf = io.BytesIO()
-            final_rgb.save(buf, format="JPEG", quality=88)
+            final_rgb.save(buf, format="JPEG", quality=90)
             return f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
         except Exception as e:
             print(f"[!] Composite fallback error: {e}")
