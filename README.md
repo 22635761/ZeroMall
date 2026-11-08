@@ -95,6 +95,15 @@ Dùng để phân tích ý định tìm kiếm của người mua (Search Semant
    ```
    *(Sau khi tải xong gõ `/bye` để thoát terminal chat, Ollama sẽ tự động duy trì chạy ngầm ở port 11434).*
 
+### 2.3. Khởi chạy Phòng Thử Đồ Ảo AI Virtual Try-On (Cổng 5006)
+- Đã được tích hợp sẵn vào `docker-compose.yml`, tự động chạy cùng toàn bộ hệ sinh thái qua `docker compose up -d --build`.
+- Nếu muốn chạy độc lập bên ngoài máy:
+  ```bash
+  pip install -r services/tryon-service/requirements.txt
+  python services/tryon-service/server.py
+  ```
+  *(macOS/Linux: dùng `python3 services/tryon-service/server.py`)*
+
 ## 🌐 Địa Chỉ Truy Cập Từng Phân Hệ
 
 Bạn có thể mở trình duyệt và truy cập theo **đường dẫn Path (mặc định)** hoặc cấu hình **Subdomain ảo** tùy ý:

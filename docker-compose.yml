@@ -266,6 +266,18 @@ services:
         condition: service_healthy
     restart: always
 
+  tryon-service:
+    build:
+      context: .
+      dockerfile: services/tryon-service/Dockerfile
+    container_name: zeromall-tryon-service
+    ports:
+      - '5006:5006'
+    environment:
+      - TRYON_PORT=5006
+      - TZ=Asia/Ho_Chi_Minh
+    restart: always
+
 volumes:
   postgres_data:
   redis_data:

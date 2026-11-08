@@ -5,6 +5,7 @@ import math
 import base64
 import hashlib
 import io
+import tempfile
 import urllib.request
 import urllib.error
 from http.server import HTTPServer, BaseHTTPRequestHandler
@@ -12,6 +13,7 @@ import cv2
 import numpy as np
 from PIL import Image, ImageDraw
 
+TEMP_DIR = tempfile.gettempdir()
 BROWSER_UA = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 current_dir = os.path.dirname(os.path.abspath(__file__))
 catvton_dir = os.path.join(current_dir, "CatVTON")
@@ -328,7 +330,7 @@ class TryOnSynthesizer:
         if not user_image_data or not garment_url:
             return None
 
-        cache_file = f"/tmp/sota_vton_{garment_id}.jpg" if garment_id else None
+        cache_file = os.path.join(TEMP_DIR, f"sota_vton_{garment_id}.jpg") if garment_id else None
         if cache_file and os.path.exists(cache_file):
             try:
                 with open(cache_file, "rb") as fc:
@@ -340,7 +342,7 @@ class TryOnSynthesizer:
         try:
             from gradio_client import Client, handle_file
 
-            p_path = "/tmp/cur_person_diff.jpg"
+            p_path = os.path.join(TEMP_DIR, "cur_person_diff.jpg")
             if user_image_data.startswith("data:image"):
                 _, b64 = user_image_data.split(",", 1)
                 with open(p_path, "wb") as fp:
@@ -355,7 +357,7 @@ class TryOnSynthesizer:
             else:
                 return None
 
-            g_path = f"/tmp/cur_garm_{garment_id}.jpg"
+            g_path = os.path.join(TEMP_DIR, f"cur_garm_{garment_id}.jpg")
             if garment_url.startswith("http"):
                 req_g = urllib.request.Request(garment_url, headers={"User-Agent": BROWSER_UA})
                 with urllib.request.urlopen(req_g, timeout=5) as resp:
@@ -421,8 +423,8 @@ class TryOnSynthesizer:
 
         user_key = hashlib.md5(user_image_data[:5000].encode()).hexdigest()[:8] if user_image_data else "default"
         body_key = f"{int(height_cm)}_{int(weight_kg)}"
-        cache_file_user = f"/tmp/mage_vton_{garment_id}_{user_key}_{body_key}.jpg" if garment_id else None
-        cache_file_global = f"/tmp/mage_vton_{garment_id}_{body_key}.jpg" if garment_id else None
+        cache_file_user = os.path.join(TEMP_DIR, f"mage_vton_{garment_id}_{user_key}_{body_key}.jpg") if garment_id else None
+        cache_file_global = os.path.join(TEMP_DIR, f"mage_vton_{garment_id}_{body_key}.jpg") if garment_id else None
 
         # Kiểm tra cache hợp lệ
         if is_default_avatar:
@@ -471,9 +473,10 @@ class TryOnSynthesizer:
 
             # Nếu là ảnh mặc định và bị bé -> nạp ảnh Trấn Thành gốc
             if is_default_avatar and (person_pil is None or person_pil.width < 300 or person_pil.height < 300):
-                if os.path.exists("/tmp/current_user_tryon.png"):
+                cur_user_png = os.path.join(TEMP_DIR, "current_user_tryon.png")
+                if os.path.exists(cur_user_png):
                     try:
-                        person_pil = Image.open("/tmp/current_user_tryon.png").convert("RGB")
+                        person_pil = Image.open(cur_user_png).convert("RGB")
                     except Exception:
                         pass
 
@@ -640,7 +643,7 @@ class TryOnSynthesizer:
         )
         is_standard_body = (abs(float(height_cm) - 175) < 3 and abs(float(weight_kg) - 68) < 3)
         if is_default and is_standard_body:
-            for c_path in [f"/tmp/sota_vton_{garment_id}.jpg", f"/tmp/fashn_tryon_{garment_id}.jpg"]:
+            for c_path in [os.path.join(TEMP_DIR, f"sota_vton_{garment_id}.jpg"), os.path.join(TEMP_DIR, f"fashn_tryon_{garment_id}.jpg")]:
                 if garment_id and os.path.exists(c_path):
                     try:
                         with open(c_path, "rb") as f_cached:
@@ -692,34 +695,25 @@ class TryOnSynthesizer:
         # Fallback cơ bản nếu VTONEngine gặp sự cố
         try:
             from PIL import Image
-            if user_image_data.startswith("data:image"):
-                header, b64data = user_image_data.split(",", 1)
-                user_bytes = base64.b64decode(b64data)
-                user_img = Image.open(io.BytesIO(user_bytes)).convert("RGBA")
-            elif user_image_data.startswith("http"):
-                req = urllib.request.Request(user_image_data, headers={"User-Agent": BROWSER_UA})
-                with urllib.request.urlopen(req, timeout=4) as resp:
-                    user_img = Image.open(io.BytesIO(resp.read())).convert("RGBA")
+            user_pil = GarmentExtractor.load_pil_image(user_image_data)
+            if user_pil is None:
+                user_pil = Image.new("RGBA", (600, 800), (245, 247, 250, 255))
             else:
-                return ""
+                user_pil = user_pil.convert("RGBA")
 
             target_w = 600
-            target_h = int(user_img.height * (target_w / user_img.width))
-            user_img = user_img.resize((target_w, target_h), Image.Resampling.LANCZOS)
+            target_h = int(user_pil.height * (target_w / max(1, user_pil.width)))
+            user_img = user_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
-            if garment_url and garment_url.startswith("http"):
-                try:
-                    req_g = urllib.request.Request(garment_url, headers={"User-Agent": BROWSER_UA})
-                    with urllib.request.urlopen(req_g, timeout=4) as resp_g:
-                        garment_img = Image.open(io.BytesIO(resp_g.read())).convert("RGBA")
-                        pw = int(target_w * 0.58)
-                        ph = int(target_h * 0.44)
-                        px = int((target_w - pw) / 2)
-                        py = int(target_h * 0.48)
-                        garment_resized = garment_img.resize((pw, ph), Image.Resampling.LANCZOS)
-                        user_img.paste(garment_resized, (px, py), garment_resized)
-                except Exception as eg:
-                    print(f"[!] Warning: Composite garment image: {eg}")
+            garment_pil = GarmentExtractor.load_pil_image(garment_url)
+            if garment_pil is not None:
+                garment_img = garment_pil.convert("RGBA")
+                pw = int(target_w * 0.58)
+                ph = int(target_h * 0.44)
+                px = int((target_w - pw) / 2)
+                py = int(target_h * 0.48)
+                garment_resized = garment_img.resize((pw, ph), Image.Resampling.LANCZOS)
+                user_img.paste(garment_resized, (px, py), garment_resized)
 
             final_rgb = user_img.convert("RGB")
             buf = io.BytesIO()
@@ -736,7 +730,7 @@ class TryOnSynthesizer:
 class GarmentExtractor:
     @staticmethod
     def load_pil_image(image_input: str) -> Image.Image:
-        """Nạp ảnh từ Base64, URL từ xa hoặc đường dẫn tệp cục bộ"""
+        """Nạp ảnh từ Base64, URL từ xa, đường dẫn web relative (/models/...) hoặc đường dẫn tệp cục bộ"""
         if not image_input:
             return None
         try:
@@ -750,6 +744,18 @@ class GarmentExtractor:
                     return Image.open(io.BytesIO(resp.read())).convert("RGB")
             elif os.path.exists(image_input):
                 return Image.open(image_input).convert("RGB")
+
+            # Hỗ trợ đường dẫn tương đối tới frontend/public hoặc frontend/dist (ví dụ: /models/tryon_master/...)
+            cleaned = image_input.lstrip("/")
+            candidates = [
+                os.path.join(os.path.dirname(os.path.dirname(current_dir)), "frontend", "public", cleaned),
+                os.path.join(os.path.dirname(os.path.dirname(current_dir)), "frontend", "dist", cleaned),
+                os.path.join(current_dir, cleaned),
+                os.path.join(os.path.dirname(current_dir), cleaned)
+            ]
+            for cand in candidates:
+                if os.path.exists(cand):
+                    return Image.open(cand).convert("RGB")
         except Exception as e:
             print(f"[!] GarmentExtractor.load_pil_image error: {e}")
         return None
@@ -1400,9 +1406,10 @@ class TryOnRequestHandler(BaseHTTPRequestHandler):
                 try:
                     if user_image and user_image.startswith("data:image"):
                         _, b64 = user_image.split(",", 1)
-                        with open("/tmp/current_user_tryon.png", "wb") as f_u:
+                        cur_user_png = os.path.join(TEMP_DIR, "current_user_tryon.png")
+                        with open(cur_user_png, "wb") as f_u:
                             f_u.write(base64.b64decode(b64))
-                        print(f"[+] Saved user photo to /tmp/current_user_tryon.png ({len(b64)} chars)")
+                        print(f"[+] Saved user photo to {cur_user_png} ({len(b64)} chars)")
                 except Exception as e_s:
                     print(f"[!] Warning saving user image: {e_s}")
 

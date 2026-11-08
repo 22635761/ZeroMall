@@ -74,21 +74,41 @@ Sau khi các container đã chạy và CSDL đã được nạp:
 
 ---
 
-## 🤖 6. Bước 5 (Tùy chọn): Chạy Dịch Vụ Phòng Thử Đồ Ảo AI (Virtual Try-On Port 5006)
+## 🤖 6. Bước 5: Phòng Thử Đồ Ảo AI (Virtual Try-On Port 5006)
 
-Nếu bạn muốn sử dụng tính năng **Phòng Thử Đồ Online AI** (thử đồ chân dung/toàn thân theo số đo Chiều cao & Cân nặng, vóc dáng gầy/mập):
+Dịch vụ **Phòng Thử Đồ Online AI** (thử đồ chân dung/toàn thân theo số đo Chiều cao & Cân nặng, vóc dáng gầy/mập) đã được cấu hình sẵn sàng:
 
+### Cách 1: Hoàn toàn tự động qua Docker (Khuyên Dùng - Không cần cài Python)
+- Dịch vụ `tryon-service` đã được tích hợp trực tiếp vào `docker-compose.yml`.
+- Khi bạn chạy `docker compose up -d --build` ở Bước 2, dịch vụ AI **tự động được build và kích hoạt trên cổng 5006**.
+- Kiểm tra trạng thái hoạt động:
+  ```bash
+  curl http://localhost:5006/health
+  ```
+  *(Kết quả trả về: `{"status": "ok", "service": "zeromall-tryon-service"}`)*
+
+### Cách 2: Chạy trực tiếp bằng Python độc lập trên máy
+Nếu bạn muốn chạy bằng Python nội bộ:
 1. Mở một tab Terminal mới tại thư mục dự án `ZeroMall`.
 2. Cài đặt các thư viện Python:
    ```bash
    pip install -r services/tryon-service/requirements.txt
    ```
-   *(Hoặc cài trực tiếp: `pip install opencv-python numpy pillow requests`)*
-3. Chạy service thử đồ AI:
-   ```bash
-   python3 services/tryon-service/server.py
-   ```
+3. Khởi chạy service:
+   - **Trên macOS / Linux:**
+     ```bash
+     python3 services/tryon-service/server.py
+     ```
+   - **Trên Windows:**
+     ```bash
+     python services/tryon-service/server.py
+     ```
 4. Khi thấy thông báo `ZeroMall 3D Virtual Try-On Server running at http://localhost:5006` là dịch vụ AI đã sẵn sàng hoạt động!
+
+> **Lưu ý quan trọng cho người dùng Windows & máy mới clone**:
+> - Đã sửa triệt để lỗi thiếu thư viện `mage-space`.
+> - Đã sửa lỗi đường dẫn tạm thời `/tmp` (tương thích đa nền tảng Windows/macOS/Linux bằng thư viện `tempfile`).
+> - Đã hỗ trợ tự động nhận diện ảnh trang phục và ảnh người mẫu cục bộ không lo lỗi đường dẫn.
 
 ---
 
