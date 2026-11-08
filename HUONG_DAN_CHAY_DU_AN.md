@@ -23,6 +23,12 @@ git clone https://github.com/22635761/ZeroMall.git
 cd ZeroMall
 ```
 
+Tạo file môi trường `.env` từ mẫu có sẵn:
+```bash
+cp .env.example .env
+```
+> **Ghi chú**: Tệp `.env.example` đã được cấu hình sẵn 100% tất cả API Keys hoạt động thực tế (Sepay QR, Goong Maps, Cloudinary, Giao Hàng Nhanh GHN, và API Mage.space Mango 3 Turbo 10.000 Gems cho Phòng Thử Đồ AI). Bạn chỉ cần copy sang `.env` là mọi chức năng đều chạy mượt mà ngay lập tức!
+
 ---
 
 ## 🚀 3. Bước 2: Khởi Động Toàn Bộ Hệ Thống Bằng Docker

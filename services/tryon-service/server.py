@@ -68,7 +68,8 @@ if os.path.exists(os.path.join(FASHN_WEIGHTS_DIR, "model.safetensors")):
         print(f"[!] Warning: Cannot initialize FASHN VTON pipeline ({ef})")
 
 # Cấu hình API Keys & Nhà cung cấp AI Try-On
-MAGE_API_KEY = os.environ.get("MAGE_API_KEY", "mage_sk_BQTeU9X17ETFA20h4R8smnqRArg50wh5fr1BW0Pvv54")
+DEFAULT_MAGE_API_KEY = "mage_sk_BQTeU9X17ETFA20h4R8smnqRArg50wh5fr1BW0Pvv54"
+MAGE_API_KEY = (os.environ.get("MAGE_API_KEY") or "").strip() or DEFAULT_MAGE_API_KEY
 
 PORT = int(os.environ.get("TRYON_PORT", 5006))
 KONG_GATEWAY_URL = os.environ.get("KONG_GATEWAY_URL", "http://localhost:8000")

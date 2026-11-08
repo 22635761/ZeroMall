@@ -275,6 +275,7 @@ services:
       - '5006:5006'
     environment:
       - TRYON_PORT=5006
+      - MAGE_API_KEY=${MAGE_API_KEY:-mage_sk_BQTeU9X17ETFA20h4R8smnqRArg50wh5fr1BW0Pvv54}
       - TZ=Asia/Ho_Chi_Minh
     restart: always
 
