@@ -34,7 +34,7 @@ export const ProductModerationTab: React.FC<ProductModerationTabProps> = ({ trig
     setLoading(true)
     try {
       const [resProd, resCat, resShops] = await Promise.all([
-        fetch(`${API_BASE_URL}/products`),
+        fetch(`${API_BASE_URL}/products?limit=100`),
         fetch(`${API_BASE_URL}/products/categories`),
         fetch(`${API_BASE_URL}/auth/shops`),
       ])

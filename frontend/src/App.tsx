@@ -594,7 +594,7 @@ function App() {
 
   const loadProducts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/products`)
+      const response = await fetch(`${API_BASE_URL}/products?limit=60`)
       if (!response.ok) throw new Error('Failed to fetch products')
 
       const raw = await response.json()

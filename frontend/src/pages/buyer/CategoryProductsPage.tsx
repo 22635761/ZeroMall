@@ -88,7 +88,8 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
     }
 
     setLoading(true)
-    fetch(`${API_BASE_URL}/products`)
+    const catQuery = categorySlug ? `?category=${encodeURIComponent(categorySlug)}&limit=60` : '?limit=60'
+    fetch(`${API_BASE_URL}/products${catQuery}`)
       .then(res => res.json())
       .then(data => {
         if (Array.isArray(data)) {

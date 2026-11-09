@@ -19,8 +19,8 @@ export const ShopTopProductsSidebar: React.FC<ShopTopProductsSidebarProps> = ({ 
       try {
         // Query products: if shopId is provided, get this shop's products; otherwise platform products
         const url = shopId 
-          ? `${API_BASE_URL}/products?shopId=${encodeURIComponent(shopId)}`
-          : `${API_BASE_URL}/products`
+          ? `${API_BASE_URL}/products?shopId=${encodeURIComponent(shopId)}&limit=20`
+          : `${API_BASE_URL}/products?limit=20`
         
         const res = await fetch(url)
         if (res.ok) {

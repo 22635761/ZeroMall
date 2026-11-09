@@ -96,7 +96,7 @@ export default function AdminPriceAnalyticsTab() {
     try {
       const [shopsRes, prodRes] = await Promise.all([
         fetch(`${API_BASE_URL}/auth/shops`).then(r => r.ok ? r.json() : []).catch(() => []),
-        fetch(`${API_BASE_URL}/products?inStockOnly=false`).then(r => r.ok ? r.json() : []).catch(() => [])
+        fetch(`${API_BASE_URL}/products?inStockOnly=false&limit=100`).then(r => r.ok ? r.json() : []).catch(() => [])
       ]);
       const shopList = Array.isArray(shopsRes) ? shopsRes : [];
       const prodList = Array.isArray(prodRes) ? prodRes : prodRes.data || [];

@@ -112,9 +112,22 @@ export class ProductService {
     return payload;
   }
 
-  async findAll(shopId?: string, category?: string, search?: string, inStockOnly?: string) {
+  async findAll(
+    shopId?: string,
+    category?: string,
+    search?: string,
+    inStockOnly?: string,
+    limit?: number,
+    page?: number,
+  ) {
+    const safeLimit = limit !== undefined && !isNaN(limit)
+      ? Math.min(Math.max(1, limit), shopId ? 200 : 100)
+      : (shopId ? 100 : 60);
+    const safePage = page !== undefined && !isNaN(page) ? Math.max(1, page) : 1;
+    const skip = (safePage - 1) * safeLimit;
+
     // 1. Kiểm tra trong Redis Cache trước (0-1ms)
-    const cacheKey = `products:list:${shopId || 'all'}:${category || 'all'}:${search || 'all'}:${inStockOnly || 'default'}`;
+    const cacheKey = `products:list:${shopId || 'all'}:${category || 'all'}:${search || 'all'}:${inStockOnly || 'default'}:${safePage}:${safeLimit}`;
     const cached = await this.redis.get<any[]>(cacheKey);
     if (cached) {
       return cached;
@@ -125,7 +138,7 @@ export class ProductService {
     if (inStockOnly === 'true' || (!shopId && inStockOnly !== 'false')) {
       andConditions.push({
         stock: { gt: 0 },
-        status: { not: 'hidden' }
+        status: { not: 'hidden' },
       });
     }
 
@@ -163,27 +176,38 @@ export class ProductService {
       where: whereClause,
       include: { categoryRef: true },
       orderBy: { createdAt: 'desc' },
+      skip,
+      take: safeLimit,
     });
 
-    const result = await Promise.all(
-      products.map(async (p) => {
-        const reviews = await this.prisma.review.findMany({
-          where: { productId: p.id },
-          select: { rating: true },
-        });
-        const ratingCount = reviews.length;
-        const avgRating = ratingCount > 0
-          ? parseFloat((reviews.reduce((acc, r) => acc + r.rating, 0) / ratingCount).toFixed(1))
-          : 0;
-        return {
-          ...p,
-          rating: avgRating,
-          reviewsCount: ratingCount,
-        };
-      })
-    );
+    // 2. Batch-load reviews (1 single groupBy query thay vì N queries)
+    const productIds = products.map((p) => p.id);
+    let reviewMap = new Map<string, { rating: number; reviewsCount: number }>();
+    if (productIds.length > 0) {
+      const reviewStats = await this.prisma.review.groupBy({
+        by: ['productId'],
+        where: { productId: { in: productIds } },
+        _avg: { rating: true },
+        _count: { rating: true },
+      });
+      reviewMap = new Map(
+        reviewStats.map((r: any) => [
+          r.productId,
+          {
+            rating: r._avg?.rating ? parseFloat(r._avg.rating.toFixed(1)) : 0,
+            reviewsCount: r._count?.rating ?? 0,
+          },
+        ])
+      );
+    }
 
-    // 2. Lưu vào Redis Cache với thời gian sống TTL = 180s (3 phút)
+    const result = products.map((p) => ({
+      ...p,
+      rating: reviewMap.get(p.id)?.rating ?? 0,
+      reviewsCount: reviewMap.get(p.id)?.reviewsCount ?? 0,
+    }));
+
+    // 3. Lưu vào Redis Cache với thời gian sống TTL = 180s (3 phút)
     await this.redis.set(cacheKey, result, 180);
 
     return result;

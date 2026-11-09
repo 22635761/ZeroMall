@@ -21,17 +21,20 @@ export class ProductController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    this.logger.debug(`Query params: shopId=${shopId}, category=${category}, search=${search || q}, page=${page}`);
-    // Nếu có page → dùng feed phân trang (Infinite Scroll kiểu Shopee)
-    if (page) {
+    this.logger.debug(`Query params: shopId=${shopId}, category=${category}, search=${search || q}, page=${page}, limit=${limit}`);
+    const pageNum = page ? parseInt(page, 10) : undefined;
+    const limitNum = limit ? parseInt(limit, 10) : undefined;
+
+    // Nếu có page và không phải tìm kiếm / seller shop → dùng feed phân trang (Infinite Scroll kiểu Shopee)
+    if (pageNum && !shopId && !search && !q) {
       return this.productService.findPaginated(
-        parseInt(page, 10) || 1,
-        limit ? parseInt(limit, 10) : 30,
+        pageNum || 1,
+        limitNum || 30,
         category,
       );
     }
-    // Không có page → load truyền thống (seller portal, search by shopId, etc.)
-    return this.productService.findAll(shopId, category, search || q, inStockOnly);
+    // Không có page hoặc có shopId/search → load có limit an toàn
+    return this.productService.findAll(shopId, category, search || q, inStockOnly, limitNum, pageNum);
   }
 
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---

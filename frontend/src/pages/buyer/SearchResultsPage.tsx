@@ -165,7 +165,7 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
           console.warn('Semantic search failed, falling back to standard search:', err)
           setSemanticData(null)
           // Fallback to standard
-          fetch(`${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}`)
+          fetch(`${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}&limit=60`)
             .then(r => r.json())
             .then(data => {
               if (Array.isArray(data)) setAllProducts(formatRawProducts(data))
@@ -177,8 +177,8 @@ export const SearchResultsPage: React.FC<SearchResultsPageProps> = ({ products: 
       // Chế độ tìm kiếm cơ bản hoặc không có từ khóa
       setSemanticData(null)
       const url = trimmedQuery 
-        ? `${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}`
-        : `${API_BASE_URL}/products`
+        ? `${API_BASE_URL}/products?search=${encodeURIComponent(trimmedQuery)}&limit=60`
+        : `${API_BASE_URL}/products?limit=60`
 
       fetch(url)
         .then(res => res.json())
