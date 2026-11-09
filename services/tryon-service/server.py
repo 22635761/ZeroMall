@@ -977,11 +977,32 @@ class TryOnSynthesizer:
                     px = int((target_w - pw) / 2)
                     py = int(target_h * 0.81)
                 elif layer_type == "accessory":
-                    # Mũ / Nón: y ~ 8% - 19%
-                    pw = int(target_w * 0.24)
-                    ph = min(int(target_h * 0.12), int(pw * ratio))
-                    px = int((target_w - pw) / 2)
-                    py = int(target_h * 0.08)
+                    # Phụ kiện: Mũ / Nón / Kính / Khăn / Dây chuyền / Túi xách
+                    item_name = (garment_data.get("name") or "").lower()
+                    if any(k in item_name for k in ["kính", "kinh", "gọng"]):
+                        # Kính mắt: đặt ngang tầm mắt (y ~ 14% - 19%)
+                        pw = int(target_w * 0.22)
+                        ph = min(int(target_h * 0.08), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.14)
+                    elif any(k in item_name for k in ["dây chuyền", "vòng cổ", "kiềng", "khăn"]):
+                        # Dây chuyền / vòng cổ / khăn: đặt ngang cổ (y ~ 22% - 27%)
+                        pw = int(target_w * 0.22)
+                        ph = min(int(target_h * 0.10), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.22)
+                    elif any(k in item_name for k in ["túi", "ví", "balo", "ba lô"]):
+                        # Túi xách / Ví / Balo: đặt bên hông
+                        pw = int(target_w * 0.26)
+                        ph = min(int(target_h * 0.22), int(pw * ratio))
+                        px = int(target_w * 0.12)
+                        py = int(target_h * 0.48)
+                    else:
+                        # Mũ / Nón / Kẹp tóc: y ~ 6% - 16% (đỉnh đầu)
+                        pw = int(target_w * 0.25)
+                        ph = min(int(target_h * 0.14), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.07)
                 else:
                     return
 

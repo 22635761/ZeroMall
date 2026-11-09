@@ -169,14 +169,94 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   const physiqueInfo = getBodyPhysiqueInfo(currentBmi)
 
-  // Đổi slot trang phục tự động theo loại sản phẩm
-  const detectItemSlot = (p: Product): 'top' | 'bottom' | 'shoes' | 'accessory' => {
-    const name = (p.name || '').toLowerCase()
-    const cat = (p.category || '').toLowerCase()
-    if (['mũ', 'nón', 'kính', 'túi', 'ví', 'khăn', 'thắt lưng'].some(k => name.includes(k) || cat.includes(k))) return 'accessory'
-    if (['giày', 'dép', 'sneaker', 'sandal', 'guốc', 'ủng', 'loafer', 'mwc'].some(k => name.includes(k) || cat.includes(k))) return 'shoes'
-    if (['quần', 'jean', 'jogger', 'short', 'tây', 'kaki', 'chân váy', 'váy', 'đầm'].some(k => name.includes(k) || cat.includes(k))) return 'bottom'
-    return 'top'
+  // Phân loại slot trang phục chính xác tuyệt đối theo loại sản phẩm (Top / Bottom / Shoes / Accessory / null)
+  const detectItemSlot = (p: any): 'top' | 'bottom' | 'shoes' | 'accessory' | null => {
+    if (!p) return null
+    const name = ' ' + (p.name || '').toLowerCase().trim() + ' '
+    const cat = (p.category || '').toLowerCase().trim()
+    const slug = (p.categoryRef?.slug || '').toLowerCase().trim()
+
+    // 0. Loại trừ đồ gia dụng / điện tử / công nghệ nếu lọt vào (trừ túi/ví đựng)
+    if (name.includes('bàn là') || name.includes('nồi cơm') || name.includes('nồi chiên') || name.includes('máy giặt') || name.includes('tủ lạnh')) {
+      return null
+    }
+    if ((name.includes('điện thoại') || name.includes('máy tính') || name.includes('máy ảnh')) && !name.includes('túi') && !name.includes('ví') && !name.includes('balo') && !name.includes('bao da') && !name.includes('ốp')) {
+      return null
+    }
+
+    // 1. GIÀY DÉP (Footwear): Giày, dép, sneaker, sandal, guốc, cao gót, búp bê, loafer, boots...
+    const isShoes = [
+      'giày', 'giay', 'dép', 'dep', 'sneaker', 'sandal', 'guốc', 'guoc', 
+      'cao gót', 'búp bê', 'loafer', 'derby', 'chelsea', 'boots', 'bốt', 'ủng', 'sục', 'mwc', 'slip-on', 'slip on'
+    ].some(k => name.includes(k)) || (slug.includes('giay-dep') || cat.includes('giày dép'))
+
+    if (isShoes && !name.includes('hộp đựng') && !name.includes('túi đựng giày') && !name.includes('kệ để giày')) {
+      return 'shoes'
+    }
+
+    // 2. QUẦN & VÁY & ĐẦM (Bottoms / Lower Garments): Quần tây, jean, jogger, short, chân váy, đầm maxi...
+    const isBottom = [
+      'quần', 'quan', 'jean', 'jeans', 'jogger', 'short', 'shorts', 'kaki', 'tây âu', 'quần tây', 
+      'quần đùi', 'quần baggy', 'quần ống', 'quần culottes', 'quần legging', 
+      'quần bò', 'quần lửng', 'quần nỉ', 'quần thun',
+      'chân váy', 'váy xòe', 'váy chữ a', 'váy xếp ly', 'váy midi', 'váy maxi', 'váy body', 'váy yếm', 'váy hoa', 'váy tay bồng', 'váy công chúa', 'váy',
+      'đầm', 'dam', 'maxi', 'jumpsuit', 'set đồ bộ'
+    ].some(k => name.includes(k))
+
+    if (isBottom) {
+      return 'bottom'
+    }
+
+    // 3. ÁO (Tops / Upper Garments): Áo sơ mi, thun, polo, khoác, bomber, blazer, cardigan, hoodie, sweater, croptop, vest...
+    const isTop = [
+      'áo', 'ao', 'sơ mi', 'so mi', 'thun', 'polo', 'khoác', 'khoac', 'bomber', 'blazer', 
+      'cardigan', 'hoodie', 'sweater', 'croptop', 'crop top', 'tank top', 'ba lỗ', 
+      'gile', 'vest', 'bra', 'sát nách', 'cộc tay', 'tay phồng', 'len dệt kim', 'jacket'
+    ].some(k => {
+      if (k === 'áo' || k === 'ao') {
+        return /(?:^|[^\p{L}])áo(?:[^\p{L}]|$)/ui.test(name) || name.includes(' áo ') || name.startsWith(' áo') || name.includes('áo-')
+      }
+      return name.includes(k)
+    })
+
+    // Loại trừ trường hợp phụ kiện có nhắc chữ "cổ áo" hoặc "áo"
+    if (isTop && !name.includes('khăn') && !name.includes('kẹp tóc') && !name.includes('dây chuyền') && !name.includes('bông tai') && !name.includes('khuyên tai')) {
+      return 'top'
+    }
+
+    // 4. MŨ NÓN & PHỤ KIỆN & TRANG SỨC & TÚI VÍ (Accessories)
+    const hasHat = name.includes('mũ ') || name.includes(' mũ') || name.includes('nón') || name.includes('cap') || name.includes('beanie') || name.includes('snapback') || name.includes('bucket')
+    const hasGlasses = name.includes('kính') || name.includes('gọng kính') || name.includes('tròng phân cực')
+    const hasBag = name.includes('túi') || name.includes('ví') || name.includes('balo') || name.includes('ba lô') || name.includes('clutch') || name.includes('tote')
+    const hasScarf = name.includes('khăn') || name.includes('cà vạt') || name.includes('caravat')
+    const hasHair = name.includes('kẹp tóc') || name.includes('cột tóc') || name.includes('băng đô') || name.includes('cài tóc') || name.includes('bờm') || name.includes('chun buộc')
+    const hasJewelry = name.includes('dây chuyền') || name.includes('vòng cổ') || name.includes('vòng tay') || name.includes('lắc tay') || name.includes('lắc chân') || name.includes('khuyên tai') || name.includes('hoa tai') || name.includes('bông tai') || name.includes('nhẫn') || name.includes('kiềng') || name.includes('charm')
+    const hasBelt = name.includes('thắt lưng') || name.includes('dây nịt') || name.includes('belt')
+    const hasWatch = name.includes('đồng hồ')
+    const isAccCat = slug.includes('phu-kien') || slug.includes('tui-vi') || slug.includes('dong-ho') || cat.includes('phụ kiện') || cat.includes('túi ví') || cat.includes('đồng hồ')
+
+    if (hasHat || hasGlasses || hasBag || hasScarf || hasHair || hasJewelry || hasBelt || hasWatch || isAccCat) {
+      return 'accessory'
+    }
+
+    return null
+  }
+
+  // Nhãn badge hiển thị chuẩn xác từng món đồ
+  const getSlotBadgeText = (p: any) => {
+    const slot = detectItemSlot(p)
+    if (slot === 'top') return '👔 Áo'
+    if (slot === 'bottom') return '👖 Quần/Váy'
+    if (slot === 'shoes') return '👟 Giày/Dép'
+    if (slot === 'accessory') {
+      const n = (p.name || '').toLowerCase()
+      if (n.includes('mũ') || n.includes('nón')) return '🧢 Mũ/Nón'
+      if (n.includes('kính')) return '🕶️ Kính'
+      if (n.includes('túi') || n.includes('ví') || n.includes('balo')) return '👜 Túi/Ví'
+      if (n.includes('khăn')) return '🧣 Khăn'
+      return '✨ Phụ Kiện'
+    }
+    return 'Thời trang'
   }
 
   // 2. Món đồ được chọn để ướm thử & Nguồn cấp tủ đồ (Hỗ trợ Phối Đồ Đa Món Mix & Match)
@@ -193,13 +273,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       accessory: Product | null
     } = { top: null, bottom: null, shoes: null, accessory: null }
     if (product) {
-      const slot = detectItemSlot(product)
+      const slot = detectItemSlot(product) || 'top'
       init[slot] = product
     }
     return init
   })
   const [activeOutfitSlot, setActiveOutfitSlot] = useState<'top' | 'bottom' | 'shoes' | 'accessory'>(() => {
-    return product ? detectItemSlot(product) : 'top'
+    return (product ? detectItemSlot(product) : null) || 'top'
   })
 
   const [sourceTab, setSourceTab] = useState<'cart' | 'catalog'>('catalog')
@@ -262,11 +342,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         const fashionList: CartFashionItem[] = []
         rawCartItems.forEach((item) => {
           if (!item.product) return
-          const name = (item.product.name || '').toLowerCase()
-          const isWearable = ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo', 'giày', 'dép', 'sneaker', 'mũ', 'nón', 'phụ kiện'].some(k => name.includes(k))
-          const isExcluded = ['balo', 'ví', 'túi', 'kệ', 'ghế', 'bát', 'bình', 'nồi', 'máy', 'ốp', 'sách', 'chuột', 'phím', 'củ sạc', 'cáp'].some(k => name.includes(k))
-          
-          if (isWearable && !isExcluded) {
+          // Chỉ lấy sản phẩm có thể phân loại chính xác vào 1 trong 4 slot thời trang
+          const slot = detectItemSlot(item.product)
+          if (slot !== null) {
             const rawPrice = item.product.price || item.product.flashPrice || 0
             const numericPrice = typeof rawPrice === 'number'
               ? rawPrice
@@ -318,18 +396,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     setIsSearchingDb(true)
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/products?search=${encodeURIComponent(q)}`)
+        const res = await fetch(`${API_BASE_URL}/products?search=${encodeURIComponent(q)}&limit=60`)
         if (res.ok) {
           const raw = await res.json()
           const prods: Product[] = Array.isArray(raw) ? raw : (raw.products || [])
-          // Chỉ lấy các sản phẩm thời trang mặc được trên cơ thể
-          const fashionList = prods.filter((p) => {
-            const name = (p.name || '').toLowerCase()
-            const isWearable = ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo', 'short', 'croptop', 'cardigan', 'set', 'kaki', 'chân váy'].some(k => name.includes(k))
-            const isExcluded = ['giày', 'dép', 'sneaker', 'balo', 'ví', 'túi', 'nón', 'mũ', 'kệ', 'ghế', 'bát', 'bình', 'nồi', 'máy', 'ốp', 'sách', 'chuột', 'phím', 'bàn là', 'cáp', 'củ sạc', 'pin'].some(k => name.includes(k))
-            return isWearable && !isExcluded
-          })
-          setSearchResults(fashionList.length > 0 ? fashionList : prods.slice(0, 30))
+          // Chỉ lấy sản phẩm thời trang hợp lệ thuộc 1 trong 4 nhóm: Áo, Quần/Váy, Giày/Dép, Mũ/Phụ Kiện
+          const validFashion = prods.filter(p => detectItemSlot(p) !== null)
+          setSearchResults(validFashion)
         }
       } catch (err) {
         console.error('Lỗi khi tìm kiếm sản phẩm trong database:', err)
@@ -342,7 +415,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   // Khi mở modal hoặc khi product thay đổi: Đảm bảo chọn ngay sản phẩm được truyền vào
   useEffect(() => {
     if (isOpen && product) {
-      const slot = detectItemSlot(product)
+      const slot = detectItemSlot(product) || 'top'
       setSelectedOutfit(prev => ({ ...prev, [slot]: product }))
       setActiveOutfitSlot(slot)
       setSelectedPant(product)
@@ -361,11 +434,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     const fetchRealFashion = async () => {
       setIsLoadingPants(true)
       try {
-        const [resNam, resNu, resGiay, resPhuKien] = await Promise.all([
+        const [resNam, resNu, resGiayNam, resGiayNu, resPhuKien, resTuiVi] = await Promise.all([
           fetch(`${API_BASE_URL}/products?category=thoi-trang-nam&limit=40`),
-          fetch(`${API_BASE_URL}/products?category=thoi-trang-nu&limit=30`),
-          fetch(`${API_BASE_URL}/products?category=giay-dep-nam&limit=30`),
-          fetch(`${API_BASE_URL}/products?category=phu-kien-nu&limit=20`),
+          fetch(`${API_BASE_URL}/products?category=thoi-trang-nu&limit=40`),
+          fetch(`${API_BASE_URL}/products?category=giay-dep-nam&limit=25`),
+          fetch(`${API_BASE_URL}/products?category=giay-dep-nu&limit=25`),
+          fetch(`${API_BASE_URL}/products?category=phu-kien-nu&limit=25`),
+          fetch(`${API_BASE_URL}/products?category=tui-vi-nu&limit=25`),
         ])
 
         const parseList = async (res: Response) => {
@@ -374,21 +449,32 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           return Array.isArray(data) ? data : (data.products || [])
         }
 
-        const [listNam, listNu, listGiay, listPhuKien] = await Promise.all([
+        const [listNam, listNu, listGiayNam, listGiayNu, listPhuKien, listTuiVi] = await Promise.all([
           parseList(resNam),
           parseList(resNu),
-          parseList(resGiay),
-          parseList(resPhuKien)
+          parseList(resGiayNam),
+          parseList(resGiayNu),
+          parseList(resPhuKien),
+          parseList(resTuiVi)
         ])
 
-        const combined = [...listNam, ...listNu, ...listGiay, ...listPhuKien]
+        const rawCombined = [...listNam, ...listNu, ...listGiayNam, ...listGiayNu, ...listPhuKien, ...listTuiVi]
+        
+        // Loại bỏ trùng lặp và loại bỏ các sản phẩm không thuộc 4 slot thời trang
+        const uniqueMap = new Map<string, Product>()
+        rawCombined.forEach(p => {
+          if (p && p.id && !uniqueMap.has(p.id) && detectItemSlot(p) !== null) {
+            uniqueMap.set(p.id, p)
+          }
+        })
+        const combined = Array.from(uniqueMap.values())
         let effectivePants = combined.length > 0 ? combined : []
 
         if (product) {
           const filtered = effectivePants.filter(p => p.id !== product.id)
           effectivePants = [product, ...filtered]
           setAvailablePants(effectivePants)
-          const slot = detectItemSlot(product)
+          const slot = detectItemSlot(product) || 'top'
           setSelectedOutfit(prev => ({ ...prev, [slot]: product }))
           setActiveOutfitSlot(slot)
           setSelectedPant(product)
@@ -397,14 +483,14 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           setAvailablePants(effectivePants)
           if (cartItems.length > 0) {
             const first = cartItems[0].product
-            const slot = detectItemSlot(first)
+            const slot = detectItemSlot(first) || 'top'
             setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: first })
             setActiveOutfitSlot(slot)
             setSelectedPant(first)
             setSourceTab('cart')
           } else if (effectivePants.length > 0) {
             const first = effectivePants[0]
-            const slot = detectItemSlot(first)
+            const slot = detectItemSlot(first) || 'top'
             setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: first })
             setActiveOutfitSlot(slot)
             setSelectedPant(first)
@@ -415,7 +501,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         console.error('Lỗi khi tải sản phẩm ZeroMall:', e)
         if (product) {
           setAvailablePants([product])
-          const slot = detectItemSlot(product)
+          const slot = detectItemSlot(product) || 'top'
           setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: product })
           setSelectedPant(product)
         }
@@ -1633,8 +1719,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     {sourceTab === 'cart'
                       ? `${cartFashionItems.length} món trong giỏ`
                       : searchQuery.trim()
-                      ? `${searchResults.length} kết quả tìm kiếm`
-                      : `${availablePants.length} mẫu`}
+                      ? `${searchResults.filter(p => categoryFilter === 'all' || detectItemSlot(p) === categoryFilter).length} kết quả`
+                      : `${availablePants.filter(p => categoryFilter === 'all' || detectItemSlot(p) === categoryFilter).length} mẫu`}
                   </span>
                 </div>
 
@@ -1671,7 +1757,9 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                       sourceTab === 'catalog' ? 'bg-indigo-600 text-white' : 'bg-slate-200 text-slate-600'
                     }`}>
-                      {searchQuery.trim() ? searchResults.length : availablePants.length}
+                      {searchQuery.trim()
+                        ? searchResults.filter(p => categoryFilter === 'all' || detectItemSlot(p) === categoryFilter).length
+                        : availablePants.filter(p => categoryFilter === 'all' || detectItemSlot(p) === categoryFilter).length}
                     </span>
                   </button>
                 </div>
@@ -1718,7 +1806,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                         {cartFashionItems.map((item) => {
                           const isEquipped = Object.values(selectedOutfit).some(it => it?.id === item.product.id)
                           const equippedSlot = Object.entries(selectedOutfit).find(([_, it]) => it?.id === item.product.id)?.[0]
-                          const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Mũ' : ''
+                          const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Phụ Kiện' : ''
                           return (
                             <div
                               key={item.product.id + (item.variant || '')}
@@ -1752,8 +1840,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                                       Đang phối {slotLabel}
                                     </span>
                                   ) : (
-                                    <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-md">
-                                      {detectItemSlot(item.product) === 'top' ? '👔 Áo' : detectItemSlot(item.product) === 'bottom' ? '👖 Quần' : detectItemSlot(item.product) === 'shoes' ? '👟 Giày' : '🧢 Mũ'}
+                                    <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded-md">
+                                      {getSlotBadgeText(item.product)}
                                     </span>
                                   )}
                                 </div>
@@ -1842,13 +1930,15 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                         {(searchQuery.trim() ? searchResults : availablePants)
                           .filter((p) => {
+                            const slot = detectItemSlot(p)
+                            if (!slot) return false
                             if (categoryFilter === 'all') return true
-                            return detectItemSlot(p) === categoryFilter
+                            return slot === categoryFilter
                           })
                           .map((pant) => {
                             const isEquipped = Object.values(selectedOutfit).some(it => it?.id === pant.id)
                             const equippedSlot = Object.entries(selectedOutfit).find(([_, it]) => it?.id === pant.id)?.[0]
-                            const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Mũ' : ''
+                            const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Phụ Kiện' : ''
                             return (
                               <div
                                 key={pant.id}
@@ -1877,8 +1967,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                                         Đang phối {slotLabel}
                                       </span>
                                     ) : (
-                                      <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-md">
-                                        {detectItemSlot(pant) === 'top' ? '👔 Áo' : detectItemSlot(pant) === 'bottom' ? '👖 Quần' : detectItemSlot(pant) === 'shoes' ? '👟 Giày' : '🧢 Mũ'}
+                                      <span className="text-[9px] font-bold text-slate-500 bg-slate-100 px-1.5 py-0.2 rounded-md">
+                                        {getSlotBadgeText(pant)}
                                       </span>
                                     )}
                                   </div>
