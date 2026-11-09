@@ -74,6 +74,8 @@ MAGE_API_KEY = (os.environ.get("MAGE_API_KEY") or "").strip() or DEFAULT_MAGE_AP
 PORT = int(os.environ.get("TRYON_PORT", 5006))
 KONG_GATEWAY_URL = os.environ.get("KONG_GATEWAY_URL", "http://localhost:8000")
 OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+STATIC_CACHE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets", "cache")
+os.makedirs(STATIC_CACHE_DIR, exist_ok=True)
 
 print(f"[*] Starting ZeroMall 3D Virtual Try-On Service on port {PORT}...")
 print(f"[*] Compute acceleration device: {DEVICE.upper()} (Apple M4 Optimized)")
@@ -426,10 +428,11 @@ class TryOnSynthesizer:
         body_key = f"{int(height_cm)}_{int(weight_kg)}"
         cache_file_user = os.path.join(TEMP_DIR, f"mage_vton_{garment_id}_{user_key}_{body_key}.jpg") if garment_id else None
         cache_file_global = os.path.join(TEMP_DIR, f"mage_vton_{garment_id}_{body_key}.jpg") if garment_id else None
+        static_sota_cache = os.path.join(STATIC_CACHE_DIR, f"sota_tryon_{garment_id}.jpg") if garment_id else None
 
         # Kiểm tra cache hợp lệ
         if is_default_avatar:
-            for cfile in [cache_file_global, cache_file_user]:
+            for cfile in [static_sota_cache, cache_file_global, cache_file_user]:
                 if cfile and os.path.exists(cfile):
                     try:
                         with open(cfile, "rb") as fc:
@@ -614,12 +617,25 @@ class TryOnSynthesizer:
                     req_dl = urllib.request.Request(img_url, headers={"User-Agent": BROWSER_UA})
                     with urllib.request.urlopen(req_dl, timeout=15) as r_dl:
                         raw_bytes = r_dl.read()
-                        if is_default_avatar and cache_file_global:
-                            with open(cache_file_global, "wb") as f_cg:
-                                f_cg.write(raw_bytes)
+                        if is_default_avatar:
+                            if cache_file_global:
+                                try:
+                                    with open(cache_file_global, "wb") as f_cg:
+                                        f_cg.write(raw_bytes)
+                                except Exception:
+                                    pass
+                            if static_sota_cache:
+                                try:
+                                    with open(static_sota_cache, "wb") as f_sc:
+                                        f_sc.write(raw_bytes)
+                                except Exception:
+                                    pass
                         if cache_file_user:
-                            with open(cache_file_user, "wb") as f_cu:
-                                f_cu.write(raw_bytes)
+                            try:
+                                with open(cache_file_user, "wb") as f_cu:
+                                    f_cu.write(raw_bytes)
+                            except Exception:
+                                pass
                         b64_out = base64.b64encode(raw_bytes).decode()
                         print(f"[+] Live Mage Mango 3 Turbo completed successfully for {garment_id}!")
                         return f"data:image/jpeg;base64,{b64_out}"
@@ -656,12 +672,17 @@ class TryOnSynthesizer:
         )
         is_standard_body = (abs(float(height_cm) - 175) < 3 and abs(float(weight_kg) - 68) < 3)
         if is_default and is_standard_body:
-            for c_path in [os.path.join(TEMP_DIR, f"sota_vton_{garment_id}.jpg"), os.path.join(TEMP_DIR, f"fashn_tryon_{garment_id}.jpg")]:
+            candidate_paths = [
+                os.path.join(STATIC_CACHE_DIR, f"sota_tryon_{garment_id}.jpg"),
+                os.path.join(TEMP_DIR, f"sota_vton_{garment_id}.jpg"),
+                os.path.join(TEMP_DIR, f"fashn_tryon_{garment_id}.jpg"),
+            ]
+            for c_path in candidate_paths:
                 if garment_id and os.path.exists(c_path):
                     try:
                         with open(c_path, "rb") as f_cached:
                             b64_f = base64.b64encode(f_cached.read()).decode()
-                            print(f"[+] Found cached SOTA tryon for {garment_id} ({category}) -> returning!")
+                            print(f"[+] Found cached SOTA tryon for {garment_id} ({category}) at {c_path} -> returning instant HD render!")
                             return f"data:image/jpeg;base64,{b64_f}"
                     except Exception as e_f:
                         print(f"[!] Read cache error: {e_f}")
@@ -727,29 +748,37 @@ class TryOnSynthesizer:
 
             if garment_pil is not None:
                 garment_rgba = garment_pil.convert("RGBA")
-                gw, gh = garment_rgba.size
-                ratio = gh / max(1, gw)
+                alpha_arr = np.array(garment_rgba)[:, :, 3]
+                transparent_ratio = np.sum(alpha_arr < 240) / max(1, alpha_arr.size)
 
-                if category == "bottoms":
-                    pw = int(target_w * 0.52)
-                    ph = min(int(target_h * 0.48), int(pw * ratio))
-                    px = int((target_w - pw) / 2)
-                    py = int(target_h * 0.50)
-                elif category == "one-pieces":
-                    pw = int(target_w * 0.60)
-                    ph = min(int(target_h * 0.68), int(pw * ratio))
-                    px = int((target_w - pw) / 2)
-                    py = int(target_h * 0.26)
+                # CHỈ dán nếu trang phục đã được bóc tách sạch nền (có kênh Alpha trong suốt thực sự > 5%)
+                # Tuyệt đối không dán hình chữ nhật đặc (raw square sticker) lên người mẫu
+                if transparent_ratio > 0.05:
+                    gw, gh = garment_rgba.size
+                    ratio = gh / max(1, gw)
+
+                    if category == "bottoms":
+                        pw = int(target_w * 0.52)
+                        ph = min(int(target_h * 0.48), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.50)
+                    elif category == "one-pieces":
+                        pw = int(target_w * 0.60)
+                        ph = min(int(target_h * 0.68), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.26)
+                    else:
+                        # tops (áo khoác, sơ mi, áo thun, bomber)
+                        pw = int(target_w * 0.62)
+                        ph = min(int(target_h * 0.44), int(pw * ratio))
+                        px = int((target_w - pw) / 2)
+                        py = int(target_h * 0.28)
+
+                    garment_resized = garment_rgba.resize((pw, ph), Image.Resampling.LANCZOS)
+                    # Dán với kênh Alpha trong suốt, tuyệt đối không để lộ viền nền trắng
+                    user_img.paste(garment_resized, (px, py), garment_resized)
                 else:
-                    # tops (áo khoác, sơ mi, áo thun, bomber)
-                    pw = int(target_w * 0.62)
-                    ph = min(int(target_h * 0.44), int(pw * ratio))
-                    px = int((target_w - pw) / 2)
-                    py = int(target_h * 0.28)
-
-                garment_resized = garment_rgba.resize((pw, ph), Image.Resampling.LANCZOS)
-                # Dán với kênh Alpha trong suốt, tuyệt đối không để lộ viền nền trắng
-                user_img.paste(garment_resized, (px, py), garment_resized)
+                    print(f"[!] Warning: Garment image has insufficient transparency ({transparent_ratio:.2%}). Skipping rectangle overlay to prevent sticker glitch.")
 
             final_rgb = user_img.convert("RGB")
             buf = io.BytesIO()

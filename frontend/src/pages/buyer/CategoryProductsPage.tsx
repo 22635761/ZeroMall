@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
-import { useParams, useNavigate, Link } from 'react-router-dom'
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { VirtualTryOnModal } from '../../components/buyer/ai/VirtualTryOnModal'
 import { useCategoriesQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
 
@@ -63,12 +63,18 @@ interface CategoryProductsPageProps {
   products?: any[]
 }
 
-export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ products: propsProducts }) => {
+export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = () => {
   const { categorySlug } = useParams<{ categorySlug: string }>()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
-  const [allProducts, setAllProducts] = useState<Product[]>(propsProducts || [])
-  const [loading, setLoading] = useState(!propsProducts || propsProducts.length === 0)
+  const pageFromUrl = parseInt(searchParams.get('page') || '1', 10)
+  const [currentPage, setCurrentPage] = useState<number>(pageFromUrl > 0 ? pageFromUrl : 1)
+  const [totalPages, setTotalPages] = useState<number>(1)
+  const [totalCount, setTotalCount] = useState<number>(0)
+
+  const [allProducts, setAllProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState<boolean>(true)
   const [sortBy, setSortBy] = useState<'NEWEST' | 'SALES' | 'PRICE_ASC' | 'PRICE_DESC'>('NEWEST')
   const [searchTerm, setSearchTerm] = useState('')
   const [isTryOnModalOpen, setIsTryOnModalOpen] = useState(false)
@@ -80,86 +86,105 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
   const { data: categoriesData } = useCategoriesQuery()
   const categories = categoriesData || []
 
+  // Đổi danh mục thì reset về trang 1
   useEffect(() => {
-    if (propsProducts && propsProducts.length > 0) {
-      setAllProducts(propsProducts)
-      setLoading(false)
-      return
-    }
+    setCurrentPage(1)
+  }, [categorySlug])
 
+  // Cập nhật URL khi đổi page
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('page', String(page))
+    setSearchParams(newParams)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  useEffect(() => {
     setLoading(true)
-    const catQuery = categorySlug ? `?category=${encodeURIComponent(categorySlug)}&limit=60` : '?limit=60'
+    const pageNum = Math.max(1, currentPage)
+    const catQuery = categorySlug
+      ? `?category=${encodeURIComponent(categorySlug)}&page=${pageNum}&limit=60`
+      : `?page=${pageNum}&limit=60`
+
     fetch(`${API_BASE_URL}/products${catQuery}`)
       .then(res => res.json())
       .then(data => {
-        if (Array.isArray(data)) {
-          const formatted = data.map((p: any) => {
-            const parseNum = (val: any) => {
-              if (!val) return 0
-              if (typeof val === 'number') return val
-              return parseInt(String(val).replace(/\D/g, ''), 10) || 0
-            }
-            let priceNum = parseNum(p.price)
-            let origNum = parseNum(p.originalPrice)
-
-            // Parse variationRows if hasVariations
-            let parsedVariationRows: any[] = []
-            if (p.hasVariations && p.variationRows) {
-              try {
-                parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
-              } catch (e) {
-                console.error('Failed to parse variationRows', e)
-              }
-            }
-
-            if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
-              const validVariationPrices: { price: number; originalPrice: number }[] = []
-              for (const row of parsedVariationRows) {
-                const rPrice = parseNum(row.price)
-                const rOrig = parseNum(row.originalPrice)
-                if (rPrice > 0) {
-                  validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
-                }
-              }
-
-              if (validVariationPrices.length > 0) {
-                validVariationPrices.sort((a, b) => a.price - b.price)
-                const cheapest = validVariationPrices[0]
-                priceNum = cheapest.price
-                if (cheapest.originalPrice > 0) {
-                  origNum = cheapest.originalPrice
-                }
-              }
-            }
-
-            const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
-            const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : ''
-
-            return {
-              id: p.id,
-              name: p.name,
-              originalPrice: originalPriceStr,
-              flashPrice: flashPriceStr,
-              price: flashPriceStr,
-              image: p.image || 'https://placehold.co/400x400?text=No+Image',
-              sold: p.sales || p.sold || 0,
-              sales: p.sales || p.sold || 0,
-              stock: p.stock !== undefined ? p.stock : 0,
-              status: p.status || 'active',
-              rating: p.rating && p.rating > 0 ? p.rating : 5.0,
-              category: p.category,
-              categoryId: p.categoryId,
-              categoryRef: p.categoryRef,
-              brand: p.brand,
-              shopId: p.shopId
-            }
-          })
-          setAllProducts(formatted.filter((p: any) => (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) && p.status !== 'hidden'))
+        const rawProducts = Array.isArray(data) ? data : (data.products || [])
+        if (data && data.pagination) {
+          setTotalPages(data.pagination.totalPages || 1)
+          setTotalCount(data.pagination.total || rawProducts.length)
+        } else {
+          setTotalPages(1)
+          setTotalCount(rawProducts.length)
         }
+
+        const formatted = rawProducts.map((p: any) => {
+          const parseNum = (val: any) => {
+            if (!val) return 0
+            if (typeof val === 'number') return val
+            return parseInt(String(val).replace(/\D/g, ''), 10) || 0
+          }
+          let priceNum = parseNum(p.price)
+          let origNum = parseNum(p.originalPrice)
+
+          // Parse variationRows if hasVariations
+          let parsedVariationRows: any[] = []
+          if (p.hasVariations && p.variationRows) {
+            try {
+              parsedVariationRows = typeof p.variationRows === 'string' ? JSON.parse(p.variationRows) : p.variationRows
+            } catch (e) {
+              console.error('Failed to parse variationRows', e)
+            }
+          }
+
+          if (Array.isArray(parsedVariationRows) && parsedVariationRows.length > 0) {
+            const validVariationPrices: { price: number; originalPrice: number }[] = []
+            for (const row of parsedVariationRows) {
+              const rPrice = parseNum(row.price)
+              const rOrig = parseNum(row.originalPrice)
+              if (rPrice > 0) {
+                validVariationPrices.push({ price: rPrice, originalPrice: rOrig })
+              }
+            }
+
+            if (validVariationPrices.length > 0) {
+              validVariationPrices.sort((a, b) => a.price - b.price)
+              const cheapest = validVariationPrices[0]
+              priceNum = cheapest.price
+              if (cheapest.originalPrice > 0) {
+                origNum = cheapest.originalPrice
+              }
+            }
+          }
+
+          const flashPriceStr = priceNum.toLocaleString('vi-VN') + 'đ'
+          const originalPriceStr = origNum > priceNum ? origNum.toLocaleString('vi-VN') + 'đ' : ''
+
+          return {
+            id: p.id,
+            name: p.name,
+            originalPrice: originalPriceStr,
+            flashPrice: flashPriceStr,
+            price: flashPriceStr,
+            image: p.image || 'https://placehold.co/400x400?text=No+Image',
+            sold: p.sales || p.sold || 0,
+            sales: p.sales || p.sold || 0,
+            stock: p.stock !== undefined ? p.stock : 0,
+            status: p.status || 'active',
+            rating: p.rating && p.rating > 0 ? p.rating : 5.0,
+            category: p.category,
+            categoryId: p.categoryId,
+            categoryRef: p.categoryRef,
+            brand: p.brand,
+            shopId: p.shopId
+          }
+        })
+        setAllProducts(formatted)
       })
       .catch(e => console.error('Error fetching products:', e))
       .finally(() => setLoading(false))
-  }, [propsProducts])
+  }, [categorySlug, currentPage])
 
   // Current selected category object
   const currentCategory = useMemo(() => {
@@ -171,26 +196,9 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
     }
   }, [categorySlug, categories])
 
-  // Filter products for this specific category
+  // Filter products for this specific category (search & sort client-side on current page)
   const filteredProducts = useMemo(() => {
-    if (!categorySlug) return allProducts
-
-    const targetSlug = toSlug(categorySlug)
-
-    let list = allProducts.filter(p => {
-      const pCatSlug = p.category ? toSlug(p.category) : ''
-      const pRefSlug = p.categoryRef?.slug ? toSlug(p.categoryRef.slug) : ''
-      const pRefName = p.categoryRef?.name ? toSlug(p.categoryRef.name) : ''
-      const pCatId = p.categoryId || ''
-
-      return (
-        pCatSlug === targetSlug ||
-        pRefSlug === targetSlug ||
-        pRefName === targetSlug ||
-        pCatId === categorySlug ||
-        p.category?.toLowerCase() === categorySlug.toLowerCase()
-      )
-    })
+    let list = allProducts
 
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase()
@@ -211,7 +219,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
       if (sortBy === 'SALES') return (b.sales || 0) - (a.sales || 0)
       return 0 // NEWEST
     })
-  }, [allProducts, categorySlug, searchTerm, sortBy])
+  }, [allProducts, searchTerm, sortBy])
 
   const icon = categorySlug ? CATEGORY_ICONS[toSlug(categorySlug)] || '📦' : '📦'
 
@@ -233,7 +241,7 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
       <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white rounded-3xl p-6 sm:p-8 shadow-sm relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
         <div className="space-y-2 z-10">
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-md px-3.5 py-1 rounded-full text-xs font-black uppercase tracking-wider text-emerald-100 border border-white/20">
-            <span>{icon}</span> {filteredProducts.length} Sản phẩm có sẵn
+            <span>{icon}</span> {totalCount > 0 ? `${totalCount.toLocaleString('vi-VN')} sản phẩm có sẵn` : `${filteredProducts.length} sản phẩm có sẵn`} {totalPages > 1 ? `(Trang ${currentPage}/${totalPages})` : ''}
           </div>
           <h1 className="text-2xl sm:text-3xl font-black tracking-tight drop-shadow-xs">
             {currentCategory?.name || 'Danh Mục Sản Phẩm'}
@@ -366,8 +374,9 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
           <p className="text-xs font-bold text-slate-500">Đang tải danh sách sản phẩm theo danh mục...</p>
         </div>
       ) : filteredProducts.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {filteredProducts.map(p => {
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {filteredProducts.map(p => {
             const productSlug = toSlug(p.name)
             const parsePriceNum = (val: any) => {
               if (typeof val === 'number') return val
@@ -483,6 +492,70 @@ export const CategoryProductsPage: React.FC<CategoryProductsPageProps> = ({ prod
             )
           })}
         </div>
+
+        {/* Shopee-style Pagination Bar */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-2 mt-8 py-4">
+            <button
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage <= 1}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                currentPage <= 1
+                  ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                  : 'border-slate-300 text-slate-700 hover:border-emerald-500 hover:text-emerald-600 cursor-pointer bg-white shadow-2xs'
+              }`}
+            >
+              ← Trước
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 2)
+              .reduce<(number | string)[]>((acc, p, idx, arr) => {
+                if (idx > 0 && p - (arr[idx - 1] as number) > 1) {
+                  acc.push('...')
+                }
+                acc.push(p)
+                return acc
+              }, [])
+              .map((item, idx) => {
+                if (item === '...') {
+                  return (
+                    <span key={`dots-${idx}`} className="px-2 text-xs text-slate-400 font-bold">
+                      ...
+                    </span>
+                  )
+                }
+                const pageNum = item as number
+                const isActive = pageNum === currentPage
+                return (
+                  <button
+                    key={pageNum}
+                    onClick={() => handlePageChange(pageNum)}
+                    className={`min-w-[32px] h-8 px-2 rounded-lg text-xs font-black transition cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-600 text-white shadow-sm border border-emerald-600'
+                        : 'bg-white border border-slate-200 text-slate-600 hover:border-emerald-500 hover:text-emerald-600'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                )
+              })}
+
+            <button
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage >= totalPages}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition ${
+                currentPage >= totalPages
+                  ? 'border-slate-200 text-slate-300 cursor-not-allowed'
+                  : 'border-slate-300 text-slate-700 hover:border-emerald-500 hover:text-emerald-600 cursor-pointer bg-white shadow-2xs'
+              }`}
+            >
+              Sau →
+            </button>
+          </div>
+        )}
+      </>
       ) : (
         <div className="bg-white border border-slate-200/60 rounded-3xl p-12 text-center space-y-4 shadow-3xs">
           <div className="w-16 h-16 rounded-full bg-emerald-50 text-emerald-600 text-3xl flex items-center justify-center mx-auto border border-emerald-100">

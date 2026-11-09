@@ -300,7 +300,7 @@ const BuyerContainer: React.FC<BuyerContainerProps> = ({
           />
           <Route
             path="/category/:categorySlug"
-            element={<CategoryProductsPage products={dbProducts} />}
+            element={<CategoryProductsPage />}
           />
           <Route
             path="/shop/:shopId"
