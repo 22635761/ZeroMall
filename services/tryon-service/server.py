@@ -814,6 +814,7 @@ class TryOnSynthesizer:
             "accessory": garment_info  # Mũ / Nón / Phụ kiện
         }
         """
+        from PIL import Image
         if not user_image_data:
             return ""
 
@@ -831,13 +832,14 @@ class TryOnSynthesizer:
             single = active_items[0]
             return cls.composite_tryon(user_image_data, single.get("image", ""), single, gender, height_cm, weight_kg)
 
-        # 1. Tạo Outfit Signature phục vụ Caching
+        # 1. Tạo Outfit Signature phục vụ Caching (kết hợp cả khuôn mặt người dùng + kích thước cơ thể)
+        user_key = hashlib.md5(user_image_data[:5000].encode()).hexdigest()[:8] if user_image_data else "default"
         item_ids = [str(item.get("id") or item.get("name") or "item") for item in [top, bottom, shoes, accessory] if item]
         outfit_sig = "_".join(item_ids)
         outfit_hash = hashlib.md5(outfit_sig.encode()).hexdigest()[:12]
         body_key = f"{int(height_cm)}_{int(weight_kg)}"
-        cached_outfit_file = os.path.join(STATIC_CACHE_DIR, f"sota_outfit_{outfit_hash}_{body_key}.jpg")
-        temp_outfit_file = os.path.join(TEMP_DIR, f"outfit_{outfit_hash}_{body_key}.jpg")
+        cached_outfit_file = os.path.join(STATIC_CACHE_DIR, f"sota_outfit_{outfit_hash}_{user_key}_{body_key}.jpg")
+        temp_outfit_file = os.path.join(TEMP_DIR, f"outfit_{outfit_hash}_{user_key}_{body_key}.jpg")
 
         for cpath in [cached_outfit_file, temp_outfit_file]:
             if os.path.exists(cpath):
@@ -852,52 +854,64 @@ class TryOnSynthesizer:
         # 2. Thử gọi Live Mage Mango 3 Turbo Outfit Swap cho cả bộ phối đồ
         if MAGE_API_KEY:
             try:
-                from mage import Mage
+                from mage_space import Mage
                 mage_client = Mage(api_key=MAGE_API_KEY)
 
-                # Nạp ảnh người mẫu
-                person_input = user_image_data
-                if user_image_data.startswith("http://") or user_image_data.startswith("https://") or user_image_data.startswith("/"):
-                    u_pil = GarmentExtractor.load_pil_image(user_image_data)
-                    if u_pil is not None:
-                        u_pil.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
-                        buf_u = io.BytesIO()
-                        u_pil.save(buf_u, format="JPEG", quality=90)
-                        person_input = "data:image/jpeg;base64," + base64.b64encode(buf_u.getvalue()).decode()
+                # Nạp ảnh người mẫu độ nét cao
+                person_pil = GarmentExtractor.load_pil_image(user_image_data)
+                if person_pil is None:
+                    cur_user_png = os.path.join(TEMP_DIR, "current_user_tryon.png")
+                    if os.path.exists(cur_user_png):
+                        person_pil = GarmentExtractor.load_pil_image(cur_user_png)
+
+                if person_pil is not None:
+                    person_pil.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                    buf_u = io.BytesIO()
+                    person_pil.convert("RGB").save(buf_u, format="JPEG", quality=90)
+                    person_input = "data:image/jpeg;base64," + base64.b64encode(buf_u.getvalue()).decode()
+                else:
+                    person_input = user_image_data
 
                 # Chuẩn bị danh sách ảnh và mô tả từng món trong bộ phối
                 outfit_prompts = []
                 additional_imgs = []
 
-                if top:
-                    outfit_prompts.append(f"top garment '{top.get('name', 'shirt')}'")
+                if top and top.get("name"):
+                    outfit_prompts.append(f"top garment '{top.get('name')}'")
                     g_b64 = cls._prepare_garment_input(top.get("image", ""))
                     if g_b64:
                         additional_imgs.append(g_b64)
-                if bottom:
-                    outfit_prompts.append(f"bottom trousers '{bottom.get('name', 'pants')}'")
+                if bottom and bottom.get("name"):
+                    outfit_prompts.append(f"bottom trousers '{bottom.get('name')}'")
                     g_b64 = cls._prepare_garment_input(bottom.get("image", ""))
                     if g_b64:
                         additional_imgs.append(g_b64)
-                if shoes:
-                    outfit_prompts.append(f"shoes/footwear '{shoes.get('name', 'shoes')}'")
+                if shoes and shoes.get("name"):
+                    outfit_prompts.append(f"footwear/shoes '{shoes.get('name')}'")
                     g_b64 = cls._prepare_garment_input(shoes.get("image", ""))
                     if g_b64:
                         additional_imgs.append(g_b64)
-                if accessory:
-                    outfit_prompts.append(f"headwear/accessory '{accessory.get('name', 'cap')}'")
+                if accessory and accessory.get("name"):
+                    outfit_prompts.append(f"accessory/headwear '{accessory.get('name')}'")
                     g_b64 = cls._prepare_garment_input(accessory.get("image", ""))
                     if g_b64:
                         additional_imgs.append(g_b64)
 
+                is_male = gender.lower() == "male"
+                gender_label = "Asian man" if is_male else "Asian woman"
+                gender_pronoun = "his" if is_male else "her"
+                identity_term = "male face and identity" if is_male else "female face and identity"
+
                 prompt = (
-                    f"Full length editorial fashion studio portrait of person coordinating a stylish complete outfit: "
+                    f"A photorealistic editorial fashion studio portrait of the {gender_label} from the primary reference image, coordinating a complete stylish outfit: "
                     f"{', '.join(outfit_prompts)}. "
-                    f"Preserve exact face, identity, hair, and body proportions ({height_cm}cm, {weight_kg}kg). "
-                    f"Photorealistic 8k, hyper-detailed fabric drapery, professional studio lighting, flawless outfit harmony."
+                    f"Seamlessly dress {gender_pronoun} in this complete coordinated outfit matching the reference garments. "
+                    f"Strictly preserve {gender_pronoun} exact face, facial features, eyes, smile, skin tone, hairstyle, and {identity_term} from the reference image. "
+                    f"Body proportions: {height_cm:.0f}cm, {weight_kg:.0f}kg. "
+                    f"Photorealistic 8k, ultra-detailed fabric drapery, professional commercial fashion lighting, flawless outfit harmony."
                 )
 
-                print(f"[*] Dispatching multi-item outfit swap to Mage Mango 3 Turbo ({len(additional_imgs)} items)...")
+                print(f"[*] Dispatching multi-item outfit swap to Mage Mango 3 Turbo ({len(additional_imgs)} items, prompt: {', '.join(outfit_prompts)})...")
                 req = mage_client.run("mango", {
                     "model_id": "mango-v3-turbo",
                     "prompt": prompt,
@@ -905,7 +919,7 @@ class TryOnSynthesizer:
                     "additional_images": additional_imgs[:4],
                     "aspect_ratio": "4:5",
                     "resolution": "1K"
-                }, timeout=80.0)
+                }, timeout=85.0)
 
                 if isinstance(req, dict) and req.get("status") == "completed":
                     img_url = req.get("result", {}).get("url")
@@ -922,8 +936,11 @@ class TryOnSynthesizer:
 
         # 3. Fallback: Multi-Layer Anatomical Outfit Composite Engine (Chống dán sticker hộp, tách nền sạch 100%)
         try:
-            from PIL import Image
             user_pil = GarmentExtractor.load_pil_image(user_image_data)
+            if user_pil is None:
+                cur_user_png = os.path.join(TEMP_DIR, "current_user_tryon.png")
+                if os.path.exists(cur_user_png):
+                    user_pil = GarmentExtractor.load_pil_image(cur_user_png)
             if user_pil is None:
                 user_pil = Image.new("RGBA", (600, 899), (245, 247, 250, 255))
             else:
@@ -933,14 +950,29 @@ class TryOnSynthesizer:
             target_h = int(user_pil.height * (target_w / max(1, user_pil.width)))
             canvas = user_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
 
+            # Nếu người dùng phối Quần hoặc Giày trên ảnh chân dung cận mặt (bust shot):
+            # Mở rộng canvas về phía dưới để hiển thị trọn vẹn đầy đủ cả set đồ (Áo, Quần, Giày Dép)
+            if (bottom or shoes) and target_h < int(target_w * 1.35):
+                full_h = int(target_w * 1.55)
+                full_canvas = Image.new("RGBA", (target_w, full_h), (245, 247, 250, 255))
+                full_canvas.paste(canvas, (0, 0))
+                canvas = full_canvas
+                target_h = full_h
+
             def overlay_layer(garment_data, layer_type):
                 if not garment_data or not garment_data.get("image"):
                     return
                 g_url = garment_data.get("image", "")
                 extract = GarmentExtractor.extract_garment(g_url, garment_data)
+                g_img = None
                 if extract.get("success") and extract.get("extracted_garment_url"):
-                    g_img = GarmentExtractor.load_pil_image(extract["extracted_garment_url"])
-                else:
+                    try:
+                        b64_part = extract["extracted_garment_url"].split(",", 1)[1]
+                        g_img = Image.open(io.BytesIO(base64.b64decode(b64_part)))
+                    except Exception as e_dec:
+                        print(f"[!] Decode extracted garment error: {e_dec}")
+
+                if g_img is None:
                     g_img = GarmentExtractor.load_pil_image(g_url)
 
                 if g_img is None:
@@ -950,30 +982,33 @@ class TryOnSynthesizer:
                 alpha_arr = np.array(g_rgba)[:, :, 3]
                 transparent_ratio = np.sum(alpha_arr < 240) / max(1, alpha_arr.size)
 
-                # Tuyệt đối không dán nếu ảnh chưa có kênh trong suốt (tránh dán hình chữ nhật đặc)
-                if transparent_ratio < 0.04:
-                    print(f"[!] Skip layering {layer_type} due to lack of alpha transparency.")
-                    return
+                # Nếu ảnh chưa có độ trong suốt (ảnh nền trắng/sáng đặc), tự động tách nền sáng
+                if transparent_ratio < 0.05:
+                    rgb_arr = np.array(g_rgba)[:, :, :3]
+                    is_bg = np.all(rgb_arr > 220, axis=2)
+                    if np.sum(is_bg) > 0.02 * is_bg.size:
+                        alpha_arr[is_bg] = 0
+                        g_rgba = Image.fromarray(np.dstack([rgb_arr, alpha_arr]), "RGBA")
 
                 gw, gh = g_rgba.size
                 ratio = gh / max(1, gw)
 
                 if layer_type == "bottom":
                     # Quần / Chân váy: y ~ 50% - 82%
-                    pw = int(target_w * 0.52)
-                    ph = min(int(target_h * 0.38), int(pw * ratio))
+                    pw = int(target_w * 0.54)
+                    ph = min(int(target_h * 0.40), int(pw * ratio))
                     px = int((target_w - pw) / 2)
                     py = int(target_h * 0.50)
                 elif layer_type == "top":
                     # Áo / Áo khoác: y ~ 26% - 50%
-                    pw = int(target_w * 0.58)
-                    ph = min(int(target_h * 0.28), int(pw * ratio))
+                    pw = int(target_w * 0.60)
+                    ph = min(int(target_h * 0.32), int(pw * ratio))
                     px = int((target_w - pw) / 2)
                     py = int(target_h * 0.26)
                 elif layer_type == "shoes":
                     # Giày dép: y ~ 80% - 93%
-                    pw = int(target_w * 0.40)
-                    ph = min(int(target_h * 0.14), int(pw * ratio))
+                    pw = int(target_w * 0.42)
+                    ph = min(int(target_h * 0.16), int(pw * ratio))
                     px = int((target_w - pw) / 2)
                     py = int(target_h * 0.81)
                 elif layer_type == "accessory":
@@ -1030,20 +1065,28 @@ class TryOnSynthesizer:
 class GarmentExtractor:
     @staticmethod
     def load_pil_image(image_input: str) -> Image.Image:
-        """Nạp ảnh từ Base64, URL từ xa, đường dẫn web relative (/models/...) hoặc đường dẫn tệp cục bộ"""
+        """Nạp ảnh từ Base64, URL từ xa, đường dẫn web relative (/models/...) hoặc đường dẫn tệp cục bộ (bảo toàn kênh Alpha nếu có)"""
         if not image_input:
             return None
         try:
+            def _open_preserve(raw_bytes: bytes, hint_png: bool = False):
+                im = Image.open(io.BytesIO(raw_bytes))
+                if im.mode in ("RGBA", "LA", "P") or hint_png:
+                    return im.convert("RGBA")
+                return im.convert("RGB")
+
             if image_input.startswith("data:image"):
-                _, b64data = image_input.split(",", 1)
+                header, b64data = image_input.split(",", 1)
                 raw = base64.b64decode(b64data)
-                return Image.open(io.BytesIO(raw)).convert("RGB")
+                return _open_preserve(raw, hint_png="png" in header.lower())
             elif image_input.startswith("http://") or image_input.startswith("https://"):
                 req = urllib.request.Request(image_input, headers={"User-Agent": BROWSER_UA})
-                with urllib.request.urlopen(req, timeout=6) as resp:
-                    return Image.open(io.BytesIO(resp.read())).convert("RGB")
+                with urllib.request.urlopen(req, timeout=8) as resp:
+                    raw = resp.read()
+                    return _open_preserve(raw, hint_png=".png" in image_input.lower())
             elif os.path.exists(image_input):
-                return Image.open(image_input).convert("RGB")
+                with open(image_input, "rb") as f:
+                    return _open_preserve(f.read(), hint_png=image_input.lower().endswith(".png"))
 
             # Hỗ trợ đường dẫn tương đối tới frontend/public hoặc frontend/dist (ví dụ: /models/tryon_master/...)
             cleaned = image_input.lstrip("/")
@@ -1055,7 +1098,8 @@ class GarmentExtractor:
             ]
             for cand in candidates:
                 if os.path.exists(cand):
-                    return Image.open(cand).convert("RGB")
+                    with open(cand, "rb") as f:
+                        return _open_preserve(f.read(), hint_png=cand.lower().endswith(".png"))
         except Exception as e:
             print(f"[!] GarmentExtractor.load_pil_image error: {e}")
         return None
