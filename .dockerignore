@@ -6,3 +6,5 @@ dist
 **/node_modules
 **/dist
 **/src/generated
+services/tryon-service/fashn-vton-1.5
+**/fashn-vton-1.5
