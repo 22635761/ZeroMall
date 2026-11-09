@@ -788,6 +788,220 @@ class TryOnSynthesizer:
             print(f"[!] Composite fallback error: {e}")
             return ""
 
+    @classmethod
+    def _prepare_garment_input(cls, garment_url: str):
+        if not garment_url:
+            return None
+        try:
+            g_pil = GarmentExtractor.load_pil_image(garment_url)
+            if g_pil is not None:
+                g_pil.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                buf_g = io.BytesIO()
+                g_pil.save(buf_g, format="JPEG", quality=90)
+                return "data:image/jpeg;base64," + base64.b64encode(buf_g.getvalue()).decode()
+        except Exception as e_gp:
+            print(f"[!] Warning preparing garment image: {e_gp}")
+        return garment_url
+
+    @classmethod
+    def composite_outfit_tryon(cls, user_image_data: str, outfit: dict, gender: str = "male", height_cm: float = 175, weight_kg: float = 68):
+        """
+        Phối đồ đa món hoàn chỉnh (Full Outfit Mix & Match):
+        outfit = {
+            "top": garment_info,       # Áo / Áo khoác / Sơ mi / Bomber
+            "bottom": garment_info,    # Quần / Jean / Tây / Váy
+            "shoes": garment_info,     # Giày / Sneaker / Dép
+            "accessory": garment_info  # Mũ / Nón / Phụ kiện
+        }
+        """
+        if not user_image_data:
+            return ""
+
+        top = outfit.get("top")
+        bottom = outfit.get("bottom")
+        shoes = outfit.get("shoes")
+        accessory = outfit.get("accessory")
+
+        active_items = [item for item in [top, bottom, shoes, accessory] if item and (item.get("id") or item.get("image"))]
+        if not active_items:
+            return user_image_data
+
+        # Nếu chỉ có duy nhất 1 món, sử dụng luồng composite_tryon đơn lẻ
+        if len(active_items) == 1:
+            single = active_items[0]
+            return cls.composite_tryon(user_image_data, single.get("image", ""), single, gender, height_cm, weight_kg)
+
+        # 1. Tạo Outfit Signature phục vụ Caching
+        item_ids = [str(item.get("id") or item.get("name") or "item") for item in [top, bottom, shoes, accessory] if item]
+        outfit_sig = "_".join(item_ids)
+        outfit_hash = hashlib.md5(outfit_sig.encode()).hexdigest()[:12]
+        body_key = f"{int(height_cm)}_{int(weight_kg)}"
+        cached_outfit_file = os.path.join(STATIC_CACHE_DIR, f"sota_outfit_{outfit_hash}_{body_key}.jpg")
+        temp_outfit_file = os.path.join(TEMP_DIR, f"outfit_{outfit_hash}_{body_key}.jpg")
+
+        for cpath in [cached_outfit_file, temp_outfit_file]:
+            if os.path.exists(cpath):
+                try:
+                    with open(cpath, "rb") as fc:
+                        b64 = base64.b64encode(fc.read()).decode()
+                        print(f"[+] Found cached SOTA Outfit ({outfit_sig}) -> returning instant result!")
+                        return f"data:image/jpeg;base64,{b64}"
+                except Exception:
+                    pass
+
+        # 2. Thử gọi Live Mage Mango 3 Turbo Outfit Swap cho cả bộ phối đồ
+        if MAGE_API_KEY:
+            try:
+                from mage import Mage
+                mage_client = Mage(api_key=MAGE_API_KEY)
+
+                # Nạp ảnh người mẫu
+                person_input = user_image_data
+                if user_image_data.startswith("http://") or user_image_data.startswith("https://") or user_image_data.startswith("/"):
+                    u_pil = GarmentExtractor.load_pil_image(user_image_data)
+                    if u_pil is not None:
+                        u_pil.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                        buf_u = io.BytesIO()
+                        u_pil.save(buf_u, format="JPEG", quality=90)
+                        person_input = "data:image/jpeg;base64," + base64.b64encode(buf_u.getvalue()).decode()
+
+                # Chuẩn bị danh sách ảnh và mô tả từng món trong bộ phối
+                outfit_prompts = []
+                additional_imgs = []
+
+                if top:
+                    outfit_prompts.append(f"top garment '{top.get('name', 'shirt')}'")
+                    g_b64 = cls._prepare_garment_input(top.get("image", ""))
+                    if g_b64:
+                        additional_imgs.append(g_b64)
+                if bottom:
+                    outfit_prompts.append(f"bottom trousers '{bottom.get('name', 'pants')}'")
+                    g_b64 = cls._prepare_garment_input(bottom.get("image", ""))
+                    if g_b64:
+                        additional_imgs.append(g_b64)
+                if shoes:
+                    outfit_prompts.append(f"shoes/footwear '{shoes.get('name', 'shoes')}'")
+                    g_b64 = cls._prepare_garment_input(shoes.get("image", ""))
+                    if g_b64:
+                        additional_imgs.append(g_b64)
+                if accessory:
+                    outfit_prompts.append(f"headwear/accessory '{accessory.get('name', 'cap')}'")
+                    g_b64 = cls._prepare_garment_input(accessory.get("image", ""))
+                    if g_b64:
+                        additional_imgs.append(g_b64)
+
+                prompt = (
+                    f"Full length editorial fashion studio portrait of person coordinating a stylish complete outfit: "
+                    f"{', '.join(outfit_prompts)}. "
+                    f"Preserve exact face, identity, hair, and body proportions ({height_cm}cm, {weight_kg}kg). "
+                    f"Photorealistic 8k, hyper-detailed fabric drapery, professional studio lighting, flawless outfit harmony."
+                )
+
+                print(f"[*] Dispatching multi-item outfit swap to Mage Mango 3 Turbo ({len(additional_imgs)} items)...")
+                req = mage_client.run("mango", {
+                    "model_id": "mango-v3-turbo",
+                    "prompt": prompt,
+                    "image": person_input,
+                    "additional_images": additional_imgs[:4],
+                    "aspect_ratio": "4:5",
+                    "resolution": "1K"
+                }, timeout=80.0)
+
+                if isinstance(req, dict) and req.get("status") == "completed":
+                    img_url = req.get("result", {}).get("url")
+                    if img_url:
+                        req_dl = urllib.request.Request(img_url, headers={"User-Agent": BROWSER_UA})
+                        with urllib.request.urlopen(req_dl, timeout=15) as r_dl:
+                            raw_bytes = r_dl.read()
+                            with open(cached_outfit_file, "wb") as f_co:
+                                f_co.write(raw_bytes)
+                            print(f"[+] Live multi-item Mage Mango 3 Turbo outfit completed!")
+                            return f"data:image/jpeg;base64,{base64.b64encode(raw_bytes).decode()}"
+            except Exception as e_mage:
+                print(f"[!] Mage outfit swap warning: {e_mage}")
+
+        # 3. Fallback: Multi-Layer Anatomical Outfit Composite Engine (Chống dán sticker hộp, tách nền sạch 100%)
+        try:
+            from PIL import Image
+            user_pil = GarmentExtractor.load_pil_image(user_image_data)
+            if user_pil is None:
+                user_pil = Image.new("RGBA", (600, 899), (245, 247, 250, 255))
+            else:
+                user_pil = user_pil.convert("RGBA")
+
+            target_w = 600
+            target_h = int(user_pil.height * (target_w / max(1, user_pil.width)))
+            canvas = user_pil.resize((target_w, target_h), Image.Resampling.LANCZOS)
+
+            def overlay_layer(garment_data, layer_type):
+                if not garment_data or not garment_data.get("image"):
+                    return
+                g_url = garment_data.get("image", "")
+                extract = GarmentExtractor.extract_garment(g_url, garment_data)
+                if extract.get("success") and extract.get("extracted_garment_url"):
+                    g_img = GarmentExtractor.load_pil_image(extract["extracted_garment_url"])
+                else:
+                    g_img = GarmentExtractor.load_pil_image(g_url)
+
+                if g_img is None:
+                    return
+
+                g_rgba = g_img.convert("RGBA")
+                alpha_arr = np.array(g_rgba)[:, :, 3]
+                transparent_ratio = np.sum(alpha_arr < 240) / max(1, alpha_arr.size)
+
+                # Tuyệt đối không dán nếu ảnh chưa có kênh trong suốt (tránh dán hình chữ nhật đặc)
+                if transparent_ratio < 0.04:
+                    print(f"[!] Skip layering {layer_type} due to lack of alpha transparency.")
+                    return
+
+                gw, gh = g_rgba.size
+                ratio = gh / max(1, gw)
+
+                if layer_type == "bottom":
+                    # Quần / Chân váy: y ~ 50% - 82%
+                    pw = int(target_w * 0.52)
+                    ph = min(int(target_h * 0.38), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.50)
+                elif layer_type == "top":
+                    # Áo / Áo khoác: y ~ 26% - 50%
+                    pw = int(target_w * 0.58)
+                    ph = min(int(target_h * 0.28), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.26)
+                elif layer_type == "shoes":
+                    # Giày dép: y ~ 80% - 93%
+                    pw = int(target_w * 0.40)
+                    ph = min(int(target_h * 0.14), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.81)
+                elif layer_type == "accessory":
+                    # Mũ / Nón: y ~ 8% - 19%
+                    pw = int(target_w * 0.24)
+                    ph = min(int(target_h * 0.12), int(pw * ratio))
+                    px = int((target_w - pw) / 2)
+                    py = int(target_h * 0.08)
+                else:
+                    return
+
+                resized = g_rgba.resize((pw, ph), Image.Resampling.LANCZOS)
+                canvas.paste(resized, (px, py), resized)
+
+            # Ghép từng tầng theo thứ tự giải phẫu: Quần -> Áo -> Giày -> Mũ
+            overlay_layer(bottom, "bottom")
+            overlay_layer(top, "top")
+            overlay_layer(shoes, "shoes")
+            overlay_layer(accessory, "accessory")
+
+            final_rgb = canvas.convert("RGB")
+            buf = io.BytesIO()
+            final_rgb.save(buf, format="JPEG", quality=92)
+            return f"data:image/jpeg;base64,{base64.b64encode(buf.getvalue()).decode('utf-8')}"
+        except Exception as e_comp:
+            print(f"[!] Multi-layer composite fallback error: {e_comp}")
+            return ""
+
 
 # ---------------------------------------------------------------------------
 # 3. Garment & Body Extractor AI: Bóc tách trang phục & Trích xuất khuôn mặt
@@ -1502,24 +1716,40 @@ class TryOnRequestHandler(BaseHTTPRequestHandler):
                 except Exception as e_s:
                     print(f"[!] Warning saving user image: {e_s}")
 
+                pant = payload.get("pant", {})
+                outfit = payload.get("outfit", {})
+                user_image = payload.get("user_image", "")
+
+                has_outfit = bool(outfit and any(outfit.get(k) for k in ["top", "bottom", "shoes", "accessory"]))
+
+                if has_outfit:
+                    primary_item = outfit.get("bottom") or outfit.get("top") or outfit.get("shoes") or outfit.get("accessory") or pant
+                    composite_result = TryOnSynthesizer.composite_outfit_tryon(
+                        user_image, outfit, gender=gender, height_cm=h, weight_kg=w
+                    )
+                else:
+                    primary_item = pant
+                    composite_result = TryOnSynthesizer.composite_tryon(
+                        user_image, pant.get("image", ""), pant, gender, height_cm=h, weight_kg=w
+                    )
+
                 measurements = Body3DGenerator.calculate_measurements(h, w, gender)
                 mesh_3d = Body3DGenerator.generate_3d_joints_and_mesh(h, w, gender)
-                fit_result = GarmentFitEngine.evaluate_pant_fit(measurements, pant)
-                outfits = AiStylistEngine.generate_outfits(pant, measurements)
+                fit_result = GarmentFitEngine.evaluate_pant_fit(measurements, primary_item)
+                outfits = AiStylistEngine.generate_outfits(primary_item, measurements)
 
                 # Bóc tách trang phục & Trích xuất khuôn mặt bằng AI
                 face_extract = GarmentExtractor.extract_face(user_image) if user_image else {"success": False}
-                garment_extract = GarmentExtractor.extract_garment(pant.get("image", ""), pant) if pant.get("image") else {"success": False}
+                garment_extract = GarmentExtractor.extract_garment(primary_item.get("image", ""), primary_item) if primary_item.get("image") else {"success": False}
 
-                # Tạo ảnh Try-On trực quan mặc thử đồ (Truyền chuẩn xác Chiều cao & Cân nặng)
-                composite_result = TryOnSynthesizer.composite_tryon(user_image, pant.get("image", ""), pant, gender, height_cm=h, weight_kg=w)
                 render_preview = {
                     "user_image": user_image,
-                    "garment_applied": pant.get("image", ""),
+                    "garment_applied": primary_item.get("image", ""),
                     "composite_image": composite_result if composite_result else user_image,
                     "render_status": "COMPLETED",
                     "accelerated_by": f"Apple Silicon M4 ({DEVICE.upper()}) + FASHN VTON 1.5",
-                    "fit_overlay": fit_result.get("zones", {})
+                    "fit_overlay": fit_result.get("zones", {}),
+                    "is_multi_outfit": has_outfit
                 }
 
                 self._set_cors(200)

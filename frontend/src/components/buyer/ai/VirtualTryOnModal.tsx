@@ -169,13 +169,45 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   const physiqueInfo = getBodyPhysiqueInfo(currentBmi)
 
-  // 2. Món đồ được chọn để ướm thử & Nguồn cấp tủ đồ (Mặc định chọn ngay sản phẩm từ trang chi tiết)
+  // Đổi slot trang phục tự động theo loại sản phẩm
+  const detectItemSlot = (p: Product): 'top' | 'bottom' | 'shoes' | 'accessory' => {
+    const name = (p.name || '').toLowerCase()
+    const cat = (p.category || '').toLowerCase()
+    if (['mũ', 'nón', 'kính', 'túi', 'ví', 'khăn', 'thắt lưng'].some(k => name.includes(k) || cat.includes(k))) return 'accessory'
+    if (['giày', 'dép', 'sneaker', 'sandal', 'guốc', 'ủng', 'loafer', 'mwc'].some(k => name.includes(k) || cat.includes(k))) return 'shoes'
+    if (['quần', 'jean', 'jogger', 'short', 'tây', 'kaki', 'chân váy', 'váy', 'đầm'].some(k => name.includes(k) || cat.includes(k))) return 'bottom'
+    return 'top'
+  }
+
+  // 2. Món đồ được chọn để ướm thử & Nguồn cấp tủ đồ (Hỗ trợ Phối Đồ Đa Món Mix & Match)
+  const [selectedOutfit, setSelectedOutfit] = useState<{
+    top: Product | null
+    bottom: Product | null
+    shoes: Product | null
+    accessory: Product | null
+  }>(() => {
+    const init: {
+      top: Product | null
+      bottom: Product | null
+      shoes: Product | null
+      accessory: Product | null
+    } = { top: null, bottom: null, shoes: null, accessory: null }
+    if (product) {
+      const slot = detectItemSlot(product)
+      init[slot] = product
+    }
+    return init
+  })
+  const [activeOutfitSlot, setActiveOutfitSlot] = useState<'top' | 'bottom' | 'shoes' | 'accessory'>(() => {
+    return product ? detectItemSlot(product) : 'top'
+  })
+
   const [sourceTab, setSourceTab] = useState<'cart' | 'catalog'>('catalog')
   const [cartFashionItems, setCartFashionItems] = useState<CartFashionItem[]>([])
   const [availablePants, setAvailablePants] = useState<Product[]>(() => (product ? [product] : []))
   const [selectedPant, setSelectedPant] = useState<Product | null>(() => product || null)
   const [isLoadingPants, setIsLoadingPants] = useState<boolean>(true)
-  const [categoryFilter, setCategoryFilter] = useState<'all' | 'tops' | 'bottoms' | 'dresses'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<'all' | 'top' | 'bottom' | 'shoes' | 'accessory'>('all')
   const [searchQuery, setSearchQuery] = useState<string>('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [isSearchingDb, setIsSearchingDb] = useState<boolean>(false)
@@ -231,8 +263,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
         rawCartItems.forEach((item) => {
           if (!item.product) return
           const name = (item.product.name || '').toLowerCase()
-          const isWearable = ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo'].some(k => name.includes(k))
-          const isExcluded = ['giày', 'dép', 'sneaker', 'balo', 'ví', 'túi', 'nón', 'mũ', 'kệ', 'ghế', 'bát', 'bình', 'nồi', 'máy', 'ốp', 'sách', 'chuột', 'phím'].some(k => name.includes(k))
+          const isWearable = ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo', 'giày', 'dép', 'sneaker', 'mũ', 'nón', 'phụ kiện'].some(k => name.includes(k))
+          const isExcluded = ['balo', 'ví', 'túi', 'kệ', 'ghế', 'bát', 'bình', 'nồi', 'máy', 'ốp', 'sách', 'chuột', 'phím', 'củ sạc', 'cáp'].some(k => name.includes(k))
           
           if (isWearable && !isExcluded) {
             const rawPrice = item.product.price || item.product.flashPrice || 0
@@ -310,58 +342,81 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
   // Khi mở modal hoặc khi product thay đổi: Đảm bảo chọn ngay sản phẩm được truyền vào
   useEffect(() => {
     if (isOpen && product) {
+      const slot = detectItemSlot(product)
+      setSelectedOutfit(prev => ({ ...prev, [slot]: product }))
+      setActiveOutfitSlot(slot)
       setSelectedPant(product)
       setSourceTab('catalog')
     }
   }, [isOpen, product])
 
-  // Tải danh sách trang phục thời trang từ CSDL thực tế ZeroMall & Giỏ hàng
+  // Tải danh sách trang phục thời trang từ CSDL thực tế ZeroMall & Giỏ hàng (Đầy đủ Áo, Quần, Giày Dép, Mũ Nón)
   useEffect(() => {
     if (!isOpen) return
 
     // 1. Nạp danh sách đồ thời trang trong giỏ hàng
     const cartItems = loadCartFashionItems()
 
-    // 2. Nạp danh sách đồ từ CSDL sàn ZeroMall
+    // 2. Nạp danh sách đồ đa dạng từ CSDL sàn ZeroMall (Thời trang nam, nữ, giày dép, phụ kiện nón)
     const fetchRealFashion = async () => {
       setIsLoadingPants(true)
       try {
-        const res = await fetch(`${API_BASE_URL}/products?page=1&limit=50`)
-        if (res.ok) {
-          const raw = await res.json()
-          const prods: Product[] = Array.isArray(raw) ? raw : (raw.products || [])
-          // Chỉ lấy các sản phẩm thời trang mặc được trên cơ thể (Áo, Quần, Váy, Đầm)
-          const fashionList = prods.filter((p) => {
-            const name = (p.name || '').toLowerCase()
-            const isWearable = ['áo', 'quần', 'váy', 'đầm', 'jean', 'jogger', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo'].some(k => name.includes(k))
-            const isExcluded = ['giày', 'dép', 'sneaker', 'balo', 'ví', 'túi', 'nón', 'mũ', 'kệ', 'ghế', 'bát', 'bình', 'nồi', 'máy', 'ốp', 'sách', 'chuột', 'phím'].some(k => name.includes(k))
-            return isWearable && !isExcluded
-          })
+        const [resNam, resNu, resGiay, resPhuKien] = await Promise.all([
+          fetch(`${API_BASE_URL}/products?category=thoi-trang-nam&limit=40`),
+          fetch(`${API_BASE_URL}/products?category=thoi-trang-nu&limit=30`),
+          fetch(`${API_BASE_URL}/products?category=giay-dep-nam&limit=30`),
+          fetch(`${API_BASE_URL}/products?category=phu-kien-nu&limit=20`),
+        ])
 
-          let effectivePants = fashionList.length > 0 ? fashionList : prods.slice(0, 5)
+        const parseList = async (res: Response) => {
+          if (!res.ok) return []
+          const data = await res.json()
+          return Array.isArray(data) ? data : (data.products || [])
+        }
 
-          if (product) {
-            // Đưa sản phẩm được truyền vào lên vị trí số 1 của danh sách để người dùng thấy rõ
-            const filtered = effectivePants.filter(p => p.id !== product.id)
-            effectivePants = [product, ...filtered]
-            setAvailablePants(effectivePants)
-            setSelectedPant(product)
+        const [listNam, listNu, listGiay, listPhuKien] = await Promise.all([
+          parseList(resNam),
+          parseList(resNu),
+          parseList(resGiay),
+          parseList(resPhuKien)
+        ])
+
+        const combined = [...listNam, ...listNu, ...listGiay, ...listPhuKien]
+        let effectivePants = combined.length > 0 ? combined : []
+
+        if (product) {
+          const filtered = effectivePants.filter(p => p.id !== product.id)
+          effectivePants = [product, ...filtered]
+          setAvailablePants(effectivePants)
+          const slot = detectItemSlot(product)
+          setSelectedOutfit(prev => ({ ...prev, [slot]: product }))
+          setActiveOutfitSlot(slot)
+          setSelectedPant(product)
+          setSourceTab('catalog')
+        } else {
+          setAvailablePants(effectivePants)
+          if (cartItems.length > 0) {
+            const first = cartItems[0].product
+            const slot = detectItemSlot(first)
+            setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: first })
+            setActiveOutfitSlot(slot)
+            setSelectedPant(first)
+            setSourceTab('cart')
+          } else if (effectivePants.length > 0) {
+            const first = effectivePants[0]
+            const slot = detectItemSlot(first)
+            setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: first })
+            setActiveOutfitSlot(slot)
+            setSelectedPant(first)
             setSourceTab('catalog')
-          } else {
-            setAvailablePants(effectivePants)
-            if (cartItems.length > 0) {
-              setSelectedPant(cartItems[0].product)
-              setSourceTab('cart')
-            } else {
-              setSelectedPant(effectivePants[0] || null)
-              setSourceTab('catalog')
-            }
           }
         }
       } catch (e) {
         console.error('Lỗi khi tải sản phẩm ZeroMall:', e)
         if (product) {
           setAvailablePants([product])
+          const slot = detectItemSlot(product)
+          setSelectedOutfit({ top: null, bottom: null, shoes: null, accessory: null, [slot]: product })
           setSelectedPant(product)
         }
       } finally {
@@ -514,16 +569,25 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     reader.readAsDataURL(file)
   }
 
-  // Chạy AI: Dựng 3D + Đo vóc dáng + Ướm thử đồ + Stylist Options
+  // Chạy AI: Dựng 3D + Đo vóc dáng + Ướm thử đồ + Phối đồ đa món
   const handleRunTryOn = async (
     pantToTry?: Product,
     overrideUserPhoto?: string,
     overrideHeight?: number,
     overrideWeight?: number,
-    overrideGender?: 'male' | 'female'
+    overrideGender?: 'male' | 'female',
+    overrideOutfit?: {
+      top: Product | null
+      bottom: Product | null
+      shoes: Product | null
+      accessory: Product | null
+    }
   ) => {
-    const targetPant = pantToTry || selectedPant
-    if (!targetPant) return
+    const effectiveOutfit = overrideOutfit || selectedOutfit
+    const activeItems = Object.values(effectiveOutfit).filter(Boolean) as Product[]
+    const targetPant = pantToTry || selectedPant || (activeItems.length > 0 ? activeItems[0] : null)
+    if (!targetPant && activeItems.length === 0) return
+
     setIsLoadingAi(true)
     const effectivePhoto = overrideUserPhoto || userPhoto
     const effectiveH = overrideHeight !== undefined ? overrideHeight : height
@@ -538,7 +602,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           height_cm: Number(effectiveH),
           weight_kg: Number(effectiveW),
           gender: effectiveG,
-          pant: targetPant,
+          pant: targetPant || {},
+          outfit: effectiveOutfit,
           user_image: effectivePhoto
         })
       })
@@ -557,7 +622,12 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           if (data.extracted_garment && data.extracted_garment.extracted_garment_url) {
             setExtractedGarment(data.extracted_garment)
           }
-          triggerToast(`Đã ướm thử theo khung người ${effectiveH}cm • ${effectiveW}kg thành công!`)
+          const activeCount = Object.values(effectiveOutfit).filter(Boolean).length
+          if (activeCount > 1) {
+            triggerToast(`✨ Đã phối trọn bộ ${activeCount} món lên người mẫu thành công!`)
+          } else {
+            triggerToast(`Đã ướm thử theo khung người ${effectiveH}cm • ${effectiveW}kg thành công!`)
+          }
         }
       }
     } catch (e: any) {
@@ -568,19 +638,115 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     }
   }
 
-  // Tự động kích hoạt AI ướm thử đồ ngay lập tức khi mở modal hoặc khi đổi sang món đồ khác
+  // Quản lý gán món vào bộ phối đồ
+  const handleEquipItem = (item: Product, targetSlot?: 'top' | 'bottom' | 'shoes' | 'accessory') => {
+    const slot = targetSlot || activeOutfitSlot || detectItemSlot(item)
+    const newOutfit = {
+      ...selectedOutfit,
+      [slot]: item
+    }
+    setSelectedOutfit(newOutfit)
+    setSelectedPant(item)
+    handleRunTryOn(item, undefined, undefined, undefined, undefined, newOutfit)
+  }
+
+  const handleRemoveSlot = (slot: 'top' | 'bottom' | 'shoes' | 'accessory', e: React.MouseEvent) => {
+    e.stopPropagation()
+    const newOutfit = {
+      ...selectedOutfit,
+      [slot]: null
+    }
+    setSelectedOutfit(newOutfit)
+    const remaining = Object.values(newOutfit).filter(Boolean) as Product[]
+    if (remaining.length > 0) {
+      setSelectedPant(remaining[0])
+      handleRunTryOn(remaining[0], undefined, undefined, undefined, undefined, newOutfit)
+    } else {
+      setSelectedPant(null)
+      setCompositeTryOnImage('')
+    }
+  }
+
+  const handleSelectSlot = (slot: 'top' | 'bottom' | 'shoes' | 'accessory') => {
+    setActiveOutfitSlot(slot)
+    setCategoryFilter(slot)
+  }
+
+  const handleApplyPreset = (presetName: string) => {
+    if (presetName === 'streetwear') {
+      const top = availablePants.find(p => (p.name || '').toLowerCase().includes('bomber')) || availablePants.find(p => detectItemSlot(p) === 'top')
+      const bottom = availablePants.find(p => (p.name || '').toLowerCase().includes('jean')) || availablePants.find(p => detectItemSlot(p) === 'bottom')
+      const shoes = availablePants.find(p => (p.name || '').toLowerCase().includes('sneaker')) || availablePants.find(p => detectItemSlot(p) === 'shoes')
+      const hat = availablePants.find(p => (p.name || '').toLowerCase().includes('nón') || (p.name || '').toLowerCase().includes('mũ')) || availablePants.find(p => detectItemSlot(p) === 'accessory')
+      const newOutfit = {
+        top: top || null,
+        bottom: bottom || null,
+        shoes: shoes || null,
+        accessory: hat || null
+      }
+      setSelectedOutfit(newOutfit)
+      handleRunTryOn(top || bottom || undefined, undefined, undefined, undefined, undefined, newOutfit)
+      triggerToast('🔥 Đã áp dụng Set Streetwear Cực Ngầu!')
+    } else if (presetName === 'office') {
+      const top = availablePants.find(p => (p.name || '').toLowerCase().includes('sơ mi') || (p.name || '').toLowerCase().includes('blazer')) || availablePants.find(p => detectItemSlot(p) === 'top')
+      const bottom = availablePants.find(p => (p.name || '').toLowerCase().includes('tây') || (p.name || '').toLowerCase().includes('slimfit')) || availablePants.find(p => detectItemSlot(p) === 'bottom')
+      const shoes = availablePants.find(p => (p.name || '').toLowerCase().includes('tây') || (p.name || '').toLowerCase().includes('loafer')) || availablePants.find(p => detectItemSlot(p) === 'shoes')
+      const newOutfit = {
+        top: top || null,
+        bottom: bottom || null,
+        shoes: shoes || null,
+        accessory: null
+      }
+      setSelectedOutfit(newOutfit)
+      handleRunTryOn(top || bottom || undefined, undefined, undefined, undefined, undefined, newOutfit)
+      triggerToast('👔 Đã áp dụng Set Công Sở Lịch Lãm!')
+    } else if (presetName === 'sport') {
+      const top = availablePants.find(p => (p.name || '').toLowerCase().includes('thun') || (p.name || '').toLowerCase().includes('cotton')) || availablePants.find(p => detectItemSlot(p) === 'top')
+      const bottom = availablePants.find(p => (p.name || '').toLowerCase().includes('jogger')) || availablePants.find(p => detectItemSlot(p) === 'bottom')
+      const shoes = availablePants.find(p => (p.name || '').toLowerCase().includes('sneaker') || (p.name || '').toLowerCase().includes('dép')) || availablePants.find(p => detectItemSlot(p) === 'shoes')
+      const newOutfit = {
+        top: top || null,
+        bottom: bottom || null,
+        shoes: shoes || null,
+        accessory: null
+      }
+      setSelectedOutfit(newOutfit)
+      handleRunTryOn(top || bottom || undefined, undefined, undefined, undefined, undefined, newOutfit)
+      triggerToast('⚡ Đã áp dụng Set Thể Thao Năng Động!')
+    }
+  }
+
+  const handleAddWholeOutfitToCart = () => {
+    const items = Object.values(selectedOutfit).filter(Boolean) as Product[]
+    if (items.length === 0) {
+      triggerToast('Chưa có món đồ nào được chọn trong bộ phối!')
+      return
+    }
+    if (onAddToCart) {
+      items.forEach(item => {
+        onAddToCart(item, 1, `Size ${fitResult?.recommended_size || 'L'}`)
+      })
+      triggerToast(`🛒 Đã thêm trọn bộ ${items.length} món phối đồ vào giỏ hàng!`)
+      setTimeout(() => {
+        loadCartFashionItems()
+      }, 350)
+    }
+  }
+
+  // Tự động kích hoạt AI ướm thử đồ ngay lập tức khi mở modal hoặc khi bộ phối đồ thay đổi
   useEffect(() => {
-    if (isOpen && selectedPant) {
-      const currentSignature = `${selectedPant.id}_${userPhoto}`
+    if (isOpen) {
+      const outfitSig = Object.entries(selectedOutfit).map(([k, v]) => `${k}:${v?.id || 'none'}`).join('|')
+      const currentSignature = `${outfitSig}_${userPhoto}`
       if (lastTriedProductIdRef.current !== currentSignature) {
         lastTriedProductIdRef.current = currentSignature
-        setCompositeTryOnImage('')
-        setExtractedGarment(null)
-        setFitResult(null)
-        handleRunTryOn(selectedPant)
+        const activeItems = Object.values(selectedOutfit).filter(Boolean) as Product[]
+        if (activeItems.length > 0) {
+          handleRunTryOn(activeItems[0], undefined, undefined, undefined, undefined, selectedOutfit)
+        }
       }
     }
-  }, [isOpen, selectedPant?.id, userPhoto])
+  }, [isOpen, selectedOutfit, userPhoto])
 
   useEffect(() => {
     if (!isOpen) {
@@ -592,6 +758,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     setToastMsg(msg)
     setTimeout(() => setToastMsg(''), 3000)
   }
+
+  const outfitItems = Object.values(selectedOutfit).filter(Boolean) as Product[]
+  const totalOutfitPrice = outfitItems.reduce((sum, item) => {
+    const raw = item.price || item.flashPrice || 0
+    const num = typeof raw === 'number' ? raw : (parseFloat(String(raw).replace(/[^0-9]/g, '')) || 0)
+    return sum + num
+  }, 0)
 
   if (!isOpen) return null
 
@@ -1001,27 +1174,33 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                 </div>
 
                 {/* Footer Món Đồ Đang Mặc & Nút Thao Tác Nhanh */}
-                {selectedPant && (
+                {outfitItems.length > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
-                      <img
-                        src={selectedPant.image || 'https://placehold.co/80x80'}
-                        alt={selectedPant.name}
-                        className="w-12 h-12 object-cover rounded-xl border border-white/20 shrink-0"
-                      />
+                      <div className="flex -space-x-2 overflow-hidden shrink-0">
+                        {outfitItems.map((item, idx) => (
+                          <img
+                            key={item.id + idx}
+                            src={item.image || 'https://placehold.co/80x80'}
+                            alt={item.name}
+                            className="w-10 h-10 object-cover rounded-xl border-2 border-slate-900 bg-white shadow-sm"
+                            title={item.name}
+                          />
+                        ))}
+                      </div>
                       <div className="min-w-0">
                         <span className="text-[9px] font-black text-indigo-400 uppercase tracking-wider block">
-                          Đang Thử Trên Người
+                          {outfitItems.length > 1 ? `Đang Phối Bộ ${outfitItems.length} Món` : 'Đang Thử Trên Người'}
                         </span>
                         <h4 className="font-bold text-white text-xs sm:text-sm truncate max-w-[280px]">
-                          {selectedPant.name}
+                          {outfitItems.map(i => i.name).join(' + ')}
                         </h4>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-rose-400 font-black text-xs sm:text-sm">
-                            {formatDisplayPrice(selectedPant.price || selectedPant.flashPrice)}
+                            {totalOutfitPrice.toLocaleString('vi-VN')}đ
                           </span>
                           <span className="text-emerald-400 font-bold text-[10px] bg-emerald-500/20 px-2 py-0.2 rounded-full border border-emerald-500/30">
-                            Khớp vóc dáng: {fitResult?.fit_score || 94}% • Size {fitResult?.recommended_size || measurements?.recommended_pant_size || 'L'}
+                            Khớp vóc dáng: {fitResult?.fit_score || 95}% • Size {fitResult?.recommended_size || measurements?.recommended_pant_size || 'L'}
                           </span>
                         </div>
                       </div>
@@ -1031,7 +1210,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       {compositeTryOnImage && (
                         <a
                           href={compositeTryOnImage}
-                          download={`zeromall-tryon-${selectedPant.id || Date.now()}.jpg`}
+                          download={`zeromall-outfit-${Date.now()}.jpg`}
                           className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 border border-white/10"
                           title="Tải ảnh mặc thử độ phân giải cao"
                         >
@@ -1040,18 +1219,10 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       )}
                       <button
                         type="button"
-                        onClick={() => {
-                          if (onAddToCart && selectedPant) {
-                            onAddToCart(selectedPant, 1, `Size ${fitResult?.recommended_size || 'L'}`)
-                            triggerToast(`Đã thêm [${selectedPant.name}] (Size ${fitResult?.recommended_size || 'L'}) vào giỏ hàng!`)
-                            setTimeout(() => {
-                              loadCartFashionItems()
-                            }, 350)
-                          }
-                        }}
+                        onClick={handleAddWholeOutfitToCart}
                         className="px-4 py-2 bg-[#ee4d2d] hover:bg-[#d93b1d] text-white rounded-xl text-xs font-bold transition-all duration-150 cursor-pointer shadow-md hover:shadow-lg active:scale-[0.98] flex items-center gap-1.5"
                       >
-                        <span>🛒</span> Thêm Vào Giỏ Hàng
+                        <span>🛒</span> {outfitItems.length > 1 ? `Thêm Trọn Bộ (${outfitItems.length} Món)` : 'Thêm Vào Giỏ Hàng'}
                       </button>
                     </div>
                   </div>
@@ -1062,41 +1233,228 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
             {/* CỘT 2: BẢNG ĐIỀU KHIỂN & TỦ ĐỒ CHỌN MÓN (5 cols) */}
             <div className="lg:col-span-5 space-y-4">
               
-              {/* KHỐI 1: MÓN ĐỒ ĐANG CHUẨN BỊ ƯỚM THỬ (Mặc định chọn sẵn từ trang sản phẩm) */}
-              {selectedPant && (
-                <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 text-white shadow-md relative overflow-hidden">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-emerald-400 bg-emerald-950/60 border border-emerald-500/40 px-2 py-0.5 rounded-full">
-                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Chuẩn Bị Ướm Thử Món Này
-                    </span>
-                    <span className="text-[10px] font-bold text-slate-300 bg-white/10 px-2 py-0.5 rounded-full">
-                      {selectedPant.id === product?.id ? '✨ Từ trang sản phẩm' : 'Đã chọn'}
-                    </span>
+              {/* KHỐI 1: BẢNG PHỐI ĐỒ ĐA NĂNG AI (OUTFIT MIX & MATCH BUILDER) */}
+              <div className="bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 rounded-2xl p-3.5 text-white shadow-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    <h3 className="text-xs sm:text-sm font-black text-white flex items-center gap-1.5 uppercase tracking-wide">
+                      <span>🎨</span> Bảng Phối Đồ AI (Mix & Match)
+                    </h3>
+                  </div>
+                  <span className="text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                    {outfitItems.length}/4 Món Đã Phối
+                  </span>
+                </div>
+
+                <p className="text-[11px] text-slate-400">
+                  Bấm vào từng ô để chọn phối áo, quần, giày dép, mũ nón... AI sẽ tự động ướm trọn bộ lên cơ thể!
+                </p>
+
+                {/* 4 NGĂN PHỐI ĐỒ: Áo, Quần, Giày, Mũ */}
+                <div className="grid grid-cols-4 gap-2">
+                  {/* Ô 1: ÁO */}
+                  <div
+                    onClick={() => handleSelectSlot('top')}
+                    className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col items-center text-center ${
+                      activeOutfitSlot === 'top'
+                        ? 'border-indigo-400 bg-indigo-950/60 ring-2 ring-indigo-500/40 shadow-md'
+                        : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="text-[10px] font-black uppercase text-indigo-300 mb-1">👔 Áo</span>
+                    {selectedOutfit.top ? (
+                      <div className="w-full space-y-1">
+                        <div className="relative w-12 h-12 mx-auto">
+                          <img
+                            src={selectedOutfit.top.image || 'https://placehold.co/60x60'}
+                            alt={selectedOutfit.top.name}
+                            className="w-full h-full object-cover rounded-lg border border-white/20 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => handleRemoveSlot('top', e)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-bold shadow hover:bg-rose-500 cursor-pointer"
+                            title="Gỡ áo"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-[9px] font-bold text-white truncate max-w-[70px]">{selectedOutfit.top.name}</p>
+                      </div>
+                    ) : (
+                      <div className="h-12 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-300">
+                        <span className="text-sm">+</span>
+                        <span className="text-[9px] font-bold">Chọn Áo</span>
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <img
-                      src={selectedPant.image || 'https://placehold.co/100x100?text=Item'}
-                      alt={selectedPant.name}
-                      className="w-16 h-16 sm:w-18 sm:h-18 object-cover rounded-xl border border-white/20 shrink-0 bg-white"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-bold text-xs sm:text-sm text-white leading-snug line-clamp-2" title={selectedPant.name}>
-                        {selectedPant.name}
-                      </h4>
-                      <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                        <span className="text-sm font-black text-rose-400">
-                          {formatDisplayPrice(selectedPant.price || selectedPant.flashPrice)}
-                        </span>
-                        <span className="text-[10px] font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded border border-emerald-400/30">
-                          Gợi ý: Size {fitResult?.recommended_size || measurements?.recommended_pant_size || 'L'}
-                        </span>
+                  {/* Ô 2: QUẦN / VÁY */}
+                  <div
+                    onClick={() => handleSelectSlot('bottom')}
+                    className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col items-center text-center ${
+                      activeOutfitSlot === 'bottom'
+                        ? 'border-indigo-400 bg-indigo-950/60 ring-2 ring-indigo-500/40 shadow-md'
+                        : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="text-[10px] font-black uppercase text-indigo-300 mb-1">👖 Quần/Váy</span>
+                    {selectedOutfit.bottom ? (
+                      <div className="w-full space-y-1">
+                        <div className="relative w-12 h-12 mx-auto">
+                          <img
+                            src={selectedOutfit.bottom.image || 'https://placehold.co/60x60'}
+                            alt={selectedOutfit.bottom.name}
+                            className="w-full h-full object-cover rounded-lg border border-white/20 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => handleRemoveSlot('bottom', e)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-bold shadow hover:bg-rose-500 cursor-pointer"
+                            title="Gỡ quần"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-[9px] font-bold text-white truncate max-w-[70px]">{selectedOutfit.bottom.name}</p>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="h-12 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-300">
+                        <span className="text-sm">+</span>
+                        <span className="text-[9px] font-bold">Chọn Quần</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ô 3: GIÀY / DÉP */}
+                  <div
+                    onClick={() => handleSelectSlot('shoes')}
+                    className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col items-center text-center ${
+                      activeOutfitSlot === 'shoes'
+                        ? 'border-indigo-400 bg-indigo-950/60 ring-2 ring-indigo-500/40 shadow-md'
+                        : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="text-[10px] font-black uppercase text-indigo-300 mb-1">👟 Giày/Dép</span>
+                    {selectedOutfit.shoes ? (
+                      <div className="w-full space-y-1">
+                        <div className="relative w-12 h-12 mx-auto">
+                          <img
+                            src={selectedOutfit.shoes.image || 'https://placehold.co/60x60'}
+                            alt={selectedOutfit.shoes.name}
+                            className="w-full h-full object-cover rounded-lg border border-white/20 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => handleRemoveSlot('shoes', e)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-bold shadow hover:bg-rose-500 cursor-pointer"
+                            title="Gỡ giày"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-[9px] font-bold text-white truncate max-w-[70px]">{selectedOutfit.shoes.name}</p>
+                      </div>
+                    ) : (
+                      <div className="h-12 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-300">
+                        <span className="text-sm">+</span>
+                        <span className="text-[9px] font-bold">Chọn Giày</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Ô 4: MŨ / PHỤ KIỆN */}
+                  <div
+                    onClick={() => handleSelectSlot('accessory')}
+                    className={`relative p-2 rounded-xl border transition-all cursor-pointer flex flex-col items-center text-center ${
+                      activeOutfitSlot === 'accessory'
+                        ? 'border-indigo-400 bg-indigo-950/60 ring-2 ring-indigo-500/40 shadow-md'
+                        : 'border-slate-800 bg-slate-900/80 hover:border-slate-700'
+                    }`}
+                  >
+                    <span className="text-[10px] font-black uppercase text-indigo-300 mb-1">🧢 Mũ/Nón</span>
+                    {selectedOutfit.accessory ? (
+                      <div className="w-full space-y-1">
+                        <div className="relative w-12 h-12 mx-auto">
+                          <img
+                            src={selectedOutfit.accessory.image || 'https://placehold.co/60x60'}
+                            alt={selectedOutfit.accessory.name}
+                            className="w-full h-full object-cover rounded-lg border border-white/20 bg-white"
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => handleRemoveSlot('accessory', e)}
+                            className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-rose-600 text-white flex items-center justify-center text-[9px] font-bold shadow hover:bg-rose-500 cursor-pointer"
+                            title="Gỡ mũ"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                        <p className="text-[9px] font-bold text-white truncate max-w-[70px]">{selectedOutfit.accessory.name}</p>
+                      </div>
+                    ) : (
+                      <div className="h-12 flex flex-col items-center justify-center text-slate-500 hover:text-indigo-300">
+                        <span className="text-sm">+</span>
+                        <span className="text-[9px] font-bold">Chọn Mũ</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              )}
+
+                {/* Gợi ý phối set nhanh */}
+                <div className="flex flex-wrap items-center gap-1.5 pt-1 border-t border-slate-800/80">
+                  <span className="text-[10px] font-bold text-slate-400">Gợi ý phối sẵn:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('streetwear')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 border border-amber-500/30 transition cursor-pointer"
+                  >
+                    🔥 Set Streetwear (Bomber+Jean+Sneaker)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('office')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-blue-500/20 text-blue-300 hover:bg-blue-500/30 border border-blue-500/30 transition cursor-pointer"
+                  >
+                    👔 Set Công Sở (Sơ mi+Quần tây+Giày)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyPreset('sport')}
+                    className="px-2 py-1 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 border border-emerald-500/30 transition cursor-pointer"
+                  >
+                    ⚡ Set Thể Thao (Thun+Jogger+Sneaker)
+                  </button>
+                </div>
+
+                {/* Total Outfit Price & Buy Whole Set Button */}
+                {outfitItems.length > 0 && (
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-slate-400 block">Tổng {outfitItems.length} món trong bộ:</span>
+                      <span className="text-sm font-black text-rose-400">{totalOutfitPrice.toLocaleString('vi-VN')}đ</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleRunTryOn(undefined, undefined, undefined, undefined, undefined, selectedOutfit)}
+                        disabled={isLoadingAi}
+                        className="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer disabled:opacity-50"
+                      >
+                        <span>✨</span> {isLoadingAi ? 'Đang Ướm...' : 'Ướm Cả Bộ'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddWholeOutfitToCart}
+                        className="px-3 py-1.5 bg-[#ee4d2d] hover:bg-[#d93b1d] text-white rounded-xl text-xs font-bold transition flex items-center gap-1 cursor-pointer shadow-md"
+                      >
+                        <span>🛒</span> Mua Cả Bộ
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
 
               {/* KHỐI 2: THÊM ẢNH NGƯỜI DÙNG ĐỂ THỬ ĐỒ (CTA NỔI BẬT NHẤT) */}
               <div className="bg-white border border-slate-200/80 rounded-2xl p-4 space-y-3 shadow-xs">
@@ -1358,16 +1716,15 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     ) : (
                       <div className="space-y-2 max-h-[200px] overflow-y-auto pr-1">
                         {cartFashionItems.map((item) => {
-                          const isSelected = selectedPant?.id === item.product.id
+                          const isEquipped = Object.values(selectedOutfit).some(it => it?.id === item.product.id)
+                          const equippedSlot = Object.entries(selectedOutfit).find(([_, it]) => it?.id === item.product.id)?.[0]
+                          const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Mũ' : ''
                           return (
                             <div
                               key={item.product.id + (item.variant || '')}
-                              onClick={() => {
-                                setSelectedPant(item.product)
-                                handleRunTryOn(item.product)
-                              }}
+                              onClick={() => handleEquipItem(item.product)}
                               className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                                isSelected
+                                isEquipped
                                   ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/30 shadow-xs'
                                   : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white'
                               }`}
@@ -1378,7 +1735,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                                 className="w-12 h-14 object-cover rounded-xl border border-slate-200 shrink-0 shadow-2xs"
                               />
                               <div className="flex-1 min-w-0">
-                                <p className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-800'}`}>
+                                <p className={`text-xs font-bold truncate ${isEquipped ? 'text-indigo-950 font-black' : 'text-slate-800'}`}>
                                   {item.product.name}
                                 </p>
                                 <div className="flex items-center gap-2 mt-1">
@@ -1390,20 +1747,24 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                                       {item.variant}
                                     </span>
                                   )}
-                                  {isSelected && (
+                                  {isEquipped ? (
                                     <span className="text-[9px] font-black text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded-md">
-                                      Đang mặc thử
+                                      Đang phối {slotLabel}
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-md">
+                                      {detectItemSlot(item.product) === 'top' ? '👔 Áo' : detectItemSlot(item.product) === 'bottom' ? '👖 Quần' : detectItemSlot(item.product) === 'shoes' ? '👟 Giày' : '🧢 Mũ'}
                                     </span>
                                   )}
                                 </div>
                               </div>
-                              {isSelected ? (
+                              {isEquipped ? (
                                 <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
                                   ✓
                                 </span>
                               ) : (
                                 <span className="text-[11px] font-bold text-slate-400 group-hover:text-indigo-600">
-                                  Ướm ➔
+                                  + Phối ➔
                                 </span>
                               )}
                             </div>
@@ -1447,9 +1808,10 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                     <div className="flex gap-1.5 overflow-x-auto pb-0.5 text-[11px]">
                       {[
                         { key: 'all', label: 'Tất cả' },
-                        { key: 'tops', label: '👔 Áo (Tops)' },
-                        { key: 'bottoms', label: '👖 Quần (Bottoms)' },
-                        { key: 'dresses', label: '👗 Váy / Đầm' }
+                        { key: 'top', label: '👔 Áo (Tops)' },
+                        { key: 'bottom', label: '👖 Quần & Váy' },
+                        { key: 'shoes', label: '👟 Giày & Dép' },
+                        { key: 'accessory', label: '🧢 Mũ & Phụ kiện' }
                       ].map((tab) => (
                         <button
                           key={tab.key}
@@ -1480,23 +1842,19 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                       <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
                         {(searchQuery.trim() ? searchResults : availablePants)
                           .filter((p) => {
-                            const name = (p.name || '').toLowerCase()
-                            if (categoryFilter === 'tops') return ['áo', 'bomber', 'jacket', 'sơ mi', 'thun', 'hoodie', 'blazer', 'polo'].some(k => name.includes(k))
-                            if (categoryFilter === 'bottoms') return ['quần', 'jean', 'jogger', 'short', 'tây'].some(k => name.includes(k))
-                            if (categoryFilter === 'dresses') return ['váy', 'đầm', 'dress', 'yếm'].some(k => name.includes(k))
-                            return true
+                            if (categoryFilter === 'all') return true
+                            return detectItemSlot(p) === categoryFilter
                           })
                           .map((pant) => {
-                            const isSelected = selectedPant?.id === pant.id
+                            const isEquipped = Object.values(selectedOutfit).some(it => it?.id === pant.id)
+                            const equippedSlot = Object.entries(selectedOutfit).find(([_, it]) => it?.id === pant.id)?.[0]
+                            const slotLabel = equippedSlot === 'top' ? '👔 Áo' : equippedSlot === 'bottom' ? '👖 Quần' : equippedSlot === 'shoes' ? '👟 Giày' : equippedSlot === 'accessory' ? '🧢 Mũ' : ''
                             return (
                               <div
                                 key={pant.id}
-                                onClick={() => {
-                                  setSelectedPant(pant)
-                                  handleRunTryOn(pant)
-                                }}
+                                onClick={() => handleEquipItem(pant)}
                                 className={`p-2.5 rounded-2xl border transition-all cursor-pointer flex items-center gap-3 ${
-                                  isSelected
+                                  isEquipped
                                     ? 'border-indigo-600 bg-indigo-50/60 ring-2 ring-indigo-500/30 shadow-xs'
                                     : 'border-slate-200 hover:border-indigo-300 hover:bg-slate-50 bg-white'
                                 }`}
@@ -1507,27 +1865,31 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
                                   className="w-12 h-14 object-cover rounded-xl border border-slate-200 shrink-0 shadow-2xs"
                                 />
                                 <div className="flex-1 min-w-0">
-                                  <p className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-950 font-black' : 'text-slate-800'}`}>
+                                  <p className={`text-xs font-bold truncate ${isEquipped ? 'text-indigo-950 font-black' : 'text-slate-800'}`}>
                                     {pant.name}
                                   </p>
                                   <div className="flex items-center gap-2 mt-1">
                                     <span className="text-xs font-black text-rose-600">
                                       {formatDisplayPrice(pant.price || pant.flashPrice)}
                                     </span>
-                                    {isSelected && (
+                                    {isEquipped ? (
                                       <span className="text-[9px] font-black text-indigo-700 bg-indigo-100 px-1.5 py-0.2 rounded-md">
-                                        Đang mặc thử
+                                        Đang phối {slotLabel}
+                                      </span>
+                                    ) : (
+                                      <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-1.5 py-0.2 rounded-md">
+                                        {detectItemSlot(pant) === 'top' ? '👔 Áo' : detectItemSlot(pant) === 'bottom' ? '👖 Quần' : detectItemSlot(pant) === 'shoes' ? '👟 Giày' : '🧢 Mũ'}
                                       </span>
                                     )}
                                   </div>
                                 </div>
-                                {isSelected ? (
+                                {isEquipped ? (
                                   <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
                                     ✓
                                   </span>
                                 ) : (
                                   <span className="text-[11px] font-bold text-slate-400 group-hover:text-indigo-600">
-                                    Ướm ➔
+                                    + Phối ➔
                                   </span>
                                 )}
                               </div>
