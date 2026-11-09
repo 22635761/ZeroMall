@@ -176,42 +176,72 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
     const cat = (p.category || '').toLowerCase().trim()
     const slug = (p.categoryRef?.slug || '').toLowerCase().trim()
 
-    // 0. Loại trừ đồ gia dụng / điện tử / công nghệ nếu lọt vào (trừ túi/ví đựng)
-    if (name.includes('bàn là') || name.includes('nồi cơm') || name.includes('nồi chiên') || name.includes('máy giặt') || name.includes('tủ lạnh')) {
+    // 0. Loại trừ các danh mục và sản phẩm phi thời trang (Điện tử, Gia dụng, Sách, Mỹ phẩm, v.v.)
+    const nonFashionCats = [
+      'gia-dung', 'gia dụng', 'may-anh', 'máy ảnh', 'may-tinh-laptop', 'máy tính',
+      'dien-thoai-phu-kien', 'điện thoại', 'thiet-bi-dien-tu', 'thiết bị điện tử',
+      'sach-vpp', 'sách', 'me-va-be', 'mẹ & bé', 'sac-dep', 'sắc đẹp', 'suc-khoe', 'sức khỏe'
+    ]
+    if (nonFashionCats.some(c => cat.includes(c) || slug.includes(c))) {
       return null
     }
-    if ((name.includes('điện thoại') || name.includes('máy tính') || name.includes('máy ảnh')) && !name.includes('túi') && !name.includes('ví') && !name.includes('balo') && !name.includes('bao da') && !name.includes('ốp')) {
+    const nonFashionWords = [
+      'bàn là', 'bàn ủi', 'nồi cơm', 'nồi chiên', 'máy giặt', 'tủ lạnh', 'bếp điện', 'bếp từ', 'chảo chống dính',
+      'điện thoại', 'máy tính', 'laptop', 'màn hình', 'chuột máy tính', 'chuột gaming', 'bàn phím', 'cáp sạc', 'sạc dự phòng',
+      'son môi', 'kem dưỡng', 'serum', 'sữa rửa mặt', 'nước hoa', 'dầu gội', 'sữa tắm', 'phấn phủ',
+      'sách giáo khoa', 'tiểu thuyết', 'vở viết', 'bút bi', 'tã bỉm', 'sữa bột'
+    ]
+    if (nonFashionWords.some(w => name.includes(w))) {
       return null
     }
 
-    // 1. GIÀY DÉP (Footwear): Giày, dép, sneaker, sandal, guốc, cao gót, búp bê, loafer, boots...
-    const isShoes = [
-      'giày', 'giay', 'dép', 'dep', 'sneaker', 'sandal', 'guốc', 'guoc', 
+    // 1. MŨ NÓN & PHỤ KIỆN & TRANG SỨC & TÚI VÍ (Accessories)
+    const isAccCat = slug.includes('phu-kien') || slug.includes('tui-vi') || slug.includes('dong-ho') ||
+                     cat.includes('phụ kiện') || cat.includes('túi ví') || cat.includes('đồng hồ')
+    const isAccWords = [
+      'mũ', 'nón', 'cap', 'beanie', 'snapback', 'bucket', 'beret',
+      'kính', 'gọng kính', 'kính râm', 'kính mát', 'tròng kính',
+      'túi', 'ví', 'balo', 'ba lô', 'clutch', 'tote', 'túi xách', 'ví cầm tay', 'túi đeo',
+      'khăn', 'cà vạt', 'caravat', 'nơ cổ',
+      'kẹp tóc', 'cột tóc', 'dây thun', 'băng đô', 'cài tóc', 'bờm', 'chun buộc', 'kẹp càng cua',
+      'dây chuyền', 'vòng cổ', 'vòng tay', 'lắc tay', 'lắc chân', 'khuyên tai', 'hoa tai', 'bông tai', 'nhẫn', 'kiềng', 'charm', 'trâm cài', 'mặt dây',
+      'thắt lưng', 'dây nịt', 'belt',
+      'đồng hồ'
+    ].some(k => name.includes(k))
+
+    if (isAccCat || isAccWords) {
+      return 'accessory'
+    }
+
+    // 2. GIÀY DÉP (Footwear)
+    const isShoesCat = slug.includes('giay-dep') || cat.includes('giày dép') || cat.includes('giay dep')
+    const isShoesWords = [
+      'giày', 'giay', 'dép', 'dep', 'sneaker', 'sandal', 'guốc', 'guoc',
       'cao gót', 'búp bê', 'loafer', 'derby', 'chelsea', 'boots', 'bốt', 'ủng', 'sục', 'mwc', 'slip-on', 'slip on'
-    ].some(k => name.includes(k)) || (slug.includes('giay-dep') || cat.includes('giày dép'))
+    ].some(k => name.includes(k))
 
-    if (isShoes && !name.includes('hộp đựng') && !name.includes('túi đựng giày') && !name.includes('kệ để giày')) {
+    if ((isShoesCat || isShoesWords) && !name.includes('hộp đựng') && !name.includes('túi đựng giày') && !name.includes('kệ để')) {
       return 'shoes'
     }
 
-    // 2. QUẦN & VÁY & ĐẦM (Bottoms / Lower Garments): Quần tây, jean, jogger, short, chân váy, đầm maxi...
-    const isBottom = [
-      'quần', 'quan', 'jean', 'jeans', 'jogger', 'short', 'shorts', 'kaki', 'tây âu', 'quần tây', 
-      'quần đùi', 'quần baggy', 'quần ống', 'quần culottes', 'quần legging', 
-      'quần bò', 'quần lửng', 'quần nỉ', 'quần thun',
+    // 3. QUẦN & VÁY & ĐẦM (Bottoms / Lower Garments)
+    const isBottomWords = [
+      'quần', 'quan', 'jean', 'jeans', 'jogger', 'short', 'shorts', 'kaki', 'tây âu', 'quần tây',
+      'quần đùi', 'quần baggy', 'quần ống', 'quần culottes', 'quần legging',
+      'quần bò', 'quần lửng', 'quần nỉ', 'quần thun', 'boxer',
       'chân váy', 'váy xòe', 'váy chữ a', 'váy xếp ly', 'váy midi', 'váy maxi', 'váy body', 'váy yếm', 'váy hoa', 'váy tay bồng', 'váy công chúa', 'váy',
       'đầm', 'dam', 'maxi', 'jumpsuit', 'set đồ bộ'
     ].some(k => name.includes(k))
 
-    if (isBottom) {
+    if (isBottomWords) {
       return 'bottom'
     }
 
-    // 3. ÁO (Tops / Upper Garments): Áo sơ mi, thun, polo, khoác, bomber, blazer, cardigan, hoodie, sweater, croptop, vest...
-    const isTop = [
-      'áo', 'ao', 'sơ mi', 'so mi', 'thun', 'polo', 'khoác', 'khoac', 'bomber', 'blazer', 
-      'cardigan', 'hoodie', 'sweater', 'croptop', 'crop top', 'tank top', 'ba lỗ', 
-      'gile', 'vest', 'bra', 'sát nách', 'cộc tay', 'tay phồng', 'len dệt kim', 'jacket'
+    // 4. ÁO (Tops / Upper Garments)
+    const isTopWords = [
+      'áo', 'ao', 'sơ mi', 'so mi', 'thun', 'polo', 'khoác', 'khoac', 'bomber', 'blazer',
+      'cardigan', 'hoodie', 'sweater', 'croptop', 'crop top', 'tank top', 'ba lỗ',
+      'gile', 'vest', 'bra', 'sát nách', 'cộc tay', 'tay phồng', 'len dệt kim', 'jacket', 'măng tô', 'áo gió', 'áo nỉ'
     ].some(k => {
       if (k === 'áo' || k === 'ao') {
         return /(?:^|[^\p{L}])áo(?:[^\p{L}]|$)/ui.test(name) || name.includes(' áo ') || name.startsWith(' áo') || name.includes('áo-')
@@ -219,24 +249,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       return name.includes(k)
     })
 
-    // Loại trừ trường hợp phụ kiện có nhắc chữ "cổ áo" hoặc "áo"
-    if (isTop && !name.includes('khăn') && !name.includes('kẹp tóc') && !name.includes('dây chuyền') && !name.includes('bông tai') && !name.includes('khuyên tai')) {
+    if (isTopWords) {
       return 'top'
-    }
-
-    // 4. MŨ NÓN & PHỤ KIỆN & TRANG SỨC & TÚI VÍ (Accessories)
-    const hasHat = name.includes('mũ ') || name.includes(' mũ') || name.includes('nón') || name.includes('cap') || name.includes('beanie') || name.includes('snapback') || name.includes('bucket')
-    const hasGlasses = name.includes('kính') || name.includes('gọng kính') || name.includes('tròng phân cực')
-    const hasBag = name.includes('túi') || name.includes('ví') || name.includes('balo') || name.includes('ba lô') || name.includes('clutch') || name.includes('tote')
-    const hasScarf = name.includes('khăn') || name.includes('cà vạt') || name.includes('caravat')
-    const hasHair = name.includes('kẹp tóc') || name.includes('cột tóc') || name.includes('băng đô') || name.includes('cài tóc') || name.includes('bờm') || name.includes('chun buộc')
-    const hasJewelry = name.includes('dây chuyền') || name.includes('vòng cổ') || name.includes('vòng tay') || name.includes('lắc tay') || name.includes('lắc chân') || name.includes('khuyên tai') || name.includes('hoa tai') || name.includes('bông tai') || name.includes('nhẫn') || name.includes('kiềng') || name.includes('charm')
-    const hasBelt = name.includes('thắt lưng') || name.includes('dây nịt') || name.includes('belt')
-    const hasWatch = name.includes('đồng hồ')
-    const isAccCat = slug.includes('phu-kien') || slug.includes('tui-vi') || slug.includes('dong-ho') || cat.includes('phụ kiện') || cat.includes('túi ví') || cat.includes('đồng hồ')
-
-    if (hasHat || hasGlasses || hasBag || hasScarf || hasHair || hasJewelry || hasBelt || hasWatch || isAccCat) {
-      return 'accessory'
     }
 
     return null
@@ -254,6 +268,8 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
       if (n.includes('kính')) return '🕶️ Kính'
       if (n.includes('túi') || n.includes('ví') || n.includes('balo')) return '👜 Túi/Ví'
       if (n.includes('khăn')) return '🧣 Khăn'
+      if (n.includes('kẹp tóc') || n.includes('cột tóc') || n.includes('băng đô') || n.includes('cài tóc')) return '🎀 Kẹp Tóc'
+      if (n.includes('dây chuyền') || n.includes('vòng cổ') || n.includes('vòng tay') || n.includes('lắc') || n.includes('nhẫn') || n.includes('khuyên tai') || n.includes('hoa tai') || n.includes('bông tai')) return '💍 Trang Sức'
       return '✨ Phụ Kiện'
     }
     return 'Thời trang'
@@ -701,6 +717,7 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
           setFitResult(data.fit)
           if (data.preview && data.preview.composite_image) {
             setCompositeTryOnImage(data.preview.composite_image)
+            setViewMode('tryon')
           }
           if (data.extracted_face && data.extracted_face.face_url) {
             setExtractedFace(data.extracted_face)
@@ -726,12 +743,13 @@ export const VirtualTryOnModal: React.FC<VirtualTryOnModalProps> = ({
 
   // Quản lý gán món vào bộ phối đồ
   const handleEquipItem = (item: Product, targetSlot?: 'top' | 'bottom' | 'shoes' | 'accessory') => {
-    const slot = targetSlot || activeOutfitSlot || detectItemSlot(item)
+    const slot = targetSlot || detectItemSlot(item) || activeOutfitSlot || 'top'
     const newOutfit = {
       ...selectedOutfit,
       [slot]: item
     }
     setSelectedOutfit(newOutfit)
+    setActiveOutfitSlot(slot)
     setSelectedPant(item)
     handleRunTryOn(item, undefined, undefined, undefined, undefined, newOutfit)
   }
