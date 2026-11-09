@@ -39,6 +39,12 @@ export class ProductController {
 
   // --- STATIC ROUTES (Must be before wildcard :id routes) ---
 
+  @Get('top-trending')
+  async getTopTrending(@Query('limit') limit?: string) {
+    const limitNum = limit ? parseInt(limit, 10) : 6;
+    return this.productService.findTopTrending(limitNum);
+  }
+
   @Get('price-analytics')
 
   async getPriceAnalytics(

@@ -48,6 +48,24 @@ export function useFreeshipShopIdsQuery() {
 }
 
 /**
+ * Hook truy vấn Top Bán Chạy Toàn Sàn từ backend (/products/top-trending).
+ * Sắp xếp chuẩn xác theo số lượt bán thực tế (sales desc) trên toàn bộ CSDL.
+ */
+export function useTopTrendingProductsQuery(limit: number = 6) {
+  return useQuery<Product[]>({
+    queryKey: ['products', 'top-trending', limit],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/products/top-trending?limit=${limit}`)
+      if (!res.ok) throw new Error('Không thể tải top bán chạy toàn sàn')
+      const raw = await res.json()
+      const rawList = Array.isArray(raw) ? raw : (raw.products || [])
+      return rawList.map((p: any) => formatRawProduct(p))
+    },
+    staleTime: 1000 * 60 * 5, // 5 phút cache
+  })
+}
+
+/**
  * Hook truy vấn dữ liệu Feed sản phẩm phân trang (Shopee-style Infinite/Paged Feed).
  * Tích hợp keepPreviousData để khi chuyển trang (1 -> 2 -> 3) không bị giật trắng trang.
  * Dữ liệu từng trang được lưu vào cache, người dùng back/forward không bao giờ bị spam API.

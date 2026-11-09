@@ -112,6 +112,47 @@ export class ProductService {
     return payload;
   }
 
+  /**
+   * Truy vấn Top Bán Chạy Toàn Sàn (sắp xếp theo sales giảm dần, còn hàng, không ẩn)
+   * Tích hợp tổng hợp đánh giá trung bình từ CSDL thực và đệm Redis.
+   */
+  async findTopTrending(limit: number = 6) {
+    const safeLimit = Math.min(Math.max(1, limit), 20);
+    const cacheKey = `products:top_trending:${safeLimit}`;
+    const cached = await this.redis.get<any[]>(cacheKey);
+    if (cached) return cached;
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        status: { not: 'hidden' },
+        stock: { gt: 0 },
+      },
+      include: { categoryRef: true },
+      orderBy: [{ sales: 'desc' }, { createdAt: 'desc' }],
+      take: safeLimit,
+    });
+
+    const reviews = await this.prisma.review.groupBy({
+      by: ['productId'],
+      where: { productId: { in: products.map((p) => p.id) } },
+      _avg: { rating: true },
+      _count: { id: true },
+    });
+    const reviewMap = new Map(reviews.map((r) => [r.productId, { avg: r._avg.rating || 0, count: r._count.id }]));
+
+    const result = products.map((p) => {
+      const rev = reviewMap.get(p.id);
+      return {
+        ...p,
+        rating: rev ? Number(rev.avg.toFixed(1)) : 0,
+        reviewsCount: rev ? rev.count : 0,
+      };
+    });
+
+    await this.redis.set(cacheKey, result, 120); // 2 phút cache
+    return result;
+  }
+
   async findAll(
     shopId?: string,
     category?: string,

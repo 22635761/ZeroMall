@@ -1,26 +1,29 @@
 import React from 'react'
 import type { Product } from './FlashSale'
+import { useTopTrendingProductsQuery } from '../../queries/productQueries'
+import { trackUserEngagement } from '../../services/ai-recommendation.service'
 
 interface TopTrendingSectionProps {
-  products: Product[]
+  products?: Product[]
   onSelectProduct: (product: Product) => void
 }
 
 export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
-  products,
+  products = [],
   onSelectProduct,
 }) => {
-  // Lọc sản phẩm còn hàng và sắp xếp theo số lượng bán nhiều nhất (Top Sales)
-  const trendingProducts = [...products]
-    .filter((p) => (p.stock !== undefined ? p.stock > 0 : true) && p.status !== 'hidden')
-    .sort((a, b) => {
-      const soldA = Number(a.sold || 0)
-      const soldB = Number(b.sold || 0)
-      return soldB - soldA
-    })
-    .slice(0, 6)
+  // Truy vấn Top Bán Chạy Toàn Sàn trực tiếp từ CSDL thực (Sắp xếp theo sales giảm dần)
+  const { data: topSellingData, isLoading } = useTopTrendingProductsQuery(6)
 
-  if (trendingProducts.length === 0) return null
+  // Ưu tiên dữ liệu chuẩn xác từ API Top Trending, fallback sang mảng products nếu đang tải
+  const trendingProducts = (topSellingData && topSellingData.length > 0)
+    ? topSellingData
+    : [...products]
+        .filter((p) => (p.stock !== undefined ? p.stock > 0 : true) && p.status !== 'hidden')
+        .sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
+        .slice(0, 6)
+
+  if (trendingProducts.length === 0 && !isLoading) return null
 
   const getRankBadge = (rank: number) => {
     switch (rank) {
@@ -90,7 +93,10 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
           return (
             <div
               key={p.id}
-              onClick={() => onSelectProduct(p)}
+              onClick={() => {
+                trackUserEngagement('VIEW', p.id, p.category)
+                onSelectProduct(p)
+              }}
               className="group cursor-pointer flex flex-col justify-between bg-white rounded-2xl border border-slate-200/70 hover:border-emerald-500/50 p-2.5 hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 relative overflow-hidden shadow-2xs"
             >
               {/* Rank Badge */}
