@@ -39,6 +39,7 @@ import { UserVoucherTab } from './pages/buyer/UserVoucherTab'
 import { UserWalletTab } from './pages/buyer/UserWalletTab'
 import { VirtualTryOnPage } from './pages/buyer/VirtualTryOnPage'
 import { DailyDiscoverPage } from './pages/buyer/DailyDiscoverPage'
+import { trackUserEngagement } from './services/ai-recommendation.service'
 
 // Wrappers and containers for React Router
 
@@ -735,6 +736,9 @@ function App() {
       showToast('⚠️ Sản phẩm này hiện đã hết hàng!')
       return
     }
+
+    // Ghi nhận sự kiện CART lên AI Recommendation Engine để cập nhật bảng "Gợi Ý Hôm Nay"
+    trackUserEngagement('CART', product.id, product.category)
 
     setCart((prev) => {
       const existingIdx = prev.findIndex(

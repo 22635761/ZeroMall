@@ -3,6 +3,7 @@ import { API_BASE_URL } from '../config/api.config'
 import { formatRawProduct } from '../utils/productFormatter'
 import type { Product } from '../components/buyer/FlashSale'
 import { getFreeshipShopIds } from '../services/shop.service'
+import { getEffectiveUserId } from '../services/ai-recommendation.service'
 
 export interface ProductFeedResult {
   products: Product[]
@@ -91,6 +92,60 @@ export function useProductFeedQuery(page: number = 1, limit: number = 30, catego
     },
     placeholderData: keepPreviousData,
     staleTime: 1000 * 60 * 3, // 3 phút
+  })
+}
+
+/**
+ * Hook truy vấn feed "Gợi Ý Hôm Nay" (Daily Discover) cá nhân hóa theo phiên chuẩn Shopee.
+ * Tự động xen kẽ 1-2 sản phẩm liên quan đến món vừa xem hoặc thêm giỏ hàng.
+ */
+export function usePersonalizedFeedQuery(page: number = 1, limit: number = 30) {
+  const userId = getEffectiveUserId()
+  return useQuery<ProductFeedResult & { userProfile?: any }>({
+    queryKey: ['products', 'personalized_feed', userId, page, limit],
+    queryFn: async () => {
+      const url = new URL(`${API_BASE_URL}/products/ai/recommendations`)
+      url.searchParams.set('userId', userId)
+      url.searchParams.set('page', String(page))
+      url.searchParams.set('limit', String(limit))
+
+      const res = await fetch(url.toString())
+      if (!res.ok) throw new Error(`Lỗi tải feed gợi ý trang ${page}`)
+      const data = await res.json()
+
+      const rawItems = Array.isArray(data) ? data : (data.products || [])
+      const mapped = rawItems.map((p: any) => {
+        const formatted = formatRawProduct(p)
+        return {
+          ...formatted,
+          isPersonalized: Boolean(p.isPersonalized),
+          recommendationReason: p.recommendationReason || '',
+        }
+      })
+      const valid = mapped.filter(
+        (p: Product) =>
+          (p.stock !== undefined ? p.stock > 0 : (p.total || 0) > (p.sold || 0)) &&
+          p.status !== 'hidden'
+      )
+
+      const total = data.total || data.pagination?.total || mapped.length
+      const totalPages = data.pagination?.totalPages || Math.ceil(total / limit) || 1
+      const hasMore = data.pagination ? data.pagination.hasMore : rawItems.length >= limit
+
+      return {
+        products: valid,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasMore,
+        },
+        userProfile: data.userProfile,
+      }
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 30, // 30 giây để cập nhật nhanh khi người dùng tương tác
   })
 }
 

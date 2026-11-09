@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { useProductFeedQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
+import { usePersonalizedFeedQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
+import { trackUserEngagement } from '../../services/ai-recommendation.service'
 
 const toSlug = (str: string) => {
   return str
@@ -23,8 +24,8 @@ export const DailyDiscoverPage: React.FC = () => {
   const { data: freeshipSet } = useFreeshipShopIdsQuery()
   const freeshipShopIds = freeshipSet || new Set<string>()
 
-  // TanStack Query Cache cho trang hiện tại (tự động cache từng trang, không spam API khi lật qua lại)
-  const { data: feedData, isLoading: loading } = useProductFeedQuery(currentPage, 30)
+  // TanStack Query Cache cho trang hiện tại với cơ chế gợi ý xen kẽ chuẩn Shopee
+  const { data: feedData, isLoading: loading } = usePersonalizedFeedQuery(currentPage, 30)
 
   const products = feedData?.products || []
   const totalPages = feedData?.pagination.totalPages || 1
@@ -164,7 +165,10 @@ export const DailyDiscoverPage: React.FC = () => {
               return (
                 <div
                   key={p.id}
-                  onClick={() => navigate(`/product/${toSlug(p.name)}-i.${p.id}`)}
+                  onClick={() => {
+                    trackUserEngagement('VIEW', p.id, p.category)
+                    navigate(`/product/${toSlug(p.name)}-i.${p.id}`)
+                  }}
                   className="bg-white border border-slate-200/80 hover:border-emerald-500/50 rounded-2xl overflow-hidden shadow-2xs hover:shadow-lg hover:-translate-y-1 active:scale-[0.99] transition-all duration-200 flex flex-col justify-between relative group cursor-pointer"
                 >
                   {/* Image */}
@@ -207,11 +211,22 @@ export const DailyDiscoverPage: React.FC = () => {
                         {p.name}
                       </h3>
 
-                      {hasFreeship && (
-                        <span className="text-[8px] text-teal-700 border border-teal-500/40 px-1.5 py-0.2 rounded font-bold bg-teal-50 inline-block">
-                          Freeship Xtra
-                        </span>
-                      )}
+                      <div className="flex flex-wrap gap-1 items-center min-h-[18px]">
+                        {hasFreeship && (
+                          <span className="text-[8px] text-teal-700 border border-teal-500/40 px-1.5 py-0.2 rounded font-bold bg-teal-50 inline-block">
+                            Freeship Xtra
+                          </span>
+                        )}
+                        {(p as any).isPersonalized ? (
+                          <span className="text-[8px] text-rose-700 border border-rose-300/80 px-1.5 py-0.2 rounded font-black bg-rose-50 flex items-center gap-1 shadow-2xs">
+                            {(p as any).recommendationReason || '🎯 Gợi ý cho bạn'}
+                          </span>
+                        ) : (p as any).recommendationReason ? (
+                          <span className="text-[8px] text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-semibold bg-slate-50 truncate max-w-[120px]" title={(p as any).recommendationReason}>
+                            {(p as any).recommendationReason}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
 
                     <div className="space-y-1.5">

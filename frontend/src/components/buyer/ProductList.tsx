@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Product } from './FlashSale'
-import { useProductFeedQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
+import { useProductFeedQuery, usePersonalizedFeedQuery, useFreeshipShopIdsQuery } from '../../queries/productQueries'
+import { trackUserEngagement } from '../../services/ai-recommendation.service'
 
 interface ProductListProps {
   products: Product[]
@@ -19,10 +20,17 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
   const { data: freeshipSet } = useFreeshipShopIdsQuery()
   const freeshipShopIds = freeshipSet || new Set<string>()
 
-  // TanStack Query Cache cho trang chủ (30 sản phẩm phân trang)
+  // TanStack Query Cache cho Tab 0 "Gợi Ý Cho Bạn" (Session-based Interleaved Recommendation Feed)
+  const { data: personalizedData, isLoading: loadingPersonalized } = usePersonalizedFeedQuery(1, 30)
+  const personalizedProducts = personalizedData?.products || []
+  const isFeedPersonalized = personalizedData?.userProfile?.isPersonalized || false
+  const recentActionType = personalizedData?.userProfile?.recentAction
+
+  // TanStack Query Cache cho trang chủ chung (các tab khác)
   const { data: feedData, isLoading: loadingFeed } = useProductFeedQuery(1, 30)
   const feedProducts = feedData?.products || []
-  const totalFeedCount = feedData?.pagination.total || 0
+  const totalFeedCount = personalizedData?.pagination?.total || feedData?.pagination?.total || 0
+  const isLoading = activeTab === 0 ? loadingPersonalized : loadingFeed
 
   // 1. Đọc lịch sử xem sản phẩm trong phiên từ sessionStorage
   useEffect(() => {
@@ -58,12 +66,15 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
       case 3: // Xu Hướng Mới
         return [...poolForOtherTabs].sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
       default:
-        // Tab 0: Dữ liệu phân trang thực tế từ backend
-        return feedProducts.length > 0 ? feedProducts : products
+        // Tab 0: Dữ liệu phân trang gợi ý xen kẽ chuẩn Shopee (Personalized 30/70 Interleaving)
+        return personalizedProducts.length > 0 ? personalizedProducts : (feedProducts.length > 0 ? feedProducts : products)
     }
   }
 
   const handleProductClick = (p: Product) => {
+    // 1. Ghi nhận hành vi VIEW ngay lập tức lên Recommendation Engine
+    trackUserEngagement('VIEW', p.id, p.category)
+
     try {
       if (p.category) {
         const stored = sessionStorage.getItem('zm_recent_viewed_categories')
@@ -99,26 +110,33 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
         ))}
       </div>
 
-      {/* Thông báo Real-time gợi ý */}
+      {/* Thông báo Real-time gợi ý chuẩn Shopee */}
       {activeTab === 0 && (
-        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-emerald-950 shadow-xs animate-in fade-in duration-300">
+        <div className="bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border border-emerald-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-emerald-950 shadow-xs animate-in fade-in duration-300">
           <div className="flex items-center gap-2">
-            <span className="text-base">🛍️</span>
+            <span className="text-base">{isFeedPersonalized ? '🎯' : '🛍️'}</span>
             <span className="font-semibold">
-              Gợi ý hôm nay: Đang hiển thị <strong className="font-black text-emerald-700">{filteredList.length}</strong> sản phẩm
-              {totalFeedCount > 0 && <span> (trên tổng số {totalFeedCount.toLocaleString('vi-VN')} mặt hàng trong CSDL)</span>}
+              {isFeedPersonalized ? (
+                <>
+                  <strong className="text-emerald-800">Gợi Ý Hôm Nay:</strong> Đã ưu tiên hiển thị 1-2 sản phẩm bạn vừa {recentActionType === 'CART' ? 'thêm vào giỏ' : 'quan tâm'} (xen kẽ cùng các mặt hàng thịnh hành toàn sàn).
+                </>
+              ) : (
+                <>
+                  <strong className="text-emerald-800">Gợi Ý Hôm Nay:</strong> Đang hiển thị sản phẩm bán chạy và thịnh hành nhất trên toàn sàn ZeroMall ({totalFeedCount > 0 ? `${totalFeedCount.toLocaleString('vi-VN')} mặt hàng` : '10.000+ mặt hàng'}).
+                </>
+              )}
             </span>
           </div>
           {recentCategories.length > 0 && (
-            <span className="hidden sm:inline text-[11px] text-emerald-800 font-medium">
-              Quan tâm: {recentCategories.slice(0, 2).join(', ')}
+            <span className="hidden sm:inline text-[11px] text-emerald-800 font-bold bg-white/80 px-2.5 py-1 rounded-lg border border-emerald-300/50">
+              Vừa xem: {recentCategories[0]}
             </span>
           )}
         </div>
       )}
 
       {/* Grid of Product Cards */}
-      {filteredList.length === 0 && !loadingFeed ? (
+      {filteredList.length === 0 && !isLoading ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-200/60 text-slate-400 text-xs font-medium">
           {activeTab === 1
             ? 'Hiện chưa có sản phẩm nào thuộc Shop đăng ký Gói Freeship Xtra.'
@@ -203,9 +221,13 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
                         <span className="text-[8px] text-emerald-700 border border-emerald-500/40 px-1.5 py-0.2 rounded font-bold bg-emerald-50">
                           Giảm đến 30k
                         </span>
-                        {p.recommendationReason && activeTab === 0 ? (
-                          <span className="text-[8px] text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-semibold bg-slate-50 truncate max-w-[110px]" title={p.recommendationReason}>
-                            🔥 {p.recommendationReason}
+                        {(p as any).isPersonalized ? (
+                          <span className="text-[8px] text-rose-700 border border-rose-300/80 px-1.5 py-0.2 rounded font-black bg-rose-50 flex items-center gap-1 shadow-2xs">
+                            {(p as any).recommendationReason || '🎯 Gợi ý cho bạn'}
+                          </span>
+                        ) : p.recommendationReason && activeTab === 0 ? (
+                          <span className="text-[8px] text-slate-600 border border-slate-200 px-1.5 py-0.2 rounded font-semibold bg-slate-50 truncate max-w-[120px]" title={p.recommendationReason}>
+                            {p.recommendationReason}
                           </span>
                         ) : isPersonalized ? (
                           <span className="text-[8px] text-amber-700 border border-amber-300/60 px-1.5 py-0.2 rounded font-semibold bg-amber-50">
@@ -243,7 +265,7 @@ export const ProductList: React.FC<ProductListProps> = ({ products, onSelectProd
           </div>
 
           {/* SKELETON LOADING INDICATOR KHI ĐANG TẢI */}
-          {loadingFeed && filteredList.length === 0 && (
+          {isLoading && filteredList.length === 0 && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 pt-4">
               {[...Array(5)].map((_, i) => (
                 <div key={i} className="bg-white rounded-2xl p-3 border border-slate-100 shadow-xs animate-pulse space-y-3">

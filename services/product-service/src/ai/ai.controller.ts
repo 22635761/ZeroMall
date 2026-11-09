@@ -46,11 +46,13 @@ export class AiController {
     @Query('userId') userId?: string,
     @Query('gender') gender?: string,
     @Query('limit') limit?: string,
+    @Query('page') page?: string,
   ) {
     return this.recommendationService.getPersonalizedFeed({
       userId,
       gender,
       limit: limit ? parseInt(limit, 10) : 30,
+      page: page ? parseInt(page, 10) : 1,
     });
   }
 

@@ -3,16 +3,46 @@ import { API_BASE_URL } from '../config/api.config';
 export interface PersonalizedFeedResponse {
   products: any[];
   total: number;
+  pagination?: {
+    page: number;
+    limit: number;
+    totalPages: number;
+    hasMore: boolean;
+  };
   userProfile: {
     isPersonalized: boolean;
     detectedGender?: string;
     topInterests: string[];
     hasRecentInteractions: boolean;
+    recentAction?: string;
   };
 }
 
 /**
+ * Lấy mã định danh người dùng nhất quán (Hỗ trợ cả User đã đăng nhập & Khách vãng lai Guest)
+ */
+export function getEffectiveUserId(): string {
+  try {
+    const rawUser = localStorage.getItem('zm_user');
+    if (rawUser) {
+      const u = JSON.parse(rawUser);
+      if (u?.id) return u.id;
+    }
+  } catch {}
+
+  // Đối với khách vãng lai: Lưu vào localStorage để duy trì lịch sử phiên xuyên suốt các tab
+  let guestId = localStorage.getItem('zm_guest_id') || sessionStorage.getItem('zm_guest_id');
+  if (!guestId) {
+    guestId = 'guest_' + Math.random().toString(36).substring(2, 11);
+    localStorage.setItem('zm_guest_id', guestId);
+    sessionStorage.setItem('zm_guest_id', guestId);
+  }
+  return guestId;
+}
+
+/**
  * Gửi sự kiện hành vi người dùng lên AI Recommendation Engine
+ * (Kích hoạt khi Xem sản phẩm, Thêm vào giỏ, Thả tim, Tìm kiếm)
  */
 export async function trackUserEngagement(
   action: 'VIEW' | 'CART' | 'LIKE' | 'PURCHASE' | 'SEARCH',
@@ -21,24 +51,7 @@ export async function trackUserEngagement(
   metadata?: any
 ): Promise<void> {
   try {
-    const rawUser = localStorage.getItem('zm_user');
-    let userId = 'guest';
-    if (rawUser) {
-      try {
-        const u = JSON.parse(rawUser);
-        if (u?.id) userId = u.id;
-      } catch {}
-    }
-
-    // Nếu không đăng nhập, lưu session ID tạm thời trong sessionStorage
-    if (userId === 'guest') {
-      let guestId = sessionStorage.getItem('zm_guest_id');
-      if (!guestId) {
-        guestId = 'guest_' + Math.random().toString(36).substring(2, 10);
-        sessionStorage.setItem('zm_guest_id', guestId);
-      }
-      userId = guestId;
-    }
+    const userId = getEffectiveUserId();
 
     await fetch(`${API_BASE_URL}/products/ai/track`, {
       method: 'POST',
@@ -57,36 +70,22 @@ export async function trackUserEngagement(
 }
 
 /**
- * Lấy danh sách sản phẩm gợi ý cá nhân hóa từ ZeroAI
+ * Lấy danh sách sản phẩm gợi ý cá nhân hóa từ ZeroAI ("Gợi Ý Hôm Nay" / Daily Discover)
  */
 export async function getPersonalizedRecommendations(
   userId?: string,
   gender?: string,
-  limit: number = 30
+  limit: number = 30,
+  page: number = 1
 ): Promise<PersonalizedFeedResponse | null> {
   try {
-    let effectiveUserId = userId;
-    if (!effectiveUserId) {
-      const rawUser = localStorage.getItem('zm_user');
-      if (rawUser) {
-        try {
-          const u = JSON.parse(rawUser);
-          if (u?.id) {
-            effectiveUserId = u.id;
-            if (!gender && u.gender) gender = u.gender;
-          }
-        } catch {}
-      }
-    }
-
-    if (!effectiveUserId) {
-      effectiveUserId = sessionStorage.getItem('zm_guest_id') || 'guest';
-    }
+    const effectiveUserId = userId || getEffectiveUserId();
 
     const params = new URLSearchParams();
     if (effectiveUserId) params.set('userId', effectiveUserId);
     if (gender) params.set('gender', gender);
     params.set('limit', limit.toString());
+    params.set('page', page.toString());
 
     const res = await fetch(`${API_BASE_URL}/products/ai/recommendations?${params.toString()}`);
     if (res.ok) {
