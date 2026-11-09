@@ -586,12 +586,24 @@ class TryOnSynthesizer:
                     f"Photorealistic 8k, ultra-detailed fabric drape, cinematic lighting."
                 )
 
+            # Nạp và chuẩn hóa ảnh trang phục gửi Mage (Dùng Base64 để cloud luôn nhận được dù URL nội bộ hay ngoài)
+            garment_input = garment_url
+            try:
+                g_pil = GarmentExtractor.load_pil_image(garment_url)
+                if g_pil is not None:
+                    g_pil.thumbnail((1280, 1280), Image.Resampling.LANCZOS)
+                    buf_g = io.BytesIO()
+                    g_pil.save(buf_g, format="JPEG", quality=90)
+                    garment_input = "data:image/jpeg;base64," + base64.b64encode(buf_g.getvalue()).decode()
+            except Exception as e_gp:
+                print(f"[!] Warning preparing garment image for Mage: {e_gp}")
+
             print(f"[*] Dispatching live request to Mage Mango 3 Turbo for garment '{garment_id}' (gender={gender}, is_default={is_default_avatar})...")
             req = mage_client.run("mango", {
                 "model_id": "mango-v3-turbo",
                 "prompt": prompt,
                 "image": person_input,
-                "additional_images": [garment_url],
+                "additional_images": [garment_input],
                 "aspect_ratio": "4:5",
                 "resolution": "1K"
             }, timeout=75.0)
@@ -1094,16 +1106,42 @@ class GarmentExtractor:
                         garment_mask = (labels == 3).astype(np.uint8) * 255
 
             # 2. Nếu là ảnh chụp trải sàn (Packshot) không có người, FashnHumanParser sẽ ít điểm
-            # Fallback sang bộ lọc tách nền theo độ tương phản (Adaptive Thresholding & GrabCut)
+            # Fallback sang thuật toán phân đoạn thích ứng cao cấp (Otsu Adaptive Thresholding + Morphological Closing + Contour Isolation)
             if garment_mask is None or np.sum(garment_mask > 0) < 500:
                 gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
-                # Tự động tìm nền sáng hay tối
-                border_pixels = np.concatenate([gray[0, :], gray[-1, :], gray[:, 0], gray[:, -1]])
-                mean_border = np.mean(border_pixels)
-                if mean_border > 180:
-                    _, garment_mask = cv2.threshold(gray, 235, 255, cv2.THRESH_BINARY_INV)
+                # Lấy mẫu màu các viền (Border pixels) để nhận diện cường độ phông nền
+                bx = max(2, int(w * 0.04))
+                by = max(2, int(h * 0.04))
+                border_samples = np.concatenate([
+                    gray[:by, :].flatten(),
+                    gray[-by:, :].flatten(),
+                    gray[:, :bx].flatten(),
+                    gray[:, -bx:].flatten()
+                ])
+                mean_border = np.mean(border_samples)
+
+                # Phân tách nền tự động thích ứng với Otsu: Khử triệt để nền thảm lông, sàn gỗ, nền studio
+                if mean_border > 150:
+                    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
                 else:
-                    _, garment_mask = cv2.threshold(gray, 40, 255, cv2.THRESH_BINARY)
+                    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+
+                # Lấp đầy các chi tiết bên trong (khóa kéo, cúc áo, nếp gấp, nhãn mác)
+                kernel_close = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+                closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel_close)
+
+                # Khử nhiễu biên và bụi phông nền
+                kernel_open = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+                opened = cv2.morphologyEx(closed, cv2.MORPH_OPEN, kernel_open)
+
+                # Trích xuất đường bao (Contour) lớn nhất đại diện cho món đồ trang phục
+                contours, _ = cv2.findContours(opened, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                if contours:
+                    c_main = max(contours, key=cv2.contourArea)
+                    garment_mask = np.zeros_like(gray)
+                    cv2.drawContours(garment_mask, [c_main], -1, 255, -1)
+                else:
+                    garment_mask = opened
                 
                 # Xác định danh mục dựa trên tỉ lệ khung hình (Aspect Ratio) hoặc hint
                 hint_name = ((garment_info or {}).get("name", "") + " " + (garment_info or {}).get("category", "")).lower()
@@ -1114,10 +1152,8 @@ class GarmentExtractor:
                 else:
                     detected_cat = "tops"
 
-            # 3. Tinh chỉnh viền mặt nạ mềm mại
-            kernel = np.ones((5, 5), np.uint8)
-            garment_mask = cv2.morphologyEx(garment_mask, cv2.MORPH_CLOSE, kernel)
-            garment_mask = cv2.GaussianBlur(garment_mask, (3, 3), 0)
+            # 3. Tinh chỉnh viền mặt nạ mềm mại tự nhiên (Anti-aliased Soft Feathering)
+            garment_mask = cv2.GaussianBlur(garment_mask, (5, 5), 0)
 
             # 4. Tạo ảnh sạch nền (Transparent Alpha Channel)
             rgba = np.array(img.convert("RGBA"))
