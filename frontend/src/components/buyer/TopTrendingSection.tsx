@@ -15,13 +15,15 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
   // Truy vấn Top Bán Chạy Toàn Sàn trực tiếp từ CSDL thực (Sắp xếp theo sales giảm dần)
   const { data: topSellingData, isLoading } = useTopTrendingProductsQuery(6)
 
-  // Ưu tiên dữ liệu chuẩn xác từ API Top Trending, fallback sang mảng products nếu đang tải
+  // Ưu tiên dữ liệu chuẩn xác từ API Top Trending
   const trendingProducts = (topSellingData && topSellingData.length > 0)
     ? topSellingData
-    : [...products]
-        .filter((p) => (p.stock !== undefined ? p.stock > 0 : true) && p.status !== 'hidden')
-        .sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
-        .slice(0, 6)
+    : (products.length > 0
+        ? [...products]
+            .filter((p) => (p.stock !== undefined ? p.stock > 0 : true) && p.status !== 'hidden')
+            .sort((a, b) => Number(b.sold || 0) - Number(a.sold || 0))
+            .slice(0, 6)
+        : [])
 
   if (trendingProducts.length === 0 && !isLoading) return null
 
@@ -85,10 +87,21 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
       </div>
 
       {/* Grid sản phẩm Top */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        {trendingProducts.map((p, idx) => {
-          const rankInfo = getRankBadge(idx)
-          const soldCount = p.sold || 0
+      {isLoading && trendingProducts.length === 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="bg-slate-50 rounded-2xl border border-slate-100 p-2.5 animate-pulse space-y-2.5">
+              <div className="aspect-square bg-slate-200/80 rounded-xl"></div>
+              <div className="h-3 bg-slate-200/80 rounded w-4/5"></div>
+              <div className="h-4 bg-slate-200/80 rounded w-1/2"></div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          {trendingProducts.map((p, idx) => {
+            const rankInfo = getRankBadge(idx)
+            const soldCount = p.sold || 0
 
           return (
             <div
@@ -144,6 +157,7 @@ export const TopTrendingSection: React.FC<TopTrendingSectionProps> = ({
           )
         })}
       </div>
+      )}
     </section>
   )
 }
