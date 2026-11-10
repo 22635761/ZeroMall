@@ -115,7 +115,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
           {activeNav === 'HUBS' && (
             <div className="space-y-4">
-              <LogisticsHubsFleetTab />
+              <LogisticsHubsFleetTab initialSubView="HUBS" />
             </div>
           )}
 
@@ -129,7 +129,7 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
 
           {activeNav === 'DRIVERS' && (
             <div className="space-y-4">
-              <LogisticsHubsFleetTab />
+              <LogisticsHubsFleetTab initialSubView="DRIVERS" />
             </div>
           )}
 
