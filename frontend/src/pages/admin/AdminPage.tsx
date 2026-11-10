@@ -13,6 +13,7 @@ import { CommissionSettingTab } from '../../components/admin/CommissionSettingTa
 import { AuditLogsTab } from '../../components/admin/AuditLogsTab'
 import AdminPriceAnalyticsTab from '../../components/admin/AdminPriceAnalyticsTab'
 import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
+import { AiEvaluationStudioTab } from '../../components/admin/AiEvaluationStudioTab'
 
 interface AdminPageProps {
   user: any
@@ -52,6 +53,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'commission-setting': return 'COMMISSION_SETTING';
       case 'audit-logs': return 'AUDIT_LOGS';
       case 'price-analytics': return 'PRICE_ANALYTICS';
+      case 'ai-evaluation':
+      case 'ai-studio': return 'AI_EVALUATION';
       default: return null;
     }
   }
@@ -70,12 +73,13 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       case 'COMMISSION_SETTING': return 'commission-setting';
       case 'AUDIT_LOGS': return 'audit-logs';
       case 'PRICE_ANALYTICS': return 'price-analytics';
+      case 'AI_EVALUATION': return 'ai-evaluation';
       default: return 'users';
     }
   }
 
   const [activePortalTab, setActivePortalTab] = useState<
-    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS'
+    'USERS' | 'MANAGE_SHOPS' | 'CATEGORIES' | 'VIOLATIONS' | 'PLATFORM_VOUCHERS' | 'FLASH_SALE' | 'MANAGE_CS_STAFF' | 'LIVE_CHAT' | 'SYSTEM_REPORTS' | 'AUDIT_LOGS' | 'COMMISSION_SETTING' | 'PRICE_ANALYTICS' | 'AI_EVALUATION'
   >(() => {
     const searchParamsLocal = new URLSearchParams(window.location.search);
     const param = searchParamsLocal.get('tab');
@@ -244,6 +248,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     { id: 'MANAGE_SHOPS', label: 'Quản lý & Khóa Shop', icon: '🏪' },
     { id: 'CATEGORIES', label: 'Quản lý danh mục', icon: '🗂️' },
     { id: 'VIOLATIONS', label: 'Quản lý & Kiểm duyệt SP', icon: '📦' },
+    { id: 'AI_EVALUATION', label: '🔬 Đánh giá AI NCKH (Likert)', icon: '🔬' },
     { id: 'PLATFORM_VOUCHERS', label: 'Voucher toàn sàn', icon: '🎟️' },
     { id: 'FLASH_SALE', label: 'Quản lý Flash Sale', icon: '⚡' },
     { id: 'MANAGE_CS_STAFF', label: 'Nhân viên Platform CS', icon: '🎧' },
@@ -386,6 +391,10 @@ export const AdminPage: React.FC<AdminPageProps> = ({
 
           {activePortalTab === 'AUDIT_LOGS' && (
             <AuditLogsTab auditLogs={auditLogs} />
+          )}
+
+          {activePortalTab === 'AI_EVALUATION' && (
+            <AiEvaluationStudioTab />
           )}
         </main>
       </div>

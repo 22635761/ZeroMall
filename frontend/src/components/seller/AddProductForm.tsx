@@ -7,6 +7,7 @@ import { AddProductShippingTab } from './add-product/AddProductShippingTab'
 import { AddProductOtherTab } from './add-product/AddProductOtherTab'
 import { findProhibitedKeyword } from '../../utils/bannedWords'
 import { moderateContentWithAI, type AiModerationResponse } from '../../services/ai-moderation.service'
+import { auditProductCategory, type AuditCategoryResult } from '../../services/ai-category-auditor.service'
 
 interface AddProductFormProps {
   onSuccess: (product?: any) => void
@@ -48,6 +49,8 @@ interface VariationRow {
 
 export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCancel, initialData, shopDetails }) => {
   const [activeTab, setActiveTab] = useState<'basic' | 'sales' | 'shipping' | 'other'>('basic')
+  const [categoryAudit, setCategoryAudit] = useState<AuditCategoryResult | null>(null)
+  const isProhibitedItem = Boolean(categoryAudit?.isProhibited || categoryAudit?.issueType === 'PROHIBITED_ITEM')
 
   // Parse Shop Shipping Settings
   const shopShippingConfig = React.useMemo(() => {
@@ -800,6 +803,25 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
   const handleSubmit = async (e: React.FormEvent, targetStatus: 'active' | 'hidden' = 'active') => {
     e.preventDefault()
 
+    let currentAudit = categoryAudit
+    if (!currentAudit && images.length > 0) {
+      try {
+        const coverImg = images[0]?.url || ''
+        currentAudit = await auditProductCategory({
+          name: productName.trim() || category || 'Sản phẩm mới',
+          category: category || '',
+          image: coverImg,
+          images: images.map(i => i.url).filter(Boolean),
+          description: description || '',
+        })
+      } catch {}
+    }
+
+    if (isProhibitedItem || currentAudit?.isProhibited || currentAudit?.issueType === 'PROHIBITED_ITEM') {
+      alert(`🚫 VI PHẠM AN TOÀN NGHIÊM TRỌNG: AI đã phát hiện hình ảnh hoặc nội dung sản phẩm chứa mặt hàng cấm (${currentAudit?.prohibitedLabel || categoryAudit?.prohibitedLabel || 'Hàng cấm / Vũ khí'}). ZeroMall từ chối đăng tải sản phẩm này theo chính sách của sàn!`)
+      return
+    }
+
     const newErrors: Record<string, string> = {}
 
     if (images.length === 0) {
@@ -986,6 +1008,8 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       }, 1500)
     } catch (err: any) {
       console.error('Failed to save product:', err)
+      alert(err?.message || 'Lỗi khi lưu sản phẩm')
+      return
     }
   }
 
@@ -1078,6 +1102,7 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
               aiModerationResult={aiModerationTitle}
               isAiChecking={isAiCheckingTitle}
               onTriggerAiCheck={handleTriggerAiCheck}
+              onAuditChange={setCategoryAudit}
             />
           )}
 
@@ -1146,6 +1171,14 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         </div>
 
         {/* Form Footer Buttons */}
+        {isProhibitedItem && (
+          <div className="mx-6 mb-2 p-3.5 bg-red-50 border border-red-300 rounded-2xl flex items-center gap-3 text-red-700 animate-pulse">
+            <span className="text-xl">🚫</span>
+            <div className="text-xs">
+              <span className="font-bold">ĐĂNG BÁN BỊ CHẶN:</span> Sản phẩm bị phát hiện chứa mặt hàng cấm ({categoryAudit?.prohibitedLabel || 'Vũ khí / Hàng cấm'}). Nút lưu sản phẩm đã bị vô hiệu hóa để bảo vệ an toàn sàn!
+            </div>
+          </div>
+        )}
         <div className="p-4 bg-slate-50 border-t border-slate-200/60 flex justify-between items-center">
           <button
             type="button"
@@ -1158,17 +1191,26 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
           <div className="flex items-center gap-3">
             <button
               type="button"
+              disabled={isProhibitedItem}
               onClick={(e) => handleSubmit(e, 'hidden')}
-              className="border border-slate-200 hover:bg-slate-100 text-slate-600 hover:text-slate-800 text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer shadow-3xs bg-white"
+              className={`border border-slate-200 text-xs font-bold px-5 py-2.5 rounded-xl transition shadow-3xs ${
+                isProhibitedItem ? 'bg-slate-100 text-slate-400 cursor-not-allowed opacity-60' : 'hover:bg-slate-100 text-slate-600 hover:text-slate-800 cursor-pointer bg-white'
+              }`}
             >
               Lưu & Ẩn
             </button>
             <button
               type="button"
+              disabled={isProhibitedItem}
               onClick={(e) => handleSubmit(e, 'active')}
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-2.5 rounded-xl shadow-md transition cursor-pointer"
+              className={`text-xs font-bold px-6 py-2.5 rounded-xl shadow-md transition ${
+                isProhibitedItem
+                  ? 'bg-red-500 cursor-not-allowed text-white opacity-85'
+                  : 'bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer'
+              }`}
+              title={isProhibitedItem ? 'Sản phẩm vi phạm mặt hàng cấm' : ''}
             >
-              {initialData ? 'Cập nhật sản phẩm' : 'Lưu & Hiển thị'}
+              {isProhibitedItem ? '🚫 Bị Chặn: Ảnh Chứa Hàng Cấm' : (initialData ? 'Cập nhật sản phẩm' : 'Lưu & Hiển thị')}
             </button>
           </div>
         </div>

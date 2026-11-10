@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { GeminiAiService } from './gemini-ai.service';
 import { LocalAiService } from './local-ai.service';
+import { AiModerationService } from './ai-moderation.service';
 
 export class AuditProductDto {
   productId?: string;
@@ -14,7 +15,9 @@ export class AuditProductDto {
 
 export interface AuditCategoryResult {
   isMatched: boolean;
-  issueType: 'MATCHED' | 'WRONG_CATEGORY' | 'IMAGE_MISMATCH' | 'KEYWORD_SPAM';
+  issueType: 'MATCHED' | 'WRONG_CATEGORY' | 'IMAGE_MISMATCH' | 'KEYWORD_SPAM' | 'PROHIBITED_ITEM';
+  isProhibited?: boolean;
+  prohibitedLabel?: string;
   confidence: number; // 0 - 100
   currentCategory: string;
   suggestedCategory: string;
@@ -72,6 +75,7 @@ export class AiCategoryAuditorService {
     private readonly prisma: PrismaService,
     private readonly geminiAi: GeminiAiService,
     private readonly localAi: LocalAiService,
+    private readonly aiModeration?: AiModerationService,
   ) {}
 
   /**
@@ -81,45 +85,110 @@ export class AiCategoryAuditorService {
     const rawName = (input.name || '').trim();
     const lowerName = rawName.toLowerCase();
     const currentCat = (input.category || '').trim();
-    const coverImage = input.image || (Array.isArray(input.images) && input.images[0]) || '';
+    // 1. Phân tích Thị giác & Hàng cấm đa hình ảnh (MultiImageVisualAgent: CLIP ViT-B-32 Worst-case Pooling)
+    const allImages: string[] = [];
+    if (input.image) allImages.push(input.image);
+    if (Array.isArray(input.images)) {
+      for (const img of input.images) {
+        if (img && !allImages.includes(img)) allImages.push(img);
+      }
+    }
 
-    // 1. Phân tích Ngành hàng chuẩn dựa trên Tên sản phẩm (Title NLP Category Inference)
-    const inferredCategoryFromTitle = this.inferCategoryFromTitle(lowerName);
+    const coverImage = allImages[0] || '';
+    let visualCheck: any = null;
+    if (allImages.length >= 1) {
+      visualCheck = await this.queryLocalClipVisionMulti(allImages, rawName, currentCat);
+    }
+    if (!visualCheck && coverImage) {
+      visualCheck = await this.analyzeVisualClue(coverImage, rawName, currentCat);
+    }
 
-    // 2. Phân tích Nội dung Hình ảnh (Visual Clue Analysis qua Local CLIP + Heuristics)
-    const visualCheck = await this.analyzeVisualClue(coverImage, rawName, currentCat);
-
-    // 3. Đánh giá Mâu thuẫn Hình ảnh (Visual-Text Mismatch)
-    if (visualCheck.isMismatch) {
+    // NẾU HÌNH ẢNH CHỨA HÀNG CẤM -> LẬP TỨC CHẶN NGAY VỚI MỨC ƯU TIÊN CAO NHẤT
+    if (visualCheck && visualCheck.isProhibited) {
       return {
         isMatched: false,
+        isProhibited: true,
+        prohibitedLabel: visualCheck.prohibitedLabel || 'Hàng cấm / Vũ khí',
+        issueType: 'PROHIBITED_ITEM',
+        confidence: visualCheck.confidence || 98,
+        currentCategory: currentCat,
+        suggestedTitle: visualCheck.suggestedTitle,
+        detectedVisual: visualCheck.detectedVisual,
+        suggestedCategory: 'Hàng Cấm Kinh Doanh',
+        titleFeedback: rawName ? `Tiêu đề bạn nhập là "${rawName}".` : `Chưa nhập tiêu đề sản phẩm.`,
+        imageFeedback: visualCheck.reason || `Ảnh là "${visualCheck.detectedVisual}".`,
+        actionRequired: 'REPLACE_IMAGE',
+        recommendation: `🚫 CẢNH BÁO HÀNG CẤM: Hình ảnh chứa ${visualCheck.prohibitedLabel || 'vật phẩm cấm kinh doanh'}. Sàn ZeroMall nghiêm cấm tuyệt đối đăng tải!`,
+        source: (visualCheck.source as any) || 'local-clip-engine',
+      };
+    }
+
+    // 2. AGENT: TextSanitizerAgent (Quét từ cấm & lách từ đối kháng bằng Qwen 2.5 / Gemini)
+    if (this.aiModeration) {
+      try {
+        const textCheck = await this.aiModeration.moderateContent({
+          text: `${rawName} ${(input as any).description || ''}`,
+          category: currentCat,
+        });
+        if (textCheck.isViolated) {
+          return {
+            isMatched: false,
+            isProhibited: true,
+            prohibitedLabel: 'Hàng cấm / Từ cấm vi phạm chính sách',
+            issueType: 'PROHIBITED_ITEM',
+            confidence: textCheck.confidence || 98,
+            currentCategory: currentCat,
+            suggestedCategory: 'Hàng Cấm Kinh Doanh',
+            titleFeedback: `🚫 VI PHẠM CHÍNH SÁCH: ${textCheck.reason}`,
+            actionRequired: 'REPLACE_IMAGE',
+            recommendation: textCheck.suggestion || 'Sản phẩm vi phạm quy định kinh doanh hàng cấm/lách luật. ZeroMall nghiêm cấm tuyệt đối đăng tải!',
+            source: (textCheck.source as any) || 'local-ai-engine',
+          };
+        }
+      } catch (err: any) {
+        this.logger.warn(`TextSanitizer check skipped: ${err.message}`);
+      }
+    }
+
+    // 3. Phân tích Ngành hàng chuẩn dựa trên Tên sản phẩm (Title NLP Category Inference)
+    const inferredCategoryFromTitle = this.inferCategoryFromTitle(lowerName);
+
+    // 4. Đánh giá Mâu thuẫn Hình ảnh (Visual-Text Mismatch)
+    if (visualCheck && visualCheck.isMismatch) {
+      return {
+        isMatched: false,
+        isProhibited: false,
+        prohibitedLabel: undefined,
         issueType: 'IMAGE_MISMATCH',
-        confidence: visualCheck.confidence || 95,
+        confidence: visualCheck.confidence || 98,
         currentCategory: currentCat,
         suggestedTitle: visualCheck.suggestedTitle,
         detectedVisual: visualCheck.detectedVisual,
         suggestedCategory: visualCheck.suggestedCategory || inferredCategoryFromTitle || currentCat,
-        titleFeedback: `Tiêu đề bạn nhập là "${rawName}".`,
-        imageFeedback: visualCheck.reason || `Ảnh là "${visualCheck.detectedVisual}", không khớp với tên "${rawName}".`,
+        titleFeedback: rawName ? `Tiêu đề bạn nhập là "${rawName}".` : `Chưa nhập tiêu đề sản phẩm.`,
+        imageFeedback: visualCheck.reason || `Ảnh là "${visualCheck.detectedVisual}".`,
         actionRequired: 'UPDATE_TITLE',
-        recommendation: `Ảnh là "${visualCheck.detectedVisual}". ZeroAI đề xuất đổi tên hoặc chọn ảnh phù hợp.`,
+        recommendation: `Ảnh là "${visualCheck.detectedVisual}". ZeroAI đề xuất chuyển ngành sang "${visualCheck.suggestedCategory || 'Thời Trang Nam'}" hoặc chọn ảnh phù hợp.`,
         source: (visualCheck.source as any) || 'local-clip-engine',
       };
     }
 
     // 4. Đánh giá Sai Ngành Hàng (Wrong Category)
-    if (inferredCategoryFromTitle && currentCat && !this.isCategoryCompatible(currentCat, inferredCategoryFromTitle)) {
+    const effectiveSuggestedCat = inferredCategoryFromTitle || visualCheck?.suggestedCategory;
+    if (effectiveSuggestedCat && currentCat && !this.isCategoryCompatible(currentCat, effectiveSuggestedCat)) {
       return {
         isMatched: false,
         issueType: 'WRONG_CATEGORY',
-        confidence: 92,
+        confidence: 93,
         currentCategory: currentCat,
-        suggestedCategory: inferredCategoryFromTitle,
-        titleFeedback: `Sản phẩm "${rawName}" thuộc ngành "${inferredCategoryFromTitle}".`,
-        imageFeedback: visualCheck.detectedVisual ? `Ảnh hiển thị: ${visualCheck.detectedVisual}.` : undefined,
+        suggestedCategory: effectiveSuggestedCat,
+        suggestedTitle: visualCheck?.suggestedTitle,
+        detectedVisual: visualCheck?.detectedVisual,
+        titleFeedback: rawName ? `Sản phẩm "${rawName}" thuộc ngành "${effectiveSuggestedCat}".` : `Hình ảnh sản phẩm thuộc ngành "${effectiveSuggestedCat}".`,
+        imageFeedback: visualCheck?.detectedVisual ? `Ảnh hiển thị: ${visualCheck.detectedVisual}.` : undefined,
         actionRequired: 'CHANGE_CATEGORY',
-        recommendation: `ZeroAI đề xuất chuyển sang ngành "${inferredCategoryFromTitle}" để tối ưu tìm kiếm.`,
-        source: 'local-ai-engine',
+        recommendation: `ZeroAI đề xuất chuyển sang ngành "${effectiveSuggestedCat}" để tối ưu tìm kiếm và đúng chuẩn danh mục.`,
+        source: visualCheck?.source || 'local-ai-engine',
       };
     }
 
@@ -643,6 +712,78 @@ export class AiCategoryAuditorService {
    * Gọi mô hình Zero-shot Multimodal CLIP cục bộ (Port 5005)
    * 100% Offline, không tốn quota, phản hồi < 100ms
    */
+  /**
+   * AGENT: MultiImageVisualAgent
+   * Gửi toàn bộ album ảnh sang Local CLIP để quét song song và áp dụng Worst-case Pooling
+   */
+  private async queryLocalClipVisionMulti(
+    images: string[],
+    rawName: string,
+    category: string,
+  ): Promise<{
+    isMismatch: boolean;
+    isProhibited?: boolean;
+    prohibitedLabel?: string;
+    detectedVisual?: string;
+    suggestedTitle?: string;
+    suggestedCategory?: string;
+    reason?: string;
+    confidence?: number;
+    worstImageIndex?: number;
+    totalImagesScanned?: number;
+    source?: 'local-clip-engine';
+  } | null> {
+    const endpoints = [
+      process.env.CLIP_SERVICE_URL,
+      'http://clip-service:5005/audit',
+      'http://zeromall-clip-service:5005/audit',
+      'http://host.docker.internal:5005/audit',
+      'http://127.0.0.1:5005/audit',
+      'http://localhost:5005/audit',
+    ].filter(Boolean) as string[];
+
+    const payload = {
+      name: rawName,
+      category,
+      images: images.slice(0, 9),
+    };
+
+    for (const url of endpoints) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 4500);
+
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        if (res.ok) {
+          const data: any = await res.json();
+          return {
+            isMismatch: !!data.isMismatch,
+            isProhibited: !!data.isProhibited,
+            prohibitedLabel: data.prohibitedLabel,
+            detectedVisual: data.detectedVisual,
+            suggestedTitle: data.suggestedTitle,
+            suggestedCategory: data.suggestedCategory,
+            reason: data.reason,
+            confidence: Math.max(92, Math.round(data.visualConfidence || 95)),
+            worstImageIndex: data.worstImageIndex,
+            totalImagesScanned: data.totalImagesScanned,
+            source: 'local-clip-engine',
+          };
+        }
+      } catch {
+        // Thử endpoint tiếp theo
+      }
+    }
+    return null;
+  }
+
   private async queryLocalClipVision(
     imageUrl: string,
     rawName: string,
@@ -650,6 +791,8 @@ export class AiCategoryAuditorService {
     base64Data?: string,
   ): Promise<{
     isMismatch: boolean;
+    isProhibited?: boolean;
+    prohibitedLabel?: string;
     detectedVisual?: string;
     suggestedTitle?: string;
     suggestedCategory?: string;
@@ -659,6 +802,8 @@ export class AiCategoryAuditorService {
   } | null> {
     const endpoints = [
       process.env.CLIP_SERVICE_URL,
+      'http://clip-service:5005/audit',
+      'http://zeromall-clip-service:5005/audit',
       'http://host.docker.internal:5005/audit',
       'http://127.0.0.1:5005/audit',
       'http://localhost:5005/audit',
@@ -696,6 +841,8 @@ export class AiCategoryAuditorService {
           const data: any = await res.json();
           return {
             isMismatch: !!data.isMismatch,
+            isProhibited: !!data.isProhibited,
+            prohibitedLabel: data.prohibitedLabel,
             detectedVisual: data.detectedVisual,
             suggestedTitle: data.suggestedTitle,
             suggestedCategory: data.suggestedCategory,
@@ -720,6 +867,8 @@ export class AiCategoryAuditorService {
     category: string,
   ): Promise<{
     isMismatch: boolean;
+    isProhibited?: boolean;
+    prohibitedLabel?: string;
     detectedVisual?: string;
     suggestedTitle?: string;
     suggestedCategory?: string;
@@ -774,6 +923,20 @@ export class AiCategoryAuditorService {
       );
 
       if (clipRes) {
+        if (clipRes.isProhibited) {
+          return {
+            isMismatch: true,
+            isProhibited: true,
+            prohibitedLabel: clipRes.prohibitedLabel,
+            detectedVisual: clipRes.detectedVisual || clipRes.prohibitedLabel || 'Vật phẩm cấm',
+            suggestedTitle: clipRes.suggestedTitle || rawName,
+            suggestedCategory: 'Hàng Cấm Kinh Doanh',
+            reason: clipRes.reason || `[Visual Safety Guard] Ảnh phát hiện ${clipRes.prohibitedLabel} - thuộc danh mục cấm kinh doanh trên sàn!`,
+            confidence: clipRes.confidence || 98,
+            source: 'local-clip-engine',
+          };
+        }
+
         const perception = {
           detectedVisual: clipRes.detectedVisual || 'Sản phẩm',
           suggestedTitle: clipRes.suggestedTitle || rawName,
@@ -791,6 +954,7 @@ export class AiCategoryAuditorService {
         if (clipRes.isMismatch || evalCheck.isMismatch) {
           return {
             isMismatch: true,
+            isProhibited: false,
             detectedVisual: perception.detectedVisual,
             suggestedTitle: perception.suggestedTitle,
             suggestedCategory: perception.suggestedCategory,
@@ -805,6 +969,7 @@ export class AiCategoryAuditorService {
 
         return {
           isMismatch: false,
+          isProhibited: false,
           detectedVisual: perception.detectedVisual,
           suggestedTitle: perception.suggestedTitle,
           suggestedCategory: perception.suggestedCategory,

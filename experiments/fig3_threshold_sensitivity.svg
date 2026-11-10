@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="650" height="380" viewBox="0 0 650 380" style="background:#ffffff; font-family:Arial, sans-serif;">
+  <text x="325" y="28" font-size="15" font-weight="bold" text-anchor="middle" fill="#111827">Hình 3. Đường cong đánh đổi Precision - Recall theo ngưỡng tương đồng Cosine (θ)</text>
+  
+  <!-- Trục tọa độ -->
+  <line x1="80" y1="50" x2="80" y2="300" stroke="#9ca3af" stroke-width="1.5"/>
+  <line x1="80" y1="300" x2="600" y2="300" stroke="#9ca3af" stroke-width="1.5"/>
+  
+  <!-- Nhãn trục Y -->
+  <text x="70" y="304" font-size="11" text-anchor="end" fill="#6b7280">40%</text>
+  <line x1="75" y1="300" x2="600" y2="300" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="70" y="250" font-size="11" text-anchor="end" fill="#6b7280">55%</text>
+  <line x1="75" y1="246" x2="600" y2="246" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="70" y="196" font-size="11" text-anchor="end" fill="#6b7280">70%</text>
+  <line x1="75" y1="192" x2="600" y2="192" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="70" y="142" font-size="11" text-anchor="end" fill="#6b7280">85%</text>
+  <line x1="75" y1="138" x2="600" y2="138" stroke="#f3f4f6" stroke-width="1"/>
+  <text x="70" y="88" font-size="11" text-anchor="end" fill="#6b7280">100%</text>
+  <line x1="75" y1="84" x2="600" y2="84" stroke="#f3f4f6" stroke-width="1"/>
+
+  <!-- Vạch trục X -->
+  <text x="120" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.25</text>
+  <text x="180" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.30</text>
+  <text x="240" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.35</text>
+  <text x="300" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.40</text>
+  <text x="360" y="320" font-size="11" font-weight="bold" text-anchor="middle" fill="#ef4444">0.45*</text>
+  <text x="420" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.50</text>
+  <text x="480" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.55</text>
+  <text x="540" y="320" font-size="11" text-anchor="middle" fill="#4b5563">0.60</text>
+  <text x="330" y="345" font-size="12" font-weight="bold" text-anchor="middle" fill="#374151">Ngưỡng tương đồng Cosine (θ)</text>
+
+  <!-- Đường gạch đứt đánh dấu điểm tối ưu 0.45 -->
+  <line x1="360" y1="50" x2="360" y2="300" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="4,4"/>
+  <text x="360" y="65" font-size="11" font-weight="bold" fill="#dc2626" text-anchor="middle">Điểm tối ưu (θ = 0.45)</text>
+
+  <!-- Đường cong Precision (Màu xanh dương) -->
+  <polyline fill="none" stroke="#2563eb" stroke-width="2.5" points="
+    120,84 180,84 240,84 300,92 360,105 420,105 480,148 540,172
+  "/>
+
+  <!-- Đường cong Recall (Màu xanh lá) -->
+  <polyline fill="none" stroke="#10b981" stroke-width="2.5" points="
+    120,270 180,270 240,270 300,218 360,105 420,105 480,105 540,92
+  "/>
+
+  <!-- Đường cong F1-Score (Màu cam đậm) -->
+  <polyline fill="none" stroke="#f59e0b" stroke-width="3" points="
+    120,205 180,205 240,205 300,165 360,105 420,105 480,125 540,132
+  "/>
+
+  <!-- Legend chú thích -->
+  <line x1="180" y1="365" x2="205" y2="365" stroke="#2563eb" stroke-width="2.5"/>
+  <text x="215" y="369" font-size="11" fill="#374151">Precision (Độ chuẩn xác)</text>
+  
+  <line x1="340" y1="365" x2="365" y2="365" stroke="#10b981" stroke-width="2.5"/>
+  <text x="375" y="369" font-size="11" fill="#374151">Recall (Độ nhạy thu hồi)</text>
+  
+  <line x1="490" y1="365" x2="515" y2="365" stroke="#f59e0b" stroke-width="3"/>
+  <text x="525" y="369" font-size="11" fill="#374151">F1-Score (Cân bằng)</text>
+</svg>

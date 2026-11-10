@@ -56,6 +56,7 @@ interface AddProductBasicTabProps {
   aiModerationResult?: AiModerationResponse | null
   isAiChecking?: boolean
   onTriggerAiCheck?: () => void
+  onAuditChange?: (result: AuditCategoryResult | null) => void
 }
 
 export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
@@ -85,42 +86,65 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
   setDescription,
   aiModerationResult,
   isAiChecking,
-  onTriggerAiCheck: _onTriggerAiCheck
+  onTriggerAiCheck: _onTriggerAiCheck,
+  onAuditChange
 }) => {
   const [categoryAudit, setCategoryAudit] = useState<AuditCategoryResult | null>(null)
+  const [isAuditing, setIsAuditing] = useState(false)
 
   const triggerAudit = useCallback(async () => {
-    if (!productName || productName.trim().length < 3) {
+    const hasImages = images.length > 0
+    const hasName = Boolean(productName && productName.trim().length >= 2)
+    const hasCategory = Boolean(category && category.trim())
+
+    // Nếu chưa có cả ảnh lẫn tên và ngành thì không cần quét
+    if (!hasImages && !hasName && !hasCategory) {
       setCategoryAudit(null)
+      onAuditChange?.(null)
       return
     }
 
     try {
-      const cover = images.find(img => img.isCover) || images[0]
-      let coverUrl = cover?.url || ''
-      if (cover?.file && (!coverUrl || coverUrl.startsWith('blob:'))) {
-        try {
-          coverUrl = await fileToBase64(cover.file)
-        } catch {
-          // ignore error
+      setIsAuditing(true)
+
+      // Chuyển toàn bộ ảnh local File sang Base64 để AI xử lý được trực tiếp 100%
+      const imagePromises = images.map(async (img) => {
+        if (img.file) {
+          try {
+            const b64 = await fileToBase64(img.file)
+            if (b64) return b64
+          } catch {}
         }
-      }
+        if (img.url && !img.url.startsWith('blob:')) {
+          return img.url
+        }
+        return ''
+      })
+
+      const resolvedImages = (await Promise.all(imagePromises)).filter(Boolean)
+      const coverImg = resolvedImages[0] || ''
 
       const result = await auditProductCategory({
-        name: productName,
+        name: productName.trim() || category || 'Sản phẩm mới',
         category: category || '',
-        image: coverUrl,
+        image: coverImg,
+        images: resolvedImages,
+        description: description || '',
       })
+
       setCategoryAudit(result)
+      onAuditChange?.(result)
     } catch (e) {
-      console.error(e)
+      console.error('Lỗi khi thẩm định sản phẩm:', e)
+    } finally {
+      setIsAuditing(false)
     }
-  }, [productName, category, images])
+  }, [productName, category, images, description])
 
   useEffect(() => {
     const timer = setTimeout(() => {
       triggerAudit()
-    }, 500)
+    }, 400)
 
     return () => clearTimeout(timer)
   }, [triggerAudit])
@@ -237,6 +261,52 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
             </label>
           )}
         </div>
+
+        {/* ZeroAI Image Audit Banner */}
+        {isAuditing && (
+          <div className="flex items-center gap-2 text-xs text-indigo-700 bg-indigo-50 border border-indigo-200/80 rounded-xl px-3.5 py-2 mt-2 font-medium animate-pulse shadow-3xs">
+            <span className="text-sm">⏳</span>
+            <span>ZeroAI đang phân tích thị giác hình ảnh và kiểm duyệt ngành hàng...</span>
+          </div>
+        )}
+
+        {categoryAudit && !categoryAudit.isMatched && (
+          categoryAudit.issueType === 'PROHIBITED_ITEM' ? (
+            <div className="bg-red-600 text-white rounded-2xl p-4 text-xs mt-2.5 space-y-2 shadow-lg animate-pulse border-2 border-red-300">
+              <div className="flex items-center gap-2 font-black text-sm">
+                <span className="text-xl">🚫</span>
+                <span>CẢNH BÁO: PHÁT HIỆN HÀNG CẤM TRONG HÌNH ẢNH!</span>
+              </div>
+              <p className="text-xs text-red-100 font-medium leading-relaxed">
+                {categoryAudit.imageFeedback || categoryAudit.recommendation}
+              </p>
+              <div className="bg-red-700/80 p-2 rounded-xl text-[11px] font-bold text-amber-200">
+                ⚠️ Sàn ZeroMall nghiêm cấm tuyệt đối buôn bán vũ khí, súng đạn, đao kiếm và chất cấm. Bạn không thể đăng sản phẩm này cho đến khi gỡ bỏ hình ảnh vi phạm!
+              </div>
+            </div>
+          ) : (
+            <div className="bg-rose-50 border border-rose-300 rounded-xl p-3.5 text-xs text-rose-900 mt-2.5 space-y-2 shadow-2xs animate-fadeIn">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex items-center gap-1.5 font-bold text-rose-800">
+                  <span className="text-base">⚠️</span>
+                  <span>Cảnh báo kiểm duyệt hình ảnh ZeroAI:</span>
+                </div>
+                {categoryAudit.suggestedCategory && categoryAudit.suggestedCategory !== category && (
+                  <button
+                    type="button"
+                    onClick={() => setCategory(categoryAudit.suggestedCategory)}
+                    className="px-3 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-[11px] font-bold transition shadow-xs cursor-pointer flex items-center gap-1"
+                  >
+                    <span>⚡ Đổi sang ngành: {categoryAudit.suggestedCategory}</span>
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-rose-700 font-medium leading-relaxed">
+                {categoryAudit.imageFeedback || categoryAudit.recommendation || `Ảnh nhận diện là "${categoryAudit.detectedVisual}", không khớp với ngành hoặc tên sản phẩm đã chọn.`}
+              </p>
+            </div>
+          )
+        )}
       </div>
 
       {/* Video */}
@@ -452,29 +522,34 @@ export const AddProductBasicTab: React.FC<AddProductBasicTabProps> = ({
           )}
 
           {/* AI Category Suggestion - Sleek & Compact */}
-          {categoryAudit && !categoryAudit.isMatched && categoryAudit.issueType === 'WRONG_CATEGORY' && categoryAudit.suggestedCategory && categoryAudit.suggestedCategory !== category ? (
-            <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 bg-amber-50 border border-amber-200 rounded-lg text-amber-900 mt-1.5 text-xs animate-fadeIn shadow-3xs">
-              <div className="flex items-center gap-1.5 min-w-0">
-                <span className="text-xs shrink-0">💡</span>
-                <span className="text-[11px] truncate">
-                  AI đề xuất ngành: <strong>{categoryAudit.suggestedCategory}</strong>
-                </span>
+          {categoryAudit && !categoryAudit.isMatched && categoryAudit.suggestedCategory && categoryAudit.suggestedCategory !== category ? (
+            <div className="flex items-center justify-between gap-2 px-3 py-2 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 mt-2 text-xs animate-fadeIn shadow-2xs">
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-base shrink-0">💡</span>
+                <div className="text-[11px] leading-tight">
+                  <span className="font-semibold text-amber-800">
+                    {categoryAudit.detectedVisual ? `Ảnh là ${categoryAudit.detectedVisual}. ` : ''}AI đề xuất ngành:
+                  </span>
+                  <span className="font-extrabold text-amber-950 ml-1 underline decoration-amber-400">
+                    {categoryAudit.suggestedCategory}
+                  </span>
+                </div>
               </div>
               <button
                 type="button"
                 onClick={() => setCategory(categoryAudit.suggestedCategory)}
-                className="shrink-0 px-2 py-0.5 bg-amber-600 hover:bg-amber-700 text-white rounded-md font-bold text-[10px] cursor-pointer transition shadow-3xs"
+                className="shrink-0 px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px] cursor-pointer transition shadow-xs flex items-center gap-1"
               >
-                Áp dụng
+                <span>Áp dụng ngay</span>
               </button>
             </div>
           ) : !category && categoryAudit?.suggestedCategory ? (
-            <div className="mt-1 flex items-center gap-1.5">
-              <span className="text-[10px] text-indigo-600 font-bold">💡 Gợi ý:</span>
+            <div className="mt-1.5 flex items-center gap-1.5">
+              <span className="text-[10px] text-indigo-600 font-bold">💡 Gợi ý ngành theo ảnh:</span>
               <button
                 type="button"
                 onClick={() => setCategory(categoryAudit.suggestedCategory)}
-                className="px-2 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-bold cursor-pointer transition"
+                className="px-2.5 py-0.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 rounded-md text-[10px] font-bold cursor-pointer transition"
               >
                 {categoryAudit.suggestedCategory}
               </button>

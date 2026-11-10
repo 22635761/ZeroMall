@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 750 420" width="750" height="420" style="background:#ffffff; font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+  <rect width="750" height="420" fill="#ffffff"/>
+  
+  <!-- Title -->
+  <text x="375" y="30" fill="#1e293b" font-size="14" font-weight="700" text-anchor="middle">Interception &amp; Accuracy Rate Across Evasion Techniques (%)</text>
+  
+  <!-- Legend -->
+  <g transform="translate(230, 48)">
+    <rect x="0" y="0" width="16" height="12" fill="#94a3b8" rx="2"/>
+    <text x="24" y="10" fill="#475569" font-size="11" font-weight="600">Static Regex Baseline</text>
+    
+    <rect x="180" y="0" width="16" height="12" fill="#0f766e" rx="2"/>
+    <text x="204" y="10" fill="#0f766e" font-size="11" font-weight="700">Multimodal CLIP Pipeline (Ours)</text>
+  </g>
+
+  <!-- Y-Axis Grid Lines & Labels -->
+  <g stroke="#e2e8f0" stroke-width="1" stroke-dasharray="4">
+    <line x1="80" y1="90" x2="700" y2="90"/>
+    <line x1="80" y1="145" x2="700" y2="145"/>
+    <line x1="80" y1="200" x2="700" y2="200"/>
+    <line x1="80" y1="255" x2="700" y2="255"/>
+    <line x1="80" y1="310" x2="700" y2="310"/>
+  </g>
+
+  <!-- Y Axis Labels -->
+  <text x="70" y="94" fill="#64748b" font-size="10" text-anchor="end">100%</text>
+  <text x="70" y="149" fill="#64748b" font-size="10" text-anchor="end">75%</text>
+  <text x="70" y="204" fill="#64748b" font-size="10" text-anchor="end">50%</text>
+  <text x="70" y="259" fill="#64748b" font-size="10" text-anchor="end">25%</text>
+  <text x="70" y="314" fill="#64748b" font-size="10" text-anchor="end">0%</text>
+
+  <!-- Solid Axes -->
+  <line x1="80" y1="90" x2="80" y2="310" stroke="#94a3b8" stroke-width="1.5"/>
+  <line x1="80" y1="310" x2="700" y2="310" stroke="#94a3b8" stroke-width="1.5"/>
+
+  <!-- BAR GROUP 1: EXPLICIT_PROHIBITED (Baseline: 30%, Ours: 100%) -->
+  <!-- 100% = 220px height, so 1% = 2.2px. y = 310 - (val * 2.2) -->
+  <g transform="translate(100, 0)">
+    <rect x="0" y="244" width="38" height="66" fill="#94a3b8" rx="3"/>
+    <text x="19" y="238" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">30%</text>
+    
+    <rect x="44" y="90" width="38" height="220" fill="#0f766e" rx="3"/>
+    <text x="63" y="84" fill="#0f766e" font-size="10" font-weight="700" text-anchor="middle">100%</text>
+    
+    <text x="41" y="330" fill="#1e293b" font-size="10" font-weight="600" text-anchor="middle">EXPLICIT</text>
+    <text x="41" y="344" fill="#64748b" font-size="9" text-anchor="middle">PROHIBITED (n=10)</text>
+  </g>
+
+  <!-- BAR GROUP 2: MULTI_IMAGE_POISONING (Baseline: 13.3%, Ours: 100%) -->
+  <g transform="translate(225, 0)">
+    <rect x="0" y="280.7" width="38" height="29.3" fill="#94a3b8" rx="3"/>
+    <text x="19" y="274.7" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">13%</text>
+    
+    <rect x="44" y="90" width="38" height="220" fill="#0f766e" rx="3"/>
+    <text x="63" y="84" fill="#0f766e" font-size="10" font-weight="700" text-anchor="middle">100%</text>
+    
+    <text x="41" y="330" fill="#1e293b" font-size="10" font-weight="600" text-anchor="middle">MULTI-IMAGE</text>
+    <text x="41" y="344" fill="#64748b" font-size="9" text-anchor="middle">POISONING (n=15)</text>
+  </g>
+
+  <!-- BAR GROUP 3: CROSS_MODAL_MISMATCH (Baseline: 0%, Ours: 96%) -->
+  <g transform="translate(350, 0)">
+    <rect x="0" y="308" width="38" height="2" fill="#94a3b8" rx="1"/>
+    <text x="19" y="302" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">0%</text>
+    
+    <rect x="44" y="98.8" width="38" height="211.2" fill="#0f766e" rx="3"/>
+    <text x="63" y="92.8" fill="#0f766e" font-size="10" font-weight="700" text-anchor="middle">96%</text>
+    
+    <text x="41" y="330" fill="#1e293b" font-size="10" font-weight="600" text-anchor="middle">CROSS-MODAL</text>
+    <text x="41" y="344" fill="#64748b" font-size="9" text-anchor="middle">MISMATCH (n=25)</text>
+  </g>
+
+  <!-- BAR GROUP 4: ADVERSARIAL_TEXT (Baseline: 25%, Ours: 90%) -->
+  <g transform="translate(475, 0)">
+    <rect x="0" y="255" width="38" height="55" fill="#94a3b8" rx="3"/>
+    <text x="19" y="249" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">25%</text>
+    
+    <rect x="44" y="112" width="38" height="198" fill="#0f766e" rx="3"/>
+    <text x="63" y="106" fill="#0f766e" font-size="10" font-weight="700" text-anchor="middle">90%</text>
+    
+    <text x="41" y="330" fill="#1e293b" font-size="10" font-weight="600" text-anchor="middle">ADVERSARIAL</text>
+    <text x="41" y="344" fill="#64748b" font-size="9" text-anchor="middle">TEXT (n=20)</text>
+  </g>
+
+  <!-- BAR GROUP 5: CLEAN_VALID (Baseline: 93.3%, Ours: 90%) -->
+  <g transform="translate(600, 0)">
+    <rect x="0" y="104.7" width="38" height="205.3" fill="#94a3b8" rx="3"/>
+    <text x="19" y="98.7" fill="#64748b" font-size="10" font-weight="700" text-anchor="middle">93.3%</text>
+    
+    <rect x="44" y="112" width="38" height="198" fill="#0f766e" rx="3"/>
+    <text x="63" y="106" fill="#0f766e" font-size="10" font-weight="700" text-anchor="middle">90%</text>
+    
+    <text x="41" y="330" fill="#1e293b" font-size="10" font-weight="600" text-anchor="middle">CLEAN</text>
+    <text x="41" y="344" fill="#64748b" font-size="9" text-anchor="middle">VALID (n=30)</text>
+  </g>
+
+  <!-- Footnote -->
+  <text x="375" y="395" fill="#64748b" font-size="10.5" font-style="italic" text-anchor="middle">Fig. 2. Performance comparison between Static Regex Baseline and Multimodal CLIP Pipeline across evasion categories.</text>
+</svg>
