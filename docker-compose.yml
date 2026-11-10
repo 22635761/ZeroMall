@@ -66,6 +66,7 @@ services:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - CLIP_SERVICE_URL=http://clip-service:5005/audit
     depends_on:
       postgres:
         condition: service_healthy
@@ -264,6 +265,19 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    restart: always
+
+  clip-service:
+    build:
+      context: .
+      dockerfile: services/clip-service/Dockerfile
+    container_name: zeromall-clip-service
+    ports:
+      - '5005:5005'
+    environment:
+      - CLIP_PORT=5005
+      - CLIP_SIMILARITY_THRESHOLD=0.45
+      - TZ=Asia/Ho_Chi_Minh
     restart: always
 
   tryon-service:

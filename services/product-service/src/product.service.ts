@@ -1,9 +1,10 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger, Optional } from '@nestjs/common';
 import { PrismaService } from './prisma.service';
 import { RedisService } from './redis/redis.service';
 import { CreateProductDto, UpdateProductDto, UpdatePriceDto, ImportBatchDto, RegisterFlashSaleDto } from './product.dto';
 import { CreateReviewDto } from './review.dto';
 import { findProhibitedKeyword } from './banned-words';
+import { AiCategoryAuditorService } from './ai/ai-category-auditor.service';
 
 @Injectable()
 export class ProductService {
@@ -12,6 +13,7 @@ export class ProductService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
+    @Optional() private readonly aiCategoryAuditor?: AiCategoryAuditorService,
   ) {}
 
   /**
@@ -271,6 +273,46 @@ export class ProductService {
       }
     }
 
+    let isViolated = false;
+    let violationReason: string | null = null;
+    let initialStatus = dto.status ? String(dto.status) : 'active';
+
+    if (this.aiCategoryAuditor) {
+      let parsedImgs: string[] | undefined = undefined;
+      if (Array.isArray(dto.images)) {
+        parsedImgs = dto.images;
+      } else if (typeof dto.images === 'string') {
+        try { parsedImgs = JSON.parse(dto.images); } catch {}
+      }
+
+      let audit: any = null;
+      try {
+        audit = await this.aiCategoryAuditor.auditProduct({
+          name: productName,
+          category: categoryStr,
+          image: dto.image ? String(dto.image) : undefined,
+          images: parsedImgs,
+          description,
+        });
+      } catch (err: any) {
+        this.logger.warn(`AI audit check on create skipped: ${err.message}`);
+      }
+
+      if (audit) {
+        if (audit.issueType === 'PROHIBITED_ITEM' || audit.isProhibited) {
+          throw new BadRequestException(
+            `🚫 VI PHẠM AN TOÀN NGHIÊM TRỌNG: Hình ảnh sản phẩm bị phát hiện chứa vật phẩm cấm kinh doanh trên sàn (${audit.detectedVisual || audit.prohibitedLabel || 'Vũ khí / Hàng cấm'}). Hệ thống ZeroMall từ chối đăng tải!`
+          );
+        }
+        if (!audit.isMatched) {
+          isViolated = true;
+          violationReason = audit.imageFeedback || audit.titleFeedback || audit.recommendation || 'Không khớp ngành hàng hoặc hình ảnh sản phẩm';
+          initialStatus = 'hidden';
+          this.logger.warn(`[AI Audit Flag] Sản phẩm "${productName}" bị đánh dấu vi phạm: ${violationReason}`);
+        }
+      }
+    }
+
     const product = await this.prisma.product.create({
       data: {
         shopId: String(dto.shopId),
@@ -287,7 +329,9 @@ export class ProductService {
         costPrice: dto.costPrice != null ? Number(dto.costPrice) : ((typeof dto.price === 'number' ? dto.price : parseFloat(String(dto.price || '0'))) * 0.7 || 0),
         stock: typeof dto.stock === 'number' ? dto.stock : parseInt(String(dto.stock || '0'), 10) || 0,
         sales: typeof dto.sales === 'number' ? dto.sales : parseInt(String(dto.sales || '0'), 10) || 0,
-        status: dto.status ? String(dto.status) : 'active',
+        status: initialStatus,
+        isViolated,
+        violationReason,
         sku: dto.sku ? String(dto.sku) : null,
         variationsText: dto.variationsText ? String(dto.variationsText) : null,
         hasVariations: Boolean(dto.hasVariations),

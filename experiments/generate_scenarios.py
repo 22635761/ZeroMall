@@ -1,0 +1,335 @@
+# -*- coding: utf-8 -*-
+"""
+TẠO 30 KỊCH BẢN KIỂM THỬ (TEST SCENARIOS) CHUẨN HÓA CHO ĐỀ TÀI NCKH
+Mô phỏng chính xác các tình huống gian lận thực tế trên sàn Thương mại Điện tử
+"""
+
+import json
+import os
+import sys
+
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+
+SCENARIOS = [
+    # --- 10 Kịch bản: Bất tương đồng ảnh và tiêu đề (Cross-modal Mismatch) ---
+    {
+        "id": "SCEN_01",
+        "title": "Điện thoại Flagship 256GB màn hình cong 120Hz mượt mà",
+        "category": "Điện Thoại & Phụ Kiện",
+        "visual_description": "Ảnh đôi giày sneaker thể thao nam màu đỏ",
+        "visual_detected": "Giày thể thao nam",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tiêu đề ghi điện thoại nhưng ảnh tải lên là giày thể thao"
+    },
+    {
+        "id": "SCEN_02",
+        "title": "Áo Sơ Mi Lụa Hàn Quốc Dài Tay Sang Trọng",
+        "category": "Thời Trang Nam",
+        "visual_description": "Ảnh chiếc quần short jean rách gối nữ",
+        "visual_detected": "Quần short jean nữ",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Khai báo áo sơ mi nhưng ảnh hiển thị quần short jean"
+    },
+    {
+        "id": "SCEN_03",
+        "title": "Nồi Chiên Không Dầu Điện Tử 6L Đa Năng",
+        "category": "Gia Dụng",
+        "visual_description": "Ảnh đôi dép sandal quai hậu nữ",
+        "visual_detected": "Dép sandal nữ",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tên nồi chiên không dầu nhưng ảnh là dép sandal"
+    },
+    {
+        "id": "SCEN_04",
+        "title": "Váy Đầm Dạ Hội Đính Kim Sa Sang Trọng",
+        "category": "Thời Trang Nữ",
+        "visual_description": "Ảnh củ sạc nhanh điện thoại 3 cổng Type-C",
+        "visual_detected": "Thiết bị điện tử / Củ sạc",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tên váy đầm dạ hội nhưng ảnh hiển thị củ sạc điện thoại"
+    },
+    {
+        "id": "SCEN_05",
+        "title": "Tai Nghe Không Dây Bluetooth Chống Ồn Chủ Động",
+        "category": "Điện Thoại & Phụ Kiện",
+        "visual_description": "Ảnh chiếc váy maxi hoa nhí đi biển mùa hè",
+        "visual_detected": "Váy maxi nữ",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tiêu đề tai nghe bluetooth nhưng ảnh là váy đầm maxi"
+    },
+    {
+        "id": "SCEN_06",
+        "title": "Quần Âu Nam Công Sở Co Giãn 4 Chiều",
+        "category": "Thời Trang Nam",
+        "visual_description": "Ảnh áo khoác hoodie nỉ mùa đông có mũ",
+        "visual_detected": "Áo khoác hoodie",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tên sản phẩm là quần âu nhưng ảnh là áo khoác hoodie"
+    },
+    {
+        "id": "SCEN_07",
+        "title": "Laptop Gaming Mỏng Nhẹ Core i7 Đồ Họa Đỉnh Cao",
+        "category": "Máy Tính & Laptop",
+        "visual_description": "Ảnh áo thun polo nam màu xanh than",
+        "visual_detected": "Áo thun polo nam",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Khai báo laptop gaming nhưng ảnh tải lên là áo thun polo"
+    },
+    {
+        "id": "SCEN_08",
+        "title": "Chảo Chống Dính Vân Đá Cao Cấp Đáy Từ",
+        "category": "Gia Dụng",
+        "visual_description": "Ảnh máy ảnh cơ kỹ thuật số kèm ống kính tele",
+        "visual_detected": "Máy ảnh chuyên nghiệp",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Tên chảo chống dính nhưng ảnh là máy ảnh kỹ thuật số"
+    },
+    {
+        "id": "SCEN_09",
+        "title": "Bộ Quần Áo Bóng Đá Thể Thao Nam Thoáng Khí",
+        "category": "Thể Thao",
+        "visual_description": "Ảnh tai nghe chụp tai gaming có đèn LED RGB",
+        "visual_detected": "Tai nghe máy tính",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Khai báo quần áo đá bóng nhưng ảnh hiển thị tai nghe gaming"
+    },
+    {
+        "id": "SCEN_10",
+        "title": "Tài Liệu Hướng Dẫn Kỹ Thuật Độc Quyền",
+        "category": "Sách & VPP",
+        "visual_description": "Ảnh sơ đồ kiến trúc mã nguồn phần mềm dạng lưu đồ khối",
+        "visual_detected": "Sơ đồ kiến trúc / Đoạn mã kỹ thuật",
+        "trick_type": "CROSS_MODAL_MISMATCH",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Ảnh là sơ đồ kỹ thuật/chụp màn hình mã nguồn, không phải sản phẩm thương mại"
+    },
+
+    # --- 10 Kịch bản: Lách từ khóa cấm & Ngụy trang đối kháng (Adversarial Evasion) ---
+    {
+        "id": "SCEN_11",
+        "title": "C.ầ.n s.a y tế thư giãn ngủ ngon thảo mộc tự nhiên",
+        "category": "Sức Khỏe",
+        "visual_description": "Ảnh túi lá khô đóng gói bao bì kín",
+        "visual_detected": "Thảo mộc đóng gói",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Lách từ cấm 'cần sa' bằng cách chèn dấu chấm ngắt quãng"
+    },
+    {
+        "id": "SCEN_12",
+        "title": "P-h-á-o h-o-a tết nổ rền trời đón năm mới tưng bừng",
+        "category": "Đồ Chơi",
+        "visual_description": "Ảnh các ống trụ tròn quấn giấy đỏ hoa văn tết",
+        "visual_detected": "Pháo hoa que/ống",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Lách từ cấm 'pháo hoa' nổ bằng dấu gạch ngang"
+    },
+    {
+        "id": "SCEN_13",
+        "title": "K-i-ế-m n-h-ậ-t katana trưng bày phong thủy lưỡi sắc bén",
+        "category": "Đồ Phong Thủy",
+        "visual_description": "Ảnh thanh kiếm kim loại dài có vỏ bọc gỗ",
+        "visual_detected": "Vũ khí / Kiếm kim loại",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Lách từ cấm 'kiếm nhật' - vũ khí thô sơ có tính sát thương"
+    },
+    {
+        "id": "SCEN_14",
+        "title": "Bình x.ị.t h.ơ.i c.a.y tự vệ bảo vệ chị em phụ nữ đi đêm",
+        "category": "Dụng Cụ Thể Thao",
+        "visual_description": "Ảnh bình xịt áp lực mini nato vỏ đen",
+        "visual_detected": "Bình xịt hóa chất áp lực",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Kinh doanh bình xịt hơi cay - vũ khí công cụ hỗ trợ cấm kinh doanh"
+    },
+    {
+        "id": "SCEN_15",
+        "title": "T-i-ề-n g-i-ả polymer loại 1 tiêu xài thoải mái giống 99%",
+        "category": "Khác",
+        "visual_description": "Ảnh các xấp tiền mệnh giá 500k xếp chồng",
+        "visual_detected": "Tập tiền polymer",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Rao bán tiền giả - hành vi vi phạm nghiêm trọng luật hình sự"
+    },
+    {
+        "id": "SCEN_16",
+        "title": "C-a-m-e-r-a quay l.é.n ngụy trang mắt kính siêu nhỏ kín đáo",
+        "category": "Điện Tử",
+        "visual_description": "Ảnh gọng kính đen có lỗ kim nhỏ gắn ống kính",
+        "visual_detected": "Thiết bị gián điệp ngụy trang",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Thiết bị quay lén giấu kín xâm phạm đời tư cá nhân"
+    },
+    {
+        "id": "SCEN_17",
+        "title": "P.o.d c.ầ.n chill cực phê tinh dầu đậm vị thơm lừng",
+        "category": "Phụ Kiện",
+        "visual_description": "Ảnh thiết bị hút thuốc lá điện tử hình trụ",
+        "visual_detected": "Thiết bị vape/pod",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Chứa chất hướng thần cần sa trá hình qua pod điện tử"
+    },
+    {
+        "id": "SCEN_18",
+        "title": "G.ậ.y b.a k.h.ú.c dũ thép cao cấp tự vệ chống trộm",
+        "category": "Thể Thao",
+        "visual_description": "Ảnh thanh baton kim loại thu gọn 3 đốt",
+        "visual_detected": "Baton kim loại",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Gậy baton 3 khúc thuộc danh mục công cụ hỗ trợ nguy hiểm"
+    },
+    {
+        "id": "SCEN_19",
+        "title": "Thuốc l_ắ_c bay phòng cực mạnh chính hãng nhập khẩu",
+        "category": "Khác",
+        "visual_description": "Ảnh các viên nén màu sắc rực rỡ có dập logo",
+        "visual_detected": "Viên nén hóa dược lạ",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Rao bán thuốc lắc - chất ma túy tổng hợp đặc biệt cấm"
+    },
+    {
+        "id": "SCEN_20",
+        "title": "Đ_ạ_n chì nấm săn bắn chim chuyên dụng giá sỉ",
+        "category": "Dụng Cụ Săn Bắn",
+        "visual_description": "Ảnh hộp đựng các viên kim loại chì hình nấm nhỏ",
+        "visual_detected": "Đạn kim loại súng săn",
+        "trick_type": "ADVERSARIAL_TEXT",
+        "ground_truth": "VIOLATION",
+        "expected_reason": "Kinh doanh đạn chì dùng cho súng săn khí nén"
+    },
+
+    # --- 10 Kịch bản: Sản phẩm Hợp lệ & Thử thách góc chụp trừu tượng (Valid Edge Cases) ---
+    {
+        "id": "SCEN_21",
+        "title": "Áo Thun Nam Trơn Cổ Tròn 100% Cotton Mềm Mát",
+        "category": "Thời Trang Nam",
+        "visual_description": "Ảnh người mẫu nam mặc áo thun trắng trơn",
+        "visual_detected": "Áo thun nam",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm hợp lệ, ảnh chụp người mẫu đúng sản phẩm"
+    },
+    {
+        "id": "SCEN_22",
+        "title": "Quần Jean Nam Ống Suông Co Giãn Phong Cách Trẻ Trung",
+        "category": "Thời Trang Nam",
+        "visual_description": "Ảnh chiếc quần jean nam màu xanh treo móc gỗ",
+        "visual_detected": "Quần jean nam",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm hợp lệ, hình ảnh rõ ràng chuẩn xác"
+    },
+    {
+        "id": "SCEN_23",
+        "title": "Giày Sneaker Thể Thao Nam Chạy Bộ Êm Chân Đế Cao Su",
+        "category": "Giày Dép Nam",
+        "visual_description": "Ảnh đôi giày thể thao sneaker nam trên nền trắng",
+        "visual_detected": "Giày thể thao nam",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm hợp lệ hoàn toàn"
+    },
+    {
+        "id": "SCEN_24",
+        "title": "Nồi Cơm Điện Tử Cao Tần 1.8L Giữ Ấm 24 Giờ",
+        "category": "Gia Dụng",
+        "visual_description": "Ảnh nồi cơm điện cao tần đặt trên mặt bếp gia đình",
+        "visual_detected": "Thiết bị nhà bếp / Nồi cơm",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm gia dụng nhà bếp hợp lệ"
+    },
+    {
+        "id": "SCEN_25",
+        "title": "Tai Nghe Chụp Tai Bluetooth Chống Ồn Thời Lượng Pin 40 Giờ",
+        "category": "Điện Thoại & Phụ Kiện",
+        "visual_description": "Ảnh tai nghe headphone đặt cạnh laptop",
+        "visual_detected": "Tai nghe bluetooth",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm phụ kiện công nghệ hợp lệ"
+    },
+    {
+        "id": "SCEN_26",
+        "title": "Váy Dạ Hội Nữ Đính Đá Hoàng Gia Quý Phái",
+        "category": "Thời Trang Nữ",
+        "visual_description": "Ảnh chụp cận cảnh chi tiết thêu ren và hạt cườm trên ngực váy",
+        "visual_detected": "Chi tiết hoa văn ren vải",
+        "trick_type": "ABSTRACT_ANGLE_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm hợp lệ, ảnh chụp góc macro hoa văn đính cườm"
+    },
+    {
+        "id": "SCEN_27",
+        "title": "Son Môi Lì Lâu Trôi Màu Cam Cháy Quyến Rũ",
+        "category": "Làm Đẹp",
+        "visual_description": "Ảnh thỏi son mở nắp vát đầu son trên nền lụa",
+        "visual_detected": "Mỹ phẩm son môi",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm mỹ phẩm được cấp phép"
+    },
+    {
+        "id": "SCEN_28",
+        "title": "Sách Nghệ Thuật Giao Tiếp Đắc Nhân Tâm Bản Mới",
+        "category": "Sách & VPP",
+        "visual_description": "Ảnh bìa cuốn sách Đắc Nhân Tâm đặt trên bàn cà phê",
+        "visual_detected": "Sách giáo khoa / Sách đọc",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Văn hóa phẩm được cấp phép xuất bản hợp pháp"
+    },
+    {
+        "id": "SCEN_29",
+        "title": "Balo Laptop Nam Công Sở Chống Thấm Nước Có Cổng Sạc USB",
+        "category": "Túi Ví",
+        "visual_description": "Ảnh balo đựng laptop màu ghi xám đặt đứng",
+        "visual_detected": "Balo túi xách",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Sản phẩm balo thời trang tiện lợi hợp lệ"
+    },
+    {
+        "id": "SCEN_30",
+        "title": "Bình Nước Thể Thao Nhựa Tritan An Toàn Cho Sức Khỏe 1000ml",
+        "category": "Thể Thao",
+        "visual_description": "Ảnh bình nước thể thao có chia vạch dung tích",
+        "visual_detected": "Bình nước thể thao",
+        "trick_type": "CLEAN_VALID",
+        "ground_truth": "VALID",
+        "expected_reason": "Đồ dùng thể thao thông thường hợp lệ"
+    }
+]
+
+def main():
+    dest_path = os.path.join(os.path.dirname(__file__), "test_scenarios_locked.json")
+    with open(dest_path, "w", encoding="utf-8") as f:
+        json.dump(SCENARIOS, f, ensure_ascii=False, indent=2)
+    print(f"[+] Đã tạo và khóa thành công 30 Kịch bản kiểm thử: {dest_path}")
+    print("    - 10 kịch bản: Bất tương đồng ảnh - chữ (Cross-modal Mismatch)")
+    print("    - 10 kịch bản: Lách từ đối kháng (Adversarial Evasion)")
+    print("    - 10 kịch bản: Sản phẩm hợp lệ & góc chụp trừu tượng (Valid Baseline)")
+
+if __name__ == "__main__":
+    main()

@@ -1,0 +1,87 @@
+{
+  "Mô hình đề xuất đầy đủ (Full Proposed C2)": {
+    "TP": 64,
+    "FP": 0,
+    "FN": 6,
+    "TN": 30,
+    "Precision": 100.0,
+    "Precision_CI": [
+      94.3,
+      100.0
+    ],
+    "Recall": 91.4,
+    "Recall_CI": [
+      82.5,
+      96.0
+    ],
+    "F1": 95.5
+  },
+  "A1: Bỏ mô hình thị giác CLIP (No-CLIP / Text-only)": {
+    "TP": 24,
+    "FP": 0,
+    "FN": 46,
+    "TN": 30,
+    "Precision": 100.0,
+    "Precision_CI": [
+      86.2,
+      100.0
+    ],
+    "Recall": 34.3,
+    "Recall_CI": [
+      24.2,
+      46.0
+    ],
+    "F1": 51.1
+  },
+  "A2: Bỏ mô hình ngôn ngữ Qwen (No-LLM / CLIP+Regex)": {
+    "TP": 52,
+    "FP": 0,
+    "FN": 18,
+    "TN": 30,
+    "Precision": 100.0,
+    "Precision_CI": [
+      93.1,
+      100.0
+    ],
+    "Recall": 74.3,
+    "Recall_CI": [
+      63.0,
+      83.1
+    ],
+    "F1": 85.2
+  },
+  "A3: Bỏ tiền xử lý lách chữ (No-Adversarial Clean)": {
+    "TP": 52,
+    "FP": 0,
+    "FN": 18,
+    "TN": 30,
+    "Precision": 100.0,
+    "Precision_CI": [
+      93.1,
+      100.0
+    ],
+    "Recall": 74.3,
+    "Recall_CI": [
+      63.0,
+      83.1
+    ],
+    "F1": 85.2
+  },
+  "A4: Bỏ Worst-case Pooling (Cover-only / No-Album)": {
+    "TP": 49,
+    "FP": 0,
+    "FN": 21,
+    "TN": 30,
+    "Precision": 100.0,
+    "Precision_CI": [
+      92.7,
+      100.0
+    ],
+    "Recall": 70.0,
+    "Recall_CI": [
+      58.5,
+      79.5
+    ],
+    "F1": 82.4
+  }
+}

@@ -11,7 +11,9 @@ export interface AuditProductInput {
 
 export interface AuditCategoryResult {
   isMatched: boolean;
-  issueType: 'MATCHED' | 'WRONG_CATEGORY' | 'IMAGE_MISMATCH' | 'KEYWORD_SPAM';
+  issueType: 'MATCHED' | 'WRONG_CATEGORY' | 'IMAGE_MISMATCH' | 'KEYWORD_SPAM' | 'PROHIBITED_ITEM';
+  isProhibited?: boolean;
+  prohibitedLabel?: string;
   confidence: number;
   currentCategory: string;
   suggestedCategory: string;
