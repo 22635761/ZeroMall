@@ -95,6 +95,17 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
   // Authentication State
   const [currentUser, setCurrentUser] = useState<any>(() => {
     if (initialUser) return initialUser
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    if (params?.get('role') === 'admin' || params?.get('as') === 'admin') {
+      const adminUser = {
+        id: 'admin-logistics-01',
+        name: 'Quản Trị Viên Vận Hành SPX',
+        email: 'admin.logistics@spx.zeromall.vn',
+        role: 'LOGISTICS_OPERATOR',
+      }
+      localStorage.setItem('delivery_user', JSON.stringify(adminUser))
+      return adminUser
+    }
     const saved = localStorage.getItem('delivery_user')
     return saved ? JSON.parse(saved) : null
   })

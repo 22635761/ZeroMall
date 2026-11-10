@@ -33,7 +33,14 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
   onBackToHome,
   onUpdateStatus,
 }) => {
-  const [activeNav, setActiveNav] = useState<AdminActiveNav>('TOWER')
+  const [activeNav, setActiveNav] = useState<AdminActiveNav>(() => {
+    const params = new URLSearchParams(window.location.search)
+    const tabParam = params.get('tab') as AdminActiveNav
+    if (tabParam && ['TOWER', 'SHIPMENTS', 'HUBS', 'LINEHAUL', 'DRIVERS', 'COD', 'FINANCE'].includes(tabParam)) {
+      return tabParam
+    }
+    return 'TOWER'
+  })
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedHubId, setSelectedHubId] = useState('ALL')
   const [selectedShipment, setSelectedShipment] = useState<Shipment | null>(null)
@@ -136,12 +143,18 @@ export const AdminPortalLayout: React.FC<AdminPortalLayoutProps> = ({
           {activeNav === 'COD' && (
             <LogisticsCodReconciliationTab
               shipments={hubFilteredShipments}
+              hubs={hubs}
+              drivers={drivers}
               onSelectShipment={(s) => setSelectedShipment(s as any)}
             />
           )}
 
           {activeNav === 'FINANCE' && (
-            <LogisticsFinanceTab shipments={hubFilteredShipments} />
+            <LogisticsFinanceTab
+              shipments={hubFilteredShipments}
+              hubs={hubs}
+              drivers={drivers}
+            />
           )}
         </main>
 
