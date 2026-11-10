@@ -41,32 +41,46 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
   // Đơn cước vận chuyển chuẩn (nếu đơn không ghi nhận thì tính mặc định 22k hoặc 30k)
   const validShipments = shipments.filter((s) => s.status !== 'CANCELLED')
 
-  // Thống kê Unit Economics
+  // Thống kê Unit Economics & Cơ cấu nguồn tiền
   const totalShippingFeeCollected = validShipments.reduce(
     (sum, s) => sum + (s.shippingFee > 0 ? s.shippingFee : 30000),
     0
   )
 
-  // 1. First Mile: Các đơn đã được tài xế lấy hàng thành công (PICKED_UP trở đi)
+  // 1. Phân bổ nguồn tiền thu cước theo thực tế TMĐT (Shopee/SPX):
+  // - 40% cước do Khách Hàng thanh toán trực tiếp
+  // - 35% cước do Sàn ZeroMall tài trợ (Mã Freeship Sàn từ Quỹ Marketing)
+  // - 25% cước được tài trợ từ Quỹ Gói Dịch Vụ Freeship Xtra (Thu 6% từ các Shop đăng ký)
+  const buyerPaidRevenue = Math.round(totalShippingFeeCollected * 0.4)
+  const platformFreeshipSubsidy = Math.round(totalShippingFeeCollected * 0.35)
+  const shopXtraServiceFeePool = Math.round(totalShippingFeeCollected * 0.25)
+
+  // 2. First Mile: Các đơn đã được tài xế lấy hàng thành công (PICKED_UP trở đi)
   const pickedUpShipments = validShipments.filter((s) =>
     ['PICKED_UP', 'AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(s.status)
   )
   const totalFirstMileCost = pickedUpShipments.length * 8000
 
-  // 2. Last Mile: Các đơn đã được tài xế phát thành công tới người nhận
+  // 3. Last Mile: Các đơn đã được tài xế phát thành công tới người nhận (8.000đ công phát + 1.500đ thưởng KPI bậc thang bình quân)
   const deliveredShipments = validShipments.filter((s) =>
     ['DELIVERED', 'COMPLETED'].includes(s.status)
   )
-  const totalLastMileCost = deliveredShipments.length * 8000
+  const totalLastMileCost = deliveredShipments.length * 9500
 
-  // 3. Middle Mile: Các đơn đã nhập kho trung chuyển hoặc vận chuyển liên tỉnh
+  // 4. Middle Mile: Chi phí xe tải Linehaul liên tỉnh & Chi phí vận hành kho SOC (băng chuyền, điện năng, nhân công bốc xếp)
   const middleMileShipments = validShipments.filter((s) =>
     ['AT_ORIGIN_HUB', 'SORTING', 'IN_TRANSIT', 'AT_DESTINATION_HUB', 'OUT_FOR_DELIVERY', 'DELIVERED', 'COMPLETED'].includes(s.status)
   )
   const totalMiddleMileCost = middleMileShipments.length * 10000
 
-  // 4. Lợi nhuận gộp vận tải của Sàn
-  const totalLogisticsCost = totalFirstMileCost + totalLastMileCost + totalMiddleMileCost
+  // 5. Chi phí xử lý đơn hoàn & rủi ro (Failed / Return-to-Origin)
+  const failedShipments = validShipments.filter((s) =>
+    ['DELIVERY_FAILED', 'RETURNING', 'RETURNED'].includes(s.status)
+  )
+  const totalReturnCost = failedShipments.length * 12000
+
+  // 6. Lợi nhuận gộp vận tải (Gross Logistics Contribution Margin)
+  const totalLogisticsCost = totalFirstMileCost + totalLastMileCost + totalMiddleMileCost + totalReturnCost
   const platformLogisticsProfit = totalShippingFeeCollected - totalLogisticsCost
 
   // Lọc bảng chi tiết
@@ -109,21 +123,62 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
         </div>
       </div>
 
-      {/* 2. 5 Thẻ Thống Kê Tài Chính Tổng Hợp */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        {/* Tổng thu cước */}
-        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
-            <span>💵</span> Tổng Cước Thu Khách
+      {/* 2. Cơ Cấu Nguồn Tiền Thu Vào (3 Nguồn: Khách Trả, Sàn Freeship, Quỹ Gói Xtra) */}
+      <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-3">
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-sm">💰</span>
+            <span className="text-xs font-black text-slate-800 uppercase tracking-wide">
+              Cơ Cấu 3 Nguồn Tiền Thu Vào Của Cước Vận Chuyển ({formatMoney(totalShippingFeeCollected)})
+            </span>
+          </div>
+          <span className="text-[11px] text-slate-400 font-medium">
+            Hạch toán dòng tiền chuẩn Shopee Express
           </span>
-          <p className="text-2xl font-black text-slate-800">
-            {formatMoney(totalShippingFeeCollected)}
-          </p>
-          <p className="text-[10px] text-slate-400">
-            {validShipments.length} bưu kiện vận chuyển
-          </p>
         </div>
 
+        {/* Thanh tỷ lệ 3 màu */}
+        <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden flex shadow-inner">
+          <div style={{ width: '40%' }} className="bg-emerald-500" title="Khách trả: 40%" />
+          <div style={{ width: '35%' }} className="bg-amber-500" title="Sàn Freeship: 35%" />
+          <div style={{ width: '25%' }} className="bg-purple-500" title="Quỹ Shop Xtra: 25%" />
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+          <div className="p-3 bg-emerald-50/50 border border-emerald-200/70 rounded-2xl space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-emerald-900">1. Người Mua Trả Trực Tiếp (40%)</span>
+              <span className="font-mono font-black text-emerald-700">{formatMoney(buyerPaidRevenue)}</span>
+            </div>
+            <p className="text-[10px] text-emerald-800/80 leading-relaxed">
+              Khách hàng thanh toán cước gốc khi không áp mã giảm giá hoặc vượt định mức cước tối đa.
+            </p>
+          </div>
+
+          <div className="p-3 bg-amber-50/50 border border-amber-200/70 rounded-2xl space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-amber-900">2. Sàn Tài Trợ Freeship (35%)</span>
+              <span className="font-mono font-black text-amber-700">{formatMoney(platformFreeshipSubsidy)}</span>
+            </div>
+            <p className="text-[10px] text-amber-800/80 leading-relaxed">
+              Ngân sách Marketing sàn bù tiền cước cho Delivery khi người mua áp mã Miễn Phí Vận Chuyển.
+            </p>
+          </div>
+
+          <div className="p-3 bg-purple-50/50 border border-purple-200/70 rounded-2xl space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-purple-900">3. Quỹ Gói Shop Freeship Xtra (25%)</span>
+              <span className="font-mono font-black text-purple-700">{formatMoney(shopXtraServiceFeePool)}</span>
+            </div>
+            <p className="text-[10px] text-purple-800/80 leading-relaxed">
+              Trích từ phí dịch vụ gói 6% giá trị đơn hàng thu từ các Shop có đăng ký huy hiệu Freeship Xtra.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Chi Phí Vận Hành & Lợi Nhuận Gộp */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
         {/* First Mile: Công lấy hàng */}
         <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
           <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
@@ -134,19 +189,6 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
           </p>
           <p className="text-[10px] text-amber-700/80 font-medium">
             {pickedUpShipments.length} lượt lấy × 8.000đ
-          </p>
-        </div>
-
-        {/* Last Mile: Công giao hàng */}
-        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
-          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
-            <span>🛵</span> Chi Shipper Giao Khách
-          </span>
-          <p className="text-2xl font-black text-orange-600">
-            {formatMoney(totalLastMileCost)}
-          </p>
-          <p className="text-[10px] text-orange-700/80 font-medium">
-            {deliveredShipments.length} lượt giao × 8.000đ
           </p>
         </div>
 
@@ -163,21 +205,47 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
           </p>
         </div>
 
+        {/* Last Mile: Công giao hàng */}
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+            <span>🛵</span> Chi Shipper Giao Khách
+          </span>
+          <p className="text-2xl font-black text-orange-600">
+            {formatMoney(totalLastMileCost)}
+          </p>
+          <p className="text-[10px] text-orange-700/80 font-medium">
+            {deliveredShipments.length} lượt giao (8k + thưởng KPI)
+          </p>
+        </div>
+
+        {/* Xử lý đơn hoàn & rủi ro */}
+        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-3xs space-y-1">
+          <span className="text-[11px] font-bold text-slate-500 flex items-center gap-1.5">
+            <span>🔄</span> Chi Phí Đơn Hoàn / Bom
+          </span>
+          <p className="text-2xl font-black text-rose-600">
+            {formatMoney(totalReturnCost)}
+          </p>
+          <p className="text-[10px] text-rose-700/80 font-medium">
+            {failedShipments.length} đơn hoàn × 12.000đ
+          </p>
+        </div>
+
         {/* Lợi nhuận gộp của Sàn */}
         <div className="bg-gradient-to-br from-emerald-50 to-teal-50 border border-emerald-300 p-4 rounded-2xl shadow-3xs space-y-1">
           <span className="text-[11px] font-bold text-emerald-800 flex items-center gap-1.5">
-            <span>🏆</span> Lợi Nhuận Gộp Sàn
+            <span>🏆</span> Lợi Nhuận Gộp Logistics
           </span>
           <p className="text-2xl font-black text-emerald-700">
             {formatMoney(platformLogisticsProfit)}
           </p>
           <p className="text-[10px] text-emerald-800/80 font-medium">
-            Doanh thu ròng từ mảng vận chuyển
+            Tỷ suất: {totalShippingFeeCollected > 0 ? Math.round((platformLogisticsProfit / totalShippingFeeCollected) * 100) : 0}% doanh thu cước
           </p>
         </div>
       </div>
 
-      {/* 3. Sơ đồ minh họa dòng tiền 3 chặng thực tế */}
+      {/* 4. Sơ đồ minh họa dòng tiền 3 chặng thực tế */}
       <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
@@ -245,13 +313,13 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
           {/* Lợi nhuận sàn */}
           <div className="bg-emerald-50/50 border border-emerald-200 p-3.5 rounded-2xl space-y-2">
             <div className="flex items-center justify-between">
-              <span className="font-extrabold text-emerald-800">4. Lợi Nhuận Sàn</span>
+              <span className="font-extrabold text-emerald-800">4. Lợi Nhuận Gộp</span>
               <span className="font-mono font-bold bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md text-[10px]">
                 4.000đ (13.3%)
               </span>
             </div>
             <p className="text-slate-600 text-[11px] leading-relaxed">
-              Doanh thu ròng của dịch vụ ZeroExpress, quỹ bảo hiểm rủi ro hàng hóa thất lạc & vận hành máy chủ.
+              Doanh thu ròng của dịch vụ ZeroExpress sau khi bù trừ chi phí 3 chặng, dự phòng rủi ro và vận hành máy chủ.
             </p>
             <div className="text-[10px] text-emerald-700 border-t border-emerald-200/60 pt-1.5 font-bold">
               Kết chuyển vào Quỹ Lợi Nhuận Sàn
@@ -260,7 +328,68 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
         </div>
       </div>
 
-      {/* 4. Bảng Kê Chi Tiết Từng Vận Đơn (Shipment Financial Ledger) */}
+      {/* 5. Cẩm Nang Giải Trình Nghiệp Vụ & Nguồn Tiền Cho Admin Quản Trị */}
+      <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-3xl shadow-sm border border-indigo-800/40 space-y-4">
+        <div className="flex items-center gap-2">
+          <span className="text-lg">💡</span>
+          <h3 className="text-sm font-black text-indigo-300 uppercase tracking-wide">
+            Giải Trình Dòng Tiền & Kinh Tế Đơn Vị (Unit Economics) Dành Cho Admin Quản Trị
+          </h3>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          {/* Mục 1: Freeship */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 backdrop-blur-xs">
+            <div className="flex items-center gap-2 text-amber-300 font-bold">
+              <span>🎟️</span>
+              <span>1. Người mua thấy Freeship (0đ), tiền cước Delivery lấy từ đâu?</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              <b>Delivery vẫn thu đủ 100% cước (ví dụ 30.000đ)</b>. Khoản 30.000đ này không tự mất đi mà được <b>Sàn ZeroMall bù tiền nội bộ từ Quỹ Marketing & Trợ Giá Sàn (Platform Subsidy)</b>. Tiền từ tài khoản doanh nghiệp Sàn sẽ tự động kết chuyển sang tài khoản doanh thu của ZeroExpress.
+            </p>
+          </div>
+
+          {/* Mục 2: Gói Shop Xtra */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 backdrop-blur-xs">
+            <div className="flex items-center gap-2 text-purple-300 font-bold">
+              <span>⚡</span>
+              <span>2. Shop đăng ký Freeship Xtra & Express, tiền đó có về Delivery không?</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              <b>Có, và về theo tỷ lệ phân bổ!</b> Khi Shop đăng ký gói Xtra, Sàn thu <b>6% giá trị mỗi đơn hàng</b>. Số tiền này được hạch toán:
+              <br/>• <b>~70% đổ vào Quỹ Trợ Giá Cước Delivery:</b> Dùng để trả cước cho ZeroExpress khi khách áp voucher.
+              <br/>• <b>~30% giữ lại Sàn ZeroMall:</b> Phí nền tảng, quảng bá nhãn Xtra và ưu tiên hiển thị sản phẩm.
+            </p>
+          </div>
+
+          {/* Mục 3: Lương & Xe Tải */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 backdrop-blur-xs">
+            <div className="flex items-center gap-2 text-sky-300 font-bold">
+              <span>🚛</span>
+              <span>3. Trả lương Shipper và tiền thuê xe tải Linehaul như thế nào?</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              • <b>Shipper xe máy:</b> Hưởng theo biến phí (8.000đ/đơn lấy + 8.000đ/đơn giao) cộng với <b>Thưởng năng suất ngày theo bậc thang</b> (+25k khi đạt 15 đơn, +60k khi đạt 30 đơn, +120k khi đạt 50 đơn).
+              <br/>• <b>Xe tải liên tỉnh:</b> Tính theo định mức chuyến (ví dụ: Chuyến xe 15 tấn từ Củ Chi SOC ra Mê Linh SOC tốn 12 triệu). Với tải trọng 3.000 bưu kiện/xe, chi phí chia bình quân chỉ <b>~4.000đ/đơn</b>.
+            </p>
+          </div>
+
+          {/* Mục 4: Đơn Hoàn / Rủi Ro */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-2 backdrop-blur-xs">
+            <div className="flex items-center gap-2 text-rose-300 font-bold">
+              <span>🔄</span>
+              <span>4. Khách bom hàng / giao thất bại thì lỗ bao nhiêu và ai chịu?</span>
+            </div>
+            <p className="text-slate-300 text-[11px] leading-relaxed">
+              Đơn hoàn tốn <b>gấp 1.5 lần chi phí</b> (mất công giao 3 lần + xe tải chở ngược bưu kiện về Shop). 
+              <br/>• Nếu lỗi do <b>Khách bom hàng</b>: Trích từ <b>Quỹ Rủi Ro & Đền Bù Logistics (0.5% cước tích lũy)</b>.
+              <br/>• Nếu lỗi do <b>Shop gửi sai / hàng cấm</b>: Sàn tự động khấu trừ cước hoàn 2 chiều vào Ví Doanh Thu của Shop.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. Bảng Kê Chi Tiết Từng Vận Đơn (Shipment Financial Ledger) */}
       <div className="bg-white border border-slate-200/80 p-5 rounded-3xl shadow-sm space-y-4">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-3">
           <div className="flex items-center gap-2">
