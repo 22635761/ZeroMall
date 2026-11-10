@@ -89,11 +89,11 @@ export const LogisticsFinanceTab: React.FC<LogisticsFinanceTabProps> = ({ shipme
               Báo Cáo Hạch Toán Cước & Lợi Nhuận Logistics (SPX Unit Economics)
             </h2>
             <span className="bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">
-              Khóa Luận Tốt Nghiệp
+              Báo Cáo Tài Chính Doanh Nghiệp
             </span>
           </div>
           <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
-            Mô hình hóa dòng tiền vận tải 3 chặng độc lập: <b>First Mile (8.000đ)</b> $\rightarrow$ <b>Middle Mile & Kho SOC (~10.000đ)</b> $\rightarrow$ <b>Last Mile (8.000đ)</b> $\rightarrow$ <b>Lợi nhuận sàn</b>.
+            Mô hình hóa dòng tiền vận tải 3 chặng độc lập: <b>First Mile (Lấy hàng từ Shop)</b> $\rightarrow$ <b>Middle Mile & Trung tâm SOC (Vận chuyển liên tỉnh)</b> $\rightarrow$ <b>Last Mile (Phát tận tay khách)</b> $\rightarrow$ <b>Biên lợi nhuận gộp Logistics</b>.
           </p>
         </div>
 

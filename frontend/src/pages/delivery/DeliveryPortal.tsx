@@ -78,6 +78,7 @@ import { HubOperatorStation } from '../../components/delivery/HubOperatorStation
 import { LiveMapTracking } from '../../components/delivery/LiveMapTracking'
 import { LogisticsFinanceTab } from '../../components/delivery/LogisticsFinanceTab'
 import { LogisticsHubsFleetTab } from '../../components/delivery/LogisticsHubsFleetTab'
+import { LogisticsCodReconciliationTab } from '../../components/delivery/LogisticsCodReconciliationTab'
 
 interface DeliveryPortalProps {
   user?: any
@@ -486,6 +487,11 @@ export const DeliveryPortal: React.FC<DeliveryPortalProps> = ({
             <LogisticsHubsFleetTab />
           ) : activeTab === 'FINANCE' ? (
             <LogisticsFinanceTab shipments={shipments} />
+          ) : activeTab === 'COD' ? (
+            <LogisticsCodReconciliationTab
+              shipments={shipments}
+              onSelectShipment={(s) => setSelectedShipment(s as any)}
+            />
           ) : (
             /* VIEW 2: BẢNG DANH SÁCH VẬN ĐƠN (LẤY DỮ LIỆU THẬT 100% TỪ DATABASE) */
             <div className="overflow-x-auto">

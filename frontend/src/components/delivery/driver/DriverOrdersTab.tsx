@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { DriverPickupConfirmModal } from './DriverPickupConfirmModal'
+import { DriverDeliveryConfirmModal } from './DriverDeliveryConfirmModal'
 import { DriverReturnPickupCard } from './DriverReturnPickupCard'
 import type { ReturnData } from '../../../services/return.service'
 
@@ -91,6 +92,7 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
     totalPending === 0 && totalHolding > 0 ? 'HOLDING' : 'PENDING'
   )
   const [confirmPickupShipment, setConfirmPickupShipment] = useState<Shipment | null>(null)
+  const [deliveryConfirmShipment, setDeliveryConfirmShipment] = useState<Shipment | null>(null)
   const [previewProofImage, setPreviewProofImage] = useState<string | null>(null)
   const [barcodeModalInfo, setBarcodeModalInfo] = useState<BarcodeModalInfo | null>(null)
 
@@ -901,7 +903,7 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
 
                         <button
                           type="button"
-                          onClick={() => onUpdateStatus(shipment.id, 'DELIVERED')}
+                          onClick={() => setDeliveryConfirmShipment(shipment)}
                           disabled={actionLoading}
                           className="col-span-2 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl text-xs transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
                         >
@@ -933,6 +935,19 @@ export const DriverOrdersTab: React.FC<DriverOrdersTabProps> = ({
           onClose={() => setConfirmPickupShipment(null)}
           onConfirm={async (shipmentId, proofImage) => {
             await onUpdateStatus(shipmentId, 'PICKED_UP', undefined, proofImage)
+          }}
+          actionLoading={actionLoading}
+        />
+      )}
+
+      {/* ── Modal: Xác Nhận Giao Hàng Thành Công & Thu Tiền COD (Proof of Delivery - POD) ── */}
+      {deliveryConfirmShipment && (
+        <DriverDeliveryConfirmModal
+          shipment={deliveryConfirmShipment}
+          onClose={() => setDeliveryConfirmShipment(null)}
+          onConfirm={async (shipmentId, proofImage) => {
+            await onUpdateStatus(shipmentId, 'DELIVERED', undefined, proofImage)
+            setDeliveryConfirmShipment(null)
           }}
           actionLoading={actionLoading}
         />

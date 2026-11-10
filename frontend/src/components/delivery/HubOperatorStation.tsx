@@ -23,6 +23,7 @@ import { HubScannerBar } from './hub/HubScannerBar'
 import { HubLinehaulTripsBanner } from './hub/HubLinehaulTripsBanner'
 import { DockTruckQuickSealModal } from './hub/DockTruckQuickSealModal'
 import { HubParcelTable } from './hub/HubParcelTable'
+import { HubCashierDesk } from './hub/HubCashierDesk'
 
 export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
   currentUser,
@@ -570,106 +571,118 @@ export const HubOperatorStation: React.FC<HubOperatorStationProps> = ({
         destinationCount={destinationList.length}
       />
 
-      {/* SECTION 2: SCANNER BAR */}
-      <HubScannerBar
-        stationTab={stationTab}
-        dockTrucks={dockTrucks}
-        activeScanDockTruckId={activeScanDockTruckId}
-        setActiveScanDockTruckId={setActiveScanDockTruckId}
-        directScanMode={directScanMode}
-        setDirectScanMode={setDirectScanMode}
-        scannedCode={scannedCode}
-        setScannedCode={setScannedCode}
-        onScanSubmit={handleScanSubmit}
-        scanMessage={scanMessage}
-        isCameraScannerOpen={isCameraScannerOpen}
-        setIsCameraScannerOpen={setIsCameraScannerOpen}
-        actionLoading={actionLoading}
-        onScanCode={handleScanCode}
-      />
-
-      {/* SECTION 3: PARCEL TABLE & SUB-VIEWS */}
-      <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
-        {/* Banner Xe tại Dock (Tab 2) */}
-        {stationTab === 'SORTING_LINEHAUL' && (
-          <HubDockTruckList
+      {/* SECTION 2: BÀN THU NGÂN BƯU CỤC vs. SCANNER & BẢNG BƯU KIỆN */}
+      {stationTab === 'HUB_CASHIER' ? (
+        <HubCashierDesk
+          currentHub={currentHub}
+          drivers={drivers}
+          shipments={shipments}
+          onRefresh={onRefresh}
+        />
+      ) : (
+        <>
+          {/* SECTION 2: SCANNER BAR */}
+          <HubScannerBar
+            stationTab={stationTab}
             dockTrucks={dockTrucks}
             activeScanDockTruckId={activeScanDockTruckId}
             setActiveScanDockTruckId={setActiveScanDockTruckId}
+            directScanMode={directScanMode}
+            setDirectScanMode={setDirectScanMode}
+            scannedCode={scannedCode}
+            setScannedCode={setScannedCode}
+            onScanSubmit={handleScanSubmit}
+            scanMessage={scanMessage}
+            isCameraScannerOpen={isCameraScannerOpen}
+            setIsCameraScannerOpen={setIsCameraScannerOpen}
             actionLoading={actionLoading}
-            getMatchingUnloadedParcelsForTruck={getMatchingUnloadedParcelsForTruck}
-            handleBatchLoadRouteToTruck={handleBatchLoadRouteToTruck}
-            handleOpenSealModal={handleOpenSealModal}
-            handleUnloadEntireDockTruck={handleUnloadEntireDockTruck}
+            onScanCode={handleScanCode}
           />
-        )}
 
-        {/* Banner Xe Tuyến Cập Bến (Tab 3) */}
-        {stationTab === 'INBOUND_RECEIVING' && (
-          <HubLinehaulTripsBanner
-            linehaulTrips={linehaulTrips}
-            inTransitTotalCount={inTransitList.length}
-            onOpenReconciliation={(trip) => setReconcilingTrip(trip)}
-          />
-        )}
+          {/* SECTION 3: PARCEL TABLE & SUB-VIEWS */}
+          <div className="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
+            {/* Banner Xe tại Dock (Tab 2) */}
+            {stationTab === 'SORTING_LINEHAUL' && (
+              <HubDockTruckList
+                dockTrucks={dockTrucks}
+                activeScanDockTruckId={activeScanDockTruckId}
+                setActiveScanDockTruckId={setActiveScanDockTruckId}
+                actionLoading={actionLoading}
+                getMatchingUnloadedParcelsForTruck={getMatchingUnloadedParcelsForTruck}
+                handleBatchLoadRouteToTruck={handleBatchLoadRouteToTruck}
+                handleOpenSealModal={handleOpenSealModal}
+                handleUnloadEntireDockTruck={handleUnloadEntireDockTruck}
+              />
+            )}
 
-        {/* Main Parcel Table */}
-        <HubParcelTable
-          stationTab={stationTab}
-          activeList={activeList}
-          sortingList={sortingList}
-          destinationList={destinationList}
-          selectedShipmentIds={selectedShipmentIds}
-          selectedLastMileIds={selectedLastMileIds}
-          searchFilter={searchFilter}
-          setSearchFilter={setSearchFilter}
-          onRefresh={onRefresh}
-          currentHub={currentHub}
-          currentUser={currentUser}
-          hubs={hubs}
-          dockTrucks={dockTrucks}
-          linehaulTrips={linehaulTrips}
-          actionLoading={actionLoading}
-          onToggleSelectShipment={handleToggleSelectShipment}
-          onSelectAllSorting={handleSelectAllSorting}
-          onToggleSelectLastMile={handleToggleSelectLastMile}
-          onSelectAllLastMile={handleSelectAllLastMile}
-          onOpenDispatchBatch={handleOpenDispatchBatch}
-          onOpenDispatchSingle={handleOpenDispatchSingle}
-          onOpenLastMileBatch={handleOpenLastMileBatch}
-          onOpenLastMileSingle={handleOpenLastMileSingle}
-          onUnloadSingleShipmentFromDock={handleUnloadSingleShipmentFromDock}
-          onSelectRouteForSorting={(destHub) => {
-            const prov = (destHub.province || '').toLowerCase()
-            const loadedIds = new Set(dockTrucks.flatMap((t) => t.shipments.map((item) => item.id)))
-            const matching = sortingList.filter((s) => {
-              if (loadedIds.has(s.id)) return false
-              const addr = (s.deliveryAddress || '').toLowerCase()
-              if (prov.includes('hồ chí minh') || prov.includes('hcm')) {
-                return (
-                  addr.includes('hồ chí minh') ||
-                  addr.includes('tp.hcm') ||
-                  addr.includes('tp hcm') ||
-                  addr.includes('sài gòn') ||
-                  addr.includes('tân bình') ||
-                  addr.includes('gò vấp') ||
-                  addr.includes('bình thạnh') ||
-                  addr.includes('quận 1') ||
-                  addr.includes('bình dương') ||
-                  addr.includes('đồng nai')
-                )
-              }
-              if (prov.includes('hà nội') || prov.includes('mê linh')) {
-                return addr.includes('hà nội') || addr.includes('mê linh') || addr.includes('cầu giấy')
-              }
-              return addr.includes(prov)
-            })
-            setSelectedShipmentIds(new Set(matching.map((s) => s.id)))
-          }}
-          onOpenReconciliation={(trip) => setReconcilingTrip(trip)}
-          onUpdateStatus={onUpdateStatus}
-        />
-      </div>
+            {/* Banner Xe Tuyến Cập Bến (Tab 3) */}
+            {stationTab === 'INBOUND_RECEIVING' && (
+              <HubLinehaulTripsBanner
+                linehaulTrips={linehaulTrips}
+                inTransitTotalCount={inTransitList.length}
+                onOpenReconciliation={(trip) => setReconcilingTrip(trip)}
+              />
+            )}
+
+            {/* Main Parcel Table */}
+            <HubParcelTable
+              stationTab={stationTab}
+              activeList={activeList}
+              sortingList={sortingList}
+              destinationList={destinationList}
+              selectedShipmentIds={selectedShipmentIds}
+              selectedLastMileIds={selectedLastMileIds}
+              searchFilter={searchFilter}
+              setSearchFilter={setSearchFilter}
+              onRefresh={onRefresh}
+              currentHub={currentHub}
+              currentUser={currentUser}
+              hubs={hubs}
+              dockTrucks={dockTrucks}
+              linehaulTrips={linehaulTrips}
+              actionLoading={actionLoading}
+              onToggleSelectShipment={handleToggleSelectShipment}
+              onSelectAllSorting={handleSelectAllSorting}
+              onToggleSelectLastMile={handleToggleSelectLastMile}
+              onSelectAllLastMile={handleSelectAllLastMile}
+              onOpenDispatchBatch={handleOpenDispatchBatch}
+              onOpenDispatchSingle={handleOpenDispatchSingle}
+              onOpenLastMileBatch={handleOpenLastMileBatch}
+              onOpenLastMileSingle={handleOpenLastMileSingle}
+              onUnloadSingleShipmentFromDock={handleUnloadSingleShipmentFromDock}
+              onSelectRouteForSorting={(destHub) => {
+                const prov = (destHub.province || '').toLowerCase()
+                const loadedIds = new Set(dockTrucks.flatMap((t) => t.shipments.map((item) => item.id)))
+                const matching = sortingList.filter((s) => {
+                  if (loadedIds.has(s.id)) return false
+                  const addr = (s.deliveryAddress || '').toLowerCase()
+                  if (prov.includes('hồ chí minh') || prov.includes('hcm')) {
+                    return (
+                      addr.includes('hồ chí minh') ||
+                      addr.includes('tp.hcm') ||
+                      addr.includes('tp hcm') ||
+                      addr.includes('sài gòn') ||
+                      addr.includes('tân bình') ||
+                      addr.includes('gò vấp') ||
+                      addr.includes('bình thạnh') ||
+                      addr.includes('quận 1') ||
+                      addr.includes('bình dương') ||
+                      addr.includes('đồng nai')
+                    )
+                  }
+                  if (prov.includes('hà nội') || prov.includes('mê linh')) {
+                    return addr.includes('hà nội') || addr.includes('mê linh') || addr.includes('cầu giấy')
+                  }
+                  return addr.includes(prov)
+                })
+                setSelectedShipmentIds(new Set(matching.map((s) => s.id)))
+              }}
+              onOpenReconciliation={(trip) => setReconcilingTrip(trip)}
+              onUpdateStatus={onUpdateStatus}
+            />
+          </div>
+        </>
+      )}
 
       {/* MODAL 1: LINEHAUL DISPATCH & SEAL */}
       <LinehaulDispatchModal

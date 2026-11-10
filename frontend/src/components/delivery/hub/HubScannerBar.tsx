@@ -44,6 +44,12 @@ const SCAN_CONFIG = {
     buttonLabel: '🛵 Quét Gán Tuyến',
     buttonColor: 'bg-emerald-600 hover:bg-emerald-500',
   },
+  HUB_CASHIER: {
+    title: '5. Thu Ngân Bưu Cục',
+    placeholder: 'Quét mã biên nhận nộp tiền hoặc mã shipper...',
+    buttonLabel: '💵 Quét Đối Soát',
+    buttonColor: 'bg-emerald-600 hover:bg-emerald-500',
+  },
 }
 
 export const HubScannerBar: React.FC<HubScannerBarProps> = ({

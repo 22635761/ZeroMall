@@ -70,10 +70,19 @@ export const HubPipelineTabs: React.FC<HubPipelineTabsProps> = ({
       activeColor: 'border-emerald-500 bg-emerald-50 ring-emerald-200',
       countColor: 'text-emerald-700 bg-emerald-100 border-emerald-300',
     },
+    {
+      id: 'HUB_CASHIER',
+      title: '5. Thu Ngân Bưu Cục',
+      desc: 'Duyệt nộp tiền COD & Quản lý quỹ tiền mặt',
+      count: 0,
+      icon: '🏦',
+      activeColor: 'border-rose-500 bg-rose-50 ring-rose-200',
+      countColor: 'text-rose-700 bg-rose-100 border-rose-300',
+    },
   ]
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
       {tabs.map((tab) => {
         const isActive = currentTab === tab.id
         return (

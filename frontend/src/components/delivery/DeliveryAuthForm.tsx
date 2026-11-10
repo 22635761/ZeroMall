@@ -64,9 +64,9 @@ export const DeliveryAuthForm: React.FC<DeliveryAuthFormProps> = ({
             <div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-xl font-black tracking-tight text-slate-900">Zero<span className="text-emerald-600">Express</span></span>
-                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wide">SPX Logistics Portal</span>
+                <span className="text-xs font-black text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md uppercase tracking-wide">SPX Logistics Operations</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium hidden sm:block">Shopee Express Clone Platform</p>
+              <p className="text-[10px] text-slate-400 font-medium hidden sm:block">Hệ Thống Quản Trị & Điều Phối Giao Vận Toàn Sàn</p>
             </div>
           </div>
           <button 
@@ -169,9 +169,9 @@ export const DeliveryAuthForm: React.FC<DeliveryAuthFormProps> = ({
                 </button>
               </form>
 
-              {/* Quick Fill Demo Accounts */}
+              {/* Phân quyền vận hành doanh nghiệp */}
               <div className="pt-4 border-t border-slate-100 space-y-2">
-                <p className="text-[11px] font-bold text-slate-500">⚡ Chọn nhanh vai trò để đăng nhập:</p>
+                <p className="text-[11px] font-bold text-slate-500">🏢 Đăng nhập theo tài khoản chuyên trách:</p>
                 <div className="space-y-1.5">
                   <button
                     type="button"
