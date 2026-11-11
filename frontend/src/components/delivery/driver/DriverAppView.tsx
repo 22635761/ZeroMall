@@ -11,6 +11,7 @@ import { DriverWalletTab } from './DriverWalletTab'
 import { DriverAccountTab } from './DriverAccountTab'
 import { DriverDeliveryFailModal } from './DriverDeliveryFailModal'
 import { DriverCheckInModal } from './DriverCheckInModal'
+import { broadcastDriverGps, joinDriverPresence } from '../../../services/supabase-realtime.service'
 
 // Re-export Shipment type for external consumers
 export type { Shipment } from './DriverOrdersTab'
@@ -137,6 +138,47 @@ export const DriverAppView: React.FC<DriverAppViewProps> = ({
     fetchAttendance()
     fetchReturnPickups()
   }, [driverProfile?.id, fetchReturnPickups])
+
+  // Theo dõi GPS và phát Broadcast lên kênh Supabase Realtime khi tài xế trực tuyến
+  useEffect(() => {
+    if (driverState !== 'ONLINE' || !driverProfile?.id) return
+
+    const presence = joinDriverPresence({
+      driverId: driverProfile.id,
+      name: driverProfile.name || currentUser?.name || 'Shipper',
+      phone: driverProfile.phone || '',
+      hubId: driverProfile.hubId,
+      vehicleType: driverProfile.vehicleType || 'MOTORBIKE',
+      onlineAt: new Date().toISOString(),
+    })
+
+    let watchId: number | null = null
+    if (typeof navigator !== 'undefined' && navigator.geolocation) {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          broadcastDriverGps({
+            driverId: driverProfile.id,
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+            heading: pos.coords.heading || undefined,
+            speed: pos.coords.speed || undefined,
+            timestamp: Date.now(),
+          })
+        },
+        (err) => {
+          console.warn('Realtime GPS Watch notice:', err.message)
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 }
+      )
+    }
+
+    return () => {
+      presence.untrack()
+      if (watchId !== null && typeof navigator !== 'undefined' && navigator.geolocation) {
+        navigator.geolocation.clearWatch(watchId)
+      }
+    }
+  }, [driverState, driverProfile?.id])
 
   // Xử lý khi tài xế bấm xác nhận đã lấy hàng hoàn từ Người Mua
   const handleDriverConfirmReturnPickup = async (ret: ReturnData) => {

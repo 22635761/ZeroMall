@@ -7,6 +7,7 @@ import { CsDisputesTab } from '../../components/cs-support/CsDisputesTab'
 import { CsOrdersTab } from '../../components/cs-support/CsOrdersTab'
 import { CsLiveChatTab } from '../../components/admin/CsLiveChatTab'
 import { CsCategoryAuditTab } from '../../components/cs-support/CsCategoryAuditTab'
+import { subscribeDisputeChanges } from '../../services/supabase-realtime.service'
 
 interface CsSupportPageProps {
   user: any
@@ -272,6 +273,18 @@ export const CsSupportPage: React.FC<CsSupportPageProps> = ({
       fetchReportedOrders()
     }
   }, [statusFilter, activePortalTab])
+
+  // Lắng nghe Realtime các khiếu nại / tranh chấp mới hoặc cập nhật từ Supabase
+  useEffect(() => {
+    const unsub = subscribeDisputeChanges({
+      onChange: () => {
+        if (activePortalTab === 'DISPUTES') {
+          fetchDisputedOrders()
+        }
+      },
+    })
+    return () => unsub()
+  }, [activePortalTab])
 
   useEffect(() => {
     const tabParam = searchParams.get('tab')
