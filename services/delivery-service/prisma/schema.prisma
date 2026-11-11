@@ -50,6 +50,8 @@ model Driver {
   assignments      DeliveryAssignment[]
   attempts         DeliveryAttempt[]
   attendances      DriverAttendance[]
+
+  @@index([hubId])
 }
 
 // 3. ĐỊA CHỈ LẤY HÀNG CỦA SELLER
@@ -109,6 +111,8 @@ model Shipment {
   codTransaction     CodTransaction?
   returns            Return[]
   claims             Claim[]
+
+  @@index([pickupAddressId])
 }
 
 // 5. THÔNG TIN KIỆN HÀNG (PACKAGE)
@@ -159,6 +163,8 @@ model ShipmentTracking {
   location    String?
   proofImage  String?
   timestamp   DateTime  @default(now())
+
+  @@index([shipmentId])
 }
 
 // 8. QUÉT MÃ BƯU KIỆN TẠI HUB (HUB SCAN)
@@ -172,6 +178,9 @@ model HubScan {
   staffId     String?
   note        String?
   createdAt   DateTime  @default(now())
+
+  @@index([hubId])
+  @@index([shipmentId])
 }
 
 // 9. LỊCH SỬ CÁC LẦN GIAO THẤT BẠI (DELIVERY ATTEMPTS)
@@ -187,6 +196,9 @@ model DeliveryAttempt {
   note          String?
   proofImage    String?
   createdAt     DateTime  @default(now())
+
+  @@index([driverId])
+  @@index([shipmentId])
 }
 
 // 10. QUẢN LÝ THU HỘ COD (COD TRANSACTIONS)
@@ -263,6 +275,8 @@ model Return {
   items                 ReturnItem[]
   evidences             ReturnEvidence[]
   negotiations          ReturnNegotiation[]
+
+  @@index([shipmentId])
 }
 
 model ReturnItem {
@@ -277,6 +291,8 @@ model ReturnItem {
   price        Float
   quantity     Int
   refundAmount Float   @default(0)
+
+  @@index([returnId])
 }
 
 model ReturnEvidence {
@@ -288,6 +304,8 @@ model ReturnEvidence {
   fileType    String    @default("IMAGE") // IMAGE | VIDEO
   description String?
   createdAt   DateTime  @default(now())
+
+  @@index([returnId])
 }
 
 model ReturnNegotiation {
@@ -299,6 +317,8 @@ model ReturnNegotiation {
   message        String?
   status         String    @default("PENDING") // PENDING | ACCEPTED | REJECTED
   createdAt      DateTime  @default(now())
+
+  @@index([returnId])
 }
 
 // 13. KHIẾU NẠI & BỒI THƯỜNG (CLAIMS)
@@ -317,6 +337,8 @@ model Claim {
   resolvedAt      DateTime?
 
   evidences       ClaimEvidence[]
+
+  @@index([shipmentId])
 }
 
 model ClaimEvidence {
@@ -327,6 +349,8 @@ model ClaimEvidence {
   fileType    String    @default("IMAGE") // IMAGE, VIDEO, DOCUMENT
   description String?
   createdAt   DateTime  @default(now())
+
+  @@index([claimId])
 }
 
 // 14. BẢNG GIÁ VẬN CHUYỂN (SHIPPING RATES)
@@ -359,5 +383,7 @@ model DriverAttendance {
   status        String    @default("CHECKED_IN") // CHECKED_IN, CHECKED_OUT
   note          String?
   createdAt     DateTime  @default(now())
+
+  @@index([driverId])
 }
 
