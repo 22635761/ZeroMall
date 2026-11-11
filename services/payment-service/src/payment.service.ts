@@ -74,28 +74,35 @@ export class PaymentService implements OnModuleInit {
   }
 
   async deposit(dto: DepositDto) {
+    if (dto.amount <= 0) {
+      throw new BadRequestException('Số tiền nạp vào ví phải lớn hơn 0!');
+    }
+
     const wallet = await this.getWallet(dto.buyerId);
 
-    const updatedWallet = await this.prisma.wallet.update({
-      where: { buyerId: dto.buyerId },
-      data: {
-        balance: {
-          increment: dto.amount,
+    // Thực hiện nạp tiền và ghi sổ cái (Ledger Transaction) trong một transaction nguyên tử duy nhất
+    return this.prisma.$transaction(async (prismaTx) => {
+      const updatedWallet = await prismaTx.wallet.update({
+        where: { buyerId: dto.buyerId },
+        data: {
+          balance: {
+            increment: dto.amount,
+          },
         },
-      },
-    });
+      });
 
-    await this.prisma.walletTransaction.create({
-      data: {
-        walletId: wallet.id,
-        amount: dto.amount,
-        type: 'DEPOSIT',
-        description: dto.description || 'Nạp tiền vào ví qua cổng VietQR',
-        status: 'SUCCESS',
-      },
-    });
+      await prismaTx.walletTransaction.create({
+        data: {
+          walletId: wallet.id,
+          amount: dto.amount,
+          type: 'DEPOSIT',
+          description: dto.description || 'Nạp tiền vào ví qua cổng VietQR',
+          status: 'SUCCESS',
+        },
+      });
 
-    return updatedWallet;
+      return updatedWallet;
+    });
   }
 
   // Tạo pending WalletTransaction để tracking khi quét QR nạp ví
@@ -152,32 +159,40 @@ export class PaymentService implements OnModuleInit {
       }
 
       if (dto.paymentMethod === 'zeropay') {
-        // Ví điện tử giả lập
-        const wallet = await this.getWallet(dto.buyerId);
+        // Đảm bảo ví tồn tại trước khi khóa
+        await this.getWallet(dto.buyerId);
 
-        if (wallet.balance < dto.amount) {
-          // Cập nhật giao dịch thất bại
-          await this.prisma.transaction.update({
-            where: { id: txRecord.id },
-            data: { status: 'FAILED' },
-          });
-          throw new BadRequestException('Số dư ví ZeroPay không đủ để thanh toán đơn hàng này!');
-        }
-
-        // Thực hiện trừ tiền ví và cập nhật transaction thành công
+        // Khóa dòng cấp cơ sở dữ liệu (Pessimistic Row Lock: SELECT ... FOR UPDATE) ngăn chặn hoàn toàn Double Spending
         await this.prisma.$transaction(async (prismaTx) => {
-          const updatedWallet = await prismaTx.wallet.update({
-            where: { buyerId: dto.buyerId },
-            data: {
-              balance: {
-                decrement: dto.amount,
-              },
-            },
-          });
+          const lockedWallets: any[] = await prismaTx.$queryRaw`
+            SELECT id, "buyerId", balance, "onHoldBalance"
+            FROM payment."Wallet"
+            WHERE "buyerId" = ${dto.buyerId}
+            FOR UPDATE
+          `;
+
+          if (!lockedWallets || lockedWallets.length === 0) {
+            throw new BadRequestException('Không tìm thấy thông tin ví của người dùng!');
+          }
+
+          const currentWallet = lockedWallets[0];
+          if (currentWallet.balance < dto.amount) {
+            throw new BadRequestException(
+              `Số dư ví ZeroPay (${Number(currentWallet.balance).toLocaleString('vi-VN')}đ) không đủ để thanh toán đơn hàng (${Number(dto.amount).toLocaleString('vi-VN')}đ)!`
+            );
+          }
+
+          // Cập nhật số dư nguyên tử trong phiên giữ khóa
+          await prismaTx.$executeRaw`
+            UPDATE payment."Wallet"
+            SET balance = balance - ${dto.amount},
+                "updatedAt" = NOW()
+            WHERE id = ${currentWallet.id}
+          `;
 
           await prismaTx.walletTransaction.create({
             data: {
-              walletId: updatedWallet.id,
+              walletId: currentWallet.id,
               amount: dto.amount,
               type: 'PAYMENT',
               description: `Thanh toán đơn hàng #${dto.orderId}`,
@@ -452,20 +467,38 @@ export class PaymentService implements OnModuleInit {
   }
 
   async createWithdrawRequest(shopId: string, amount: number, bankName: string, bankAccount: string, accountName: string) {
-    const wallet = await this.getWallet(shopId);
-    if (wallet.balance < amount) {
-      throw new BadRequestException('Số dư ví doanh thu không đủ để rút!');
+    if (amount <= 0) {
+      throw new BadRequestException('Số tiền rút phải lớn hơn 0!');
     }
 
+    const wallet = await this.getWallet(shopId);
+
     return this.prisma.$transaction(async (prismaTx) => {
-      await prismaTx.wallet.update({
-        where: { buyerId: shopId },
-        data: {
-          balance: {
-            decrement: amount,
-          },
-        },
-      });
+      // Khóa dòng ví cấp CSDL (Pessimistic Row Lock: SELECT ... FOR UPDATE)
+      const lockedWallets: any[] = await prismaTx.$queryRaw`
+        SELECT id, "buyerId", balance
+        FROM payment."Wallet"
+        WHERE "buyerId" = ${shopId}
+        FOR UPDATE
+      `;
+
+      if (!lockedWallets || lockedWallets.length === 0) {
+        throw new BadRequestException('Không tìm thấy thông tin ví doanh thu!');
+      }
+
+      const currentWallet = lockedWallets[0];
+      if (currentWallet.balance < amount) {
+        throw new BadRequestException(
+          `Số dư ví doanh thu (${Number(currentWallet.balance).toLocaleString('vi-VN')}đ) không đủ để rút (${Number(amount).toLocaleString('vi-VN')}đ)!`
+        );
+      }
+
+      await prismaTx.$executeRaw`
+        UPDATE payment."Wallet"
+        SET balance = balance - ${amount},
+            "updatedAt" = NOW()
+        WHERE id = ${currentWallet.id}
+      `;
 
       const request = await prismaTx.withdrawRequest.create({
         data: {
@@ -480,7 +513,7 @@ export class PaymentService implements OnModuleInit {
 
       await prismaTx.walletTransaction.create({
         data: {
-          walletId: wallet.id,
+          walletId: currentWallet.id,
           amount,
           type: 'WITHDRAW',
           description: `Rút tiền về tài khoản ngân hàng ${bankName} (${bankAccount}) - Mã yêu cầu: ${request.id}`,
@@ -809,13 +842,13 @@ export class PaymentService implements OnModuleInit {
           data: { buyerId: escrow.shopId, balance: 0, onHoldBalance: 0 },
         });
       }
-      await tx.wallet.update({
-        where: { id: shopWallet.id },
-        data: {
-          onHoldBalance: { decrement: escrow.amount },
-          balance: { increment: netRevenue },
-        },
-      });
+      await tx.$executeRaw`
+        UPDATE payment."Wallet"
+        SET "onHoldBalance" = GREATEST(0, "onHoldBalance" - ${escrow.amount}),
+            balance = balance + ${netRevenue},
+            "updatedAt" = NOW()
+        WHERE id = ${shopWallet.id}
+      `;
       await tx.walletTransaction.create({
         data: {
           walletId: shopWallet.id,
@@ -871,10 +904,12 @@ export class PaymentService implements OnModuleInit {
       // Trừ onHoldBalance của Shop (tiền sẽ được hoàn cho người mua riêng)
       const shopWallet = await tx.wallet.findUnique({ where: { buyerId: escrow.shopId } });
       if (shopWallet) {
-        await tx.wallet.update({
-          where: { id: shopWallet.id },
-          data: { onHoldBalance: { decrement: escrow.amount } }
-        });
+        await tx.$executeRaw`
+          UPDATE payment."Wallet"
+          SET "onHoldBalance" = GREATEST(0, "onHoldBalance" - ${escrow.amount}),
+              "updatedAt" = NOW()
+          WHERE id = ${shopWallet.id}
+        `;
       }
 
       console.log(`[Escrow] Cancelled escrow for order ${orderId}: ${escrow.amount}đ released from onHold of shop ${escrow.shopId}`);
