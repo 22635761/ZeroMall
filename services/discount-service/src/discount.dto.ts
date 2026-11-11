@@ -13,4 +13,12 @@ export class CreateVoucherDto {
 
 export class UseVouchersDto {
   voucherIds: string[];
+  userId?: string;
+  orderId?: string;
+}
+
+export class RollbackVouchersDto {
+  voucherIds: string[];
+  userId?: string;
+  orderId?: string;
 }

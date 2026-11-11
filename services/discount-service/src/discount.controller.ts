@@ -44,11 +44,15 @@ export class DiscountController {
 
   @Post('use')
   async useVouchers(@Body() dto: UseVouchersDto) {
-    return this.discountService.useVouchers(dto.voucherIds);
+    return this.discountService.useVouchers(dto.voucherIds, dto.userId, dto.orderId);
   }
 
   @Post('rollback')
-  async rollbackVouchers(@Body('voucherIds') voucherIds: string[]) {
-    return this.discountService.rollbackVouchers(voucherIds);
+  async rollbackVouchers(
+    @Body('voucherIds') voucherIds: string[],
+    @Body('userId') userId?: string,
+    @Body('orderId') orderId?: string,
+  ) {
+    return this.discountService.rollbackVouchers(voucherIds, userId, orderId);
   }
 }

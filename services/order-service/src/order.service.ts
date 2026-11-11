@@ -160,6 +160,16 @@ export class OrderService implements OnModuleInit {
     // Nếu bất kỳ sản phẩm nào không đủ kho, notifyProductPurchase sẽ ném lỗi BadRequestException
     await this.notifyProductPurchase(dto.items);
 
+    // Ghi nhận và kiểm tra hiệu lực sử dụng Voucher (chống mua vượt hạn mức)
+    if (dto.appliedVoucherIds) {
+      try {
+        await this.consumeVouchers(dto.appliedVoucherIds, dto.buyerId, checkoutGroupId);
+      } catch (voucherErr) {
+        await this.rollbackProductStock(dto.items);
+        throw voucherErr;
+      }
+    }
+
     const totalRawShippingFee = shopIds.reduce(
       (sum, sId) => sum + (dto.shopShippingFees?.[sId] ?? 22000),
       0,
@@ -291,10 +301,13 @@ export class OrderService implements OnModuleInit {
       return createdOrders;
     } catch (orderError) {
       console.error(
-        '[OrderService] Order creation failed after stock deduction. Rolling back stock...',
+        '[OrderService] Order creation failed after stock deduction. Rolling back stock & vouchers...',
         orderError,
       );
       await this.rollbackProductStock(dto.items);
+      if (dto.appliedVoucherIds) {
+        await this.rollbackVouchers(dto.appliedVoucherIds, checkoutGroupId, dto.buyerId);
+      }
       throw orderError;
     }
   }
@@ -605,7 +618,47 @@ export class OrderService implements OnModuleInit {
     return updatedOrder;
   }
 
-  private async rollbackVouchers(appliedVoucherIdsJson: string) {
+  private async consumeVouchers(
+    appliedVoucherIdsJson: string,
+    userId?: string,
+    orderId?: string,
+  ) {
+    if (!appliedVoucherIdsJson) return;
+    let voucherIds: string[] = [];
+    try {
+      voucherIds = JSON.parse(appliedVoucherIdsJson);
+    } catch {
+      voucherIds = appliedVoucherIdsJson
+        .split(',')
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    if (voucherIds.length === 0) return;
+
+    const discountServiceUrl =
+      process.env.DISCOUNT_SERVICE_URL || 'http://discount-service:3003';
+    console.log(
+      `[OrderService] Consuming ${voucherIds.length} vouchers for user ${userId}`,
+    );
+    const res = await fetch(`${discountServiceUrl}/discounts/use`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ voucherIds, userId, orderId }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new BadRequestException(
+        err.message || 'Không thể áp dụng mã giảm giá (có thể đã hết lượt hoặc hết hạn)!',
+      );
+    }
+  }
+
+  private async rollbackVouchers(
+    appliedVoucherIdsJson: string,
+    orderId?: string,
+    userId?: string,
+  ) {
     if (!appliedVoucherIdsJson) return;
     try {
       let voucherIds: string[] = [];
@@ -627,7 +680,7 @@ export class OrderService implements OnModuleInit {
       await fetch(`${discountServiceUrl}/discounts/rollback`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ voucherIds }),
+        body: JSON.stringify({ voucherIds, userId, orderId }),
       });
     } catch (e) {
       console.error('[OrderService] Failed to rollback voucher usage:', e);
