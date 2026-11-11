@@ -533,52 +533,74 @@ export class DeliveryService {
       include: { hub: true },
     });
 
-    // 4.1.1. Kiểm tra Hạn Mức COD của Tài Xế (COD Cap: Tối đa 10.000.000đ từ các đơn chưa đối soát)
-    const activeDrivers = await Promise.all(
-      allDrivers.map(async (d) => {
-        const deliveredAssignments = await this.prisma.deliveryAssignment.findMany({
-          where: { driverId: d.id, type: 'DELIVERY' },
-          include: { shipment: { include: { codTransaction: true } } },
-        });
-        const heldCod = deliveredAssignments
-          .filter((a) => a.shipment.status === 'DELIVERED' && a.shipment.codTransaction?.status === 'COLLECTED')
-          .reduce((sum, a) => sum + (a.shipment.codAmount || 0), 0);
-
-        return { ...d, heldCod, isBlocked: heldCod >= 10000000 };
-      })
-    );
-
-    // === MATCHING STRATEGY ===
-    // === MATCHING STRATEGY (Chuẩn Logistics Sàn TMĐT) ===
-    // 1. Sắp xếp ưu tiên: Shipper nội thành (Xe máy/Van) trước Xe tải đường dài (TRUCK)
-    // 2. Ưu tiên khớp chính xác Quận/Huyện (assignedDistrict / operatingArea)
-    // 3. Sau đó khớp Tỉnh/Thành (assignedProvince / hub.province)
-    // 4. Cân bằng tải cho tài xế có ít đơn đang nhận nhất
-
     let matchedDriver: any = null;
 
-    const eligible = activeDrivers.filter((d) => !d.isBlocked);
-    if (eligible.length > 0) {
-      // Đếm số đơn đang xử lý của từng tài xế để cân bằng tải
-      const driversWithLoad = await Promise.all(
-        eligible.map(async (d) => {
-          const activeCount = await this.prisma.deliveryAssignment.count({
-            where: {
-              driverId: d.id,
-              status: { in: ['ASSIGNED', 'IN_PROGRESS'] },
-            },
-          });
-          return { ...d, activeCount };
-        }),
-      );
+    if (allDrivers.length > 0) {
+      const allDriverIds = allDrivers.map((d) => d.id);
 
-      // Sắp xếp: Ưu tiên xe máy/van (vehicleType != 'TRUCK') lên trước, sau đó sắp theo số đơn active tăng dần
-      const sortedDrivers = driversWithLoad.sort((a, b) => {
-        const aIsTruck = a.vehicleType === 'TRUCK' ? 1 : 0;
-        const bIsTruck = b.vehicleType === 'TRUCK' ? 1 : 0;
-        if (aIsTruck !== bIsTruck) return aIsTruck - bIsTruck;
-        return a.activeCount - b.activeCount;
+      // 4.1.1. Tối ưu triệt để theo chuẩn Postgres Architect (data-n-plus-one.md):
+      // Gom toàn bộ N câu query tính Hạn Mức COD thành 1 câu truy vấn gộp duy nhất (Single Batch Query)
+      const heldCodRows: Array<{ driverId: string; heldCod: string | number }> = await this.prisma.$queryRaw`
+        SELECT 
+          a."driverId", 
+          COALESCE(SUM(s."codAmount"), 0) AS "heldCod"
+        FROM delivery."DeliveryAssignment" a
+        JOIN delivery."Shipment" s ON s.id = a."shipmentId"
+        JOIN delivery."CodTransaction" c ON c."shipmentId" = s.id
+        WHERE a."driverId" = ANY(${allDriverIds})
+          AND a.type = 'DELIVERY'
+          AND s.status = 'DELIVERED'
+          AND c.status = 'COLLECTED'
+        GROUP BY a."driverId"
+      `;
+
+      const heldCodMap = new Map<string, number>();
+      for (const row of heldCodRows) {
+        heldCodMap.set(row.driverId, Number(row.heldCod) || 0);
+      }
+
+      const activeDrivers = allDrivers.map((d) => {
+        const heldCod = heldCodMap.get(d.id) || 0;
+        return { ...d, heldCod, isBlocked: heldCod >= 10000000 };
       });
+
+      // === MATCHING STRATEGY (Chuẩn Logistics Sàn TMĐT) ===
+      // 1. Sắp xếp ưu tiên: Shipper nội thành (Xe máy/Van) trước Xe tải đường dài (TRUCK)
+      // 2. Ưu tiên khớp chính xác Quận/Huyện (assignedDistrict / operatingArea)
+      // 3. Sau đó khớp Tỉnh/Thành (assignedProvince / hub.province)
+      // 4. Cân bằng tải cho tài xế có ít đơn đang nhận nhất
+      const eligible = activeDrivers.filter((d) => !d.isBlocked);
+      if (eligible.length > 0) {
+        const eligibleDriverIds = eligible.map((d) => d.id);
+
+        // Tối ưu chuẩn data-n-plus-one.md: Gom toàn bộ N câu query đếm tải thành 1 câu GROUP BY duy nhất
+        const activeCountRows: Array<{ driverId: string; activeCount: string | number }> = await this.prisma.$queryRaw`
+          SELECT 
+            "driverId", 
+            COUNT(id)::int AS "activeCount"
+          FROM delivery."DeliveryAssignment"
+          WHERE "driverId" = ANY(${eligibleDriverIds})
+            AND status IN ('ASSIGNED', 'IN_PROGRESS')
+          GROUP BY "driverId"
+        `;
+
+        const activeCountMap = new Map<string, number>();
+        for (const row of activeCountRows) {
+          activeCountMap.set(row.driverId, Number(row.activeCount) || 0);
+        }
+
+        const driversWithLoad = eligible.map((d) => ({
+          ...d,
+          activeCount: activeCountMap.get(d.id) || 0,
+        }));
+
+        // Sắp xếp: Ưu tiên xe máy/van (vehicleType != 'TRUCK') lên trước, sau đó sắp theo số đơn active tăng dần
+        const sortedDrivers = driversWithLoad.sort((a, b) => {
+          const aIsTruck = a.vehicleType === 'TRUCK' ? 1 : 0;
+          const bIsTruck = b.vehicleType === 'TRUCK' ? 1 : 0;
+          if (aIsTruck !== bIsTruck) return aIsTruck - bIsTruck;
+          return a.activeCount - b.activeCount;
+        });
 
       // Priority 1: Khớp chính xác theo Quận/Huyện (district có cấu trúc)
       if (lowerDistrict) {
@@ -631,6 +653,7 @@ export class DeliveryService {
         });
       }
     }
+  }
 
     // NẾU KHÔNG CÓ TÀI XẾ ONLINE PHÙ HỢP TRONG KHU VỰC:
     // Tuyệt đối KHÔNG gán cho tài xế OFFLINE! Đơn hàng được đưa vào Hàng Đợi Bưu Cục (WAITING_PICKUP)
