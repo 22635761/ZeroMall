@@ -1044,6 +1044,7 @@ export namespace Prisma {
     refundEmail: string | null
     refundProofImages: string | null
     commissionRate: number | null
+    idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1075,6 +1076,7 @@ export namespace Prisma {
     refundEmail: string | null
     refundProofImages: string | null
     commissionRate: number | null
+    idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1106,6 +1108,7 @@ export namespace Prisma {
     refundEmail: number
     refundProofImages: number
     commissionRate: number
+    idempotencyKey: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -1157,6 +1160,7 @@ export namespace Prisma {
     refundEmail?: true
     refundProofImages?: true
     commissionRate?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1188,6 +1192,7 @@ export namespace Prisma {
     refundEmail?: true
     refundProofImages?: true
     commissionRate?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1219,6 +1224,7 @@ export namespace Prisma {
     refundEmail?: true
     refundProofImages?: true
     commissionRate?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1337,6 +1343,7 @@ export namespace Prisma {
     refundEmail: string | null
     refundProofImages: string | null
     commissionRate: number
+    idempotencyKey: string | null
     createdAt: Date
     updatedAt: Date
     _count: OrderCountAggregateOutputType | null
@@ -1387,6 +1394,7 @@ export namespace Prisma {
     refundEmail?: boolean
     refundProofImages?: boolean
     commissionRate?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     items?: boolean | Order$itemsArgs<ExtArgs>
@@ -1420,6 +1428,7 @@ export namespace Prisma {
     refundEmail?: boolean
     refundProofImages?: boolean
     commissionRate?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["order"]>
@@ -1451,6 +1460,7 @@ export namespace Prisma {
     refundEmail?: boolean
     refundProofImages?: boolean
     commissionRate?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["order"]>
@@ -1482,11 +1492,12 @@ export namespace Prisma {
     refundEmail?: boolean
     refundProofImages?: boolean
     commissionRate?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "invoiceNo" | "buyerId" | "buyerEmail" | "buyerName" | "buyerPhone" | "shippingAddress" | "totalAmount" | "shippingFee" | "paymentMethod" | "status" | "shopId" | "checkoutGroupId" | "shopDiscountAmount" | "platformDiscountAmount" | "shopVoucherCode" | "platformVoucherCode" | "appliedVoucherIds" | "ghnDistrictId" | "ghnWardCode" | "ghnOrderCode" | "refundReason" | "refundDescription" | "refundEmail" | "refundProofImages" | "commissionRate" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
+  export type OrderOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "invoiceNo" | "buyerId" | "buyerEmail" | "buyerName" | "buyerPhone" | "shippingAddress" | "totalAmount" | "shippingFee" | "paymentMethod" | "status" | "shopId" | "checkoutGroupId" | "shopDiscountAmount" | "platformDiscountAmount" | "shopVoucherCode" | "platformVoucherCode" | "appliedVoucherIds" | "ghnDistrictId" | "ghnWardCode" | "ghnOrderCode" | "refundReason" | "refundDescription" | "refundEmail" | "refundProofImages" | "commissionRate" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["order"]>
   export type OrderInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     items?: boolean | Order$itemsArgs<ExtArgs>
     _count?: boolean | OrderCountOutputTypeDefaultArgs<ExtArgs>
@@ -1526,6 +1537,7 @@ export namespace Prisma {
       refundEmail: string | null
       refundProofImages: string | null
       commissionRate: number
+      idempotencyKey: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["order"]>
@@ -1978,6 +1990,7 @@ export namespace Prisma {
     readonly refundEmail: FieldRef<"Order", 'String'>
     readonly refundProofImages: FieldRef<"Order", 'String'>
     readonly commissionRate: FieldRef<"Order", 'Float'>
+    readonly idempotencyKey: FieldRef<"Order", 'String'>
     readonly createdAt: FieldRef<"Order", 'DateTime'>
     readonly updatedAt: FieldRef<"Order", 'DateTime'>
   }
@@ -3643,6 +3656,7 @@ export namespace Prisma {
     refundEmail: 'refundEmail',
     refundProofImages: 'refundProofImages',
     commissionRate: 'commissionRate',
+    idempotencyKey: 'idempotencyKey',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -3785,6 +3799,7 @@ export namespace Prisma {
     refundEmail?: StringNullableFilter<"Order"> | string | null
     refundProofImages?: StringNullableFilter<"Order"> | string | null
     commissionRate?: FloatFilter<"Order"> | number
+    idempotencyKey?: StringNullableFilter<"Order"> | string | null
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
@@ -3817,6 +3832,7 @@ export namespace Prisma {
     refundEmail?: SortOrderInput | SortOrder
     refundProofImages?: SortOrderInput | SortOrder
     commissionRate?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     items?: OrderItemOrderByRelationAggregateInput
@@ -3824,6 +3840,7 @@ export namespace Prisma {
 
   export type OrderWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    idempotencyKey?: string
     AND?: OrderWhereInput | OrderWhereInput[]
     OR?: OrderWhereInput[]
     NOT?: OrderWhereInput | OrderWhereInput[]
@@ -3855,7 +3872,7 @@ export namespace Prisma {
     createdAt?: DateTimeFilter<"Order"> | Date | string
     updatedAt?: DateTimeFilter<"Order"> | Date | string
     items?: OrderItemListRelationFilter
-  }, "id">
+  }, "id" | "idempotencyKey">
 
   export type OrderOrderByWithAggregationInput = {
     id?: SortOrder
@@ -3884,6 +3901,7 @@ export namespace Prisma {
     refundEmail?: SortOrderInput | SortOrder
     refundProofImages?: SortOrderInput | SortOrder
     commissionRate?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: OrderCountOrderByAggregateInput
@@ -3923,6 +3941,7 @@ export namespace Prisma {
     refundEmail?: StringNullableWithAggregatesFilter<"Order"> | string | null
     refundProofImages?: StringNullableWithAggregatesFilter<"Order"> | string | null
     commissionRate?: FloatWithAggregatesFilter<"Order"> | number
+    idempotencyKey?: StringNullableWithAggregatesFilter<"Order"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Order"> | Date | string
   }
@@ -4041,6 +4060,7 @@ export namespace Prisma {
     refundEmail?: string | null
     refundProofImages?: string | null
     commissionRate?: number
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemCreateNestedManyWithoutOrderInput
@@ -4073,6 +4093,7 @@ export namespace Prisma {
     refundEmail?: string | null
     refundProofImages?: string | null
     commissionRate?: number
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     items?: OrderItemUncheckedCreateNestedManyWithoutOrderInput
@@ -4105,6 +4126,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUpdateManyWithoutOrderNestedInput
@@ -4137,6 +4159,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     items?: OrderItemUncheckedUpdateManyWithoutOrderNestedInput
@@ -4169,6 +4192,7 @@ export namespace Prisma {
     refundEmail?: string | null
     refundProofImages?: string | null
     commissionRate?: number
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -4200,6 +4224,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -4231,6 +4256,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -4437,6 +4463,7 @@ export namespace Prisma {
     refundEmail?: SortOrder
     refundProofImages?: SortOrder
     commissionRate?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4477,6 +4504,7 @@ export namespace Prisma {
     refundEmail?: SortOrder
     refundProofImages?: SortOrder
     commissionRate?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -4508,6 +4536,7 @@ export namespace Prisma {
     refundEmail?: SortOrder
     refundProofImages?: SortOrder
     commissionRate?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -5109,6 +5138,7 @@ export namespace Prisma {
     refundEmail?: string | null
     refundProofImages?: string | null
     commissionRate?: number
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -5140,6 +5170,7 @@ export namespace Prisma {
     refundEmail?: string | null
     refundProofImages?: string | null
     commissionRate?: number
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -5187,6 +5218,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -5218,6 +5250,7 @@ export namespace Prisma {
     refundEmail?: NullableStringFieldUpdateOperationsInput | string | null
     refundProofImages?: NullableStringFieldUpdateOperationsInput | string | null
     commissionRate?: FloatFieldUpdateOperationsInput | number
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }

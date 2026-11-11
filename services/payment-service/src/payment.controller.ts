@@ -61,14 +61,15 @@ export class PaymentController {
 
   @Post('withdraw')
   async createWithdrawRequest(
-    @Body() dto: { shopId: string; amount: number; bankName: string; bankAccount: string; accountName: string }
+    @Body() dto: { shopId: string; amount: number; bankName: string; bankAccount: string; accountName: string; idempotencyKey?: string }
   ) {
     return this.paymentService.createWithdrawRequest(
       dto.shopId,
       dto.amount,
       dto.bankName,
       dto.bankAccount,
-      dto.accountName
+      dto.accountName,
+      dto.idempotencyKey
     );
   }
 

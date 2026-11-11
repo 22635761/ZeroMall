@@ -728,6 +728,8 @@ export const CartPage: React.FC<CartPageProps> = ({
         effectiveOrderVoucher !== 'none' ? effectiveOrderVoucher.toUpperCase() : null
       ].filter(Boolean)
 
+      const clientCheckoutKey = `chk_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`
+
       const orderData = {
         buyerId: user?.id || 'guest-buyer-id',
         buyerEmail: user?.email || 'buyer@zeromall.com',
@@ -743,7 +745,9 @@ export const CartPage: React.FC<CartPageProps> = ({
         appliedVoucherIds: appliedVoucherIds.length > 0 ? JSON.stringify(appliedVoucherIds) : null,
         shopShippingFees: shopShippingFees,
         shopDiscounts: shopDiscounts,
-        items: orderItems
+        items: orderItems,
+        checkoutGroupId: clientCheckoutKey,
+        idempotencyKey: clientCheckoutKey
       }
 
       const response = await fetch(`${API_BASE_URL}/orders`, {

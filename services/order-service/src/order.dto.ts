@@ -29,6 +29,7 @@ export class CreateOrderDto {
   items: CreateOrderItemDto[];
   shopId?: string;
   checkoutGroupId?: string;
+  idempotencyKey?: string;
   shopShippingFees?: Record<string, number>;
   shopDiscounts?: Record<string, number>;
 }

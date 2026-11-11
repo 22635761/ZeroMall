@@ -124,7 +124,27 @@ export class OrderService implements OnModuleInit {
   }
 
   async createOrder(dto: CreateOrderDto) {
-    const checkoutGroupId = randomUUID();
+    const checkoutGroupId = dto.checkoutGroupId || dto.idempotencyKey || randomUUID();
+    const idempotencyBase = dto.idempotencyKey || dto.checkoutGroupId || null;
+
+    // 1. Kiểm tra Idempotency trước khi xử lý tồn kho / voucher (Idempotent Pre-Check)
+    if (idempotencyBase) {
+      const existingOrders = await this.prisma.order.findMany({
+        where: {
+          OR: [
+            { checkoutGroupId: checkoutGroupId },
+            { idempotencyKey: { startsWith: `${idempotencyBase}_` } },
+          ],
+        },
+        include: { items: true },
+      });
+      if (existingOrders.length > 0) {
+        console.log(
+          `[OrderService] Idempotent duplicate checkout detected for key "${idempotencyBase}". Returning existing ${existingOrders.length} orders.`,
+        );
+        return existingOrders;
+      }
+    }
 
     // Lấy tỉ lệ chiết khấu hiện tại từ payment-service và bảo lưu vào đơn hàng
     let commissionRate = 5;
@@ -223,6 +243,7 @@ export class OrderService implements OnModuleInit {
 
         const invoiceDateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
         const customInvoiceNo = `HD${invoiceDateStr}-${customOrderId.slice(-6).toUpperCase()}`;
+        const shopIdempotencyKey = idempotencyBase ? `${idempotencyBase}_${shopId}` : null;
 
         const order = await this.prisma.$transaction(async (tx) => {
           return await tx.order.create({
@@ -231,6 +252,7 @@ export class OrderService implements OnModuleInit {
               invoiceNo: customInvoiceNo,
               shopId: shopId,
               checkoutGroupId: checkoutGroupId,
+              idempotencyKey: shopIdempotencyKey,
               buyerId: dto.buyerId,
               buyerEmail: dto.buyerEmail,
               buyerName: dto.buyerName,
@@ -299,7 +321,7 @@ export class OrderService implements OnModuleInit {
         }
       }
       return createdOrders;
-    } catch (orderError) {
+    } catch (orderError: any) {
       console.error(
         '[OrderService] Order creation failed after stock deduction. Rolling back stock & vouchers...',
         orderError,
@@ -308,6 +330,31 @@ export class OrderService implements OnModuleInit {
       if (dto.appliedVoucherIds) {
         await this.rollbackVouchers(dto.appliedVoucherIds, checkoutGroupId, dto.buyerId);
       }
+
+      // Xử lý race condition đồng thời (Concurrent Idempotency Violation):
+      // Nếu là lỗi trùng Unique Constraint (uq_order_idempotency_key), lấy đơn hàng đã được nhánh thắng tạo và trả về
+      if (
+        orderError.code === 'P2002' ||
+        orderError.message?.includes('uq_order_idempotency_key') ||
+        orderError.message?.includes('idempotencyKey')
+      ) {
+        const winningOrders = await this.prisma.order.findMany({
+          where: {
+            OR: [
+              { checkoutGroupId: checkoutGroupId },
+              ...(idempotencyBase ? [{ idempotencyKey: { startsWith: `${idempotencyBase}_` } }] : []),
+            ],
+          },
+          include: { items: true },
+        });
+        if (winningOrders.length > 0) {
+          console.log(
+            `[OrderService] Concurrent duplicate order caught via unique constraint. Seamlessly returning ${winningOrders.length} winning orders.`,
+          );
+          return winningOrders;
+        }
+      }
+
       throw orderError;
     }
   }

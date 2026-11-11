@@ -141,16 +141,48 @@ export class PaymentService implements OnModuleInit {
   }
 
   async chargePayment(dto: ChargePaymentDto) {
-    // 1. Khởi tạo transaction ghi nhận thanh toán ở trạng thái PENDING
-    let txRecord = await this.prisma.transaction.create({
-      data: {
-        orderId: dto.orderId,
-        buyerId: dto.buyerId,
-        amount: dto.amount,
-        paymentMethod: dto.paymentMethod,
-        status: 'PENDING',
-      },
+    // 1. Kiểm tra xem giao dịch cho orderId này đã tồn tại chưa (Idempotent Check)
+    let txRecord = await this.prisma.transaction.findUnique({
+      where: { orderId: dto.orderId },
     });
+
+    if (txRecord) {
+      if (txRecord.status === 'SUCCESS') {
+        console.log(`[PaymentService] Order ${dto.orderId} already paid successfully (Idempotent response).`);
+        return txRecord;
+      }
+      // Nếu đã có record nhưng đang PENDING, tái sử dụng txRecord
+    } else {
+      try {
+        txRecord = await this.prisma.transaction.create({
+          data: {
+            orderId: dto.orderId,
+            buyerId: dto.buyerId,
+            amount: dto.amount,
+            paymentMethod: dto.paymentMethod,
+            status: 'PENDING',
+          },
+        });
+      } catch (createErr: any) {
+        // Nếu có 2 luồng đồng thời cố tạo transaction cho cùng 1 orderId
+        if (createErr.code === 'P2002' || createErr.message?.includes('orderId')) {
+          txRecord = await this.prisma.transaction.findUnique({
+            where: { orderId: dto.orderId },
+          });
+          if (txRecord && txRecord.status === 'SUCCESS') {
+            return txRecord;
+          }
+        } else {
+          throw createErr;
+        }
+      }
+    }
+
+    if (!txRecord) {
+      throw new BadRequestException('Không thể khởi tạo hoặc tìm thấy phiên thanh toán!');
+    }
+
+    const activeTxId = txRecord.id;
 
     try {
       if (dto.paymentMethod === 'cod') {
@@ -201,7 +233,7 @@ export class PaymentService implements OnModuleInit {
           });
 
           txRecord = await prismaTx.transaction.update({
-            where: { id: txRecord.id },
+            where: { id: activeTxId },
             data: {
               status: 'SUCCESS',
               providerTxId: `ZPAY-${randomUUID()}`,
@@ -466,63 +498,105 @@ export class PaymentService implements OnModuleInit {
     });
   }
 
-  async createWithdrawRequest(shopId: string, amount: number, bankName: string, bankAccount: string, accountName: string) {
+  async createWithdrawRequest(
+    shopId: string,
+    amount: number,
+    bankName: string,
+    bankAccount: string,
+    accountName: string,
+    idempotencyKey?: string,
+  ) {
     if (amount <= 0) {
       throw new BadRequestException('Số tiền rút phải lớn hơn 0!');
     }
 
+    // 1. Kiểm tra Idempotency trước khi trừ tiền ví
+    if (idempotencyKey) {
+      const existingReq = await this.prisma.withdrawRequest.findUnique({
+        where: { idempotencyKey },
+      });
+      if (existingReq) {
+        console.log(
+          `[PaymentService] Idempotent duplicate withdraw request detected for key "${idempotencyKey}". Returning existing request.`,
+        );
+        return existingReq;
+      }
+    }
+
     const wallet = await this.getWallet(shopId);
 
-    return this.prisma.$transaction(async (prismaTx) => {
-      // Khóa dòng ví cấp CSDL (Pessimistic Row Lock: SELECT ... FOR UPDATE)
-      const lockedWallets: any[] = await prismaTx.$queryRaw`
-        SELECT id, "buyerId", balance
-        FROM payment."Wallet"
-        WHERE "buyerId" = ${shopId}
-        FOR UPDATE
-      `;
+    try {
+      return await this.prisma.$transaction(async (prismaTx) => {
+        // Khóa dòng ví cấp CSDL (Pessimistic Row Lock: SELECT ... FOR UPDATE)
+        const lockedWallets: any[] = await prismaTx.$queryRaw`
+          SELECT id, "buyerId", balance
+          FROM payment."Wallet"
+          WHERE "buyerId" = ${shopId}
+          FOR UPDATE
+        `;
 
-      if (!lockedWallets || lockedWallets.length === 0) {
-        throw new BadRequestException('Không tìm thấy thông tin ví doanh thu!');
-      }
+        if (!lockedWallets || lockedWallets.length === 0) {
+          throw new BadRequestException('Không tìm thấy thông tin ví doanh thu!');
+        }
 
-      const currentWallet = lockedWallets[0];
-      if (currentWallet.balance < amount) {
-        throw new BadRequestException(
-          `Số dư ví doanh thu (${Number(currentWallet.balance).toLocaleString('vi-VN')}đ) không đủ để rút (${Number(amount).toLocaleString('vi-VN')}đ)!`
-        );
-      }
+        const currentWallet = lockedWallets[0];
+        if (currentWallet.balance < amount) {
+          throw new BadRequestException(
+            `Số dư ví doanh thu (${Number(currentWallet.balance).toLocaleString('vi-VN')}đ) không đủ để rút (${Number(amount).toLocaleString('vi-VN')}đ)!`
+          );
+        }
 
-      await prismaTx.$executeRaw`
-        UPDATE payment."Wallet"
-        SET balance = balance - ${amount},
-            "updatedAt" = NOW()
-        WHERE id = ${currentWallet.id}
-      `;
+        await prismaTx.$executeRaw`
+          UPDATE payment."Wallet"
+          SET balance = balance - ${amount},
+              "updatedAt" = NOW()
+          WHERE id = ${currentWallet.id}
+        `;
 
-      const request = await prismaTx.withdrawRequest.create({
-        data: {
-          shopId,
-          amount,
-          bankName,
-          bankAccount,
-          accountName,
-          status: 'PENDING',
-        },
+        const request = await prismaTx.withdrawRequest.create({
+          data: {
+            shopId,
+            amount,
+            bankName,
+            bankAccount,
+            accountName,
+            status: 'PENDING',
+            idempotencyKey: idempotencyKey || null,
+          },
+        });
+
+        await prismaTx.walletTransaction.create({
+          data: {
+            walletId: currentWallet.id,
+            amount,
+            type: 'WITHDRAW',
+            description: `Rút tiền về tài khoản ngân hàng ${bankName} (${bankAccount}) - Mã yêu cầu: ${request.id}`,
+            status: 'PENDING',
+          },
+        });
+
+        return request;
       });
-
-      await prismaTx.walletTransaction.create({
-        data: {
-          walletId: currentWallet.id,
-          amount,
-          type: 'WITHDRAW',
-          description: `Rút tiền về tài khoản ngân hàng ${bankName} (${bankAccount}) - Mã yêu cầu: ${request.id}`,
-          status: 'PENDING',
-        },
-      });
-
-      return request;
-    });
+    } catch (err: any) {
+      if (
+        err.code === 'P2002' ||
+        err.message?.includes('uq_withdraw_idempotency_key') ||
+        err.message?.includes('idempotencyKey')
+      ) {
+        if (idempotencyKey) {
+          const winningReq = await this.prisma.withdrawRequest.findUnique({
+            where: { idempotencyKey },
+          });
+          if (winningReq) {
+            console.log(
+              `[PaymentService] Concurrent duplicate withdraw caught via unique constraint. Returning winning request.`,
+            );
+            return winningReq;
+          }
+        }
+      }
+      throw err;
+    }
   }
 
   async approveWithdrawRequest(id: string, status: 'APPROVED' | 'REJECTED') {

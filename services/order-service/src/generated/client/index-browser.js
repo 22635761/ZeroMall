@@ -147,6 +147,7 @@ exports.Prisma.OrderScalarFieldEnum = {
   refundEmail: 'refundEmail',
   refundProofImages: 'refundProofImages',
   commissionRate: 'commissionRate',
+  idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

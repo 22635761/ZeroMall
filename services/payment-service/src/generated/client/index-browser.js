@@ -159,6 +159,7 @@ exports.Prisma.WithdrawRequestScalarFieldEnum = {
   bankAccount: 'bankAccount',
   accountName: 'accountName',
   status: 'status',
+  idempotencyKey: 'idempotencyKey',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

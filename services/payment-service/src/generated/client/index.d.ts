@@ -4714,6 +4714,7 @@ export namespace Prisma {
     bankAccount: string | null
     accountName: string | null
     status: string | null
+    idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4726,6 +4727,7 @@ export namespace Prisma {
     bankAccount: string | null
     accountName: string | null
     status: string | null
+    idempotencyKey: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -4738,6 +4740,7 @@ export namespace Prisma {
     bankAccount: number
     accountName: number
     status: number
+    idempotencyKey: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -4760,6 +4763,7 @@ export namespace Prisma {
     bankAccount?: true
     accountName?: true
     status?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4772,6 +4776,7 @@ export namespace Prisma {
     bankAccount?: true
     accountName?: true
     status?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -4784,6 +4789,7 @@ export namespace Prisma {
     bankAccount?: true
     accountName?: true
     status?: true
+    idempotencyKey?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -4883,6 +4889,7 @@ export namespace Prisma {
     bankAccount: string
     accountName: string
     status: string
+    idempotencyKey: string | null
     createdAt: Date
     updatedAt: Date
     _count: WithdrawRequestCountAggregateOutputType | null
@@ -4914,6 +4921,7 @@ export namespace Prisma {
     bankAccount?: boolean
     accountName?: boolean
     status?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["withdrawRequest"]>
@@ -4926,6 +4934,7 @@ export namespace Prisma {
     bankAccount?: boolean
     accountName?: boolean
     status?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["withdrawRequest"]>
@@ -4938,6 +4947,7 @@ export namespace Prisma {
     bankAccount?: boolean
     accountName?: boolean
     status?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["withdrawRequest"]>
@@ -4950,11 +4960,12 @@ export namespace Prisma {
     bankAccount?: boolean
     accountName?: boolean
     status?: boolean
+    idempotencyKey?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type WithdrawRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "amount" | "bankName" | "bankAccount" | "accountName" | "status" | "createdAt" | "updatedAt", ExtArgs["result"]["withdrawRequest"]>
+  export type WithdrawRequestOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "shopId" | "amount" | "bankName" | "bankAccount" | "accountName" | "status" | "idempotencyKey" | "createdAt" | "updatedAt", ExtArgs["result"]["withdrawRequest"]>
 
   export type $WithdrawRequestPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     name: "WithdrawRequest"
@@ -4967,6 +4978,7 @@ export namespace Prisma {
       bankAccount: string
       accountName: string
       status: string
+      idempotencyKey: string | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["withdrawRequest"]>
@@ -5399,6 +5411,7 @@ export namespace Prisma {
     readonly bankAccount: FieldRef<"WithdrawRequest", 'String'>
     readonly accountName: FieldRef<"WithdrawRequest", 'String'>
     readonly status: FieldRef<"WithdrawRequest", 'String'>
+    readonly idempotencyKey: FieldRef<"WithdrawRequest", 'String'>
     readonly createdAt: FieldRef<"WithdrawRequest", 'DateTime'>
     readonly updatedAt: FieldRef<"WithdrawRequest", 'DateTime'>
   }
@@ -7885,6 +7898,7 @@ export namespace Prisma {
     bankAccount: 'bankAccount',
     accountName: 'accountName',
     status: 'status',
+    idempotencyKey: 'idempotencyKey',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -8217,6 +8231,7 @@ export namespace Prisma {
     bankAccount?: StringFilter<"WithdrawRequest"> | string
     accountName?: StringFilter<"WithdrawRequest"> | string
     status?: StringFilter<"WithdrawRequest"> | string
+    idempotencyKey?: StringNullableFilter<"WithdrawRequest"> | string | null
     createdAt?: DateTimeFilter<"WithdrawRequest"> | Date | string
     updatedAt?: DateTimeFilter<"WithdrawRequest"> | Date | string
   }
@@ -8229,12 +8244,14 @@ export namespace Prisma {
     bankAccount?: SortOrder
     accountName?: SortOrder
     status?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
   export type WithdrawRequestWhereUniqueInput = Prisma.AtLeast<{
     id?: string
+    idempotencyKey?: string
     AND?: WithdrawRequestWhereInput | WithdrawRequestWhereInput[]
     OR?: WithdrawRequestWhereInput[]
     NOT?: WithdrawRequestWhereInput | WithdrawRequestWhereInput[]
@@ -8246,7 +8263,7 @@ export namespace Prisma {
     status?: StringFilter<"WithdrawRequest"> | string
     createdAt?: DateTimeFilter<"WithdrawRequest"> | Date | string
     updatedAt?: DateTimeFilter<"WithdrawRequest"> | Date | string
-  }, "id">
+  }, "id" | "idempotencyKey">
 
   export type WithdrawRequestOrderByWithAggregationInput = {
     id?: SortOrder
@@ -8256,6 +8273,7 @@ export namespace Prisma {
     bankAccount?: SortOrder
     accountName?: SortOrder
     status?: SortOrder
+    idempotencyKey?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: WithdrawRequestCountOrderByAggregateInput
@@ -8276,6 +8294,7 @@ export namespace Prisma {
     bankAccount?: StringWithAggregatesFilter<"WithdrawRequest"> | string
     accountName?: StringWithAggregatesFilter<"WithdrawRequest"> | string
     status?: StringWithAggregatesFilter<"WithdrawRequest"> | string
+    idempotencyKey?: StringNullableWithAggregatesFilter<"WithdrawRequest"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"WithdrawRequest"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"WithdrawRequest"> | Date | string
   }
@@ -8620,6 +8639,7 @@ export namespace Prisma {
     bankAccount: string
     accountName: string
     status?: string
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8632,6 +8652,7 @@ export namespace Prisma {
     bankAccount: string
     accountName: string
     status?: string
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8644,6 +8665,7 @@ export namespace Prisma {
     bankAccount?: StringFieldUpdateOperationsInput | string
     accountName?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8656,6 +8678,7 @@ export namespace Prisma {
     bankAccount?: StringFieldUpdateOperationsInput | string
     accountName?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8668,6 +8691,7 @@ export namespace Prisma {
     bankAccount: string
     accountName: string
     status?: string
+    idempotencyKey?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -8680,6 +8704,7 @@ export namespace Prisma {
     bankAccount?: StringFieldUpdateOperationsInput | string
     accountName?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -8692,6 +8717,7 @@ export namespace Prisma {
     bankAccount?: StringFieldUpdateOperationsInput | string
     accountName?: StringFieldUpdateOperationsInput | string
     status?: StringFieldUpdateOperationsInput | string
+    idempotencyKey?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -9080,6 +9106,7 @@ export namespace Prisma {
     bankAccount?: SortOrder
     accountName?: SortOrder
     status?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9096,6 +9123,7 @@ export namespace Prisma {
     bankAccount?: SortOrder
     accountName?: SortOrder
     status?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -9108,6 +9136,7 @@ export namespace Prisma {
     bankAccount?: SortOrder
     accountName?: SortOrder
     status?: SortOrder
+    idempotencyKey?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }

@@ -43,15 +43,16 @@ model WalletTransaction {
 }
 
 model WithdrawRequest {
-  id          String   @id @default(uuid())
-  shopId      String
-  amount      Float
-  bankName    String
-  bankAccount String
-  accountName String
-  status      String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id             String   @id @default(uuid())
+  shopId         String
+  amount         Float
+  bankName       String
+  bankAccount    String
+  accountName    String
+  status         String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  idempotencyKey String?  @unique // Khóa chống nhân đôi yêu cầu rút tiền
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
   @@index([shopId, status])
 }

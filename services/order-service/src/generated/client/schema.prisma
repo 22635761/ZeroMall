@@ -34,6 +34,7 @@ model Order {
   refundEmail            String?
   refundProofImages      String?
   commissionRate         Float       @default(5) // Tỷ lệ chiết khấu bảo lưu tại thời điểm đặt hàng
+  idempotencyKey         String?     @unique // Khóa chống nhân đôi đơn hàng (Idempotency Key)
   createdAt              DateTime    @default(now())
   updatedAt              DateTime    @updatedAt
   items                  OrderItem[]
