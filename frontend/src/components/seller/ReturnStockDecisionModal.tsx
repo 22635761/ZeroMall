@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { returnService, type ReturnData } from '../../services/return.service';
+import { uploadReturnEvidence } from '../../services/supabase-storage.service';
 
 interface ReturnStockDecisionModalProps {
   returnData: ReturnData;
@@ -28,20 +29,8 @@ export const ReturnStockDecisionModal: React.FC<ReturnStockDecisionModalProps> =
 
     setUploading(true);
     try {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dz209s6jk';
-      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'zeromall_preset';
-
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('upload_preset', uploadPreset);
-
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      });
-      if (!res.ok) throw new Error('Tải ảnh/video thất bại');
-      const data = await res.json();
-      setEvidenceUrl(data.secure_url);
+      const url = await uploadReturnEvidence(file, returnData.id, returnData.sellerId);
+      setEvidenceUrl(url);
     } catch (err: any) {
       alert(err.message || 'Lỗi tải tệp minh chứng');
     } finally {

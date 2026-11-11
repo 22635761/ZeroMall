@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react'
 import type { Order } from '../../models/order.model'
+import { uploadProductImage, uploadReturnEvidence } from '../../services/supabase-storage.service'
 
 interface ReviewModalProps {
   isOpen: boolean
@@ -24,7 +25,7 @@ interface UploadedMedia {
 
 const STAR_LABELS = ['', 'Tệ', 'Không hài lòng', 'Bình thường', 'Hài lòng', 'Tuyệt vời']
 
-export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, order, onClose, onSubmit }) => {
+export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, order, user, onClose, onSubmit }) => {
   const [rating, setRating] = useState(5)
   const [hoverRating, setHoverRating] = useState(0)
   const [comment, setComment] = useState('')
@@ -37,9 +38,6 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, order, onClose
 
   if (!isOpen) return null
 
-  const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-  const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files
     if (!files || files.length === 0) return
@@ -50,42 +48,21 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({ isOpen, order, onClose
     for (let i = 0; i < files.length; i++) {
       const file = files[i]
       const isVideo = file.type.startsWith('video/')
-      const endpoint = isVideo
-        ? `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`
-        : `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`
 
       try {
-        const result = await new Promise<string>((resolve, reject) => {
-          const formData = new FormData()
-          formData.append('file', file)
-          formData.append('upload_preset', uploadPreset)
-
-          const xhr = new XMLHttpRequest()
-          xhr.open('POST', endpoint)
-
-          xhr.upload.onprogress = (event) => {
-            if (event.lengthComputable) {
-              setUploadProgress(Math.round((event.loaded / event.total) * 100))
-            }
-          }
-
-          xhr.onload = () => {
-            if (xhr.status === 200) {
-              const data = JSON.parse(xhr.responseText)
-              resolve(data.secure_url)
-            } else {
-              reject(new Error(`Upload failed: ${xhr.status}`))
-            }
-          }
-
-          xhr.onerror = () => reject(new Error('Upload error'))
-          xhr.send(formData)
-        })
+        let result = ''
+        if (isVideo) {
+          result = await uploadReturnEvidence(file, `review-${order.id}`, user?.id)
+        } else {
+          result = await uploadProductImage(file, 'reviews', {
+            onProgress: (p) => setUploadProgress(p),
+          })
+        }
 
         newMedia.push({
           url: result,
           type: isVideo ? 'video' : 'image',
-          name: file.name
+          name: file.name,
         })
       } catch (err) {
         console.error('Upload error:', err)

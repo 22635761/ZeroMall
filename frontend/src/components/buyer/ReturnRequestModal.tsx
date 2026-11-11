@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { returnService } from '../../services/return.service';
+import { uploadReturnEvidence } from '../../services/supabase-storage.service';
 
 interface OrderItem {
   id: string;
@@ -113,22 +114,9 @@ export const ReturnRequestModal: React.FC<ReturnRequestModalProps> = ({
 
     setUploadingImage(true);
     try {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dz209s6jk';
-      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'zeromall_preset';
-
-      const uploadPromises = Array.from(files).map(async (file) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('upload_preset', uploadPreset);
-
-        const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-          method: 'POST',
-          body: formData,
-        });
-        if (!res.ok) throw new Error('Tải ảnh lên thất bại');
-        const data = await res.json();
-        return data.secure_url;
-      });
+      const uploadPromises = Array.from(files).map((file) =>
+        uploadReturnEvidence(file, order.id, order.buyerId)
+      );
 
       const uploadedUrls = await Promise.all(uploadPromises);
       setEvidenceUrls((prev) => [...prev, ...uploadedUrls].slice(0, 5));

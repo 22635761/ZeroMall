@@ -8,6 +8,7 @@ import { AddProductOtherTab } from './add-product/AddProductOtherTab'
 import { findProhibitedKeyword } from '../../utils/bannedWords'
 import { moderateContentWithAI, type AiModerationResponse } from '../../services/ai-moderation.service'
 import { auditProductCategory, type AuditCategoryResult } from '../../services/ai-category-auditor.service'
+import { uploadProductImage, uploadReturnEvidence } from '../../services/supabase-storage.service'
 
 interface AddProductFormProps {
   onSuccess: (product?: any) => void
@@ -337,61 +338,22 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
         return [...prev, newImage]
       })
 
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-      const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
-      if (cloudName && uploadPreset) {
-        const formData = new FormData()
-        formData.append('file', file)
-        formData.append('upload_preset', uploadPreset)
-
-        const xhr = new XMLHttpRequest()
-        xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`)
-
-        xhr.upload.onprogress = (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100)
-            setImages((prev) =>
-              prev.map((img) => (img.id === id ? { ...img, progress: percent } : img))
-            )
-          }
-        }
-
-        xhr.onload = () => {
-          if (xhr.status === 200) {
-            const res = JSON.parse(xhr.responseText)
-            setImages((prev) =>
-              prev.map((img) => (img.id === id ? { ...img, url: res.secure_url, progress: 100 } : img))
-            )
-          } else {
-            alert(`Lỗi upload ảnh ${file.name} lên Cloudinary`)
-            setImages((prev) => prev.filter((img) => img.id !== id))
-          }
-        }
-
-        xhr.onerror = () => {
-          alert(`Lỗi kết nối khi upload ảnh ${file.name}`)
+      uploadProductImage(file, shopDetails?.id || 'shop', {
+        onProgress: (percent) => {
+          setImages((prev) =>
+            prev.map((img) => (img.id === id ? { ...img, progress: percent } : img))
+          )
+        },
+      })
+        .then((url) => {
+          setImages((prev) =>
+            prev.map((img) => (img.id === id ? { ...img, url, progress: 100 } : img))
+          )
+        })
+        .catch((err) => {
+          alert(`Lỗi upload ảnh ${file.name}: ${err.message}`)
           setImages((prev) => prev.filter((img) => img.id !== id))
-        }
-
-        xhr.send(formData)
-      } else {
-        const fakeUrl = URL.createObjectURL(file)
-        let prog = 0
-        const interval = setInterval(() => {
-          prog += 25
-          if (prog >= 100) {
-            clearInterval(interval)
-            setImages((prev) =>
-              prev.map((img) => (img.id === id ? { ...img, url: fakeUrl, progress: 100 } : img))
-            )
-          } else {
-            setImages((prev) =>
-              prev.map((img) => (img.id === id ? { ...img, progress: prog } : img))
-            )
-          }
-        }, 150)
-      }
+        })
     })
   }
 
@@ -423,53 +385,15 @@ export const AddProductForm: React.FC<AddProductFormProps> = ({ onSuccess, onCan
       return
     }
 
-    setVideoFile({ file, url: '', progress: 10, error: null })
+    setVideoFile({ file, url: '', progress: 20, error: null })
 
-    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME
-    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET
-
-    if (cloudName && uploadPreset) {
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('upload_preset', uploadPreset)
-
-      const xhr = new XMLHttpRequest()
-      xhr.open('POST', `https://api.cloudinary.com/v1_1/${cloudName}/video/upload`)
-
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.round((event.loaded / event.total) * 100)
-          setVideoFile((prev) => ({ ...prev, progress: percent }))
-        }
-      }
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const res = JSON.parse(xhr.responseText)
-          setVideoFile({ file, url: res.secure_url, progress: 100, error: null })
-        } else {
-          setVideoFile({ file: null, url: '', progress: 0, error: 'Lỗi upload video lên Cloudinary' })
-        }
-      }
-
-      xhr.onerror = () => {
-        setVideoFile({ file: null, url: '', progress: 0, error: 'Lỗi kết nối khi upload video' })
-      }
-
-      xhr.send(formData)
-    } else {
-      const fakeUrl = URL.createObjectURL(file)
-      let prog = 10
-      const interval = setInterval(() => {
-        prog += 30
-        if (prog >= 100) {
-          clearInterval(interval)
-          setVideoFile({ file, url: fakeUrl, progress: 100, error: null })
-        } else {
-          setVideoFile((prev) => ({ ...prev, progress: prog }))
-        }
-      }, 300)
-    }
+    uploadReturnEvidence(file, `video-${shopDetails?.id || 'shop'}`)
+      .then((url) => {
+        setVideoFile({ file, url, progress: 100, error: null })
+      })
+      .catch((err) => {
+        setVideoFile({ file: null, url: '', progress: 0, error: err.message || 'Lỗi upload video' })
+      })
   }
 
   const removeVideo = () => {

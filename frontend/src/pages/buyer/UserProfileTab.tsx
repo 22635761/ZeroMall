@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { API_BASE_URL } from '../../config/api.config'
+import { uploadProductImage } from '../../services/supabase-storage.service'
 
 interface UserProfileTabProps {
   user: any
@@ -46,25 +47,13 @@ export const UserProfileTab: React.FC<UserProfileTabProps> = ({ user, onAuthSucc
     setUploading(true)
     setMessage(null)
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('upload_preset', import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET || 'zeromall_unsigned')
-
     try {
-      const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME || 'dxkfusgxs'
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: formData,
-      })
-
-      if (!response.ok) throw new Error('Upload failed')
-
-      const data = await response.json()
-      setAvatar(data.secure_url)
-      setMessage({ text: 'Tải ảnh lên Cloudinary thành công!', type: 'success' })
-    } catch (err) {
+      const url = await uploadProductImage(file, 'avatars')
+      setAvatar(url)
+      setMessage({ text: 'Tải ảnh đại diện thành công!', type: 'success' })
+    } catch (err: any) {
       console.error(err)
-      setMessage({ text: 'Có lỗi xảy ra khi tải ảnh lên Cloudinary.', type: 'error' })
+      setMessage({ text: err.message || 'Có lỗi xảy ra khi tải ảnh lên.', type: 'error' })
     } finally {
       setUploading(false)
     }
