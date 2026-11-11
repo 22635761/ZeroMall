@@ -38,6 +38,8 @@ model WalletTransaction {
   description String
   status      String   @default("SUCCESS") // "PENDING" | "SUCCESS" | "FAILED"
   createdAt   DateTime @default(now())
+
+  @@index([walletId, createdAt])
 }
 
 model WithdrawRequest {
@@ -50,6 +52,8 @@ model WithdrawRequest {
   status      String   @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  @@index([shopId, status])
 }
 
 model SystemConfig {
@@ -69,4 +73,5 @@ model EscrowTransaction {
   updatedAt      DateTime @updatedAt
 
   @@unique([orderId, shopId])
+  @@index([shopId, status])
 }

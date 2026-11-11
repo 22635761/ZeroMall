@@ -45,6 +45,12 @@ model Product {
   flashSaleItems  FlashSaleItem[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  @@index([shopId, createdAt])
+  @@index([sales, createdAt])
+  @@index([categoryId])
+  @@index([price])
+  @@index([status])
 }
 
 model PriceHistory {
@@ -59,6 +65,8 @@ model PriceHistory {
   changedByRole String   @default("SELLER") // "SELLER" | "ADMIN"
   reason        String?  // Lý do điều chỉnh giá
   createdAt     DateTime @default(now())
+
+  @@index([productId, createdAt])
 }
 
 model CostPriceHistory {
@@ -74,6 +82,8 @@ model CostPriceHistory {
   importedBy  String   // Người thực hiện nhập hàng
   importDate  DateTime @default(now()) // Ngày lập hóa đơn/nhập hàng
   createdAt   DateTime @default(now())
+
+  @@index([productId, importDate])
 }
 
 model Review {
@@ -87,6 +97,9 @@ model Review {
   images    String?  @db.Text // JSON array các URL ảnh/video Cloudinary
   reply     String?  // Phản hồi của người bán (nếu có)
   createdAt DateTime @default(now())
+
+  @@index([productId, createdAt])
+  @@index([orderId])
 }
 
 model ProductLike {

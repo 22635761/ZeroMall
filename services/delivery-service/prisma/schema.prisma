@@ -146,6 +146,9 @@ model DeliveryAssignment {
   proofImage  String?
   assignedAt  DateTime  @default(now())
   completedAt DateTime?
+
+  @@index([driverId, status])
+  @@index([shipmentId])
 }
 
 // 7. LỊCH SỬ HÀNH TRÌNH VẬN ĐƠN (SHIPMENT TRACKING)
@@ -214,6 +217,8 @@ model CodTransaction {
   collectedAt     DateTime?
   settledAt       DateTime?
   createdAt       DateTime  @default(now())
+
+  @@index([sellerId, status])
 }
 
 // 11. ĐỐI SOÁT SELLER (SETTLEMENT)
@@ -231,6 +236,8 @@ model Settlement {
   status        String    @default("PENDING") // PENDING, APPROVED, SETTLED, REJECTED
   settledAt     DateTime?
   createdAt     DateTime  @default(now())
+
+  @@index([sellerId, createdAt])
 }
 
 // 12. HOÀN HÀNG & TRẢ HÀNG / HOÀN TIỀN (RETURNS & REFUNDS)
