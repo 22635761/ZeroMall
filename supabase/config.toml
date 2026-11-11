@@ -1,0 +1,20 @@
+# Supabase Configuration for ZeroMall Marketplace & Logistics Ecosystem
+[project]
+id = "zeromall-enterprise"
+name = "ZeroMall"
+
+[api]
+port = 54321
+schemas = ["public", "storage", "order", "delivery", "payment", "product", "discount", "auth"]
+
+[storage]
+file_size_limit = "50MiB"
+
+[realtime]
+enabled = true
+
+[functions.payment-webhook]
+verify_jwt = false # Webhooks từ cổng thanh toán bên thứ ba (SePay / Ngân hàng) tự xác thực qua API Key / Signature
+
+[functions.cskh-dispute-settle]
+verify_jwt = true # Bắt buộc xác thực JWT CSKH / Admin
