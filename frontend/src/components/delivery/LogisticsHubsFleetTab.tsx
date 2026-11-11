@@ -37,6 +37,21 @@ interface LogisticsHubsFleetTabProps {
   initialSubView?: 'HUBS' | 'DRIVERS'
 }
 
+// Helper phân loại Hub vào Cụm Mega SOC chủ quản theo địa lý chuẩn TMĐT
+export const getParentSoc = (hub: { province?: string; code?: string }) => {
+  const p = (hub.province || '').toLowerCase()
+  if (p.includes('hồ chí minh') || p.includes('đồng nai') || p.includes('bình dương')) {
+    return { id: 'hub-hcm-01', code: 'HCM01', name: 'Trung Tâm Phân Loại Bắc Củ Chi SOC', shortName: 'Bắc Củ Chi SOC', region: 'Khu Vực Nam Bộ' }
+  }
+  if (p.includes('hà nội') || p.includes('hoà bình') || p.includes('hòa bình') || p.includes('bắc ninh')) {
+    return { id: 'hub-hn-01', code: 'HN01', name: 'Trung Tâm Phân Loại Mê Linh SOC', shortName: 'Mê Linh SOC', region: 'Khu Vực Miền Bắc' }
+  }
+  if (p.includes('đà nẵng') || p.includes('quảng nam') || p.includes('huế')) {
+    return { id: 'hub-dng-soc', code: 'DNG01', name: 'Trung Tâm Phân Loại Hòa Cầm SOC', shortName: 'Hòa Cầm SOC', region: 'Khu Vực Miền Trung' }
+  }
+  return { id: 'hub-ct-soc', code: 'CT01', name: 'Trung Tâm Phân Loại Trà Nóc SOC', shortName: 'Trà Nóc SOC', region: 'Khu Vực Tây Nam Bộ' }
+}
+
 export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
   triggerAuditLog,
   initialSubView = 'HUBS'
@@ -49,7 +64,18 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
   const [loading, setLoading] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [provinceFilter, setProvinceFilter] = useState('ALL')
-  const [selectedHubFilter, setSelectedHubFilter] = useState('ALL')
+  const [selectedHubFilter, setSelectedHubFilter] = useState<string>(() => {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    return params?.get('hub') || 'ALL'
+  })
+  const [selectedSocId, setSelectedSocId] = useState<string>(() => {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    return params?.get('soc') || 'ALL'
+  })
+  const [driverViewMode, setDriverViewMode] = useState<'TABLE' | 'TREE'>(() => {
+    const params = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+    return params?.get('dview') === 'TREE' ? 'TREE' : 'TABLE'
+  })
 
   // Modals state
   const [isHubModalOpen, setIsHubModalOpen] = useState(false)
@@ -118,8 +144,22 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
   const vanDrivers = allDrivers.filter(d => d.vehicleType === 'VAN')
   const truckDrivers = allDrivers.filter(d => d.vehicleType === 'TRUCK')
   const lastMileShippers = allDrivers.filter(d => d.vehicleType !== 'TRUCK')
-  const totalSocCount = hubs.filter(h => h.type === 'SORTING_CENTER').length
-  const totalDeliveryHubCount = hubs.filter(h => h.type !== 'SORTING_CENTER').length
+  const megaSocs = hubs.filter(h => h.type === 'SORTING_CENTER')
+  const destHubs = hubs.filter(h => h.type !== 'SORTING_CENTER')
+  const totalSocCount = megaSocs.length
+  const totalDeliveryHubCount = destHubs.length
+
+  // Danh sách các Hub con tương ứng với Cụm Mega SOC đang chọn
+  const activeChildHubs = selectedSocId === 'ALL'
+    ? destHubs
+    : destHubs.filter(h => getParentSoc(h).id === selectedSocId)
+
+  const activeSocTruckDrivers = selectedSocId === 'ALL'
+    ? truckDrivers
+    : allDrivers.filter(d => d.hubId === selectedSocId && d.vehicleType === 'TRUCK')
+
+  const activeSelectedSoc = megaSocs.find(s => s.id === selectedSocId)
+  const activeSelectedHub = hubs.find(h => h.id === selectedHubFilter)
 
   // Filtered hubs
   const filteredHubs = hubs.filter(h => {
@@ -137,7 +177,7 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
     return matchesSearch && matchesProvince && matchesType
   })
 
-  // Filtered drivers
+  // Filtered drivers with 2-Tier Hierarchy (SOC ➔ Hub)
   const filteredDrivers = allDrivers.filter(d => {
     const query = searchQuery.toLowerCase().trim()
     const matchesSearch = !query ||
@@ -147,10 +187,32 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
       (d.hub?.name && d.hub.name.toLowerCase().includes(query)) ||
       (d.operatingArea && d.operatingArea.toLowerCase().includes(query))
 
-    const matchesHub = selectedHubFilter === 'ALL' || d.hubId === selectedHubFilter
+    // 1. Phân loại theo Mega SOC
+    let matchesSoc = true
+    if (selectedSocId !== 'ALL') {
+      const hubObj = hubs.find(h => h.id === d.hubId) || d.hub
+      if (hubObj) {
+        if (hubObj.type === 'SORTING_CENTER') {
+          matchesSoc = hubObj.id === selectedSocId
+        } else {
+          matchesSoc = getParentSoc(hubObj).id === selectedSocId
+        }
+      } else {
+        matchesSoc = false
+      }
+    }
+
+    // 2. Phân loại theo Bưu Cục Hub con
+    let matchesHub = true
+    if (selectedHubFilter === 'TRUCKS_ONLY') {
+      matchesHub = d.vehicleType === 'TRUCK'
+    } else if (selectedHubFilter !== 'ALL') {
+      matchesHub = d.hubId === selectedHubFilter
+    }
+
     const matchesVehicle = vehicleFilter === 'ALL' || d.vehicleType === vehicleFilter
 
-    return matchesSearch && matchesHub && matchesVehicle
+    return matchesSearch && matchesSoc && matchesHub && matchesVehicle
   })
 
   // Handle Delete Hub
@@ -506,7 +568,7 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
               </select>
             </div>
           ) : (
-            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+            <div className="flex flex-wrap items-center justify-between gap-2 w-full md:w-auto">
               {/* Vehicle Type Filter */}
               <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs">
                 <button
@@ -551,27 +613,233 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
                 </button>
               </div>
 
-              {/* Hub Direct Filter */}
-              <select
-                value={selectedHubFilter}
-                onChange={(e) => setSelectedHubFilter(e.target.value)}
-                className="px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 focus:outline-none focus:border-emerald-600 cursor-pointer font-medium"
-              >
-                <option value="ALL">Trực thuộc: Tất cả ({hubs.length} cơ sở)</option>
-                <optgroup label="🏭 Trung Tâm Phân Loại (SOC)">
-                  {hubs.filter(h => h.type === 'SORTING_CENTER').map(h => (
-                    <option key={h.id} value={h.id}>[{h.code}] {h.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="🏢 Bưu Cục Giao Hàng (Hub)">
-                  {hubs.filter(h => h.type !== 'SORTING_CENTER').map(h => (
-                    <option key={h.id} value={h.id}>[{h.code}] {h.name}</option>
-                  ))}
-                </optgroup>
-              </select>
+              {/* View Mode Switcher: TABLE vs TREE */}
+              <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs">
+                <button
+                  onClick={() => setDriverViewMode('TABLE')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    driverViewMode === 'TABLE'
+                      ? 'bg-slate-900 text-white shadow-3xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>📋</span> Bảng Lọc Thu Gọn
+                </button>
+                <button
+                  onClick={() => setDriverViewMode('TREE')}
+                  className={`px-3 py-1.5 rounded-lg font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    driverViewMode === 'TREE'
+                      ? 'bg-emerald-600 text-white shadow-3xs'
+                      : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  <span>🌳</span> Cây Phân Cấp SOC ➔ Hubs
+                </button>
+              </div>
             </div>
           )}
         </div>
+
+        {/* BỘ LỌC PHÂN CẤP 2 TẦNG (Cụm Mega SOC ➔ Bưu Cục Hubs ➔ Shippers) */}
+        {subView === 'DRIVERS' && (
+          <div className="bg-slate-50/80 border-b border-slate-200/80 p-4 space-y-3.5">
+            {/* TẦNG 1: CHỌN CỤM VÙNG MEGA SOC */}
+            <div className="space-y-1.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                <span className="font-black text-slate-800 flex items-center gap-1.5">
+                  <span>🏭</span> 1. Chọn Cụm Vùng Quản Lý (Mega SOC):
+                </span>
+                <span className="text-[11px] text-slate-500 font-medium">
+                  {selectedSocId === 'ALL'
+                    ? 'Đang hiển thị toàn quốc • Chọn 1 SOC để lọc các Hub con'
+                    : `Đang lọc: ${activeSelectedSoc?.name || 'Cụm SOC'}`}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => {
+                    setSelectedSocId('ALL')
+                    setSelectedHubFilter('ALL')
+                  }}
+                  className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                    selectedSocId === 'ALL'
+                      ? 'bg-slate-900 text-white shadow-3xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>🌐</span> Toàn Mạng Lưới ({allDrivers.length})
+                </button>
+
+                {megaSocs.map((soc) => {
+                  const socMeta = getParentSoc(soc)
+                  // Đếm tổng số tài xế thuộc cụm SOC này (cả xe tải SOC và các shipper thuộc Hub con)
+                  const socTotalDrivers = allDrivers.filter((d) => {
+                    if (d.hubId === soc.id) return true
+                    const dHub = hubs.find((h) => h.id === d.hubId) || d.hub
+                    return dHub && getParentSoc(dHub).id === soc.id
+                  })
+
+                  const isSelected = selectedSocId === soc.id
+
+                  return (
+                    <button
+                      key={soc.id}
+                      onClick={() => {
+                        setSelectedSocId(soc.id)
+                        setSelectedHubFilter('ALL')
+                      }}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-sky-600 text-white shadow-3xs'
+                          : 'bg-white text-slate-700 hover:bg-sky-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>🏭</span>
+                      <span>{socMeta.shortName}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600 font-mono'
+                      }`}>
+                        {socTotalDrivers.length}
+                      </span>
+                      <span className={`text-[10px] font-normal hidden lg:inline ${
+                        isSelected ? 'text-sky-100' : 'text-slate-400'
+                      }`}>
+                        ({socMeta.region})
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* TẦNG 2: CHỌN BƯU CỤC HUB THUỘC SOC ĐƯỢC CHỌN */}
+            <div className="space-y-1.5 pt-2 border-t border-slate-200/60">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                <span className="font-black text-slate-800 flex items-center gap-1.5">
+                  <span>🏢</span> 2. Chọn Bưu Cục Hub Để Xem Đội Ngũ Shipper Của Riêng Hub Đó:
+                </span>
+                <span className="text-[11px] text-emerald-700 font-bold">
+                  {selectedHubFilter !== 'ALL'
+                    ? `✓ Đã chọn: ${activeSelectedHub?.name || (selectedHubFilter === 'TRUCKS_ONLY' ? 'Xe Tải Linehaul SOC' : 'Bưu Cục')}`
+                    : 'Bấm vào một bưu cục để xem gọn danh sách'}
+                </span>
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSelectedHubFilter('ALL')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1 ${
+                    selectedHubFilter === 'ALL'
+                      ? 'bg-emerald-700 text-white shadow-3xs'
+                      : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
+                  }`}
+                >
+                  <span>Tất Cả Cơ Sở Của Cụm</span>
+                </button>
+
+                {activeChildHubs.map((hub) => {
+                  const hubDrivers = allDrivers.filter((d) => d.hubId === hub.id)
+                  const isSelected = selectedHubFilter === hub.id
+                  const cleanName = hub.name.replace('Bưu Cục Giao Hàng ', '').replace('Bưu Cục ', '')
+
+                  return (
+                    <button
+                      key={hub.id}
+                      onClick={() => setSelectedHubFilter(hub.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? 'bg-emerald-600 text-white shadow-3xs'
+                          : 'bg-white text-slate-700 hover:bg-emerald-50 border border-slate-200'
+                      }`}
+                    >
+                      <span>🏢</span>
+                      <span>{cleanName}</span>
+                      <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                        isSelected ? 'bg-white/20 text-white' : hubDrivers.length > 0 ? 'bg-emerald-50 text-emerald-800 font-bold' : 'bg-slate-100 text-slate-400'
+                      }`}>
+                        {hubDrivers.length}
+                      </span>
+                    </button>
+                  )
+                })}
+
+                {/* Nếu SOC có xe tải Linehaul */}
+                {selectedSocId !== 'ALL' && activeSocTruckDrivers.length > 0 && (
+                  <button
+                    onClick={() => setSelectedHubFilter('TRUCKS_ONLY')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer flex items-center gap-1.5 ${
+                      selectedHubFilter === 'TRUCKS_ONLY'
+                        ? 'bg-sky-600 text-white shadow-3xs'
+                        : 'bg-white text-sky-800 hover:bg-sky-50 border border-sky-200'
+                    }`}
+                  >
+                    <span>🚛</span>
+                    <span>Xe Tải Linehaul SOC</span>
+                    <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
+                      selectedHubFilter === 'TRUCKS_ONLY' ? 'bg-white/20 text-white' : 'bg-sky-100 text-sky-800 font-bold'
+                    }`}>
+                      {activeSocTruckDrivers.length}
+                    </span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ACTIVE HUB CONTEXT CARD (Hiện ra khi Admin chọn 1 Hub cụ thể) */}
+        {subView === 'DRIVERS' && selectedHubFilter !== 'ALL' && activeSelectedHub && (
+          <div className="p-4 bg-emerald-50/80 border-b border-emerald-200/90 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🏢</span>
+                <span className="font-black text-emerald-950 text-sm">{activeSelectedHub.name}</span>
+                <span className="px-1.5 py-0.5 bg-emerald-200/80 text-emerald-900 rounded font-mono text-[10px] font-bold">
+                  {activeSelectedHub.code}
+                </span>
+                <span className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded-md text-[10px] font-bold">
+                  Trực thuộc: {getParentSoc(activeSelectedHub).shortName}
+                </span>
+              </div>
+              <p className="text-[11px] text-emerald-900/80 leading-relaxed">
+                📍 {activeSelectedHub.address}, {activeSelectedHub.district}, {activeSelectedHub.province} • Đang hiển thị đúng <b>{filteredDrivers.length} nhân sự shipper</b> của riêng Hub này (không bị gom lẫn lộn).
+              </p>
+            </div>
+
+            <button
+              onClick={() => openAddDriverModal(activeSelectedHub, 'MOTORBIKE')}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-3xs cursor-pointer"
+            >
+              <span>➕</span> Tuyển Shipper Cho {activeSelectedHub.name.replace('Bưu Cục Giao Hàng ', '').replace('Bưu Cục ', '')}
+            </button>
+          </div>
+        )}
+
+        {/* ACTIVE SOC TRUCKS CONTEXT CARD */}
+        {subView === 'DRIVERS' && selectedHubFilter === 'TRUCKS_ONLY' && activeSelectedSoc && (
+          <div className="p-4 bg-sky-50/80 border-b border-sky-200/90 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2">
+                <span className="text-xl">🚛</span>
+                <span className="font-black text-sky-950 text-sm">Đội Xe Tải Tuyến Chính Linehaul • {activeSelectedSoc.name}</span>
+                <span className="px-1.5 py-0.5 bg-sky-200/80 text-sky-900 rounded font-mono text-[10px] font-bold">
+                  {activeSelectedSoc.code}
+                </span>
+              </div>
+              <p className="text-[11px] text-sky-900/80 leading-relaxed">
+                📍 {activeSelectedSoc.address}, {activeSelectedSoc.province} • Chạy tuyến vận chuyển đường dài liên tỉnh (8T - 20ft) • Đang hiển thị <b>{filteredDrivers.length} tài xế xe tải</b>.
+              </p>
+            </div>
+
+            <button
+              onClick={() => openAddDriverModal(activeSelectedSoc, 'TRUCK')}
+              className="px-3.5 py-1.5 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shrink-0 shadow-3xs cursor-pointer"
+            >
+              <span>➕</span> Tuyển Tài Xế Xe Tải Tuyến
+            </button>
+          </div>
+        )}
 
         {/* VIEW 1: BẢNG QUẢN LÝ BƯU CỤC & SOC */}
         {subView === 'HUBS' && (
@@ -744,8 +1012,8 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
           </div>
         )}
 
-        {/* VIEW 2: BẢNG QUẢN LÝ TOÀN BỘ TÀI XẾ & PHÂN BỔ THEO BƯU CỤC */}
-        {subView === 'DRIVERS' && (
+        {/* VIEW 2A: BẢNG QUẢN LÝ TÀI XẾ THEO BỘ LỌC PHÂN CẤP */}
+        {subView === 'DRIVERS' && driverViewMode === 'TABLE' && (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-700">
               <thead className="bg-slate-50 text-slate-500 font-bold uppercase text-[10px] border-b border-slate-200">
@@ -770,7 +1038,7 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
                 ) : filteredDrivers.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-12 text-center text-slate-400 font-medium">
-                      Không tìm thấy tài xế nào phù hợp với bộ lọc.
+                      Không tìm thấy tài xế nào thuộc cơ sở hoặc bộ lọc này.
                     </td>
                   </tr>
                 ) : (
@@ -870,6 +1138,193 @@ export const LogisticsHubsFleetTab: React.FC<LogisticsHubsFleetTabProps> = ({
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* VIEW 2B: CHẾ ĐỘ CÂY PHÂN CẤP TRỰC QUAN (SOC ➔ HUBS ➔ SHIPPERS TREE VIEW) */}
+        {subView === 'DRIVERS' && driverViewMode === 'TREE' && (
+          <div className="p-6 space-y-6 bg-slate-50/50">
+            {megaSocs
+              .filter((soc) => selectedSocId === 'ALL' || selectedSocId === soc.id)
+              .map((soc) => {
+                const socMeta = getParentSoc(soc)
+                const childHubs = destHubs.filter((h) => getParentSoc(h).id === soc.id)
+                const socTrucks = allDrivers.filter((d) => d.hubId === soc.id)
+                const totalClusterDrivers = allDrivers.filter((d) => {
+                  if (d.hubId === soc.id) return true
+                  const dHub = hubs.find((h) => h.id === d.hubId) || d.hub
+                  return dHub && getParentSoc(dHub).id === soc.id
+                })
+
+                return (
+                  <div key={soc.id} className="bg-white border border-slate-200/90 rounded-3xl p-5 shadow-xs space-y-4">
+                    {/* SOC Header */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-100 pb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-2xl bg-sky-50 border border-sky-200 flex items-center justify-center text-xl text-sky-700">
+                          🏭
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-black text-slate-900 text-base">{soc.name}</h4>
+                            <span className="px-2 py-0.5 bg-sky-100 text-sky-800 rounded font-mono text-[10px] font-bold">
+                              {soc.code}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500">
+                            {soc.address}, {soc.province} • {socMeta.region}
+                          </p>
+                        </div>
+                      </div>
+
+                      <span className="px-3 py-1 bg-sky-50 text-sky-700 border border-sky-200 rounded-full text-xs font-bold">
+                        {childHubs.length} Hubs Vệ Tinh • {totalClusterDrivers.length} Nhân Sự
+                      </span>
+                    </div>
+
+                    {/* Xe tải Tuyến Linehaul SOC */}
+                    {socTrucks.length > 0 && (
+                      <div className="bg-sky-50/40 border border-sky-100 rounded-2xl p-3.5 space-y-2">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-black text-sky-900 flex items-center gap-1.5">
+                            <span>🚛</span> Đội Xe Tải Tuyến Chính Linehaul ({socTrucks.length} tài xế):
+                          </span>
+                          <button
+                            onClick={() => openAddDriverModal(soc, 'TRUCK')}
+                            className="text-[11px] font-bold text-sky-700 hover:text-sky-900 cursor-pointer"
+                          >
+                            + Tuyển Thêm Xe Tải
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {socTrucks.map((driver) => (
+                            <div key={driver.id} className="bg-white border border-sky-200/80 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-3xs">
+                              <div className="flex items-center gap-2">
+                                <span className="w-8 h-8 rounded-lg bg-sky-100 text-sky-800 flex items-center justify-center text-sm">
+                                  🚛
+                                </span>
+                                <div>
+                                  <div className="font-bold text-slate-900 text-xs">{driver.name}</div>
+                                  <div className="text-[10px] text-slate-500 font-mono">
+                                    {driver.phone} • {driver.vehicleNumber}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => openEditDriverModal(driver)}
+                                  className="p-1.5 text-slate-400 hover:text-sky-700 text-xs cursor-pointer"
+                                  title="Sửa"
+                                >
+                                  ✏️
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteDriver(driver)}
+                                  className="p-1.5 text-slate-400 hover:text-rose-600 text-xs cursor-pointer"
+                                  title="Xóa"
+                                >
+                                  🗑️
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Lưới các Bưu Cục Hub con & Shipper */}
+                    <div className="space-y-2">
+                      <span className="text-xs font-black text-slate-700 uppercase tracking-wide block">
+                        Mạng Lưới Các Bưu Cục Giao Hàng Con ({childHubs.length} Hubs):
+                      </span>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {childHubs.map((hub) => {
+                          const hubDrivers = allDrivers.filter((d) => d.hubId === hub.id)
+
+                          return (
+                            <div key={hub.id} className="bg-slate-50/70 border border-slate-200 rounded-2xl p-3.5 space-y-2.5">
+                              <div className="flex items-center justify-between border-b border-slate-200/60 pb-2">
+                                <div className="space-y-0.5">
+                                  <div className="font-black text-slate-900 text-xs flex items-center gap-1.5">
+                                    <span>🏢</span>
+                                    <span>{hub.name}</span>
+                                    <span className="px-1.5 py-0.2 bg-white text-slate-600 rounded text-[9px] font-mono border border-slate-200">
+                                      {hub.code}
+                                    </span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-500">
+                                    {hub.district}, {hub.province}
+                                  </div>
+                                </div>
+
+                                <button
+                                  onClick={() => openAddDriverModal(hub, 'MOTORBIKE')}
+                                  className="px-2 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[10px] font-bold transition flex items-center gap-1 cursor-pointer"
+                                >
+                                  <span>➕</span> Tuyển
+                                </button>
+                              </div>
+
+                              {/* Danh sách Shipper của Hub này */}
+                              {hubDrivers.length === 0 ? (
+                                <div className="text-center py-3 text-[11px] text-slate-400 italic bg-white/60 rounded-xl border border-dashed border-slate-200">
+                                  Chưa có shipper gán vào bưu cục này.
+                                </div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {hubDrivers.map((driver) => (
+                                    <div
+                                      key={driver.id}
+                                      className="bg-white border border-slate-200/80 rounded-xl p-2.5 flex items-center justify-between text-xs shadow-3xs"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <span className="text-base">
+                                          {driver.vehicleType === 'VAN' ? '🚐' : driver.vehicleType === 'TRUCK' ? '🚛' : '🛵'}
+                                        </span>
+                                        <div>
+                                          <div className="font-bold text-slate-900 text-xs">{driver.name}</div>
+                                          <div className="text-[10px] text-slate-500 font-mono">
+                                            {driver.phone} • {driver.vehicleNumber}
+                                          </div>
+                                          <div className="text-[9px] text-slate-400 line-clamp-1">
+                                            {driver.operatingArea || 'Tuyến bưu cục phụ trách'}
+                                          </div>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1 shrink-0">
+                                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                          SẴN SÀNG
+                                        </span>
+                                        <button
+                                          onClick={() => openEditDriverModal(driver)}
+                                          className="p-1 text-slate-400 hover:text-sky-700 text-xs cursor-pointer"
+                                          title="Sửa"
+                                        >
+                                          ✏️
+                                        </button>
+                                        <button
+                                          onClick={() => handleDeleteDriver(driver)}
+                                          className="p-1 text-slate-400 hover:text-rose-600 text-xs cursor-pointer"
+                                          title="Xóa"
+                                        >
+                                          🗑️
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
           </div>
         )}
       </div>
