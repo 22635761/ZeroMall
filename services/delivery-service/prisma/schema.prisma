@@ -36,8 +36,8 @@ model Driver {
   phone            String
   vehicleType      String    @default("MOTORBIKE") // MOTORBIKE, VAN, TRUCK
   vehicleNumber    String
-  hubId            String
-  hub              Hub       @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  hubId            String?
+  hub              Hub?      @relation(fields: [hubId], references: [id], onDelete: SetNull)
   operatingArea    String?   // Khu vực phụ trách chi tiết: Phường/Quận
   assignedDistrict String?   // Quận/Huyện phụ trách
   assignedProvince String?   // Tỉnh/Thành phố phụ trách
@@ -175,8 +175,8 @@ model HubScan {
   id          String    @id @default(uuid())
   shipmentId  String
   shipment    Shipment  @relation(fields: [shipmentId], references: [id], onDelete: Cascade)
-  hubId       String
-  hub         Hub       @relation(fields: [hubId], references: [id], onDelete: Cascade)
+  hubId       String?
+  hub         Hub?      @relation(fields: [hubId], references: [id], onDelete: SetNull)
   scanType    String    // ARRIVED, SORTED, DEPARTED, LOADED
   staffId     String?
   note        String?
@@ -380,7 +380,7 @@ model DriverAttendance {
   id            String    @id @default(uuid())
   driverId      String
   driver        Driver    @relation(fields: [driverId], references: [id], onDelete: Cascade)
-  hubId         String
+  hubId         String?
   checkInAt     DateTime  @default(now())
   checkOutAt    DateTime?
   faceImage     String?   // Base64 hoặc link ảnh selfie xác thực khuôn mặt

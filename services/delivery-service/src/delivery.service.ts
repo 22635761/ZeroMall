@@ -1091,7 +1091,14 @@ export class DeliveryService {
     });
     if (!hub) throw new NotFoundException('Không tìm thấy Bưu cục');
     if (hub._count.shipments > 0) {
-      throw new BadRequestException('Không thể xóa bưu cục đang có vận đơn liên kết');
+      throw new BadRequestException(
+        `Không thể xóa bưu cục đang có ${hub._count.shipments} vận đơn liên kết!`,
+      );
+    }
+    if (hub._count.drivers > 0) {
+      throw new BadRequestException(
+        `Không thể xóa bưu cục đang có ${hub._count.drivers} tài xế trực thuộc. Vui lòng điều chuyển tài xế sang bưu cục khác trước!`,
+      );
     }
 
     return this.prisma.hub.delete({ where: { id } });
@@ -1172,11 +1179,24 @@ export class DeliveryService {
       where: { id },
       include: {
         assignments: { where: { status: { in: ['ASSIGNED', 'IN_PROGRESS'] } } },
+        _count: { select: { assignments: true, attendances: true } },
       },
     });
     if (!driver) throw new NotFoundException('Không tìm thấy Tài xế');
     if (driver.assignments.length > 0) {
       throw new BadRequestException('Không thể xóa tài xế đang có đơn giao nhận dở dang');
+    }
+
+    // Nếu tài xế đã từng có lịch sử giao nhận hoặc điểm danh, ngưng hoạt động an toàn (Soft Deactivate)
+    // để không làm mất dữ liệu lịch sử đối soát và vận đơn
+    if (driver._count.assignments > 0 || driver._count.attendances > 0) {
+      return this.prisma.driver.update({
+        where: { id },
+        data: {
+          status: 'OFFLINE',
+          hubId: null,
+        },
+      });
     }
 
     return this.prisma.driver.delete({ where: { id } });
