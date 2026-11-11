@@ -451,32 +451,54 @@ export class ProductService {
   }
 
   async purchase(items: { productId: string; quantity: number }[]) {
+    if (!items || items.length === 0) return { success: true };
+
+    // 1. Gộp các sản phẩm trùng lặp và sắp xếp theo productId tăng dần
+    // Nguyên tắc Postgres Architect (lock-deadlock-prevention): Luôn khóa tài nguyên theo thứ tự cố định để triệt tiêu Deadlock (40P01)
+    const consolidatedMap = new Map<string, number>();
+    for (const item of items) {
+      if (item.quantity <= 0) continue;
+      consolidatedMap.set(item.productId, (consolidatedMap.get(item.productId) || 0) + item.quantity);
+    }
+
+    const sortedItems = Array.from(consolidatedMap.entries())
+      .map(([productId, quantity]) => ({ productId, quantity }))
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+
+    // 2. Thực hiện giao dịch với Row-Level Locking (Pessimistic Lock: SELECT ... FOR UPDATE)
     const result = await this.prisma.$transaction(async (tx) => {
-      for (const item of items) {
-        const prod = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { id: true, name: true, stock: true },
-        });
-        if (!prod) {
+      for (const item of sortedItems) {
+        // Khóa dòng cấp cơ sở dữ liệu ngăn chặn hoàn toàn Race Condition / Overselling
+        const lockedRows: any[] = await tx.$queryRaw`
+          SELECT id, name, stock
+          FROM product."Product"
+          WHERE id = ${item.productId}
+          FOR UPDATE
+        `;
+
+        if (!lockedRows || lockedRows.length === 0) {
           throw new BadRequestException(`Sản phẩm không tồn tại (ID: ${item.productId})`);
         }
+
+        const prod = lockedRows[0];
         if (prod.stock < item.quantity) {
           throw new BadRequestException(
             `Sản phẩm "${prod.name}" không đủ số lượng trong kho (Còn: ${prod.stock}, Yêu cầu: ${item.quantity})`,
           );
         }
-        await tx.product.update({
-          where: { id: item.productId },
-          data: {
-            stock: { decrement: item.quantity },
-            sales: { increment: item.quantity },
-          },
-        });
+
+        // Cập nhật nguyên tử ngay trong phiên giữ khóa
+        await tx.$executeRaw`
+          UPDATE product."Product"
+          SET stock = stock - ${item.quantity},
+              sales = sales + ${item.quantity}
+          WHERE id = ${item.productId}
+        `;
       }
       return { success: true };
     });
 
-    for (const item of items) {
+    for (const item of sortedItems) {
       await this.redis.del(`product:detail:${item.productId}`);
     }
     await this.redis.delByPattern('products:*');
@@ -485,27 +507,32 @@ export class ProductService {
   }
 
   async restock(items: { productId: string; quantity: number }[]) {
+    if (!items || items.length === 0) return { success: true };
+
+    // Sắp xếp thứ tự ID để tránh Deadlock khi nhiều đơn hoàn trả cùng lúc
+    const consolidatedMap = new Map<string, number>();
+    for (const item of items) {
+      if (item.quantity <= 0) continue;
+      consolidatedMap.set(item.productId, (consolidatedMap.get(item.productId) || 0) + item.quantity);
+    }
+
+    const sortedItems = Array.from(consolidatedMap.entries())
+      .map(([productId, quantity]) => ({ productId, quantity }))
+      .sort((a, b) => a.productId.localeCompare(b.productId));
+
     const result = await this.prisma.$transaction(async (tx) => {
-      for (const item of items) {
-        const prod = await tx.product.findUnique({
-          where: { id: item.productId },
-          select: { id: true, sales: true },
-        });
-        if (prod) {
-          const newSalesDecrement = Math.min(prod.sales, item.quantity);
-          await tx.product.update({
-            where: { id: item.productId },
-            data: {
-              stock: { increment: item.quantity },
-              sales: { decrement: newSalesDecrement },
-            },
-          });
-        }
+      for (const item of sortedItems) {
+        await tx.$executeRaw`
+          UPDATE product."Product"
+          SET stock = stock + ${item.quantity},
+              sales = GREATEST(0, sales - ${item.quantity})
+          WHERE id = ${item.productId}
+        `;
       }
       return { success: true };
     });
 
-    for (const item of items) {
+    for (const item of sortedItems) {
       await this.redis.del(`product:detail:${item.productId}`);
     }
     await this.redis.delByPattern('products:*');
